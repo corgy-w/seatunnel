@@ -42,6 +42,7 @@ import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.kafka.kingbase.KingbaseJsonDeserializationSchema;
 import org.apache.seatunnel.connectors.seatunnel.kafka.state.KafkaSourceState;
+import org.apache.seatunnel.format.compatible.kafka.connect.json.CompatibleKafkaConnectDeserializationSchema;
 import org.apache.seatunnel.format.json.JsonDeserializationSchema;
 import org.apache.seatunnel.format.json.canal.CanalJsonDeserializationSchema;
 import org.apache.seatunnel.format.json.debezium.DebeziumJsonDeserializationSchema;
@@ -86,7 +87,10 @@ public class KafkaSource
     private MessageFormatErrorHandleWay messageFormatErrorHandleWay =
             MessageFormatErrorHandleWay.FAIL;
 
-    public KafkaSource(ReadonlyConfig option, SeaTunnelDataType<SeaTunnelRow> dataType) {
+    public KafkaSource(
+            ReadonlyConfig option,
+            SeaTunnelDataType<SeaTunnelRow> dataType,
+            Map<String, String> primaryKeyMap) {
 
         this.metadata.setTopic(option.get(TOPIC));
         this.metadata.setPattern(option.get(PATTERN));
@@ -153,7 +157,7 @@ public class KafkaSource
         }
 
         this.typeInfo = dataType;
-        setDeserialization(option, dataType);
+        setDeserialization(option, dataType, primaryKeyMap);
     }
 
     @Override
@@ -209,12 +213,16 @@ public class KafkaSource
     }
 
     private void setDeserialization(
-            ReadonlyConfig option, SeaTunnelDataType<SeaTunnelRow> dataType) {
-        deserializationSchema = getDeserializationSchema(option, dataType);
+            ReadonlyConfig option,
+            SeaTunnelDataType<SeaTunnelRow> dataType,
+            Map<String, String> primaryKeyMap) {
+        deserializationSchema = getDeserializationSchema(option, dataType, primaryKeyMap);
     }
 
     private DeserializationSchema<SeaTunnelRow> getDeserializationSchema(
-            ReadonlyConfig option, SeaTunnelDataType<SeaTunnelRow> typeInfo) {
+            ReadonlyConfig option,
+            SeaTunnelDataType<SeaTunnelRow> typeInfo,
+            Map<String, String> primaryKeyMap) {
         MessageFormat format = option.get(FORMAT);
         switch (format) {
             case JSON:
@@ -252,7 +260,17 @@ public class KafkaSource
                             CommonErrorCode.UNSUPPORTED_DATA_TYPE,
                             "Unsupported table format: " + format);
                 } else {
-                    return new KingbaseJsonDeserializationSchema((MultipleRowType) typeInfo);
+                    return new KingbaseJsonDeserializationSchema(
+                            (MultipleRowType) typeInfo, primaryKeyMap);
+                }
+            case COMPATIBLE_KAFKA_CONNECT_JSON:
+                if (typeInfo instanceof MultipleRowType) {
+                    throw new KafkaConnectorException(
+                            CommonErrorCode.UNSUPPORTED_DATA_TYPE,
+                            "Unsupported table format: " + format);
+                } else {
+                    return new CompatibleKafkaConnectDeserializationSchema(
+                            (SeaTunnelRowType) typeInfo, option, false, false);
                 }
             case DEBEZIUM_JSON:
                 if (typeInfo instanceof SeaTunnelRowType) {

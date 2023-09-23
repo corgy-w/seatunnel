@@ -119,10 +119,8 @@ public class DolphinDBCatalog implements Catalog {
         try {
             BasicStringVector run =
                     (BasicStringVector)
-                            dbConnection.run("getDFSTablesByDatabase(\"" + databaseName + "\")");
-            return Arrays.stream(run.getdataArray())
-                    .map(tableFullName -> tableFullName.substring(databaseName.length() + 1))
-                    .collect(Collectors.toList());
+                            dbConnection.run("database(\"" + databaseName + "\").getTables()");
+            return Arrays.stream(run.getdataArray()).collect(Collectors.toList());
         } catch (IOException e) {
             throw new CatalogException("DolphinDB listTables in " + databaseName + " failed", e);
         }
@@ -241,7 +239,7 @@ public class DolphinDBCatalog implements Catalog {
             throws DatabaseNotExistException, CatalogException {
         StringBuilder sb = new StringBuilder();
         sb.append("db=database(\"" + tablePath.getDatabaseName() + "\");\n");
-        sb.append("droptable(db, `" + tablePath.getTableName() + ");\n");
+        sb.append("dropTable(db, \"" + tablePath.getTableName() + "\");\n");
         try {
             Entity run = dbConnection.run(sb.toString());
             System.out.println(run);

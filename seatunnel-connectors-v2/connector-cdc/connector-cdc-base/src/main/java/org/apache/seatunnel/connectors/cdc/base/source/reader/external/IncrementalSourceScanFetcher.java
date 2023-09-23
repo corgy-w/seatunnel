@@ -88,7 +88,12 @@ public class IncrementalSourceScanFetcher implements Fetcher<SourceRecords, Sour
         executorService.submit(
                 () -> {
                     try {
+                        long startTime = System.currentTimeMillis();
                         snapshotSplitReadTask.execute(taskContext);
+                        log.info(
+                                "Execute snapshot read task for snapshot split: {} cost: {}",
+                                currentSnapshotSplit,
+                                (System.currentTimeMillis() - startTime));
                     } catch (Exception e) {
                         log.error(
                                 String.format(
@@ -223,14 +228,11 @@ public class IncrementalSourceScanFetcher implements Fetcher<SourceRecords, Sour
 
     private boolean isChangeRecordInChunkRange(SourceRecord record) {
         if (taskContext.isDataChangeRecord(record)) {
+            // fix the between condition
             return taskContext.isRecordBetween(
                     record,
-                    null == currentSnapshotSplit.getSplitStart()
-                            ? null
-                            : new Object[] {currentSnapshotSplit.getSplitStart()},
-                    null == currentSnapshotSplit.getSplitEnd()
-                            ? null
-                            : new Object[] {currentSnapshotSplit.getSplitEnd()});
+                    currentSnapshotSplit.getSplitStart(),
+                    currentSnapshotSplit.getSplitEnd());
         }
         return false;
     }

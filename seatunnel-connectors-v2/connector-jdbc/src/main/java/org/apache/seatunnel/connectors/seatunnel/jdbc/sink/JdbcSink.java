@@ -110,6 +110,7 @@ public class JdbcSink
         this.dialect =
                 JdbcDialectLoader.load(
                         jdbcSinkConfig.getJdbcConnectionConfig().getUrl(),
+                        jdbcSinkConfig.getJdbcConnectionConfig().getCompatibleMode(),
                         config.get(JdbcOptions.FIELD_IDE) == null
                                 ? FieldIdeEnum.ORIGINAL.getValue()
                                 : config.get(JdbcOptions.FIELD_IDE).getValue());
@@ -206,11 +207,11 @@ public class JdbcSink
             return;
         }
         Map<String, String> catalogOptions = config.get(CatalogOptions.CATALOG_OPTIONS);
-        if (catalogOptions == null) {
+        if (catalogOptions == null || catalogOptions.isEmpty()) {
             return;
         }
         String factoryId = catalogOptions.get(CommonOptions.FACTORY_ID.key());
-        if (StringUtils.isBlank(jdbcSinkConfig.getDatabase())) {
+        if (StringUtils.isBlank(jdbcSinkConfig.getDatabase()) || StringUtils.isEmpty(factoryId)) {
             return;
         }
         CatalogFactory catalogFactory =

@@ -51,8 +51,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkArgument;
+import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkNotNull;
 
 public abstract class AbstractJdbcCatalog implements Catalog {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJdbcCatalog.class);
@@ -77,12 +77,9 @@ public abstract class AbstractJdbcCatalog implements Catalog {
             String defaultSchema) {
 
         checkArgument(StringUtils.isNotBlank(username));
-        urlInfo.getDefaultDatabase()
-                .orElseThrow(
-                        () -> new IllegalArgumentException("Can't find default database in url"));
         checkArgument(StringUtils.isNotBlank(urlInfo.getUrlWithoutDatabase()));
         this.catalogName = catalogName;
-        this.defaultDatabase = urlInfo.getDefaultDatabase().get();
+        this.defaultDatabase = urlInfo.getDefaultDatabase().orElse(null);
         this.username = username;
         this.pwd = pwd;
         this.baseUrl = urlInfo.getUrlWithoutDatabase();

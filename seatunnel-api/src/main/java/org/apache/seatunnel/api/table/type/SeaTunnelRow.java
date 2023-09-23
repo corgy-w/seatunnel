@@ -34,7 +34,7 @@ public final class SeaTunnelRow implements Serializable {
     /** The array to store the actual internal format values. */
     private final Object[] fields;
 
-    private volatile long size;
+    private volatile int size;
 
     public SeaTunnelRow(int arity) {
         this.fields = new Object[arity];
@@ -100,9 +100,9 @@ public final class SeaTunnelRow implements Serializable {
         return this.fields[pos] == null;
     }
 
-    public long getBytesSize(SeaTunnelRowType rowType) {
+    public int getBytesSize(SeaTunnelRowType rowType) {
         if (size == 0) {
-            long s = 0;
+            int s = 0;
             for (int i = 0; i < fields.length; i++) {
                 s += getBytesForValue(fields[i], rowType.getFieldType(i));
             }
@@ -113,7 +113,9 @@ public final class SeaTunnelRow implements Serializable {
 
     /** faster version of {@link #getBytesSize(SeaTunnelRowType)}. */
     private int getBytesForValue(Object v, SeaTunnelDataType<?> dataType) {
-
+        if (v == null) {
+            return 0;
+        }
         SqlType sqlType = dataType.getSqlType();
         switch (sqlType) {
             case STRING:
@@ -194,11 +196,11 @@ public final class SeaTunnelRow implements Serializable {
         }
     }
 
-    public long getBytesSize() {
+    public int getBytesSize() {
         if (size == 0) {
-            long s = 0;
-            for (int i = 0; i < fields.length; i++) {
-                s += getBytesForValue(fields[i]);
+            int s = 0;
+            for (Object field : fields) {
+                s += getBytesForValue(field);
             }
             size = s;
         }

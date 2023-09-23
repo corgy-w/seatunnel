@@ -20,6 +20,9 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.sink;
 import org.apache.seatunnel.api.sink.MultiTableResourceManager;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventDispatcher;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
@@ -30,17 +33,20 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.JdbcOutputFormat;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.JdbcOutputFormatBuilder;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionPoolProviderProxy;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.JdbcBatchStatementExecutor;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcSinkState;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.XidInfo;
 
+import org.apache.commons.collections4.CollectionUtils;
+
 import com.zaxxer.hikari.HikariDataSource;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -49,10 +55,10 @@ import java.util.Optional;
 public class JdbcSinkWriter
         implements SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState>,
                 SupportMultiTableSinkWriter<ConnectionPoolManager> {
-    private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
+    private JdbcOutputFormat outputFormat;
     private final SinkWriter.Context context;
     private final JdbcDialect dialect;
-    private final SeaTunnelRowType rowType;
+    private SeaTunnelRowType rowType;
     private JdbcConnectionProvider connectionProvider;
     private transient boolean isOpen;
     private final Integer primaryKeyIndex;
@@ -69,15 +75,10 @@ public class JdbcSinkWriter
         this.dialect = dialect;
         this.rowType = rowType;
         this.primaryKeyIndex = primaryKeyIndex;
-        this.connectionProvider =
-                new SimpleJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
-        this.outputFormat =
-                new JdbcOutputFormatBuilder(dialect, connectionProvider, jdbcSinkConfig, rowType)
-                        .build();
     }
 
     @Override
-    public Optional<MultiTableResourceManager<ConnectionPoolManager>> initMultiTableResourceManager(
+    public MultiTableResourceManager<ConnectionPoolManager> initMultiTableResourceManager(
             int tableSize, int queueSize) {
         HikariDataSource ds = new HikariDataSource();
         ds.setIdleTimeout(30 * 1000);
@@ -86,17 +87,16 @@ public class JdbcSinkWriter
         ds.setUsername(jdbcSinkConfig.getJdbcConnectionConfig().getUsername().get());
         ds.setPassword(jdbcSinkConfig.getJdbcConnectionConfig().getPassword().get());
         ds.setAutoCommit(jdbcSinkConfig.getJdbcConnectionConfig().isAutoCommit());
-        return Optional.of(new JdbcMultiTableResourceManager(new ConnectionPoolManager(ds)));
+        return new JdbcMultiTableResourceManager(new ConnectionPoolManager(ds));
     }
 
     @Override
     public void setMultiTableResourceManager(
-            Optional<MultiTableResourceManager<ConnectionPoolManager>> multiTableResourceManager,
+            MultiTableResourceManager<ConnectionPoolManager> multiTableResourceManager,
             int queueIndex) {
-        connectionProvider.closeConnection();
         this.connectionProvider =
                 new SimpleJdbcConnectionPoolProviderProxy(
-                        multiTableResourceManager.get().getSharedResource().get(),
+                        multiTableResourceManager.getSharedResource().get(),
                         jdbcSinkConfig.getJdbcConnectionConfig(),
                         queueIndex);
         this.outputFormat =
@@ -162,6 +162,45 @@ public class JdbcSinkWriter
                     CommonErrorCode.WRITER_OPERATION_FAILED, "unable to close JDBC sink write", e);
         } finally {
             outputFormat.close();
+        }
+    }
+
+    @SneakyThrows
+    @Override
+    public void applySchemaChange(SchemaChangeEvent event) {
+        log.info("received schema change event: " + event);
+        try {
+            outputFormat.close();
+            final DataTypeChangeEventDispatcher dataTypeChangeEventDispatcher =
+                    new DataTypeChangeEventDispatcher();
+            dataTypeChangeEventDispatcher.reset(rowType);
+            rowType = dataTypeChangeEventDispatcher.handle(event);
+            outputFormat =
+                    new JdbcOutputFormatBuilder(
+                                    dialect, connectionProvider, jdbcSinkConfig, rowType)
+                            .build();
+            outputFormat.open();
+        } catch (Exception e) {
+            throw new JdbcConnectorException(
+                    CommonErrorCode.WRITER_OPERATION_FAILED, " rebuild outputFormat fail", e);
+        }
+        final List<String> sqlList =
+                dialect.getSQLFromSchemaChangeEvent(
+                        TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable()),
+                        event);
+        if (CollectionUtils.isEmpty(sqlList)) {
+            return;
+        }
+        try {
+            Connection connection = connectionProvider.getConnection();
+            Statement statement = connection.createStatement();
+            for (String sql : sqlList) {
+                statement.execute(sql);
+            }
+        } catch (Exception throwables) {
+            log.error("schema change error :", throwables);
+            throw new JdbcConnectorException(
+                    CommonErrorCode.WRITER_OPERATION_FAILED, "schema change error", throwables);
         }
     }
 }

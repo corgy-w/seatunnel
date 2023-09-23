@@ -22,9 +22,9 @@ import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.mysql.MysqlDataTypeConvertor;
 
-import com.google.common.collect.ImmutableMap;
 import com.mysql.cj.MysqlType;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.mysql.MysqlDataTypeConvertor.PRECISION;
@@ -35,19 +35,38 @@ public class MysqlColumnConverter {
             new MysqlDataTypeConvertor();
 
     public static Column convert(io.debezium.relational.Column column) {
+        SeaTunnelDataType datatype = convertDataType(column);
+        long longColumnLength;
+        switch (datatype.getSqlType()) {
+            case STRING:
+                longColumnLength = column.length() * 3;
+                break;
+            default:
+                longColumnLength = column.length();
+                break;
+        }
         return PhysicalColumn.of(
                 column.name(),
-                convertDataType(column),
+                datatype,
                 column.length(),
                 column.isOptional(),
                 column.defaultValue(),
-                null);
+                null,
+                column.typeName(),
+                false,
+                false,
+                null,
+                null,
+                longColumnLength);
     }
 
     public static SeaTunnelDataType convertDataType(io.debezium.relational.Column column) {
         MysqlType mysqlType = MysqlType.getByName(column.typeName());
-        Map<String, Object> properties =
-                ImmutableMap.of(PRECISION, column.length(), SCALE, column.scale());
+        Map<String, Object> properties = new HashMap<>();
+        properties.put(PRECISION, column.length());
+        if (column.scale().isPresent()) {
+            properties.put(SCALE, column.scale().get());
+        }
         return MYSQL_DATA_TYPE_CONVERTOR.toSeaTunnelType(mysqlType, properties);
     }
 }
