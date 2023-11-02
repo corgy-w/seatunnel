@@ -4,15 +4,14 @@ import org.apache.seatunnel.shade.com.typesafe.config.Config;
 
 import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.configuration.util.ReadOnlyConfigUtils;
 import org.apache.seatunnel.api.serialization.DefaultSerializer;
 import org.apache.seatunnel.api.serialization.Serializer;
-import org.apache.seatunnel.api.sink.DataSaveMode;
+import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SinkAggregatedCommitter;
 import org.apache.seatunnel.api.sink.SinkWriter;
-import org.apache.seatunnel.api.sink.SupportDataSaveMode;
 import org.apache.seatunnel.api.sink.SupportMultiTableSink;
+import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -31,15 +30,14 @@ import org.apache.seatunnel.connectors.dws.guassdb.sink.writer.DwsGaussDBSinkWri
 import org.apache.commons.collections4.CollectionUtils;
 
 import lombok.Getter;
-import lombok.SneakyThrows;
 
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.FIELD_IDE;
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.PRIMARY_KEY;
-import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.SAVE_MODE;
 
 public class DwsGaussDBSink
         implements SeaTunnelSink<
@@ -48,11 +46,10 @@ public class DwsGaussDBSink
                         DwsGaussDBSinkCommitInfo,
                         DwsGaussDBSinkAggregatedCommitInfo>,
                 SupportMultiTableSink,
-                SupportDataSaveMode {
+                SupportSaveMode {
 
     @Getter private final String pluginName = DwsGaussDBConfig.CONNECTOR_NAME;
 
-    private final DataSaveMode dataSaveMode;
     private SeaTunnelRowType seaTunnelRowType;
     private final ReadonlyConfig readonlyConfig;
     private final CatalogTable catalogTable;
@@ -67,9 +64,6 @@ public class DwsGaussDBSink
                         readonlyConfig.get(PRIMARY_KEY),
                         readonlyConfig.get(FIELD_IDE),
                         catalogTable);
-        this.dataSaveMode =
-                ReadOnlyConfigUtils.getOrDefault(
-                        readonlyConfig, SAVE_MODE, DataSaveMode.ERROR_WHEN_EXISTS);
     }
 
     @Override
@@ -104,9 +98,15 @@ public class DwsGaussDBSink
                 try (DwsGaussDBCatalog dwsGaussDBCatalog =
                         new DwsGaussDBCatalogFactory()
                                 .createCatalog(catalogTable.getCatalogName(), readonlyConfig)) {
-                    for (DwsGaussDBSinkState state : states) {
+
+                    List<Long> snapshotIds =
+                            states.stream()
+                                    .flatMap(state -> state.getSnapshotId().stream())
+                                    .collect(Collectors.toList());
+
+                    if (CollectionUtils.isNotEmpty(snapshotIds)) {
                         String deleteTemporarySnapshotSql =
-                                sqlGenerator.getDeleteTemporarySnapshotSql(state.getSnapshotId());
+                                sqlGenerator.getDeleteTemporarySnapshotSql(snapshotIds);
                         dwsGaussDBCatalog.executeUpdateSql(deleteTemporarySnapshotSql);
                     }
                 }
@@ -144,14 +144,7 @@ public class DwsGaussDBSink
     }
 
     @Override
-    public DataSaveMode getUserConfigSaveMode() {
-        return dataSaveMode;
-    }
-
-    @SneakyThrows
-    @Override
-    public void handleSaveMode(DataSaveMode saveMode) {
-        new DwsGaussDBSaveModeHandler(readonlyConfig, catalogTable, sqlGenerator)
-                .handleSaveMode(saveMode);
+    public SaveModeHandler getSaveModeHandler() {
+        return new DwsGaussDBSaveModeHandler(readonlyConfig, catalogTable, sqlGenerator);
     }
 }

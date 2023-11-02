@@ -20,13 +20,18 @@ package org.apache.seatunnel.connectors.selectdb.sink.writer;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventDispatcher;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig;
 import org.apache.seatunnel.connectors.selectdb.serialize.SeaTunnelRowSerializer;
 import org.apache.seatunnel.connectors.selectdb.serialize.SelectDBSerializer;
+import org.apache.seatunnel.connectors.selectdb.sink.SelectDbDdlUtil;
 import org.apache.seatunnel.connectors.selectdb.sink.committer.SelectDBCommitInfo;
+import org.apache.seatunnel.connectors.selectdb.util.UnsupportedTypeConverterUtils;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -50,7 +55,8 @@ public class SelectDBSinkWriter
     private final byte[] lineDelimiter;
     private final LabelGenerator labelGenerator;
     private final SelectDBSinkState selectdbSinkState;
-    private final SelectDBSerializer serializer;
+    private SelectDBSerializer serializer;
+    private SeaTunnelRowType seaTunnelRowType;
 
     public SelectDBSinkWriter(
             SinkWriter.Context context,
@@ -60,6 +66,7 @@ public class SelectDBSinkWriter
             String jobId) {
         this.selectdbConfig = selectdbConfig;
         this.catalogTable = catalogTable;
+        this.seaTunnelRowType = catalogTable.getSeaTunnelRowType();
         this.lastCheckpointId = state.size() != 0 ? state.get(0).getCheckpointId() : 0;
         log.info("restore checkpointId {}", lastCheckpointId);
         // filename prefix is uuid
@@ -98,7 +105,11 @@ public class SelectDBSinkWriter
 
     @Override
     public void write(SeaTunnelRow element) throws IOException {
-        byte[] serialize = serializer.serialize(element);
+        byte[] serialize =
+                serializer.serialize(
+                        selectdbConfig.getNeedsUnsupportedTypeCasting()
+                                ? UnsupportedTypeConverterUtils.convertRow(element)
+                                : element);
         if (Objects.isNull(serialize)) {
             // schema change is null
             return;
@@ -108,6 +119,22 @@ public class SelectDBSinkWriter
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @SneakyThrows
+    @Override
+    public void applySchemaChange(SchemaChangeEvent event) {
+        log.info("received schema change event: " + event);
+        this.selectDBStageLoad.flush(true);
+        serializer.close();
+        SelectDbDdlUtil.executeDdl(selectdbConfig, event, catalogTable);
+        // rebuild serializer
+        final DataTypeChangeEventDispatcher dataTypeChangeEventDispatcher =
+                new DataTypeChangeEventDispatcher();
+        dataTypeChangeEventDispatcher.reset(seaTunnelRowType);
+        seaTunnelRowType = dataTypeChangeEventDispatcher.handle(event);
+        serializer = createSerializer(selectdbConfig, seaTunnelRowType);
+        serializer.open();
     }
 
     @Override

@@ -15,23 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.source;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.hive;
 
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectFactory;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import com.google.auto.service.AutoService;
 
-import java.io.Serializable;
-import java.math.BigDecimal;
+/** Factory for {@link HiveDialect}. */
+@AutoService(JdbcDialectFactory.class)
+public class HiveDialectFactory implements JdbcDialectFactory {
 
-@Data
-@AllArgsConstructor
-public class PartitionParameter implements Serializable {
+    @Override
+    public boolean acceptsURL(String url) {
+        return url.startsWith("jdbc:hive2:");
+    }
 
-    String partitionColumnName;
-    SeaTunnelDataType<?> dataType;
-    BigDecimal minValue;
-    BigDecimal maxValue;
-    Integer partitionNumber;
+    @Override
+    public JdbcDialect create() {
+        return new HiveDialect();
+    }
 }

@@ -44,6 +44,7 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.config.PostgresSou
 import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.source.offset.LsnOffsetFactory;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresCatalogFactory;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import org.apache.kafka.connect.data.Struct;
 
@@ -67,8 +68,10 @@ public class PostgresIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
     static final String IDENTIFIER = "Postgres-CDC";
 
     public PostgresIncrementalSource(
-            ReadonlyConfig options, SeaTunnelDataType<SeaTunnelRow> dataType) {
-        super(options, dataType);
+            ReadonlyConfig options,
+            SeaTunnelDataType<SeaTunnelRow> dataType,
+            List<CatalogTable> catalogTables) {
+        super(options, dataType, catalogTables);
     }
 
     @Override
@@ -115,7 +118,9 @@ public class PostgresIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
         SeaTunnelDataType<SeaTunnelRow> physicalRowType;
         if (dataType == null) {
             // TODO: support metadata keys
-            try (Catalog catalog = new PostgresCatalogFactory().createCatalog("postgres", config)) {
+            try (Catalog catalog =
+                    new PostgresCatalogFactory()
+                            .createCatalog(DatabaseIdentifier.POSTGRESQL, config)) {
                 catalog.open();
                 CatalogTable table =
                         catalog.getTable(

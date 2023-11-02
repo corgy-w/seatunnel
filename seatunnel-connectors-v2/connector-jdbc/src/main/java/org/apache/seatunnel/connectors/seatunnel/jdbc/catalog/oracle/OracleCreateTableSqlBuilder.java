@@ -19,37 +19,47 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.oracle;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCreateTableSqlBuilder;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import lombok.Getter;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class OracleCreateTableSqlBuilder {
+public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuilder {
 
     private List<Column> columns;
     private PrimaryKey primaryKey;
     private OracleDataTypeConvertor oracleDataTypeConvertor;
     private String sourceCatalogName;
+    private String fieldIde;
+    private List<ConstraintKey> constraintKeys;
+    public Boolean isHaveConstraintKey = false;
+
+    @Getter public List<String> createIndexSqls = new ArrayList<>();
 
     public OracleCreateTableSqlBuilder(CatalogTable catalogTable) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
         this.oracleDataTypeConvertor = new OracleDataTypeConvertor();
         this.sourceCatalogName = catalogTable.getCatalogName();
+        this.fieldIde = catalogTable.getOptions().get("fieldIde");
+        constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
     }
 
     public String build(TablePath tablePath) {
-        return build(tablePath, "");
-    }
-
-    public String build(TablePath tablePath, String fieldIde) {
         StringBuilder createTableSql = new StringBuilder();
         createTableSql
                 .append("CREATE TABLE ")
@@ -65,7 +75,35 @@ public class OracleCreateTableSqlBuilder {
         if (primaryKey != null
                 && primaryKey.getColumnNames() != null
                 && primaryKey.getColumnNames().size() > 0) {
-            columnSqls.add(buildPrimaryKeySql(primaryKey, fieldIde));
+            columnSqls.add(buildPrimaryKeySql(primaryKey));
+        }
+
+        if (CollectionUtils.isNotEmpty(constraintKeys)) {
+            for (ConstraintKey constraintKey : constraintKeys) {
+                if (StringUtils.isBlank(constraintKey.getConstraintName())
+                        || (primaryKey != null
+                                && (StringUtils.equals(
+                                                primaryKey.getPrimaryKey(),
+                                                constraintKey.getConstraintName())
+                                        || primaryCompareToConstrainKey(
+                                                primaryKey, constraintKey)))) {
+                    continue;
+                }
+                switch (constraintKey.getConstraintType()) {
+                    case UNIQUE_KEY:
+                        isHaveConstraintKey = true;
+                        String uniqueKeySql = buildUniqueKeySql(constraintKey);
+                        columnSqls.add("\t" + uniqueKeySql);
+                        break;
+                    case INDEX_KEY:
+                        isHaveConstraintKey = true;
+                        String indexKeySql = buildIndexKeySql(tablePath, constraintKey);
+                        createIndexSqls.add(indexKeySql);
+                        break;
+                    case FOREIGN_KEY:
+                        break;
+                }
+            }
         }
 
         createTableSql.append(String.join(",\n", columnSqls));
@@ -77,9 +115,7 @@ public class OracleCreateTableSqlBuilder {
                         .map(
                                 column ->
                                         buildColumnCommentSql(
-                                                column,
-                                                tablePath.getSchemaAndTableName("\""),
-                                                fieldIde))
+                                                column, tablePath.getSchemaAndTableName("\"")))
                         .collect(Collectors.toList());
 
         if (!commentSqls.isEmpty()) {
@@ -95,7 +131,7 @@ public class OracleCreateTableSqlBuilder {
         columnSql.append("\"").append(column.getName()).append("\" ");
 
         String columnType =
-                sourceCatalogName.equals("oracle")
+                sourceCatalogName.equals(DatabaseIdentifier.ORACLE)
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);
@@ -103,11 +139,6 @@ public class OracleCreateTableSqlBuilder {
         if (!column.isNullable()) {
             columnSql.append(" NOT NULL");
         }
-
-        //        if (column.getDefaultValue() != null) {
-        //            columnSql.append(" DEFAULT
-        // '").append(column.getDefaultValue().toString()).append("'");
-        //        }
 
         return columnSql.toString();
     }
@@ -118,13 +149,13 @@ public class OracleCreateTableSqlBuilder {
         Long bitLen = column.getBitLen();
         switch (sqlType) {
             case BYTES:
-                if (bitLen < 0 || bitLen > 2000) {
+                if (bitLen == null || bitLen < 0 || bitLen > 2000) {
                     return "BLOB";
                 } else {
                     return "RAW(" + bitLen + ")";
                 }
             case STRING:
-                if (columnLength > 0 && columnLength < 4000) {
+                if (columnLength != null && columnLength > 0 && columnLength < 4000) {
                     return "VARCHAR2(" + columnLength + " CHAR)";
                 } else {
                     return "CLOB";
@@ -147,7 +178,7 @@ public class OracleCreateTableSqlBuilder {
         }
     }
 
-    private String buildPrimaryKeySql(PrimaryKey primaryKey, String fieldIde) {
+    private String buildPrimaryKeySql(PrimaryKey primaryKey) {
         String randomSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 4);
         //        String columnNamesString = String.join(", ", primaryKey.getColumnNames());
         String columnNamesString =
@@ -172,11 +203,11 @@ public class OracleCreateTableSqlBuilder {
                 fieldIde);
     }
 
-    private String buildColumnCommentSql(Column column, String tableName, String fieldIde) {
+    private String buildColumnCommentSql(Column column, String tableName) {
         StringBuilder columnCommentSql = new StringBuilder();
         columnCommentSql
                 .append(CatalogUtils.quoteIdentifier("COMMENT ON COLUMN ", fieldIde))
-                .append(tableName)
+                .append(CatalogUtils.quoteIdentifier(tableName, fieldIde))
                 .append(".");
         columnCommentSql
                 .append(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "\""))
@@ -184,5 +215,50 @@ public class OracleCreateTableSqlBuilder {
                 .append(column.getComment())
                 .append("'");
         return columnCommentSql.toString();
+    }
+
+    private String buildUniqueKeySql(ConstraintKey constraintKey) {
+        String constraintName = constraintKey.getConstraintName();
+        if (constraintName.length() > 25) {
+            constraintName = constraintName.substring(0, 25);
+        }
+        String indexColumns =
+                constraintKey.getColumnNames().stream()
+                        .map(
+                                constraintKeyColumn ->
+                                        String.format(
+                                                "\"%s\"",
+                                                CatalogUtils.getFieldIde(
+                                                        constraintKeyColumn.getColumnName(),
+                                                        fieldIde)))
+                        .collect(Collectors.joining(", "));
+
+        return "CONSTRAINT " + constraintName + " UNIQUE (" + indexColumns + ")";
+    }
+
+    private String buildIndexKeySql(TablePath tablePath, ConstraintKey constraintKey) {
+
+        String constraintName = tablePath.getTableName() + "_" + constraintKey.getConstraintName();
+        if (constraintName.length() > 30) {
+            constraintName = constraintName.substring(0, 30);
+        }
+        String indexColumns =
+                constraintKey.getColumnNames().stream()
+                        .map(
+                                constraintKeyColumn ->
+                                        String.format(
+                                                "\"%s\"",
+                                                CatalogUtils.getFieldIde(
+                                                        constraintKeyColumn.getColumnName(),
+                                                        fieldIde)))
+                        .collect(Collectors.joining(", "));
+
+        return "CREATE INDEX "
+                + constraintName
+                + " ON "
+                + tablePath.getSchemaAndTableName("\"")
+                + "("
+                + indexColumns
+                + ")";
     }
 }

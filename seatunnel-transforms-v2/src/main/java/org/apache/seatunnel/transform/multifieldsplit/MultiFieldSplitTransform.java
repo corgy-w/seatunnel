@@ -39,13 +39,15 @@ import lombok.NonNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.IntFunction;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @AutoService(SeaTunnelTransform.class)
 @NoArgsConstructor
 public class MultiFieldSplitTransform extends MultipleFieldOutputTransform {
+
+    public static String PLUGIN_NAME = "MultiFieldSplit";
     private MultiFieldSplitTransformConfig multiFieldSplitTransformConfig;
     private MultiFieldSplitTransformConfig.SplitOP[] splitOPS;
     private int[] splitFieldIndexS;
@@ -64,7 +66,7 @@ public class MultiFieldSplitTransform extends MultipleFieldOutputTransform {
 
     @Override
     public String getPluginName() {
-        return "MultiFieldSplit";
+        return PLUGIN_NAME;
     }
 
     @Override
@@ -123,15 +125,35 @@ public class MultiFieldSplitTransform extends MultipleFieldOutputTransform {
 
     @Override
     protected Column[] getOutputColumns() {
-        List<PhysicalColumn> collect =
-                Arrays.stream(multiFieldSplitTransformConfig.getOutputFields())
-                        .map(
-                                fieldName -> {
-                                    return PhysicalColumn.of(
-                                            fieldName, BasicType.STRING_TYPE, 200, true, "", "");
-                                })
-                        .collect(Collectors.toList());
-        return collect.toArray(new Column[0]);
+        final ArrayList<Column> columnList = new ArrayList<>();
+        for (MultiFieldSplitTransformConfig.SplitOP splitOP : splitOPS) {
+            final String splitField = splitOP.getSplitField();
+            final String[] outputFields = splitOP.getOutputFields();
+            Optional<Column> originColumnOptional =
+                    inputCatalogTable.getTableSchema().getColumns().stream()
+                            .filter(column -> column.getName().equals(splitField))
+                            .findAny();
+            if (originColumnOptional.isPresent()) {
+                final Column originColumn = originColumnOptional.get();
+                for (String outputField : outputFields) {
+                    columnList.add(
+                            PhysicalColumn.of(
+                                    outputField,
+                                    originColumn.getDataType(),
+                                    originColumn.getColumnLength(),
+                                    originColumn.isNullable(),
+                                    originColumn.getDefaultValue(),
+                                    originColumn.getComment(),
+                                    originColumn.getSourceType(),
+                                    originColumn.isUnsigned(),
+                                    originColumn.isZeroFill(),
+                                    originColumn.getBitLen(),
+                                    originColumn.getOptions(),
+                                    originColumn.getLongColumnLength()));
+                }
+            }
+        }
+        return columnList.toArray(new Column[0]);
     }
 
     private int[] buildSplitFieldIndex(SeaTunnelRowType rowType) {

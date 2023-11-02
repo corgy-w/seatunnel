@@ -31,6 +31,11 @@ import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresTypeMapper;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.mysql.cj.MysqlType;
 import com.mysql.cj.jdbc.result.ResultSetImpl;
@@ -75,7 +80,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
                     + "        WHEN t.typname = 'bpchar' THEN 'char' || '(' || (a.atttypmod - 4) || ')'\n"
                     + "        WHEN t.typname = 'numeric' OR t.typname = 'decimal' THEN t.typname || '(' || ((a.atttypmod - 4) >> 16) || ', ' || ((a.atttypmod - 4) & 65535) || ')'\n"
                     + "        WHEN t.typname = 'bit' OR t.typname = 'bit varying' THEN t.typname || '(' || (a.atttypmod - 4) || ')'\n"
-                    + "        ELSE t.typname\n"
+                    + "        ELSE t.typname || '' \n"
                     + "    END AS full_type_name,\n"
                     + "    CASE\n"
                     + "        WHEN t.typname IN ('varchar', 'bpchar', 'bit', 'bit varying') THEN a.atttypmod - 4\n"
@@ -217,7 +222,10 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
             throw new TableNotExistException(catalogName, tablePath);
         }
 
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        String dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        }
         Connection conn = getConnection(dbUrl);
         try {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -264,7 +272,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
                         buildConnectorOptions(tablePath),
                         Collections.emptyList(),
                         "",
-                        "postgres");
+                        catalogName);
             }
 
         } catch (Exception e) {
@@ -332,9 +340,9 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     @Override
     protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
             throws CatalogException {
-        String createTableSql =
-                new PostgresCreateTableSqlBuilder(table)
-                        .build(tablePath, table.getOptions().get("fieldIde"));
+        PostgresCreateTableSqlBuilder postgresCreateTableSqlBuilder =
+                new PostgresCreateTableSqlBuilder(table);
+        String createTableSql = postgresCreateTableSqlBuilder.build(tablePath);
         String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
         Connection conn = getConnection(dbUrl);
         log.info("create table sql: {}", createTableSql);
@@ -343,6 +351,30 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed creating table %s", tablePath.getFullName()), e);
+        }
+        if (postgresCreateTableSqlBuilder.isHaveConstraintKey) {
+            String alterTableSql =
+                    "ALTER TABLE "
+                            + tablePath.getSchemaAndTableName("\"")
+                            + " REPLICA IDENTITY FULL;";
+            log.info("alterTableSql: {}", alterTableSql);
+            try (PreparedStatement ps = conn.prepareStatement(alterTableSql)) {
+                ps.execute();
+            } catch (Exception e) {
+                throw new CatalogException(
+                        String.format("Failed alter table %s", tablePath.getFullName()), e);
+            }
+        }
+        if (CollectionUtils.isNotEmpty(postgresCreateTableSqlBuilder.getCreateIndexSqls())) {
+            for (String createIndexSql : postgresCreateTableSqlBuilder.getCreateIndexSqls()) {
+                log.info("createIndexSql: {}", createIndexSql);
+                try (PreparedStatement ps = conn.prepareStatement(createIndexSql)) {
+                    ps.execute();
+                } catch (Exception e) {
+                    throw new CatalogException(
+                            String.format("Failed create index %s", tablePath.getFullName()), e);
+                }
+            }
         }
         return true;
     }
@@ -404,9 +436,13 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName())
-                            .contains(tablePath.getSchemaAndTableName());
+            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+                return databaseExists(tablePath.getDatabaseName())
+                        && listTables(tablePath.getDatabaseName())
+                                .contains(tablePath.getSchemaAndTableName());
+            }
+
+            return listTables(defaultDatabase).contains(tablePath.getSchemaAndTableName());
         } catch (DatabaseNotExistException e) {
             return false;
         }
@@ -462,5 +498,10 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     private String getUrlFromDatabaseName(String databaseName) {
         String url = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         return url + databaseName + suffix;
+    }
+
+    @Override
+    public CatalogTable getTable(String sqlQuery) throws SQLException {
+        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new PostgresTypeMapper());
     }
 }

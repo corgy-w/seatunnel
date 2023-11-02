@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
@@ -87,14 +88,19 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
 
     protected int incrementalParallelism;
     protected StopConfig stopConfig;
+    protected List<CatalogTable> catalogTables;
 
     protected StopMode stopMode;
     protected DebeziumDeserializationSchema<T> deserializationSchema;
 
     protected SeaTunnelDataType<SeaTunnelRow> dataType;
 
-    protected IncrementalSource(ReadonlyConfig options, SeaTunnelDataType<SeaTunnelRow> dataType) {
+    protected IncrementalSource(
+            ReadonlyConfig options,
+            SeaTunnelDataType<SeaTunnelRow> dataType,
+            List<CatalogTable> catalogTables) {
         this.dataType = dataType;
+        this.catalogTables = catalogTables;
         this.readonlyConfig = options;
         this.startupConfig = getStartupConfig(readonlyConfig);
         this.stopConfig = getStopConfig(readonlyConfig);
@@ -136,6 +142,11 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                 config.get(SourceOptions.STOP_TIMESTAMP));
     }
 
+    @Override
+    public List<CatalogTable> getProducedCatalogTables() {
+        return catalogTables;
+    }
+
     public abstract Option<StartupMode> getStartupModeOption();
 
     public abstract Option<StopMode> getStopModeOption();
@@ -152,11 +163,6 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
     @Override
     public Boundedness getBoundedness() {
         return stopMode == StopMode.NEVER ? Boundedness.UNBOUNDED : Boundedness.BOUNDED;
-    }
-
-    @Override
-    public SeaTunnelDataType<T> getProducedType() {
-        return deserializationSchema.getProducedType();
     }
 
     @SuppressWarnings("MagicNumber")

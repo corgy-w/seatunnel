@@ -405,10 +405,10 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
         }
     }
 
-    public boolean executeSql(String sql) {
+    public void executeSql(String sql) {
         BaseConnection connection = getDefaultConnection();
         try (Statement preparedStatement = connection.createStatement()) {
-            return preparedStatement.execute(sql);
+            preparedStatement.execute(sql);
         } catch (SQLException e) {
             throw new RuntimeException("Execute Sql: " + sql + " failed", e);
         }
@@ -416,7 +416,7 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
 
     public int queryDataCount(String sql) {
         BaseConnection connection = getDefaultConnection();
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        try (Statement preparedStatement = connection.createStatement();
                 ResultSet resultSet = preparedStatement.executeQuery(sql)) {
             if (resultSet == null) {
                 return 0;
@@ -484,7 +484,7 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
                             indexName,
                             s -> {
                                 ConstraintKey.ConstraintType constraintType =
-                                        ConstraintKey.ConstraintType.KEY;
+                                        ConstraintKey.ConstraintType.INDEX_KEY;
                                 if (!noUnique) {
                                     constraintType = ConstraintKey.ConstraintType.UNIQUE_KEY;
                                 }
