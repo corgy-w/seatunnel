@@ -168,12 +168,4 @@ public class S3RedshiftSink extends BaseHdfsFileSink
         writeStrategy.setFileSystemUtils(fileSystemUtils);
         return writeStrategy;
     }
-
-    private WriteStrategy newWriteStrategy() {
-        WriteStrategy writeStrategy =
-                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
-        writeStrategy.setSeaTunnelRowTypeInfo(seaTunnelRowType);
-        writeStrategy.setFileSystemUtils(fileSystemUtils);
-        return writeStrategy;
-    }
 }
