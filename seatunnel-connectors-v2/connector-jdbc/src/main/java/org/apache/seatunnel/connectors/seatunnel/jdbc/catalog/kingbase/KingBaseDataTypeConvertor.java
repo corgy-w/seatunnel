@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
 
 import org.apache.commons.collections4.MapUtils;
@@ -68,6 +69,7 @@ public class KingBaseDataTypeConvertor implements DataTypeConvertor<String> {
     private static final String PG_SMALLSERIAL = "SMALLSERIAL";
     private static final String PG_SERIAL = "SERIAL";
     private static final String PG_BIGSERIAL = "BIGSERIAL";
+    private static final String PG_TINYINT = "TINYINT";
     private static final String PG_BYTEA = "BYTEA";
     private static final String PG_BYTEA_ARRAY = "_BYTEA";
     private static final String PG_SMALLINT = "INT2";
@@ -103,6 +105,7 @@ public class KingBaseDataTypeConvertor implements DataTypeConvertor<String> {
     private static final String PG_INTERVAL = "INTERVAL";
     private static final String PG_GEOMETRY = "GEOMETRY";
     private static final String PG_GEOGRAPHY = "GEOGRAPHY";
+    private static final String DATETIME = "DATETIME";
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
@@ -123,12 +126,16 @@ public class KingBaseDataTypeConvertor implements DataTypeConvertor<String> {
                 return PrimitiveByteArrayType.INSTANCE;
             case PG_BYTEA_ARRAY:
                 return ArrayType.BYTE_ARRAY_TYPE;
+            case PG_TINYINT:
+                return BasicType.BYTE_TYPE;
             case PG_SMALLINT:
             case PG_SMALLSERIAL:
+                return BasicType.SHORT_TYPE;
+            case PG_SMALLINT_ARRAY:
+                return ArrayType.SHORT_ARRAY_TYPE;
             case PG_INTEGER:
             case PG_SERIAL:
                 return BasicType.INT_TYPE;
-            case PG_SMALLINT_ARRAY:
             case PG_INTEGER_ARRAY:
                 return ArrayType.INT_ARRAY_TYPE;
             case PG_BIGINT:
@@ -165,17 +172,17 @@ public class KingBaseDataTypeConvertor implements DataTypeConvertor<String> {
                 return ArrayType.STRING_ARRAY_TYPE;
             case PG_TIMESTAMPTZ:
             case PG_TIMESTAMP:
+            case DATETIME:
                 return LocalTimeType.LOCAL_DATE_TIME_TYPE;
             case PG_TIME:
                 return LocalTimeType.LOCAL_TIME_TYPE;
             case PG_DATE:
                 return LocalTimeType.LOCAL_DATE_TYPE;
-
             case PG_TIMESTAMP_ARRAY:
-            case PG_NUMERIC_ARRAY:
             case PG_TIMESTAMPTZ_ARRAY:
             case PG_TIME_ARRAY:
             case PG_DATE_ARRAY:
+            case PG_NUMERIC_ARRAY:
             default:
                 throw new UnsupportedOperationException(
                         String.format(
@@ -224,6 +231,6 @@ public class KingBaseDataTypeConvertor implements DataTypeConvertor<String> {
 
     @Override
     public String getIdentity() {
-        return "KINGBASE";
+        return DatabaseIdentifier.KINGBASE;
     }
 }

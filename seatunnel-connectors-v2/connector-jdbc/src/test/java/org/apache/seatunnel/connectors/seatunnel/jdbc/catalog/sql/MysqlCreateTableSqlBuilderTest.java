@@ -27,7 +27,9 @@ import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.mysql.MysqlCreateTableSqlBuilder;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Lists;
@@ -76,7 +78,7 @@ public class MysqlCreateTableSqlBuilderTest {
                                         "id", com.google.common.collect.Lists.newArrayList("id")))
                         .constraintKey(
                                 ConstraintKey.of(
-                                        ConstraintKey.ConstraintType.KEY,
+                                        ConstraintKey.ConstraintType.INDEX_KEY,
                                         "name",
                                         Lists.newArrayList(
                                                 ConstraintKey.ConstraintKeyColumn.of(
@@ -92,19 +94,18 @@ public class MysqlCreateTableSqlBuilderTest {
 
         String createTableSql =
                 MysqlCreateTableSqlBuilder.builder(tablePath, catalogTable)
-                        .build("mysql", catalogTable.getOptions().get("fieldIde"));
+                        .build(DatabaseIdentifier.MYSQL);
         String expect =
-                "CREATE TABLE IF NOT EXISTS test_table (\n"
-                        + "\tid null NOT NULL COMMENT 'id', \n"
-                        + "\tname null NOT NULL COMMENT 'name', \n"
-                        + "\tage null NULL COMMENT 'age', \n"
-                        + "\tcreateTime null NULL COMMENT 'createTime', \n"
-                        + "\tlastUpdateTime null NULL COMMENT 'lastUpdateTime', \n"
+                "CREATE TABLE IF NOT EXISTS `test_table` (\n"
+                        + "\t`id` null NOT NULL COMMENT 'id', \n"
+                        + "\t`name` null NOT NULL COMMENT 'name', \n"
+                        + "\t`age` null NULL COMMENT 'age', \n"
+                        + "\t`createTime` null NULL COMMENT 'createTime', \n"
+                        + "\t`lastUpdateTime` null NULL COMMENT 'lastUpdateTime', \n"
                         + "\tPRIMARY KEY (`id`)\n"
                         + ") COMMENT = 'User table';";
         CONSOLE.println(expect);
         System.out.println(createTableSql);
-        // catalog field is not fill
-        //        Assertions.assertEquals(expect, createTableSql);
+        Assertions.assertEquals(expect, createTableSql);
     }
 }

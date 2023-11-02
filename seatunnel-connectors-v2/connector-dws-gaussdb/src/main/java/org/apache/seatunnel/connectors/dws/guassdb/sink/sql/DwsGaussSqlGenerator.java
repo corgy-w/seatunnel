@@ -82,9 +82,9 @@ public class DwsGaussSqlGenerator implements Serializable {
                 + "'";
     }
 
-    public String getMergeInTargetTableSql(String snapshotId) {
+    public String getMergeInTargetTableSql(Long snapshotId) {
         String sql =
-                "INSERT INTO %s SELECT %s FROM %s WHERE st_snapshot_id = '%s' "
+                "INSERT INTO %s SELECT %s FROM %s WHERE st_snapshot_id = %s "
                         + "ON CONFLICT(%s) "
                         + "DO UPDATE SET %s;";
 
@@ -117,7 +117,7 @@ public class DwsGaussSqlGenerator implements Serializable {
     }
 
     public String getTemporaryRows(
-            Collection<SeaTunnelRow> seaTunnelRows, boolean isDeleteRow, String snapshotId) {
+            Collection<SeaTunnelRow> seaTunnelRows, boolean isDeleteRow, Long snapshotId) {
         return seaTunnelRows.stream()
                 .map(
                         seaTunnelRow ->
@@ -131,18 +131,22 @@ public class DwsGaussSqlGenerator implements Serializable {
                 .collect(Collectors.joining("\n"));
     }
 
-    public String getDeleteTemporarySnapshotSql(String snapshotId) {
+    public String getDeleteTemporarySnapshotSql(List<Long> snapshotId) {
         return "DELETE FROM \""
                 + schemaName
                 + "\".\""
                 + templateTableName
-                + "\" WHERE st_snapshot_id = '"
-                + snapshotId
-                + "'";
+                + "\" WHERE st_snapshot_id in ("
+                + snapshotId.stream().map(String::valueOf).collect(Collectors.joining(","))
+                + ")";
     }
 
     public String getDeleteTargetTableSql() {
         return "DELETE FROM \"" + schemaName + "\".\"" + targetTableName + "\"";
+    }
+
+    public String getDeleteTemporaryTableSql() {
+        return "DELETE FROM \"" + schemaName + "\".\"" + templateTableName + "\"";
     }
 
     public String getDropTemporaryTableSql() {
@@ -157,7 +161,7 @@ public class DwsGaussSqlGenerator implements Serializable {
         return "SELECT COUNT(*) FROM \"" + schemaName + "\".\"" + targetTableName + "\"";
     }
 
-    public String getDeleteRowsInTargetTableSql(String currentSnapshotId) {
+    public String getDeleteRowsInTargetTableSql(Long currentSnapshotId) {
         // todo: only support one primary key
         return "DELETE FROM \""
                 + schemaName
@@ -171,19 +175,19 @@ public class DwsGaussSqlGenerator implements Serializable {
                 + schemaName
                 + "\".\""
                 + templateTableName
-                + "\" WHERE st_snapshot_id = '"
+                + "\" WHERE st_snapshot_id = "
                 + currentSnapshotId
-                + "' AND st_is_deleted = true)";
+                + " AND st_is_deleted = true)";
     }
 
-    public String getDeleteRowsInTemporaryTableSql(String currentSnapshotId) {
+    public String getDeleteRowsInTemporaryTableSql(Long currentSnapshotId) {
         return "DELETE FROM \""
                 + schemaName
                 + "\".\""
                 + templateTableName
-                + "\" WHERE st_snapshot_id = '"
+                + "\" WHERE st_snapshot_id = "
                 + currentSnapshotId
-                + "' AND st_is_deleted = true";
+                + " AND st_is_deleted = true";
     }
 
     public String getCreateTemporaryTableSql() {
@@ -199,7 +203,7 @@ public class DwsGaussSqlGenerator implements Serializable {
                         .map(this::buildColumnSql)
                         .collect(Collectors.toList());
         // add snapshot_id and is_deleted column
-        columnSqls.add("\"" + getIDEString("st_snapshot_id") + "\" varchar(255)");
+        columnSqls.add("\"" + getIDEString("st_snapshot_id") + "\" bigint");
         columnSqls.add("\"" + getIDEString("st_is_deleted") + "\" boolean");
         createTemporaryTableSql.append(String.join(",\n", columnSqls));
         createTemporaryTableSql.append("\n);");
@@ -234,11 +238,15 @@ public class DwsGaussSqlGenerator implements Serializable {
     }
 
     private String appendRowInTemporaryTable(
-            SeaTunnelRow seaTunnelRow, boolean isDeleted, String snapshotId) {
+            SeaTunnelRow seaTunnelRow, boolean isDeleted, Long snapshotId) {
         StringBuilder stringBuilder = new StringBuilder();
         Object[] fields = seaTunnelRow.getFields();
         for (int i = 0; i < fields.length; i++) {
-            stringBuilder.append(seaTunnelRow.getField(i));
+            if (seaTunnelRow.getField(i) == null) {
+                // use '' represent null
+            } else {
+                stringBuilder.append(seaTunnelRow.getField(i));
+            }
             stringBuilder.append(delimiter);
         }
         // todo: If the schema changed, we need to make sure the snapshotId and isDeleted flag is
@@ -253,7 +261,11 @@ public class DwsGaussSqlGenerator implements Serializable {
         Object[] fields = seaTunnelRow.getFields();
         StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < fields.length; i++) {
-            stringBuilder.append(seaTunnelRow.getField(i));
+            if (seaTunnelRow.getField(i) == null) {
+                // use '' represent null
+            } else {
+                stringBuilder.append(seaTunnelRow.getField(i));
+            }
             if (i != fields.length - 1) {
                 stringBuilder.append(delimiter);
             }

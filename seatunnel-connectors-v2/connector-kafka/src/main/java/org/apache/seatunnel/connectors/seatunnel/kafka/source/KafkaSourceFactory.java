@@ -22,15 +22,11 @@ import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
+import org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions;
 import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
-import org.apache.seatunnel.api.table.factory.SupportMultipleTable;
-import org.apache.seatunnel.api.table.factory.TableFactoryContext;
 import org.apache.seatunnel.api.table.factory.TableSourceFactory;
-import org.apache.seatunnel.api.table.type.MultipleRowType;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.Config;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
@@ -38,14 +34,12 @@ import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
 import com.google.auto.service.AutoService;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.FORMAT;
 
 @AutoService(Factory.class)
-public class KafkaSourceFactory implements TableSourceFactory, SupportMultipleTable {
+public class KafkaSourceFactory implements TableSourceFactory {
 
     @Override
     public String factoryIdentifier() {
@@ -62,7 +56,7 @@ public class KafkaSourceFactory implements TableSourceFactory, SupportMultipleTa
                         Config.CONSUMER_GROUP,
                         Config.COMMIT_ON_CHECKPOINT,
                         Config.KAFKA_CONFIG,
-                        CatalogTableUtil.SCHEMA,
+                        TableSchemaOptions.SCHEMA,
                         Config.FORMAT,
                         Config.DEBEZIUM_RECORD_INCLUDE_SCHEMA,
                         Config.KEY_PARTITION_DISCOVERY_INTERVAL_MILLIS)
@@ -74,43 +68,25 @@ public class KafkaSourceFactory implements TableSourceFactory, SupportMultipleTa
 
     @Override
     public <T, SplitT extends SourceSplit, StateT extends Serializable>
-            TableSource<T, SplitT, StateT> createSource(TableFactoryContext context) {
+            TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
         return () -> {
-            SeaTunnelDataType<SeaTunnelRow> dataType;
-            Map<String, String> primaryKeyMap = new HashMap<>();
-            if (context.getCatalogTables().size() == 1
-                    && !context.getOptions().get(FORMAT).equals(MessageFormat.KINGBASE_JSON)) {
-                dataType =
-                        context.getCatalogTables().get(0).getTableSchema().toPhysicalRowDataType();
+            List<CatalogTable> catalogTables;
+            if (context.getOptions().get(FORMAT).equals(MessageFormat.KINGBASE_JSON)) {
+                catalogTables =
+                        CatalogTableUtil.getCatalogTablesFromConfig(
+                                "KafkaKingbase", context.getOptions(), context.getClassLoader());
             } else {
-                Map<String, SeaTunnelRowType> rowTypeMap = new HashMap<>();
-                for (CatalogTable catalogTable : context.getCatalogTables()) {
-                    String tableId = catalogTable.getTableId().toTablePath().toString();
-                    rowTypeMap.put(tableId, catalogTable.getTableSchema().toPhysicalRowDataType());
-                    if (catalogTable.getTableSchema().getPrimaryKey() != null) {
-                        primaryKeyMap.put(
-                                tableId,
-                                catalogTable
-                                        .getTableSchema()
-                                        .getPrimaryKey()
-                                        .getColumnNames()
-                                        .get(0));
-                    }
-                }
-                dataType = new MultipleRowType(rowTypeMap);
+                catalogTables =
+                        CatalogTableUtil.getCatalogTablesFromConfig(
+                                context.getOptions(), context.getClassLoader());
             }
             return (SeaTunnelSource<T, SplitT, StateT>)
-                    new KafkaSource(context.getOptions(), dataType, primaryKeyMap);
+                    new KafkaSource(context.getOptions(), catalogTables);
         };
     }
 
     @Override
     public Class<? extends SeaTunnelSource> getSourceClass() {
         return KafkaSource.class;
-    }
-
-    @Override
-    public Result applyTables(TableFactoryContext context) {
-        return SupportMultipleTable.Result.of(context.getCatalogTables(), Collections.emptyList());
     }
 }

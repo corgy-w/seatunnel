@@ -8,8 +8,8 @@ import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
-import org.apache.seatunnel.api.table.factory.TableFactoryContext;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
+import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption;
 import org.apache.seatunnel.connectors.dws.guassdb.config.DwsGaussDBConfig;
@@ -26,7 +26,10 @@ import com.google.auto.service.AutoService;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.seatunnel.api.table.catalog.CatalogTableUtil.SCHEMA;
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
+import static org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions.SCHEMA;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.DATABASE;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.PRIMARY_KEY;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.TABLE;
@@ -56,12 +59,14 @@ public class DwsGaussDBSinkFactory
                     DwsGaussDBSinkState,
                     DwsGaussDBSinkCommitInfo,
                     DwsGaussDBSinkAggregatedCommitInfo>
-            createSink(TableFactoryContext context) {
+            createSink(TableSinkFactoryContext context) {
         ReadonlyConfig config = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
         Map<String, String> catalogOptions = config.get(CatalogOptions.CATALOG_OPTIONS);
         if (config.getOptional(TABLE).isPresent()) {
-            catalogOptions.put(TABLE.key(), config.get(TABLE));
+            catalogOptions.put(
+                    TABLE.key(),
+                    replaceFullTableName(config.get(TABLE), catalogTable.getTableId()));
             catalogOptions.put(PRIMARY_KEY.key(), config.get(PRIMARY_KEY));
         } else {
             String prefix = catalogOptions.get(TABLE_PREFIX.key());
@@ -111,9 +116,10 @@ public class DwsGaussDBSinkFactory
             config = ReadonlyConfig.fromMap(new HashMap<>(map));
         }
         final ReadonlyConfig options = config;
-        String[] split = config.get(TABLE).split("\\.");
+        String[] split =
+                replaceFullTableName(config.get(TABLE), catalogTable.getTableId()).split("\\.");
         String schemaName = null;
-        String tableName = null;
+        String tableName;
         if (split.length == 2) {
             schemaName = split[0];
             tableName = split[1];
@@ -132,5 +138,18 @@ public class DwsGaussDBSinkFactory
         CatalogTable finalCatalogTable = CatalogTable.of(tableIdentifier, catalogTable);
 
         return () -> new DwsGaussDBSink(options, finalCatalogTable);
+    }
+
+    private String replaceFullTableName(String original, TableIdentifier tableId) {
+        if (StringUtils.isNotBlank(tableId.getDatabaseName())) {
+            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
+        }
+        if (StringUtils.isNotBlank(tableId.getSchemaName())) {
+            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
+        }
+        if (StringUtils.isNotBlank(tableId.getTableName())) {
+            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
+        }
+        return original;
     }
 }

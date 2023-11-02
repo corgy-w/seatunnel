@@ -23,13 +23,11 @@ import org.apache.seatunnel.api.common.JobContext;
 import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.serialization.DefaultSerializer;
 import org.apache.seatunnel.api.serialization.Serializer;
-import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SinkAggregatedCommitter;
 import org.apache.seatunnel.api.sink.SinkCommitter;
 import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.sink.SinkWriter;
-import org.apache.seatunnel.api.sink.SupportDataSaveMode;
 import org.apache.seatunnel.api.table.factory.MultiTableFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -39,6 +37,7 @@ import com.google.auto.service.AutoService;
 import lombok.NoArgsConstructor;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,17 +45,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.apache.seatunnel.api.sink.DataSaveMode.KEEP_SCHEMA_AND_DATA;
-
 @AutoService(SeaTunnelSink.class)
 @NoArgsConstructor
 public class MultiTableSink
         implements SeaTunnelSink<
-                        SeaTunnelRow,
-                        MultiTableState,
-                        MultiTableCommitInfo,
-                        MultiTableAggregatedCommitInfo>,
-                SupportDataSaveMode {
+                SeaTunnelRow,
+                MultiTableState,
+                MultiTableCommitInfo,
+                MultiTableAggregatedCommitInfo> {
 
     private Map<String, SeaTunnelSink> sinks;
     private int replicaNum;
@@ -114,15 +110,21 @@ public class MultiTableSink
                 SinkIdentifier sinkIdentifier = SinkIdentifier.of(tableIdentifier, index);
                 List<?> state =
                         states.stream()
-                                .flatMap(
+                                .map(
                                         multiTableState ->
-                                                multiTableState.getStates().get(sinkIdentifier)
-                                                        .stream())
+                                                multiTableState.getStates().get(sinkIdentifier))
                                 .filter(Objects::nonNull)
+                                .flatMap(Collection::stream)
                                 .collect(Collectors.toList());
-                writers.put(
-                        sinkIdentifier,
-                        sink.restoreWriter(new SinkContextProxy(index, context), state));
+                if (state.isEmpty()) {
+                    writers.put(
+                            sinkIdentifier,
+                            sink.createWriter(new SinkContextProxy(index, context)));
+                } else {
+                    writers.put(
+                            sinkIdentifier,
+                            sink.restoreWriter(new SinkContextProxy(index, context), state));
+                }
             }
         }
         return new MultiTableSinkWriter(writers, replicaNum);
@@ -143,6 +145,9 @@ public class MultiTableSink
                             committer ->
                                     committers.put(tableIdentifier, (SinkCommitter<?>) committer));
         }
+        if (committers.isEmpty()) {
+            return Optional.empty();
+        }
         return Optional.of(new MultiTableSinkCommitter(committers));
     }
 
@@ -162,6 +167,9 @@ public class MultiTableSink
                     sinkAggregatedCommitter ->
                             aggCommitters.put(tableIdentifier, sinkAggregatedCommitter));
         }
+        if (aggCommitters.isEmpty()) {
+            return Optional.empty();
+        }
         return Optional.of(new MultiTableSinkAggregatedCommitter(aggCommitters));
     }
 
@@ -171,7 +179,7 @@ public class MultiTableSink
         return Optional.of(new DefaultSerializer<>());
     }
 
-    @Override
+    /*@Override
     public DataSaveMode getUserConfigSaveMode() {
         // any save mode, because we never use it.
         return KEEP_SCHEMA_AND_DATA;
@@ -187,7 +195,7 @@ public class MultiTableSink
                                         .handleSaveMode(
                                                 ((SupportDataSaveMode) sink)
                                                         .getUserConfigSaveMode()));
-    }
+    }*/
 
     @Override
     public void setJobContext(JobContext jobContext) {

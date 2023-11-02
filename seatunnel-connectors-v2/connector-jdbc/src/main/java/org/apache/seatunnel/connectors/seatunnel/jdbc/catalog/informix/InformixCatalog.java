@@ -31,6 +31,10 @@ import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.informix.InformixTypeMapper;
+
+import org.apache.commons.lang3.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -170,7 +174,12 @@ public class InformixCatalog extends AbstractJdbcCatalog {
             throw new TableNotExistException(catalogName, tablePath);
         }
 
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
         Connection conn = getConnection(dbUrl);
         try {
             DatabaseMetaData metaData = conn.getMetaData();
@@ -216,7 +225,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
                         buildConnectorOptions(tablePath),
                         Collections.emptyList(),
                         "",
-                        "informix");
+                        catalogName);
             }
 
         } catch (Exception e) {
@@ -325,9 +334,12 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName())
-                            .contains(tablePath.getSchemaAndTableName());
+            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+                return databaseExists(tablePath.getDatabaseName())
+                        && listTables(tablePath.getDatabaseName())
+                                .contains(tablePath.getSchemaAndTableName());
+            }
+            return listTables(defaultDatabase).contains(tablePath.getSchemaAndTableName());
         } catch (DatabaseNotExistException e) {
             return false;
         }
@@ -368,5 +380,10 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     private String getUrlFromDatabaseName(String databaseName) {
         String url = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         return url + databaseName + suffix;
+    }
+
+    @Override
+    public CatalogTable getTable(String sqlQuery) throws SQLException {
+        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new InformixTypeMapper());
     }
 }

@@ -32,6 +32,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.mysql.MySqlTypeMapper;
 
 import com.mysql.cj.MysqlType;
 import com.mysql.cj.jdbc.result.ResultSetImpl;
@@ -201,7 +202,7 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
                         buildConnectorOptions(tablePath),
                         Collections.emptyList(),
                         "",
-                        "mysql");
+                        catalogName);
             }
 
         } catch (Exception e) {
@@ -301,18 +302,18 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
         String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
 
         String createTableSql =
-                MysqlCreateTableSqlBuilder.builder(tablePath, table)
-                        .build(table.getCatalogName(), table.getOptions().get("fieldIde"));
+                MysqlCreateTableSqlBuilder.builder(tablePath, table).build(table.getCatalogName());
         createTableSql =
                 CatalogUtils.getFieldIde(createTableSql, table.getOptions().get("fieldIde"));
         Connection connection = getConnection(dbUrl);
         log.info("create table sql: {}", createTableSql);
         try (PreparedStatement ps = connection.prepareStatement(createTableSql)) {
-            return ps.execute();
+            ps.execute();
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed creating table %s", tablePath.getFullName()), e);
         }
+        return true;
     }
 
     @Override
@@ -421,5 +422,10 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
     private String getUrlFromDatabaseName(String databaseName) {
         String url = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         return url + databaseName + suffix;
+    }
+
+    @Override
+    public CatalogTable getTable(String sqlQuery) throws SQLException {
+        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new MySqlTypeMapper());
     }
 }

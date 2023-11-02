@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import org.apache.commons.collections4.MapUtils;
 
@@ -114,7 +115,7 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
 
     @Override
     public String getIdentity() {
-        return DamengCatalogFactory.IDENTIFIER;
+        return DatabaseIdentifier.DAMENG;
     }
 
     @Override
@@ -164,6 +165,7 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
             case DM_LONG:
             case DM_LONGVARCHAR:
             case DM_CLOB:
+            case DM_BFILE:
                 return BasicType.STRING_TYPE;
             case DM_TIMESTAMP:
             case DM_DATETIME:
@@ -178,7 +180,6 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
             case DM_VARBINARY:
             case DM_LONGVARBINARY:
             case DM_IMAGE:
-            case DM_BFILE:
                 return PrimitiveByteArrayType.INSTANCE;
                 // Doesn't support yet
             case DM_INTERVAL_YEAR_TO_MONTH:

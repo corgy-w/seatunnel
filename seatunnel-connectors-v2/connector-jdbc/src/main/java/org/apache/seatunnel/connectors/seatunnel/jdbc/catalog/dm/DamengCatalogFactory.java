@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -34,18 +35,16 @@ import com.google.auto.service.AutoService;
 @AutoService(Factory.class)
 public class DamengCatalogFactory implements CatalogFactory {
 
-    public static final String IDENTIFIER = "Dameng";
-
     @Override
     public String factoryIdentifier() {
-        return IDENTIFIER;
+        return DatabaseIdentifier.DAMENG;
     }
 
     @Override
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
         String urlWithDatabase = options.get(JdbcCatalogOptions.BASE_URL);
         Preconditions.checkArgument(
-                StringUtils.isNoneBlank(urlWithDatabase),
+                StringUtils.isNotBlank(urlWithDatabase),
                 "Miss config <base-url>! Please check your config.");
         JdbcUrlUtil.UrlInfo urlInfo = JdbcUrlUtil.getUrlInfo(urlWithDatabase);
         return new DamengCatalog(

@@ -18,11 +18,10 @@
 package org.apache.seatunnel.transform.filter;
 
 import org.apache.seatunnel.api.configuration.util.OptionRule;
-import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableTransform;
 import org.apache.seatunnel.api.table.factory.Factory;
-import org.apache.seatunnel.api.table.factory.TableFactoryContext;
 import org.apache.seatunnel.api.table.factory.TableTransformFactory;
+import org.apache.seatunnel.api.table.factory.TableTransformFactoryContext;
 
 import com.google.auto.service.AutoService;
 
@@ -37,12 +36,16 @@ public class FilterFieldTransformFactory implements TableTransformFactory {
 
     @Override
     public OptionRule optionRule() {
-        return OptionRule.builder().required(FilterFieldTransformConfig.KEY_FIELDS).build();
+        return OptionRule.builder()
+                .bundled(FilterFieldTransformConfig.KEY_FIELDS)
+                .bundled(FilterFieldTransformConfig.MULTI_TABLES)
+                .build();
     }
 
     @Override
-    public TableTransform createTransform(TableFactoryContext context) {
-        CatalogTable catalogTable = context.getCatalogTable();
-        return () -> new FilterFieldTransform(context.getOptions(), catalogTable);
+    public TableTransform createTransform(TableTransformFactoryContext context) {
+        return () ->
+                new FieldFieldMultiCatalogTransform(
+                        context.getCatalogTables(), context.getOptions());
     }
 }

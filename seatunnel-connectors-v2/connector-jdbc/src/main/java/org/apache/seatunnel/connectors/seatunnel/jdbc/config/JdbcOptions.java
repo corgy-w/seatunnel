@@ -20,10 +20,14 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.config;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.sink.DataSaveMode;
+import org.apache.seatunnel.api.sink.SchemaSaveMode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 
 import java.math.BigDecimal;
 import java.util.List;
+
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 
 @SuppressWarnings("checkstyle:MagicNumber")
 public interface JdbcOptions {
@@ -56,11 +60,16 @@ public interface JdbcOptions {
     Option<String> QUERY =
             Options.key("query").stringType().noDefaultValue().withDescription("query");
 
-    Option<DataSaveMode> SAVE_MODE =
-            Options.key("save_mode")
+    Option<SchemaSaveMode> SCHEMA_SAVE_MODE =
+            Options.key("schema_save_mode")
+                    .enumType(SchemaSaveMode.class)
+                    .defaultValue(SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST)
+                    .withDescription("schema_save_mode");
+    Option<DataSaveMode> DATA_SAVE_MODE =
+            Options.key("data_save_mode")
                     .enumType(DataSaveMode.class)
                     .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
-                    .withDescription("save_mode");
+                    .withDescription("data_save_mode");
 
     Option<String> CUSTOM_SQL =
             Options.key("custom_sql").stringType().noDefaultValue().withDescription("custom_sql");
@@ -113,10 +122,16 @@ public interface JdbcOptions {
                     .withDescription("transaction timeout (second)");
 
     Option<String> DATABASE =
-            Options.key("database").stringType().noDefaultValue().withDescription("database");
+            Options.key("database")
+                    .stringType()
+                    .defaultValue(REPLACE_DATABASE_NAME_KEY)
+                    .withDescription("database");
 
     Option<String> TABLE =
-            Options.key("table").stringType().noDefaultValue().withDescription("table");
+            Options.key("table")
+                    .stringType()
+                    .defaultValue(REPLACE_TABLE_NAME_KEY)
+                    .withDescription("table");
 
     Option<List<String>> PRIMARY_KEYS =
             Options.key("primary_keys").listType().noDefaultValue().withDescription("primary keys");
@@ -166,4 +181,31 @@ public interface JdbcOptions {
                     .enumType(FieldIdeEnum.class)
                     .noDefaultValue()
                     .withDescription("Whether case conversion is required");
+
+    Option<Boolean> USE_KERBEROS =
+            Options.key("use_kerberos")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription("Whether to enable Kerberos, default is false.");
+
+    Option<String> KERBEROS_PRINCIPAL =
+            Options.key("kerberos_principal")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "When use kerberos, we should set kerberos principal such as 'test_user@xxx'. ");
+
+    Option<String> KERBEROS_KEYTAB_PATH =
+            Options.key("kerberos_keytab_path")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "When use kerberos, we should set kerberos principal file path such as '/home/test/test_user.keytab'. ");
+
+    Option<String> KERBEROS_KRB5_CONF_PATH =
+            Options.key("kerberos_krb5_conf_path")
+                    .stringType()
+                    .defaultValue("/etc/krb5.conf")
+                    .withDescription(
+                            "When use kerberos, we should set krb5 path file path such as '/etc/krb5.conf'. ");
 }

@@ -19,11 +19,10 @@ package org.apache.seatunnel.transform.fieldmapper;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
-import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableTransform;
 import org.apache.seatunnel.api.table.factory.Factory;
-import org.apache.seatunnel.api.table.factory.TableFactoryContext;
 import org.apache.seatunnel.api.table.factory.TableTransformFactory;
+import org.apache.seatunnel.api.table.factory.TableTransformFactoryContext;
 
 import com.google.auto.service.AutoService;
 
@@ -36,15 +35,15 @@ public class FieldMapperTransformFactory implements TableTransformFactory {
 
     @Override
     public OptionRule optionRule() {
-        return OptionRule.builder().required(FieldMapperTransformConfig.FIELD_MAPPER).build();
+        return OptionRule.builder()
+                .bundled(FieldMapperTransformConfig.FIELD_MAPPER)
+                .bundled(FieldMapperTransformConfig.MULTI_TABLES)
+                .build();
     }
 
     @Override
-    public TableTransform createTransform(TableFactoryContext context) {
-        CatalogTable catalogTable = context.getCatalogTable();
+    public TableTransform createTransform(TableTransformFactoryContext context) {
         ReadonlyConfig options = context.getOptions();
-        FieldMapperTransformConfig fieldMapperTransformConfig =
-                FieldMapperTransformConfig.of(options);
-        return () -> new FieldMapperTransform(fieldMapperTransformConfig, catalogTable);
+        return () -> new FieldMapperMultiCatalogTransform(context.getCatalogTables(), options);
     }
 }

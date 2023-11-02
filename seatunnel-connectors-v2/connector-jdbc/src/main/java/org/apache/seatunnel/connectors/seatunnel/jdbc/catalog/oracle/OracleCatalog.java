@@ -31,6 +31,10 @@ import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oracle.OracleTypeMapper;
+
+import org.apache.commons.lang3.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -98,7 +102,7 @@ public class OracleCatalog extends AbstractJdbcCatalog {
                     + "    END as TYPE_NAME,\n"
                     + "    cols.data_type || \n"
                     + "        CASE \n"
-                    + "            WHEN cols.data_type IN ('VARCHAR2', 'CHAR') THEN '(' || cols.data_length || ')'\n"
+                    + "            WHEN cols.data_type IN ('VARCHAR2', 'CHAR', 'NCHAR', 'NVARCHAR2') THEN '(' || cols.data_length || ')'\n"
                     + "            WHEN cols.data_type IN ('NUMBER') AND cols.data_precision IS NOT NULL AND cols.data_scale IS NOT NULL THEN '(' || cols.data_precision || ', ' || cols.data_scale || ')'\n"
                     + "            WHEN cols.data_type IN ('NUMBER') AND cols.data_precision IS NOT NULL AND cols.data_scale IS NULL THEN '(' || cols.data_precision || ')'\n"
                     + "            WHEN cols.data_type IN ('RAW') THEN '(' || cols.data_length || ')'\n"
@@ -150,9 +154,8 @@ public class OracleCatalog extends AbstractJdbcCatalog {
     @Override
     protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
             throws CatalogException {
-        String createTableSql =
-                new OracleCreateTableSqlBuilder(table)
-                        .build(tablePath, table.getOptions().get("fieldIde"));
+        OracleCreateTableSqlBuilder createTableSqlBuilder = new OracleCreateTableSqlBuilder(table);
+        String createTableSql = createTableSqlBuilder.build(tablePath);
         String[] createTableSqls = createTableSql.split(";");
         for (String sql : createTableSqls) {
             log.info("create table sql: {}", sql);
@@ -163,6 +166,17 @@ public class OracleCatalog extends AbstractJdbcCatalog {
                         String.format("Failed creating table %s", tablePath.getFullName()), e);
             }
         }
+        for (String sql : createTableSqlBuilder.getCreateIndexSqls()) {
+            log.info("create table index sql: {}", sql);
+            try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
+                ps.execute();
+            } catch (Exception e) {
+                throw new CatalogException(
+                        String.format("Failed creating table index %s", tablePath.getFullName()),
+                        e);
+            }
+        }
+
         return true;
     }
 
@@ -172,7 +186,7 @@ public class OracleCatalog extends AbstractJdbcCatalog {
         try (PreparedStatement ps =
                 connection.prepareStatement(
                         String.format(
-                                "DROP TABLE %s.%s",
+                                "DROP TABLE \"%s\".\"%s\"",
                                 tablePath.getSchemaName(), tablePath.getTableName()))) {
             // Will there exist concurrent truncate for one table?
             return ps.execute();
@@ -188,7 +202,7 @@ public class OracleCatalog extends AbstractJdbcCatalog {
         try (PreparedStatement ps =
                 connection.prepareStatement(
                         String.format(
-                                "TRUNCATE TABLE %s.%s",
+                                "TRUNCATE TABLE \"%s\".\"%s\"",
                                 tablePath.getSchemaName(), tablePath.getTableName()))) {
             // Will there exist concurrent truncate for one table?
             return ps.execute();
@@ -216,12 +230,20 @@ public class OracleCatalog extends AbstractJdbcCatalog {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName())
-                            .contains(tablePath.getSchemaAndTableName());
+            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+                return databaseExists(tablePath.getDatabaseName())
+                        && listTables(tablePath.getDatabaseName())
+                                .contains(tablePath.getSchemaAndTableName());
+            }
+            return listTables().contains(tablePath.getSchemaAndTableName());
         } catch (DatabaseNotExistException e) {
             return false;
         }
+    }
+
+    private List<String> listTables() {
+        List<String> databases = listDatabases();
+        return listTables(databases.get(0));
     }
 
     @Override
@@ -312,7 +334,8 @@ public class OracleCatalog extends AbstractJdbcCatalog {
                                 builder.build(),
                                 buildConnectorOptions(tablePath),
                                 Collections.emptyList(),
-                                "");
+                                "",
+                                catalogName);
                 log.info(
                         "OracleCatalog get CatalogTable for: {} success cost {}/ms",
                         tablePath,
@@ -404,5 +427,10 @@ public class OracleCatalog extends AbstractJdbcCatalog {
         options.put("username", username);
         options.put("password", pwd);
         return options;
+    }
+
+    @Override
+    public CatalogTable getTable(String sqlQuery) throws SQLException {
+        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new OracleTypeMapper());
     }
 }

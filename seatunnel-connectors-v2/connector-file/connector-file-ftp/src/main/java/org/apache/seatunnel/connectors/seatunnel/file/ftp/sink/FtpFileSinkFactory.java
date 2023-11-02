@@ -42,17 +42,20 @@ public class FtpFileSinkFactory implements TableSinkFactory {
                 .required(FtpConfig.FTP_PORT)
                 .required(FtpConfig.FTP_USERNAME)
                 .required(FtpConfig.FTP_PASSWORD)
+                .optional(BaseSinkConfig.TMP_PATH)
                 .optional(BaseSinkConfig.FILE_FORMAT_TYPE)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
                         BaseSinkConfig.ROW_DELIMITER,
                         BaseSinkConfig.FIELD_DELIMITER,
-                        BaseSinkConfig.TXT_COMPRESS)
+                        BaseSinkConfig.TXT_COMPRESS,
+                        BaseSinkConfig.ENABLE_HEADER_WRITE)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.CSV,
-                        BaseSinkConfig.TXT_COMPRESS)
+                        BaseSinkConfig.TXT_COMPRESS,
+                        BaseSinkConfig.ENABLE_HEADER_WRITE)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.JSON,
