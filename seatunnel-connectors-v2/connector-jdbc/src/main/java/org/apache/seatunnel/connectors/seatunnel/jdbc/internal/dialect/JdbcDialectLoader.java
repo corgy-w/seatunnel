@@ -99,15 +99,8 @@ public final class JdbcDialectLoader {
                                     .sorted()
                                     .collect(Collectors.joining("\n"))));
         }
-        if (StringUtils.isNotEmpty(fieldIde) && StringUtils.isNotEmpty(compatibleMode)) {
-            return matchingFactories.get(0).create(compatibleMode, fieldIde);
-        } else if (StringUtils.isNotEmpty(fieldIde)) {
-            return matchingFactories.get(0).createWithFieldIde(fieldIde);
-        } else if (StringUtils.isNotEmpty(compatibleMode)) {
-            return matchingFactories.get(0).createWithCompatible(compatibleMode);
-        } else {
-            return matchingFactories.get(0).create();
-        }
+
+        return matchingFactories.get(0).create(compatibleMode, fieldIde);
     }
 
     private static List<JdbcDialectFactory> discoverFactories(ClassLoader classLoader) {

@@ -17,10 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.common.multitablesink;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
 import org.apache.seatunnel.api.common.JobContext;
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.serialization.DefaultSerializer;
 import org.apache.seatunnel.api.serialization.Serializer;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
@@ -29,12 +26,7 @@ import org.apache.seatunnel.api.sink.SinkCommitter;
 import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.table.factory.MultiTableFactoryContext;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-
-import com.google.auto.service.AutoService;
-import lombok.NoArgsConstructor;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -45,8 +37,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-@AutoService(SeaTunnelSink.class)
-@NoArgsConstructor
 public class MultiTableSink
         implements SeaTunnelSink<
                 SeaTunnelRow,
@@ -54,8 +44,8 @@ public class MultiTableSink
                 MultiTableCommitInfo,
                 MultiTableAggregatedCommitInfo> {
 
-    private Map<String, SeaTunnelSink> sinks;
-    private int replicaNum;
+    private final Map<String, SeaTunnelSink> sinks;
+    private final int replicaNum;
 
     public MultiTableSink(MultiTableFactoryContext context) {
         this.sinks = context.getSinks();
@@ -65,22 +55,6 @@ public class MultiTableSink
     @Override
     public String getPluginName() {
         return "MultiTableSink";
-    }
-
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        throw new UnsupportedOperationException(
-                "Please use MultiTableSinkFactory to create MultiTableSink");
-    }
-
-    @Override
-    public void setTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        throw new UnsupportedOperationException("MultiTableSink only support CatalogTable");
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getConsumedType() {
-        throw new UnsupportedOperationException("MultiTableSink only support CatalogTable");
     }
 
     @Override
@@ -178,24 +152,6 @@ public class MultiTableSink
             getAggregatedCommitInfoSerializer() {
         return Optional.of(new DefaultSerializer<>());
     }
-
-    /*@Override
-    public DataSaveMode getUserConfigSaveMode() {
-        // any save mode, because we never use it.
-        return KEEP_SCHEMA_AND_DATA;
-    }
-
-    @Override
-    public void handleSaveMode(DataSaveMode saveMode) {
-        sinks.values().stream()
-                .filter(sink -> sink instanceof SupportDataSaveMode)
-                .forEach(
-                        sink ->
-                                ((SupportDataSaveMode) sink)
-                                        .handleSaveMode(
-                                                ((SupportDataSaveMode) sink)
-                                                        .getUserConfigSaveMode()));
-    }*/
 
     @Override
     public void setJobContext(JobContext jobContext) {

@@ -44,14 +44,15 @@ public class DamengCatalogFactory implements CatalogFactory {
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
         String urlWithDatabase = options.get(JdbcCatalogOptions.BASE_URL);
         Preconditions.checkArgument(
-                StringUtils.isNotBlank(urlWithDatabase),
+                StringUtils.isNoneBlank(urlWithDatabase),
                 "Miss config <base-url>! Please check your config.");
         JdbcUrlUtil.UrlInfo urlInfo = JdbcUrlUtil.getUrlInfo(urlWithDatabase);
         return new DamengCatalog(
                 catalogName,
                 options.get(JdbcCatalogOptions.USERNAME),
                 options.get(JdbcCatalogOptions.PASSWORD),
-                urlInfo);
+                urlInfo,
+                options.get(JdbcCatalogOptions.SCHEMA));
     }
 
     @Override

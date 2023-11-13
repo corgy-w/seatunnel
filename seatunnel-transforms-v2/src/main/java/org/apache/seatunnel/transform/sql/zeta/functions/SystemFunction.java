@@ -17,7 +17,7 @@
 
 package org.apache.seatunnel.transform.sql.zeta.functions;
 
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.transform.exception.TransformException;
 
 import java.math.BigDecimal;
@@ -44,7 +44,7 @@ public class SystemFunction {
     public static Object ifnull(List<Object> args) {
         if (args.size() != 2) {
             throw new TransformException(
-                    CommonErrorCode.UNSUPPORTED_OPERATION,
+                    CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
                     String.format("Unsupported function IFNULL() arguments: %s", args));
         }
         return coalesce(args);
@@ -149,7 +149,7 @@ public class SystemFunction {
                 return bigDecimal.setScale(scale, RoundingMode.CEILING);
         }
         throw new TransformException(
-                CommonErrorCode.UNSUPPORTED_OPERATION,
+                CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
                 String.format("Unsupported CAST AS type: %s", v2));
     }
 }

@@ -58,6 +58,7 @@ public interface StarRocksSinkOptions {
                     .stringType()
                     .defaultValue(
                             "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (\n"
+                                    + "${rowtype_primary_key},\n"
                                     + "${rowtype_fields}\n"
                                     + ") ENGINE=OLAP\n"
                                     + " PRIMARY KEY (${rowtype_primary_key})\n"
@@ -73,21 +74,14 @@ public interface StarRocksSinkOptions {
                     .intType()
                     .defaultValue(1024)
                     .withDescription(
-                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches batch_interval_ms, the data will be flushed into the StarRocks");
+                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches checkpoint.interval, the data will be flushed into the StarRocks");
 
     Option<Long> BATCH_MAX_BYTES =
             Options.key("batch_max_bytes")
                     .longType()
                     .defaultValue((long) (5 * 1024 * 1024))
                     .withDescription(
-                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches batch_interval_ms, the data will be flushed into the StarRocks");
-
-    Option<Integer> BATCH_INTERVAL_MS =
-            Options.key("batch_interval_ms")
-                    .intType()
-                    .noDefaultValue()
-                    .withDescription(
-                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches batch_interval_ms, the data will be flushed into the StarRocks");
+                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches checkpoint.interval, the data will be flushed into the StarRocks");
 
     Option<Integer> MAX_RETRIES =
             Options.key("max_retries")
@@ -137,20 +131,21 @@ public interface StarRocksSinkOptions {
                     .withDescription("");
 
     Option<String> FIELD_IDE =
-            Options.key("field_ide")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("Whether case conversion is required");
+        Options.key("field_ide")
+            .stringType()
+            .noDefaultValue()
+            .withDescription("Whether case conversion is required");
 
     Option<SchemaSaveMode> SCHEMA_SAVE_MODE =
-            Options.key("schema_save_mode")
-                    .enumType(SchemaSaveMode.class)
-                    .defaultValue(SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST)
-                    .withDescription("schema_save_mode");
-    Option<DataSaveMode> DATA_SAVE_MODE =
-            Options.key("data_save_mode")
-                    .enumType(DataSaveMode.class)
-                    .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
+        Options.key("schema_save_mode")
+            .enumType(SchemaSaveMode.class)
+            .defaultValue(SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST)
+            .withDescription("schema_save_mode");
+
+    SingleChoiceOption<DataSaveMode> SAVE_MODE =
+            Options.key(SupportSaveMode.DATA_SAVE_MODE_KEY)
+                    .singleChoice(DataSaveMode.class, Arrays.asList(DataSaveMode.APPEND_DATA))
+                    .defaultValue(DataSaveMode.APPEND_DATA)
                     .withDescription(
                             "Table structure and data processing methods that already exist on the target end");
 

@@ -33,6 +33,14 @@ import static java.lang.String.format;
 
 public class DmdbDialect implements JdbcDialect {
 
+    public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
+
+    public DmdbDialect(String fieldIde) {
+        this.fieldIde = fieldIde;
+    }
+
+    public DmdbDialect() {}
+
     @Override
     public String dialectName() {
         return DatabaseIdentifier.DAMENG;
@@ -96,6 +104,9 @@ public class DmdbDialect implements JdbcDialect {
                 Arrays.stream(fieldNames)
                         .map(fieldName -> "SOURCE." + quoteIdentifier(fieldName))
                         .collect(Collectors.joining(", "));
+        // If there is a schema in the sql of dm, an error will be reported.
+        // This is compatible with the case that the schema is written or not written in the conf
+        // configuration file
         String databaseName =
                 database == null
                         ? quoteIdentifier(tableName)
@@ -137,6 +148,21 @@ public class DmdbDialect implements JdbcDialect {
         return String.format("DELETE FROM %s WHERE %s", databaseName, conditionClause);
     }
 
+    @Override
+    public String extractTableName(TablePath tablePath) {
+        return tablePath.getSchemaAndTableName();
+    }
+
+    @Override
+    public TablePath parse(String tablePath) {
+        return TablePath.of(tablePath, true);
+    }
+
+    @Override
+    public String tableIdentifier(TablePath tablePath) {
+        return tablePath.getSchemaAndTableName();
+    }
+
     // Compatibility Both database = mode and table-names = schema.tableName are configured
     @Override
     public String tableIdentifier(String database, String tableName) {
@@ -161,15 +187,5 @@ public class DmdbDialect implements JdbcDialect {
         }
 
         return "\"" + getFieldIde(identifier, fieldIde) + "\"";
-    }
-
-    @Override
-    public TablePath parse(String tablePath) {
-        return TablePath.of(tablePath, true);
-    }
-
-    @Override
-    public String tableIdentifier(TablePath tablePath) {
-        return tablePath.getSchemaAndTableName();
     }
 }

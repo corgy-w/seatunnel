@@ -50,7 +50,7 @@ public class MultiTableSinkWriter
     private final Random random = new Random();
     private final List<BlockingQueue<SeaTunnelRow>> blockingQueues = new ArrayList<>();
     private final ExecutorService executorService;
-    private MultiTableResourceManager resourceManager;
+    private Optional<? extends MultiTableResourceManager<?>> resourceManager = Optional.empty();
     private volatile boolean submitted = false;
 
     public MultiTableSinkWriter(
@@ -106,7 +106,7 @@ public class MultiTableSinkWriter
                     writerMap.entrySet()) {
                 SupportMultiTableSinkWriter<?> sink =
                         ((SupportMultiTableSinkWriter<?>) entry.getValue());
-                sink.setMultiTableResourceManager(resourceManager, i);
+                sink.setMultiTableResourceManager((Optional) resourceManager, i);
                 sinkPrimaryKeys.put(entry.getKey().getTableIdentifier(), sink.primaryKey());
             }
         }
@@ -147,18 +147,22 @@ public class MultiTableSinkWriter
         subSinkErrorCheck();
         Optional<Integer> primaryKey = sinkPrimaryKeys.get(element.getTableId());
         try {
-            if (primaryKey.isPresent()) {
+            if ((primaryKey == null && sinkPrimaryKeys.size() == 1)
+                    || (primaryKey != null && !primaryKey.isPresent())) {
+                int index = random.nextInt(blockingQueues.size());
+                BlockingQueue<SeaTunnelRow> queue = blockingQueues.get(index);
+                while (!queue.offer(element, 500, TimeUnit.MILLISECONDS)) {
+                    subSinkErrorCheck();
+                }
+            } else if (primaryKey == null) {
+                throw new RuntimeException(
+                        "multi table sink can not write table: " + element.getTableId());
+            } else {
                 Object object = element.getField(primaryKey.get());
                 int index = 0;
                 if (object != null) {
                     index = Math.abs(object.hashCode()) % blockingQueues.size();
                 }
-                BlockingQueue<SeaTunnelRow> queue = blockingQueues.get(index);
-                while (!queue.offer(element, 500, TimeUnit.MILLISECONDS)) {
-                    subSinkErrorCheck();
-                }
-            } else {
-                int index = random.nextInt(blockingQueues.size());
                 BlockingQueue<SeaTunnelRow> queue = blockingQueues.get(index);
                 while (!queue.offer(element, 500, TimeUnit.MILLISECONDS)) {
                     subSinkErrorCheck();
@@ -262,9 +266,7 @@ public class MultiTableSinkWriter
             }
         }
         try {
-            if (resourceManager != null) {
-                resourceManager.close();
-            }
+            resourceManager.ifPresent(MultiTableResourceManager::close);
         } catch (Throwable e) {
             log.error("close resourceManager error", e);
         }

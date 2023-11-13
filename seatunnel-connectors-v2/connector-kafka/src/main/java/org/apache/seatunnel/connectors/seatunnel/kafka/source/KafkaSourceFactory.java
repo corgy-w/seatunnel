@@ -20,9 +20,6 @@ package org.apache.seatunnel.connectors.seatunnel.kafka.source;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceSplit;
-import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
-import org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions;
 import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactory;
@@ -34,9 +31,6 @@ import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
 import com.google.auto.service.AutoService;
 
 import java.io.Serializable;
-import java.util.List;
-
-import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.FORMAT;
 
 @AutoService(Factory.class)
 public class KafkaSourceFactory implements TableSourceFactory {

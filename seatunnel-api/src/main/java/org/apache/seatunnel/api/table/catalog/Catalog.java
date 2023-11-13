@@ -125,15 +125,14 @@ public interface Catalog extends AutoCloseable {
     default List<CatalogTable> getTables(ReadonlyConfig config) throws CatalogException {
         // Get the list of specified tables
         List<String> tableNames = config.get(CatalogOptions.TABLE_NAMES);
-        List<CatalogTable> catalogTables = Collections.synchronizedList(new ArrayList<>());
-        if (CollectionUtils.isNotEmpty(tableNames)) {
-            tableNames.forEach(
-                    tableName -> {
-                        TablePath tablePath = TablePath.of(tableName);
-                        if (this.tableExists(tablePath)) {
-                            catalogTables.add(this.getTable(tablePath));
-                        }
-                    });
+        List<CatalogTable> catalogTables = new ArrayList<>();
+        if (tableNames != null && !tableNames.isEmpty()) {
+            for (String tableName : tableNames) {
+                TablePath tablePath = TablePath.of(tableName);
+                if (this.tableExists(tablePath)) {
+                    catalogTables.add(this.getTable(tablePath));
+                }
+            }
             return catalogTables;
         }
 
@@ -209,7 +208,7 @@ public interface Catalog extends AutoCloseable {
         return false;
     }
 
-    default void executeSql(String sql) {}
+    default void executeSql(TablePath tablePath, String sql) {}
 
     // todo: Support for update table metadata
 

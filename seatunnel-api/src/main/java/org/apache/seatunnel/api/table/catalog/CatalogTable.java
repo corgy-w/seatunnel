@@ -44,6 +44,17 @@ public final class CatalogTable implements Serializable {
 
     private final String catalogName;
 
+    public static CatalogTable of(TableIdentifier tableId, CatalogTable catalogTable) {
+        CatalogTable newTable = catalogTable.copy();
+        return new CatalogTable(
+                tableId,
+                newTable.getTableSchema(),
+                newTable.getOptions(),
+                newTable.getPartitionKeys(),
+                newTable.getComment(),
+                newTable.getCatalogName());
+    }
+
     public static CatalogTable of(
             TableIdentifier tableId,
             TableSchema tableSchema,
@@ -93,6 +104,7 @@ public final class CatalogTable implements Serializable {
             String catalogName) {
         this.tableId = tableId;
         this.tableSchema = tableSchema;
+        // Make sure the options and partitionKeys are mutable
         this.options = new HashMap<>(options);
         this.partitionKeys = new ArrayList<>(partitionKeys);
         this.comment = comment;

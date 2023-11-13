@@ -44,7 +44,7 @@ public class SftpFileSourceFactory implements TableSourceFactory {
                 .required(SftpConfig.FILE_PATH)
                 .required(SftpConfig.SFTP_HOST)
                 .required(SftpConfig.SFTP_PORT)
-                .required(SftpConfig.SFTP_USERNAME)
+                .required(SftpConfig.SFTP_USER)
                 .required(SftpConfig.SFTP_PASSWORD)
                 .required(BaseSourceConfig.FILE_FORMAT_TYPE)
                 .conditional(

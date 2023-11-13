@@ -185,6 +185,7 @@ public class CheckpointCoordinator {
         this.pipelineTaskStatus = new ConcurrentHashMap<>();
         this.checkpointIdCounter = checkpointIdCounter;
         this.readyToCloseStartingTask = new CopyOnWriteArraySet<>();
+
         LOG.info(
                 "Create CheckpointCoordinator for job({}@{}) with plan({})",
                 pipelineId,

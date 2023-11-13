@@ -20,15 +20,10 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dm;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
-import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
-import org.apache.seatunnel.api.table.catalog.PrimaryKey;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
-import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -40,6 +35,8 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -78,8 +75,12 @@ public class DamengCatalog extends AbstractJdbcCatalog {
                     + "ORDER BY COLUMNS.COLUMN_ID ASC";
 
     public DamengCatalog(
-            String catalogName, String username, String pwd, JdbcUrlUtil.UrlInfo urlInfo) {
-        super(catalogName, username, pwd, urlInfo, null);
+        String catalogName,
+        String username,
+        String pwd,
+        JdbcUrlUtil.UrlInfo urlInfo,
+        String defaultSchema) {
+        super(catalogName, username, pwd, urlInfo, defaultSchema);
     }
 
     @Override
@@ -167,6 +168,92 @@ public class DamengCatalog extends AbstractJdbcCatalog {
         return String.format(
                 "select count(*) from \"%s\".\"%s\"",
                 tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected String getListDatabaseSql() {
+        return "SELECT name FROM v$database";
+    }
+
+    @Override
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected String getDropTableSql(TablePath tablePath) {
+        return String.format("DROP TABLE %s", getTableName(tablePath));
+    }
+
+    @Override
+    protected String getTableName(TablePath tablePath) {
+        return tablePath.getSchemaAndTableName().toUpperCase();
+    }
+
+    @Override
+    protected String getListTableSql(String databaseName) {
+        return "SELECT OWNER, TABLE_NAME FROM ALL_TABLES";
+    }
+
+    @Override
+    protected String getTableName(ResultSet rs) throws SQLException {
+        if (EXCLUDED_SCHEMAS.contains(rs.getString(1))) {
+            return null;
+        }
+        return rs.getString(1) + "." + rs.getString(2);
+    }
+
+    @Override
+    protected String getSelectColumnsSql(TablePath tablePath) {
+        return String.format(
+            SELECT_COLUMNS_SQL, tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
+        String columnName = resultSet.getString("COLUMN_NAME");
+        String typeName = resultSet.getString("DATA_TYPE");
+        long columnLength = resultSet.getLong("DATA_LENGTH");
+        long columnPrecision = resultSet.getLong("DATA_PRECISION");
+        long columnScale = resultSet.getLong("DATA_SCALE");
+        String columnComment = resultSet.getString("COMMENTS");
+        Object defaultValue = resultSet.getObject("DATA_DEFAULT");
+        boolean isNullable = resultSet.getString("NULLABLE").equals("Y");
+
+        SeaTunnelDataType<?> type =
+            fromJdbcType(columnName, typeName, columnPrecision, columnScale);
+
+        return PhysicalColumn.of(
+            columnName,
+            type,
+            0,
+            isNullable,
+            defaultValue,
+            columnComment,
+            typeName,
+            false,
+            false,
+            0L,
+            null,
+            columnLength);
+    }
+
+    private SeaTunnelDataType<?> fromJdbcType(
+        String columnName, String typeName, long precision, long scale) {
+        Map<String, Object> dataTypeProperties = new HashMap<>();
+        dataTypeProperties.put(DamengDataTypeConvertor.PRECISION, precision);
+        dataTypeProperties.put(DamengDataTypeConvertor.SCALE, scale);
+        return DATA_TYPE_CONVERTOR.toSeaTunnelType(columnName, typeName, dataTypeProperties);
+    }
+
+    @Override
+    protected String getUrlFromDatabaseName(String databaseName) {
+        return defaultUrl;
+    }
+
+    @Override
+    protected String getOptionTableName(TablePath tablePath) {
+        return tablePath.getSchemaAndTableName();
     }
 
     @Override
@@ -354,6 +441,7 @@ public class DamengCatalog extends AbstractJdbcCatalog {
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
+        Connection defaultConnection = getConnection(defaultUrl);
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new DmdbTypeMapper());
     }
 }

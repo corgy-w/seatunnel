@@ -66,10 +66,6 @@ public class ReadonlyConfig implements Serializable {
         return getOptional(option).orElseGet(option::defaultValue);
     }
 
-    public Map<String, Object> getConfData() {
-        return confData;
-    }
-
     /**
      * Transform to Config todo: This method should be removed after we remove Config
      *
@@ -107,10 +103,10 @@ public class ReadonlyConfig implements Serializable {
             for (String fallbackKey : option.getFallbackKeys()) {
                 value = getValue(fallbackKey);
                 if (value != null) {
-                    log.info(
-                            "Config uses fallback configuration key '{}' instead of key '{}'",
-                            fallbackKey,
-                            option.key());
+                    log.warn(
+                            "Please use the new key '{}' instead of the deprecated key '{}'.",
+                            option.key(),
+                            fallbackKey);
                     break;
                 }
             }

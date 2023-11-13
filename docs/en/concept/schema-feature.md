@@ -3,7 +3,7 @@
 ## Why we need schema
 
 Some NoSQL databases or message queue are not strongly limited schema, so the schema cannot be obtained through the api.
-At this time, a schema needs to be defined to convert to SeaTunnelRowType and obtain data.
+At this time, a schema needs to be defined to convert to TableSchema and obtain data.
 
 ## SchemaOptions
 
@@ -134,9 +134,8 @@ constraintKeys = [
 
 | ConstraintType | Description |
 |:---------------|:------------|
-| KEY            | key         |
+| INDEX_KEY      | key         |
 | UNIQUE_KEY     | unique key  |
-| FOREIGN_KEY    | foreign key |
 
 ## How to use schema
 

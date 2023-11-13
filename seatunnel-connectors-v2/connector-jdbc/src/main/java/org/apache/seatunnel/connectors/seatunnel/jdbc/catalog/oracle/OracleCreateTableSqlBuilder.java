@@ -131,7 +131,7 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
         columnSql.append("\"").append(column.getName()).append("\" ");
 
         String columnType =
-                sourceCatalogName.equals(DatabaseIdentifier.ORACLE)
+                StringUtils.equalsIgnoreCase(DatabaseIdentifier.ORACLE, sourceCatalogName)
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);
@@ -161,7 +161,9 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
                     return "CLOB";
                 }
             default:
-                String type = oracleDataTypeConvertor.toConnectorType(column.getDataType(), null);
+                String type =
+                        oracleDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
                 if (type.equals("NUMBER")) {
                     if (column.getDataType() instanceof DecimalType) {
                         DecimalType decimalType = (DecimalType) column.getDataType();
@@ -180,7 +182,6 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
 
     private String buildPrimaryKeySql(PrimaryKey primaryKey) {
         String randomSuffix = UUID.randomUUID().toString().replace("-", "").substring(0, 4);
-        //        String columnNamesString = String.join(", ", primaryKey.getColumnNames());
         String columnNamesString =
                 primaryKey.getColumnNames().stream()
                         .map(columnName -> "\"" + columnName + "\"")

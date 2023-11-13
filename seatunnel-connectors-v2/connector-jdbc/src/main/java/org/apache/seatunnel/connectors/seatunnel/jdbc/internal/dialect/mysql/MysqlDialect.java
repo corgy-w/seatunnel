@@ -39,16 +39,14 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.source.JdbcSourceTable;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.mysql.cj.MysqlType;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -118,6 +116,46 @@ public class MysqlDialect implements JdbcDialect {
     @Override
     public String extractTableName(TablePath tablePath) {
         return tablePath.getTableName();
+    }
+
+    @Override
+    public Map<String, String> defaultParameter() {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("rewriteBatchedStatements", "true");
+        return map;
+    }
+
+    @Override
+    public TablePath parse(String tablePath) {
+        return TablePath.of(tablePath, false);
+    }
+
+    @Override
+    public Long approximateRowCntStatement(Connection connection, JdbcSourceTable table)
+        throws SQLException {
+        if (StringUtils.isBlank(table.getQuery())) {
+            // The statement used to get approximate row count which is less
+            // accurate than COUNT(*), but is more efficient for large table.
+            TablePath tablePath = table.getTablePath();
+            String useDatabaseStatement =
+                String.format("USE %s;", quoteDatabaseIdentifier(tablePath.getDatabaseName()));
+            String rowCountQuery =
+                String.format("SHOW TABLE STATUS LIKE '%s';", tablePath.getTableName());
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute(useDatabaseStatement);
+                try (ResultSet rs = stmt.executeQuery(rowCountQuery)) {
+                    if (!rs.next() || rs.getMetaData().getColumnCount() < 5) {
+                        throw new SQLException(
+                            String.format(
+                                "No result returned after running query [%s]",
+                                rowCountQuery));
+                    }
+                    return rs.getLong(5);
+                }
+            }
+        }
+
+        return SQLUtils.countForSubquery(connection, table.getQuery());
     }
 
     @Override
@@ -275,38 +313,5 @@ public class MysqlDialect implements JdbcDialect {
             columnSqls.add("COMMENT '" + column.getComment() + "'");
         }
         return String.join(" ", columnSqls);
-    }
-
-    @Override
-    public TablePath parse(String tablePath) {
-        return TablePath.of(tablePath, false);
-    }
-
-    @Override
-    public Long approximateRowCntStatement(Connection connection, JdbcSourceTable table)
-            throws SQLException {
-        if (StringUtils.isBlank(table.getQuery())) {
-            // The statement used to get approximate row count which is less
-            // accurate than COUNT(*), but is more efficient for large table.
-            TablePath tablePath = table.getTablePath();
-            String useDatabaseStatement =
-                    String.format("USE %s;", quoteDatabaseIdentifier(tablePath.getDatabaseName()));
-            String rowCountQuery =
-                    String.format("SHOW TABLE STATUS LIKE '%s';", tablePath.getTableName());
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute(useDatabaseStatement);
-                try (ResultSet rs = stmt.executeQuery(rowCountQuery)) {
-                    if (!rs.next() || rs.getMetaData().getColumnCount() < 5) {
-                        throw new SQLException(
-                                String.format(
-                                        "No result returned after running query [%s]",
-                                        rowCountQuery));
-                    }
-                    return rs.getLong(5);
-                }
-            }
-        }
-
-        return SQLUtils.countForSubquery(connection, table.getQuery());
     }
 }

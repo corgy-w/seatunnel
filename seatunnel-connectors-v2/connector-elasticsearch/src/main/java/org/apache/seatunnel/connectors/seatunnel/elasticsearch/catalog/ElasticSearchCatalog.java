@@ -151,7 +151,8 @@ public class ElasticSearchCatalog implements Catalog {
                     PhysicalColumn physicalColumn =
                             PhysicalColumn.of(
                                     fieldName,
-                                    elasticSearchDataTypeConvertor.toSeaTunnelType(fieldType),
+                                    elasticSearchDataTypeConvertor.toSeaTunnelType(
+                                            fieldName, fieldType),
                                     null,
                                     true,
                                     null,

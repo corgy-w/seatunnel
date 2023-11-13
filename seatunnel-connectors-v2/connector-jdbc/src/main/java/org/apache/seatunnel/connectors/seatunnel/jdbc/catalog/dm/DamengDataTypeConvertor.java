@@ -17,7 +17,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dm;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.DecimalType;
@@ -25,8 +24,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import org.apache.commons.collections4.MapUtils;
@@ -44,68 +42,68 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
     public static final Integer DEFAULT_SCALE = 18;
 
     // ============================data types=====================
-    public static final String DM_BIT = "BIT";
+    private static final String DM_BIT = "BIT";
 
     // ----------------------------number-------------------------
-    public static final String DM_NUMERIC = "NUMERIC";
-    public static final String DM_NUMBER = "NUMBER";
-    public static final String DM_DECIMAL = "DECIMAL";
+    private static final String DM_NUMERIC = "NUMERIC";
+    private static final String DM_NUMBER = "NUMBER";
+    private static final String DM_DECIMAL = "DECIMAL";
     /** same to DECIMAL */
-    public static final String DM_DEC = "DEC";
+    private static final String DM_DEC = "DEC";
 
     // ----------------------------int-----------------------------
-    public static final String DM_INTEGER = "INTEGER";
-    public static final String DM_INT = "INT";
-    public static final String DM_PLS_INTEGER = "PLS_INTEGER";
-    public static final String DM_BIGINT = "BIGINT";
-    public static final String DM_TINYINT = "TINYINT";
-    public static final String DM_BYTE = "BYTE";
-    public static final String DM_SMALLINT = "SMALLINT";
+    private static final String DM_INTEGER = "INTEGER";
+    private static final String DM_INT = "INT";
+    private static final String DM_PLS_INTEGER = "PLS_INTEGER";
+    private static final String DM_BIGINT = "BIGINT";
+    private static final String DM_TINYINT = "TINYINT";
+    private static final String DM_BYTE = "BYTE";
+    private static final String DM_SMALLINT = "SMALLINT";
 
     // dm float is double for Cpp.
-    public static final String DM_FLOAT = "FLOAT";
-    public static final String DM_DOUBLE = "DOUBLE";
-    public static final String DM_DOUBLE_PRECISION = "DOUBLE PRECISION";
-    public static final String DM_REAL = "REAL";
+    private static final String DM_FLOAT = "FLOAT";
+    private static final String DM_DOUBLE = "DOUBLE";
+    private static final String DM_DOUBLE_PRECISION = "DOUBLE PRECISION";
+    private static final String DM_REAL = "REAL";
 
     // DM_CHAR DM_CHARACTER DM_VARCHAR DM_VARCHAR2 max is 32767
-    public static final String DM_CHAR = "CHAR";
-    public static final String DM_CHARACTER = "CHARACTER";
-    public static final String DM_VARCHAR = "VARCHAR";
-    public static final String DM_VARCHAR2 = "VARCHAR2";
-    public static final String DM_LONGVARCHAR = "LONGVARCHAR";
-    public static final String DM_CLOB = "CLOB";
-    public static final String DM_TEXT = "TEXT";
-    public static final String DM_LONG = "LONG";
+    private static final String DM_CHAR = "CHAR";
+    private static final String DM_CHARACTER = "CHARACTER";
+    private static final String DM_VARCHAR = "VARCHAR";
+    private static final String DM_VARCHAR2 = "VARCHAR2";
+    private static final String DM_LONGVARCHAR = "LONGVARCHAR";
+    private static final String DM_CLOB = "CLOB";
+    private static final String DM_TEXT = "TEXT";
+    private static final String DM_LONG = "LONG";
 
     // ------------------------------time-------------------------
-    public static final String DM_DATE = "DATE";
-    public static final String DM_TIME = "TIME";
-    public static final String DM_TIMESTAMP = "TIMESTAMP";
-    public static final String DM_DATETIME = "DATETIME";
+    private static final String DM_DATE = "DATE";
+    private static final String DM_TIME = "TIME";
+    private static final String DM_TIMESTAMP = "TIMESTAMP";
+    private static final String DM_DATETIME = "DATETIME";
 
     // ---------------------------binary---------------------------
-    public static final String DM_BINARY = "BINARY";
-    public static final String DM_VARBINARY = "VARBINARY";
+    private static final String DM_BINARY = "BINARY";
+    private static final String DM_VARBINARY = "VARBINARY";
 
     // -------------------------time interval-----------------------
-    public static final String DM_INTERVAL_YEAR_TO_MONTH = "INTERVAL YEAR TO MONTH";
-    public static final String DM_INTERVAL_YEAR = "INTERVAL YEAR";
-    public static final String DM_INTERVAL_MONTH = "INTERVAL MONTH";
-    public static final String DM_INTERVAL_DAY = "INTERVAL DAY";
-    public static final String DM_INTERVAL_DAY_TO_HOUR = "INTERVAL DAY TO HOUR";
-    public static final String DM_INTERVAL_DAY_TO_MINUTE = "INTERVAL DAY TO MINUTE";
-    public static final String DM_INTERVAL_DAY_TO_SECOND = "INTERVAL DAY TO SECOND";
-    public static final String DM_INTERVAL_HOUR = "INTERVAL HOUR";
-    public static final String DM_INTERVAL_HOUR_TO_MINUTE = "INTERVAL HOUR TO MINUTE";
-    public static final String DM_INTERVAL_HOUR_TO_SECOND = "INTERVAL HOUR TO SECOND";
-    public static final String DM_INTERVAL_MINUTE = "INTERVAL MINUTE";
-    public static final String DM_INTERVAL_MINUTE_TO_SECOND = "INTERVAL MINUTE TO SECOND";
-    public static final String DM_INTERVAL_SECOND = "INTERVAL SECOND";
+    private static final String DM_INTERVAL_YEAR_TO_MONTH = "INTERVAL YEAR TO MONTH";
+    private static final String DM_INTERVAL_YEAR = "INTERVAL YEAR";
+    private static final String DM_INTERVAL_MONTH = "INTERVAL MONTH";
+    private static final String DM_INTERVAL_DAY = "INTERVAL DAY";
+    private static final String DM_INTERVAL_DAY_TO_HOUR = "INTERVAL DAY TO HOUR";
+    private static final String DM_INTERVAL_DAY_TO_MINUTE = "INTERVAL DAY TO MINUTE";
+    private static final String DM_INTERVAL_DAY_TO_SECOND = "INTERVAL DAY TO SECOND";
+    private static final String DM_INTERVAL_HOUR = "INTERVAL HOUR";
+    private static final String DM_INTERVAL_HOUR_TO_MINUTE = "INTERVAL HOUR TO MINUTE";
+    private static final String DM_INTERVAL_HOUR_TO_SECOND = "INTERVAL HOUR TO SECOND";
+    private static final String DM_INTERVAL_MINUTE = "INTERVAL MINUTE";
+    private static final String DM_INTERVAL_MINUTE_TO_SECOND = "INTERVAL MINUTE TO SECOND";
+    private static final String DM_INTERVAL_SECOND = "INTERVAL SECOND";
     // time zone
-    public static final String DM_TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE";
-    public static final String DM_TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE";
-    public static final String TIMESTAMP_WITH_LOCAL_TIME_ZONE = "TIMESTAMP WITH LOCAL TIME ZONE";
+    private static final String DM_TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE";
+    private static final String DM_TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE";
+    private static final String TIMESTAMP_WITH_LOCAL_TIME_ZONE = "TIMESTAMP WITH LOCAL TIME ZONE";
 
     // ------------------------------blob-------------------------
     public static final String DM_BLOB = "BLOB";
@@ -119,13 +117,13 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
     }
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String dataType) {
-        return toSeaTunnelType(dataType, Collections.emptyMap());
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String dataType) {
+        return toSeaTunnelType(field, dataType, Collections.emptyMap());
     }
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String dataType, Map<String, Object> properties)
-            throws DataTypeConvertException {
+    public SeaTunnelDataType<?> toSeaTunnelType(
+            String field, String dataType, Map<String, Object> properties) {
         switch (dataType.toUpperCase()) {
             case DM_BIT:
                 return BasicType.BOOLEAN_TYPE;
@@ -199,15 +197,14 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
             case DM_TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
             default:
-                throw new JdbcConnectorException(
-                        CommonErrorCode.UNSUPPORTED_OPERATION,
-                        String.format("Doesn't support Dmdb type '%s' yet.", dataType));
+                throw CommonError.convertToSeaTunnelTypeError(
+                        DatabaseIdentifier.DAMENG, dataType, field);
         }
     }
 
     @Override
-    public String toConnectorType(SeaTunnelDataType<?> dataType, Map<String, Object> properties)
-            throws DataTypeConvertException {
+    public String toConnectorType(
+            String field, SeaTunnelDataType<?> dataType, Map<String, Object> properties) {
         SqlType sqlType = dataType.getSqlType();
         switch (sqlType) {
             case TINYINT:
@@ -237,8 +234,8 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
             case BYTES:
                 return DM_BINARY;
             default:
-                throw new UnsupportedOperationException(
-                        String.format("Doesn't support SeaTunnel type '%s' yet.", dataType));
+                throw CommonError.convertToConnectorTypeError(
+                        DatabaseIdentifier.DAMENG, dataType.toString(), field);
         }
     }
 }

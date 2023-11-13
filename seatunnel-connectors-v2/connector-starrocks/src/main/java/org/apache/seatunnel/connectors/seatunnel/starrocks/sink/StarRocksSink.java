@@ -43,27 +43,22 @@ import org.apache.seatunnel.connectors.seatunnel.starrocks.catalog.StarRocksCata
 import org.apache.seatunnel.connectors.seatunnel.starrocks.config.SinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.config.StarRocksSinkOptions;
 
-import org.apache.commons.lang3.StringUtils;
-
-import com.google.auto.service.AutoService;
-import lombok.NoArgsConstructor;
+import java.util.Optional;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
 
-@NoArgsConstructor
-@AutoService(SeaTunnelSink.class)
 public class StarRocksSink extends AbstractSimpleSink<SeaTunnelRow, Void>
         implements SupportSaveMode {
 
     private SeaTunnelRowType seaTunnelRowType;
-    private SinkConfig sinkConfig;
-    private DataSaveMode dataSaveMode;
-    private SchemaSaveMode schemaSaveMode;
-    private ReadonlyConfig readonlyConfig;
-    private CatalogTable catalogTable;
+    private final SinkConfig sinkConfig;
+    private final DataSaveMode dataSaveMode;
+    private final SchemaSaveMode schemaSaveMode;
+    private final ReadonlyConfig readonlyConfig;
+    private final CatalogTable catalogTable;
 
     public StarRocksSink(
             SinkConfig sinkConfig,
@@ -84,25 +79,25 @@ public class StarRocksSink extends AbstractSimpleSink<SeaTunnelRow, Void>
         return StarRocksCatalogFactory.IDENTIFIER;
     }
 
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        ConfigValidator.of(ReadonlyConfig.fromConfig(pluginConfig))
-                .validate(new StarRocksCatalogFactory().optionRule());
-        sinkConfig = SinkConfig.of(ReadonlyConfig.fromConfig(pluginConfig));
-        if (StringUtils.isEmpty(sinkConfig.getTable()) && catalogTable != null) {
-            sinkConfig.setTable(catalogTable.getTableId().getTableName());
+    private void autoCreateTable(String template) {
+        StarRocksCatalog starRocksCatalog =
+                new StarRocksCatalog(
+                        "StarRocks",
+                        sinkConfig.getUsername(),
+                        sinkConfig.getPassword(),
+                        sinkConfig.getJdbcUrl());
+        if (!starRocksCatalog.databaseExists(sinkConfig.getDatabase())) {
+            starRocksCatalog.createDatabase(TablePath.of(sinkConfig.getDatabase(), ""), true);
         }
-        dataSaveMode = sinkConfig.getDataSaveMode();
-    }
-
-    @Override
-    public void setTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        this.seaTunnelRowType = seaTunnelRowType;
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getConsumedType() {
-        return this.seaTunnelRowType;
+        if (!starRocksCatalog.tableExists(
+                TablePath.of(sinkConfig.getDatabase(), sinkConfig.getTable()))) {
+            starRocksCatalog.createTable(
+                    StarRocksSaveModeUtil.fillingCreateSql(
+                            template,
+                            sinkConfig.getDatabase(),
+                            sinkConfig.getTable(),
+                            catalogTable.getTableSchema()));
+        }
     }
 
     @Override

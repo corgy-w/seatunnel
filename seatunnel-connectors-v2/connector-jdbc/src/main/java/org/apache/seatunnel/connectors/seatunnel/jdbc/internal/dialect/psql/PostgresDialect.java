@@ -48,6 +48,14 @@ public class PostgresDialect implements JdbcDialect {
         this.fieldIde = fieldIde;
     }
 
+    public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
+
+    public PostgresDialect() {}
+
+    public PostgresDialect(String fieldIde) {
+        this.fieldIde = fieldIde;
+    }
+
     @Override
     public String dialectName() {
         return DatabaseIdentifier.POSTGRESQL;
@@ -106,14 +114,7 @@ public class PostgresDialect implements JdbcDialect {
 
     @Override
     public String tableIdentifier(String database, String tableName) {
-        //        String[] strings = tableName.split("\\.");
-        //        String returnStr = "";
-        //
-        //        returnStr += "\"" + database + "\"";
-        //        for (String s : strings) {
-        //            returnStr += "." + "\"" + s + "\"";
-        //        }
-        //        return returnStr;
+        // resolve pg database name upper or lower not recognised
         return quoteDatabaseIdentifier(database) + "." + quoteIdentifier(tableName);
     }
 

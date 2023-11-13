@@ -17,6 +17,8 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kafka.config;
 
+import org.apache.seatunnel.shade.com.fasterxml.jackson.core.type.TypeReference;
+
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.sink.DataSaveMode;
@@ -148,9 +150,9 @@ public class Config {
                     .noDefaultValue()
                     .withDescription("The time required for consumption mode to be timestamp.");
 
-    public static final Option<Map<String, String>> START_MODE_OFFSETS =
+    public static final Option<Map<String, Long>> START_MODE_OFFSETS =
             Options.key("start_mode.offsets")
-                    .mapType()
+                    .type(new TypeReference<Map<String, Long>>() {})
                     .noDefaultValue()
                     .withDescription(
                             "The offset required for consumption mode to be specific_offsets.");

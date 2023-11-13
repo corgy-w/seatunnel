@@ -52,7 +52,7 @@ public interface JdbcDialectFactory {
      * @param compatibleMode The compatible mode
      * @return a new instance of {@link JdbcDialect}
      */
-    default JdbcDialect create(String compatibleMode, String fieldIde) {
+    default JdbcDialect create(String compatibleMode, String fieldId) {
         return create();
     }
 }

@@ -132,11 +132,13 @@ public class RedshiftJdbcClient implements AutoCloseable {
             }
             return result;
         } catch (SQLException e) {
-            throw new S3RedshiftConnectorException(
-                    CommonErrorCode.SQL_OPERATION_FAILED,
-                    String.format("Execute sql failed, sql is %s ", sql),
+            throw new S3RedshiftJdbcConnectorException(
+                    CommonErrorCodeDeprecated.TABLE_SCHEMA_GET_FAILED,
+                    String.format(
+                            "Check table is or not existed failed, table name is %s ", tableName),
                     e);
         }
+        return flag;
     }
 
     public static RedshiftJdbcClient newSingleConnection(S3RedshiftConf conf) {

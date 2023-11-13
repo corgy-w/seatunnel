@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.api.table.catalog;
 
 import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.node.ObjectNode;
@@ -11,6 +28,7 @@ import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.utils.JsonUtils;
 
 import java.util.Map;
@@ -21,7 +39,8 @@ public class SeaTunnelDataTypeConvertorUtil {
      * @param columnType column type, should be {@link SeaTunnelDataType##toString}.
      * @return {@link SeaTunnelDataType} instance.
      */
-    public static SeaTunnelDataType<?> deserializeSeaTunnelDataType(String columnType) {
+    public static SeaTunnelDataType<?> deserializeSeaTunnelDataType(
+            String field, String columnType) {
         SqlType sqlType = null;
         try {
             sqlType = SqlType.valueOf(columnType.toUpperCase().replace(" ", ""));
@@ -29,7 +48,7 @@ public class SeaTunnelDataTypeConvertorUtil {
             // nothing
         }
         if (sqlType == null) {
-            return parseComplexDataType(columnType);
+            return parseComplexDataType(field, columnType);
         }
         switch (sqlType) {
             case STRING:
@@ -59,25 +78,27 @@ public class SeaTunnelDataTypeConvertorUtil {
             case TIMESTAMP:
                 return LocalTimeType.LOCAL_DATE_TIME_TYPE;
             case MAP:
-                return parseMapType(columnType);
+                return parseMapType(field, columnType);
             default:
-                throw new UnsupportedOperationException(
-                        String.format("the type[%s] is not support", columnType));
+                throw CommonError.unsupportedDataType("SeaTunnel", columnType, field);
         }
     }
 
-    private static SeaTunnelDataType<?> parseComplexDataType(String columnStr) {
+    private static SeaTunnelDataType<?> parseComplexDataType(String field, String columnStr) {
         String column = columnStr.toUpperCase().replace(" ", "");
         if (column.startsWith(SqlType.MAP.name())) {
-            return parseMapType(column);
+            return parseMapType(field, column);
         }
         if (column.startsWith(SqlType.ARRAY.name())) {
-            return parseArrayType(column);
+            return parseArrayType(field, column);
         }
         if (column.startsWith(SqlType.DECIMAL.name())) {
             return parseDecimalType(column);
         }
-        return parseRowType(columnStr);
+        if (column.trim().startsWith("{")) {
+            return parseRowType(columnStr);
+        }
+        throw CommonError.unsupportedDataType("SeaTunnel", columnStr, field);
     }
 
     private static SeaTunnelDataType<?> parseRowType(String columnStr) {
@@ -88,13 +109,13 @@ public class SeaTunnelDataTypeConvertorUtil {
         int i = 0;
         for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
             fieldsName[i] = entry.getKey();
-            seaTunnelDataTypes[i] = deserializeSeaTunnelDataType(entry.getValue());
+            seaTunnelDataTypes[i] = deserializeSeaTunnelDataType(entry.getKey(), entry.getValue());
             i++;
         }
         return new SeaTunnelRowType(fieldsName, seaTunnelDataTypes);
     }
 
-    private static SeaTunnelDataType<?> parseMapType(String columnStr) {
+    private static SeaTunnelDataType<?> parseMapType(String field, String columnStr) {
         String genericType = getGenericType(columnStr);
         int index =
                 genericType.startsWith(SqlType.DECIMAL.name())
@@ -107,8 +128,8 @@ public class SeaTunnelDataTypeConvertorUtil {
         String keyGenericType = genericType.substring(0, index);
         String valueGenericType = genericType.substring(index + 1);
         return new MapType<>(
-                deserializeSeaTunnelDataType(keyGenericType),
-                deserializeSeaTunnelDataType(valueGenericType));
+                deserializeSeaTunnelDataType(field, keyGenericType),
+                deserializeSeaTunnelDataType(field, valueGenericType));
     }
 
     private static String getGenericType(String columnStr) {
@@ -116,9 +137,9 @@ public class SeaTunnelDataTypeConvertorUtil {
         return columnStr.substring(columnStr.indexOf("<") + 1, columnStr.lastIndexOf(">"));
     }
 
-    private static SeaTunnelDataType<?> parseArrayType(String columnStr) {
+    private static SeaTunnelDataType<?> parseArrayType(String field, String columnStr) {
         String genericType = getGenericType(columnStr);
-        SeaTunnelDataType<?> dataType = deserializeSeaTunnelDataType(genericType);
+        SeaTunnelDataType<?> dataType = deserializeSeaTunnelDataType(field, genericType);
         switch (dataType.getSqlType()) {
             case STRING:
                 return ArrayType.STRING_ARRAY_TYPE;
@@ -137,9 +158,7 @@ public class SeaTunnelDataTypeConvertorUtil {
             case DOUBLE:
                 return ArrayType.DOUBLE_ARRAY_TYPE;
             default:
-                String errorMsg =
-                        String.format("Array type not support this genericType [%s]", genericType);
-                throw new UnsupportedOperationException(errorMsg);
+                throw CommonError.unsupportedDataType("SeaTunnel", columnStr, field);
         }
     }
 

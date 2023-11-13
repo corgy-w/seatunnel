@@ -25,7 +25,7 @@ import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventDispatcher;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
@@ -51,14 +51,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-@Slf4j
 public class JdbcSinkWriter
         implements SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState>,
                 SupportMultiTableSinkWriter<ConnectionPoolManager> {
-    private JdbcOutputFormat outputFormat;
+    private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
     private final SinkWriter.Context context;
     private final JdbcDialect dialect;
-    private SeaTunnelRowType rowType;
+    private final SeaTunnelRowType rowType;
     private JdbcConnectionProvider connectionProvider;
     private transient boolean isOpen;
     private final Integer primaryKeyIndex;
@@ -75,10 +74,15 @@ public class JdbcSinkWriter
         this.dialect = dialect;
         this.rowType = rowType;
         this.primaryKeyIndex = primaryKeyIndex;
+        this.connectionProvider =
+                dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
+        this.outputFormat =
+                new JdbcOutputFormatBuilder(dialect, connectionProvider, jdbcSinkConfig, rowType)
+                        .build();
     }
 
     @Override
-    public MultiTableResourceManager<ConnectionPoolManager> initMultiTableResourceManager(
+    public Optional<MultiTableResourceManager<ConnectionPoolManager>> initMultiTableResourceManager(
             int tableSize, int queueSize) {
         HikariDataSource ds = new HikariDataSource();
         ds.setIdleTimeout(30 * 1000);
@@ -91,16 +95,16 @@ public class JdbcSinkWriter
             ds.setPassword(jdbcSinkConfig.getJdbcConnectionConfig().getPassword().get());
         }
         ds.setAutoCommit(jdbcSinkConfig.getJdbcConnectionConfig().isAutoCommit());
-        return new JdbcMultiTableResourceManager(new ConnectionPoolManager(ds));
+        return Optional.of(new JdbcMultiTableResourceManager(new ConnectionPoolManager(ds)));
     }
 
     @Override
     public void setMultiTableResourceManager(
-            MultiTableResourceManager<ConnectionPoolManager> multiTableResourceManager,
+            Optional<MultiTableResourceManager<ConnectionPoolManager>> multiTableResourceManager,
             int queueIndex) {
         this.connectionProvider =
                 new SimpleJdbcConnectionPoolProviderProxy(
-                        multiTableResourceManager.getSharedResource().get(),
+                        multiTableResourceManager.get().getSharedResource().get(),
                         jdbcSinkConfig.getJdbcConnectionConfig(),
                         queueIndex);
         this.outputFormat =
@@ -163,7 +167,9 @@ public class JdbcSinkWriter
         } catch (Exception e) {
             log.error("Close jdbc sink writer failed.", e);
             throw new JdbcConnectorException(
-                    CommonErrorCode.WRITER_OPERATION_FAILED, "unable to close JDBC sink write", e);
+                    CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
+                    "unable to close JDBC sink write",
+                    e);
         } finally {
             outputFormat.close();
         }

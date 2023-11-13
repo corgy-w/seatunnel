@@ -17,16 +17,13 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.sink;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.CommonOptions;
 import org.apache.seatunnel.api.common.JobContext;
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.DefaultSerializer;
 import org.apache.seatunnel.api.serialization.Serializer;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.DefaultSaveModeHandler;
+import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SinkAggregatedCommitter;
@@ -34,57 +31,49 @@ import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSink;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.Catalog;
-import org.apache.seatunnel.api.table.catalog.CatalogOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.factory.CatalogFactory;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectLoader;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcSinkState;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.XidInfo;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcCatalogUtils;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.google.auto.service.AutoService;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
+import static org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode.HANDLE_SAVE_MODE_FAILED;
 
-@AutoService(SeaTunnelSink.class)
 public class JdbcSink
         implements SeaTunnelSink<SeaTunnelRow, JdbcSinkState, XidInfo, JdbcAggregatedCommitInfo>,
                 SupportSaveMode,
                 SupportMultiTableSink {
 
-    private SeaTunnelRowType seaTunnelRowType;
+    private final SeaTunnelRowType seaTunnelRowType;
 
     private JobContext jobContext;
 
-    private JdbcSinkConfig jdbcSinkConfig;
+    private final JdbcSinkConfig jdbcSinkConfig;
 
-    private JdbcDialect dialect;
+    private final JdbcDialect dialect;
 
-    private ReadonlyConfig config;
+    private final ReadonlyConfig config;
 
-    private DataSaveMode dataSaveMode;
+    private final DataSaveMode dataSaveMode;
 
-    private SchemaSaveMode schemaSaveMode;
+    private final SchemaSaveMode schemaSaveMode;
 
-    private CatalogTable catalogTable;
+    private final CatalogTable catalogTable;
 
     public JdbcSink() {}
 
@@ -107,20 +96,6 @@ public class JdbcSink
     @Override
     public String getPluginName() {
         return "Jdbc";
-    }
-
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        this.config = ReadonlyConfig.fromConfig(pluginConfig);
-        this.jdbcSinkConfig = JdbcSinkConfig.of(config);
-        this.dialect =
-                JdbcDialectLoader.load(
-                        jdbcSinkConfig.getJdbcConnectionConfig().getUrl(),
-                        jdbcSinkConfig.getJdbcConnectionConfig().getCompatibleMode(),
-                        config.get(JdbcOptions.FIELD_IDE) == null
-                                ? null
-                                : config.get(JdbcOptions.FIELD_IDE).getValue());
-        this.dataSaveMode = DataSaveMode.KEEP_SCHEMA_AND_DATA;
     }
 
     @Override
@@ -172,16 +147,6 @@ public class JdbcSink
     }
 
     @Override
-    public void setTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        this.seaTunnelRowType = seaTunnelRowType;
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getConsumedType() {
-        return this.seaTunnelRowType;
-    }
-
-    @Override
     public Optional<Serializer<JdbcAggregatedCommitInfo>> getAggregatedCommitInfoSerializer() {
         if (jdbcSinkConfig.isExactlyOnce()) {
             return Optional.of(new DefaultSerializer<>());
@@ -203,46 +168,45 @@ public class JdbcSink
     }
 
     @Override
-    public DefaultSaveModeHandler getSaveModeHandler() {
-        if (catalogTable == null) {
-            return null;
+    public Optional<SaveModeHandler> getSaveModeHandler() {
+        if (catalogTable != null) {
+            if (StringUtils.isBlank(jdbcSinkConfig.getDatabase())) {
+                return Optional.empty();
+            }
+            if (StringUtils.isBlank(jdbcSinkConfig.getTable())) {
+                return Optional.empty();
+            }
+            Optional<Catalog> catalogOptional =
+                    JdbcCatalogUtils.findCatalog(jdbcSinkConfig.getJdbcConnectionConfig(), dialect);
+            if (catalogOptional.isPresent()) {
+                try {
+                    Catalog catalog = catalogOptional.get();
+                    catalog.open();
+                    FieldIdeEnum fieldIdeEnumEnum = config.get(JdbcOptions.FIELD_IDE);
+                    String fieldIde =
+                            fieldIdeEnumEnum == null
+                                    ? FieldIdeEnum.ORIGINAL.getValue()
+                                    : fieldIdeEnumEnum.getValue();
+                    TablePath tablePath =
+                            TablePath.of(
+                                catalogTable.getTableId().getDatabaseName(),
+                                catalogTable.getTableId().getSchemaName(),
+                                CatalogUtils.quoteTableIdentifier(
+                                    catalogTable.getTableId().getTableName(), fieldIde);
+                    catalogTable.getOptions().put("fieldIde", fieldIde);
+                    return Optional.of(
+                            new DefaultSaveModeHandler(
+                                    schemaSaveMode,
+                                    dataSaveMode,
+                                    catalog,
+                                    tablePath,
+                                    catalogTable,
+                                    config.get(JdbcOptions.CUSTOM_SQL)));
+                } catch (Exception e) {
+                    throw new JdbcConnectorException(HANDLE_SAVE_MODE_FAILED, e);
+                }
+            }
         }
-        Map<String, String> catalogOptions = config.get(CatalogOptions.CATALOG_OPTIONS);
-        if (catalogOptions == null || catalogOptions.isEmpty()) {
-            return null;
-        }
-        String factoryId = catalogOptions.get(CommonOptions.FACTORY_ID.key());
-        if (StringUtils.isBlank(jdbcSinkConfig.getDatabase()) || StringUtils.isEmpty(factoryId)) {
-            return null;
-        }
-        CatalogFactory catalogFactory =
-                discoverFactory(
-                        Thread.currentThread().getContextClassLoader(),
-                        CatalogFactory.class,
-                        factoryId);
-        if (catalogFactory == null) {
-            return null;
-        }
-        FieldIdeEnum fieldIdeEnum = config.get(JdbcOptions.FIELD_IDE);
-        String fieldIde =
-                fieldIdeEnum == null ? FieldIdeEnum.ORIGINAL.getValue() : fieldIdeEnum.getValue();
-        TablePath tablePath =
-                TablePath.of(
-                        catalogTable.getTableId().getDatabaseName(),
-                        catalogTable.getTableId().getSchemaName(),
-                        CatalogUtils.quoteTableIdentifier(
-                                catalogTable.getTableId().getTableName(), fieldIde));
-        Catalog catalog =
-                catalogFactory.createCatalog(
-                        catalogFactory.factoryIdentifier(),
-                        ReadonlyConfig.fromMap(new HashMap<>(catalogOptions)));
-        catalog.open();
-        return new DefaultSaveModeHandler(
-                schemaSaveMode,
-                dataSaveMode,
-                catalog,
-                tablePath,
-                catalogTable,
-                config.get(JdbcOptions.CUSTOM_SQL));
+        return Optional.empty();
     }
 }
