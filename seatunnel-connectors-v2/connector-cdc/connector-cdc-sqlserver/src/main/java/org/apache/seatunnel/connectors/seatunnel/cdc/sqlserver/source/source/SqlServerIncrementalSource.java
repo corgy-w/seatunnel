@@ -25,6 +25,7 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
+import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
@@ -33,6 +34,7 @@ import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
 import org.apache.seatunnel.connectors.cdc.base.source.IncrementalSource;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.OffsetFactory;
+import org.apache.seatunnel.connectors.cdc.debezium.ConnectTableChangeSerializer;
 import org.apache.seatunnel.connectors.cdc.debezium.DebeziumDeserializationSchema;
 import org.apache.seatunnel.connectors.cdc.debezium.DeserializeFormat;
 import org.apache.seatunnel.connectors.cdc.debezium.row.DebeziumJsonDeserializeSchema;
@@ -45,10 +47,16 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.sqlserver.SqlServe
 import org.apache.kafka.connect.data.Struct;
 
 import com.google.auto.service.AutoService;
+import io.debezium.jdbc.JdbcConnection;
+import io.debezium.relational.TableId;
+import io.debezium.relational.history.TableChanges;
 import lombok.NoArgsConstructor;
 
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @NoArgsConstructor
 @AutoService(SeaTunnelSource.class)

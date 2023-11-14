@@ -18,6 +18,8 @@
 package org.apache.seatunnel.transform.sql;
 
 import org.apache.seatunnel.api.common.CommonOptions;
+import org.apache.seatunnel.api.configuration.Option;
+import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
@@ -40,8 +42,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.apache.seatunnel.transform.sql.SQLEngineFactory.EngineType.ZETA;
-import static org.apache.seatunnel.transform.sql.SQLTransformConfig.KEY_ENGINE;
-import static org.apache.seatunnel.transform.sql.SQLTransformConfig.KEY_QUERY;
 
 @Slf4j
 public class SQLTransform extends AbstractCatalogSupportTransform {

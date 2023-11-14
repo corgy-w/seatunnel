@@ -91,7 +91,7 @@ public class DamengIncrementalSourceFactory implements TableSourceFactory {
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
         return () -> {
             List<CatalogTable> catalogTables =
-                    CatalogTableUtil.getCatalogTablesFromConfig(
+                    CatalogTableUtil.getCatalogTables(
                             context.getOptions(), context.getClassLoader());
             SeaTunnelDataType<SeaTunnelRow> dataType =
                     CatalogTableUtil.convertToMultipleRowType(catalogTables);

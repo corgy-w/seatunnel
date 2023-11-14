@@ -38,11 +38,6 @@ public class MySqlDialectFactory implements JdbcDialectFactory {
     }
 
     @Override
-    public JdbcDialect createWithFieldIde(String fieldIde) {
-        return new MysqlDialect(fieldIde);
-    }
-
-    @Override
     public JdbcDialect create(@Nonnull String compatibleMode, String fieldIde) {
         return new MysqlDialect(fieldIde);
     }

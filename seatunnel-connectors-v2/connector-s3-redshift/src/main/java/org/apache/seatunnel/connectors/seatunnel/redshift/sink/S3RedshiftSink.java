@@ -144,21 +144,22 @@ public class S3RedshiftSink extends BaseHdfsFileSink
     }
 
     @Override
-    public SaveModeHandler getSaveModeHandler() {
+    public Optional<SaveModeHandler> getSaveModeHandler() {
         S3RedshiftSQLGenerator sqlGenerator;
         if (catalogTable != null) {
             sqlGenerator = new S3RedshiftSQLGenerator(s3RedshiftConf, catalogTable);
         } else {
             sqlGenerator = new S3RedshiftSQLGenerator(s3RedshiftConf, seaTunnelRowType);
         }
-        return new S3RedshiftSaveModeHandler(
-                s3RedshiftConf.getSchemaSaveMode(),
-                s3RedshiftConf.getDataSaveMode(),
-                null,
-                catalogTable,
-                s3RedshiftConf.getCustomSql(),
-                sqlGenerator,
-                s3RedshiftConf);
+        return Optional.of(
+                new S3RedshiftSaveModeHandler(
+                        s3RedshiftConf.getSchemaSaveMode(),
+                        s3RedshiftConf.getDataSaveMode(),
+                        null,
+                        catalogTable,
+                        s3RedshiftConf.getCustomSql(),
+                        sqlGenerator,
+                        s3RedshiftConf));
     }
 
     private WriteStrategy newWriteStrategy() {

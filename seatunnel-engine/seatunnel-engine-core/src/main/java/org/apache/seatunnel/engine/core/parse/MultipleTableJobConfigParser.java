@@ -40,6 +40,7 @@ import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.common.Constants;
 import org.apache.seatunnel.common.config.TypesafeConfigUtils;
 import org.apache.seatunnel.common.constants.CollectionConstants;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.core.starter.execution.PluginUtil;
 import org.apache.seatunnel.core.starter.utils.ConfigBuilder;
 import org.apache.seatunnel.engine.common.config.JobConfig;
@@ -86,6 +87,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode.HANDLE_SAVE_MODE_FAILED;
+import static org.apache.seatunnel.api.table.factory.FactoryUtil.DEFAULT_ID;
 import static org.apache.seatunnel.engine.core.parse.ConfigParserUtil.getFactoryId;
 import static org.apache.seatunnel.engine.core.parse.ConfigParserUtil.getInputIds;
 
@@ -625,43 +628,6 @@ public class MultipleTableJobConfigParser {
         return Optional.of(multiTableAction);
     }
 
-    private Optional<SinkAction<?, ?, ?, ?>> tryGenerateMultiTableSink(
-            List<SinkAction<?, ?, ?, ?>> sinkActions,
-            ReadonlyConfig options,
-            ClassLoader classLoader,
-            String factoryId,
-            int configIndex) {
-        if (sinkActions.stream()
-                .anyMatch(action -> !(action.getSink() instanceof SupportMultiTableSink))) {
-            log.info("Unsupported multi table sink api, rollback to sink template");
-            return Optional.empty();
-        }
-        Map<String, SeaTunnelSink> sinks = new HashMap<>();
-        Set<URL> jars =
-                sinkActions.stream()
-                        .flatMap(a -> a.getJarUrls().stream())
-                        .collect(Collectors.toSet());
-        sinkActions.forEach(
-                action -> {
-                    SeaTunnelSink sink = action.getSink();
-                    String tableId = action.getConfig().getMultipleRowTableId();
-                    sinks.put(tableId, sink);
-                });
-        SeaTunnelSink<?, ?, ?, ?> sink =
-                FactoryUtil.createMultiTableSink(sinks, options, classLoader);
-        String actionName =
-                JobConfigParser.createSinkActionName(configIndex, factoryId, "MultiTableSink");
-        SinkAction<?, ?, ?, ?> multiTableAction =
-                new SinkAction<>(
-                        idGenerator.getNextId(),
-                        actionName,
-                        sinkActions.get(0).getUpstream(),
-                        sink,
-                        jars);
-        multiTableAction.setParallelism(sinkActions.get(0).getParallelism());
-        return Optional.of(multiTableAction);
-    }
-
     private SinkAction<?, ?, ?, ?> createSinkAction(
             CatalogTable catalogTable,
             Set<Action> inputActions,
@@ -703,11 +669,13 @@ public class MultipleTableJobConfigParser {
     public static void handleSaveMode(SeaTunnelSink<?, ?, ?, ?> sink) {
         if (SupportSaveMode.class.isAssignableFrom(sink.getClass())) {
             SupportSaveMode saveModeSink = (SupportSaveMode) sink;
-                if (Optional<SaveModeHandler> saveModeHandler = saveModeSink.getSaveModeHandler()) {
-                    saveModeHandler.ifPresent(SaveModeHandler::handleSaveMode);
+            Optional<SaveModeHandler> saveModeHandler = saveModeSink.getSaveModeHandler();
+            if (saveModeHandler.isPresent()) {
+                try (SaveModeHandler handler = saveModeHandler.get()) {
+                    handler.handleSaveMode();
+                } catch (Exception e) {
+                    throw new SeaTunnelRuntimeException(HANDLE_SAVE_MODE_FAILED, e);
                 }
-            } catch (Exception e) {
-                throw new SeaTunnelRuntimeException(HANDLE_SAVE_MODE_FAILED, e);
             }
         }
     }
@@ -715,12 +683,13 @@ public class MultipleTableJobConfigParser {
     public static void handleSchemaSaveModeWithRestore(SeaTunnelSink<?, ?, ?, ?> sink) {
         if (SupportSaveMode.class.isAssignableFrom(sink.getClass())) {
             SupportSaveMode saveModeSink = (SupportSaveMode) sink;
-            try (SaveModeHandler saveModeHandler = saveModeSink.getSaveModeHandler()) {
-                if (saveModeHandler != null) {
-                    saveModeHandler.handleSchemaSaveModeWithRestore();
+            Optional<SaveModeHandler> saveModeHandler = saveModeSink.getSaveModeHandler();
+            if (saveModeHandler.isPresent()) {
+                try (SaveModeHandler handler = saveModeHandler.get()) {
+                    handler.handleSchemaSaveModeWithRestore();
+                } catch (Exception e) {
+                    throw new SeaTunnelRuntimeException(HANDLE_SAVE_MODE_FAILED, e);
                 }
-            } catch (Exception e) {
-                throw new SeaTunnelRuntimeException(HANDLE_SAVE_MODE_FAILED, e);
             }
         }
     }

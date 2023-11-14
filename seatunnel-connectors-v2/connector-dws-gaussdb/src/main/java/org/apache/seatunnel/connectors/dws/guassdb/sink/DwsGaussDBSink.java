@@ -144,7 +144,8 @@ public class DwsGaussDBSink
     }
 
     @Override
-    public SaveModeHandler getSaveModeHandler() {
-        return new DwsGaussDBSaveModeHandler(readonlyConfig, catalogTable, sqlGenerator);
+    public Optional<SaveModeHandler> getSaveModeHandler() {
+        return Optional.of(
+                new DwsGaussDBSaveModeHandler(readonlyConfig, catalogTable, sqlGenerator));
     }
 }

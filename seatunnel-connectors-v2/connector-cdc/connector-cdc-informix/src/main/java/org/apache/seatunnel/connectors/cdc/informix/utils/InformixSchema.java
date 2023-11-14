@@ -17,7 +17,7 @@
 
 package org.apache.seatunnel.connectors.cdc.informix.utils;
 
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 
 import io.debezium.jdbc.JdbcConnection;
@@ -51,7 +51,8 @@ public class InformixSchema {
                 schema = new TableChanges.TableChange(TableChanges.TableChangeType.CREATE, table);
                 schemasByTableId.put(tableId, schema);
             } catch (SQLException e) {
-                throw new SeaTunnelRuntimeException(CommonErrorCode.SQL_OPERATION_FAILED, e);
+                throw new SeaTunnelRuntimeException(
+                        CommonErrorCodeDeprecated.SQL_OPERATION_FAILED, e);
             }
         }
         return schema;

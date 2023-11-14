@@ -38,6 +38,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSinkConfig;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcAggregatedCommitInfo;
@@ -74,8 +75,6 @@ public class JdbcSink
     private final SchemaSaveMode schemaSaveMode;
 
     private final CatalogTable catalogTable;
-
-    public JdbcSink() {}
 
     public JdbcSink(
             ReadonlyConfig config,
@@ -189,10 +188,10 @@ public class JdbcSink
                                     : fieldIdeEnumEnum.getValue();
                     TablePath tablePath =
                             TablePath.of(
-                                catalogTable.getTableId().getDatabaseName(),
-                                catalogTable.getTableId().getSchemaName(),
-                                CatalogUtils.quoteTableIdentifier(
-                                    catalogTable.getTableId().getTableName(), fieldIde);
+                                    catalogTable.getTableId().getDatabaseName(),
+                                    catalogTable.getTableId().getSchemaName(),
+                                    CatalogUtils.quoteTableIdentifier(
+                                            catalogTable.getTableId().getTableName(), fieldIde));
                     catalogTable.getOptions().put("fieldIde", fieldIde);
                     return Optional.of(
                             new DefaultSaveModeHandler(

@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.hive;
 
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
@@ -77,7 +78,7 @@ public class HiveDialect implements JdbcDialect {
 
     @Override
     public JdbcConnectionProvider getJdbcConnectionProvider(
-        JdbcConnectionConfig jdbcConnectionConfig) {
+            JdbcConnectionConfig jdbcConnectionConfig) {
         return new HiveJdbcConnectionProvider(jdbcConnectionConfig);
     }
 }

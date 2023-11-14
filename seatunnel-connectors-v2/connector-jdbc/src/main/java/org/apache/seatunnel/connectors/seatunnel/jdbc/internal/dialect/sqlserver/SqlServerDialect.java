@@ -150,28 +150,6 @@ public class SqlServerDialect implements JdbcDialect {
     }
 
     @Override
-    public String quoteIdentifier(String identifier) {
-        if (identifier.contains(".")) {
-            String[] parts = identifier.split("\\.");
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < parts.length - 1; i++) {
-                sb.append("[").append(parts[i]).append("]").append(".");
-            }
-            return sb.append("[")
-                    .append(getFieldIde(parts[parts.length - 1], fieldIde))
-                    .append("]")
-                    .toString();
-        }
-
-        return "[" + getFieldIde(identifier, fieldIde) + "]";
-    }
-
-    @Override
-    public String quoteDatabaseIdentifier(String identifier) {
-        return "[" + identifier + "]";
-    }
-
-    @Override
     public TablePath parse(String tablePath) {
         return TablePath.of(tablePath, true);
     }

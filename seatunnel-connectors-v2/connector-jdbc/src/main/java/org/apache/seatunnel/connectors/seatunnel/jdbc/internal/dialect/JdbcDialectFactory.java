@@ -42,10 +42,6 @@ public interface JdbcDialectFactory {
         return create();
     }
 
-    default JdbcDialect createWithCompatible(String compatibleMode) {
-        return create();
-    }
-
     /**
      * Create a {@link JdbcDialect} instance based on the driver type and compatible mode.
      *

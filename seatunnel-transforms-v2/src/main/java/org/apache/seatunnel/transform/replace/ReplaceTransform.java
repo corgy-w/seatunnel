@@ -17,7 +17,6 @@
 
 package org.apache.seatunnel.transform.replace;
 
-import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -66,10 +65,7 @@ public class ReplaceTransform extends SingleFieldOutputTransform {
             return null;
         }
 
-        boolean isRegex =
-                config.get(ReplaceTransformConfig.KEY_IS_REGEX) != null
-                        && config.get(ReplaceTransformConfig.KEY_IS_REGEX);
-        if (isRegex) {
+        if (config.getIsRegex()) {
             if (config.getReplaceFirst()) {
                 return inputFieldValue
                         .toString()
@@ -91,7 +87,7 @@ public class ReplaceTransform extends SingleFieldOutputTransform {
                         .collect(Collectors.toList());
         if (CollectionUtils.isEmpty(collect)) {
             throw TransformCommonError.cannotFindInputFieldError(
-                    getPluginName(), config.get(ReplaceTransformConfig.KEY_REPLACE_FIELD));
+                    getPluginName(), config.getReplaceField());
         }
         return collect.get(0).copy();
     }

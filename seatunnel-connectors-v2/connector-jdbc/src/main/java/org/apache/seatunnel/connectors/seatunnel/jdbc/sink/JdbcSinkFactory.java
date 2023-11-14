@@ -26,7 +26,6 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
-import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -70,7 +69,7 @@ import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.PRIMARY_KEYS;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.QUERY;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.SCHEMA_SAVE_MODE;
-import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.SUPPORT_UPSERT_BY_QUERY_PRIMARY_KEY_EXIST;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.SUPPORT_UPSERT_BY_INSERT_ONLY;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.TABLE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.TRANSACTION_TIMEOUT_SEC;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.URL;
@@ -211,7 +210,9 @@ public class JdbcSinkFactory implements TableSinkFactory {
         final ReadonlyConfig options = config;
         JdbcSinkConfig sinkConfig = JdbcSinkConfig.of(config);
         FieldIdeEnum fieldIdeEnum = config.get(JdbcOptions.FIELD_IDE);
-        catalogTable.getOptions().put("fieldIde", fieldIde);
+        catalogTable
+                .getOptions()
+                .put("fieldIde", fieldIdeEnum == null ? null : fieldIdeEnum.getValue());
         JdbcDialect dialect =
                 JdbcDialectLoader.load(
                         sinkConfig.getJdbcConnectionConfig().getUrl(),

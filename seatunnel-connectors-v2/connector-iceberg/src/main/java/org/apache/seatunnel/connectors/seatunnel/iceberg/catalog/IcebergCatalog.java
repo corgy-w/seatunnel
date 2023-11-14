@@ -245,7 +245,7 @@ public class IcebergCatalog implements Catalog {
                             String name = nestedField.name();
                             SeaTunnelDataType<?> seaTunnelType =
                                     icebergDataTypeConvertor.toSeaTunnelType(
-                                            nestedField.type().typeId());
+                                            name, nestedField.type().typeId());
                             PhysicalColumn physicalColumn =
                                     PhysicalColumn.of(
                                             name,
@@ -289,7 +289,7 @@ public class IcebergCatalog implements Catalog {
                 options.put(IcebergDataTypeConvertor.PRECISION, decimalType.getPrecision());
                 options.put(IcebergDataTypeConvertor.SCALE, decimalType.getScale());
             }
-            Type type = icebergDataTypeConvertor.toConnectorTypeType(dataType, options);
+            Type type = icebergDataTypeConvertor.toConnectorTypeType(name, dataType, options);
             nestedFields.add(Types.NestedField.of(i + 1, true, name, type, column.getComment()));
         }
         return new org.apache.iceberg.Schema(nestedFields);

@@ -29,8 +29,6 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.constants.JobMode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.state.KafkaSourceState;
 
-import com.google.common.collect.Lists;
-
 import java.util.List;
 
 public class KafkaSource
@@ -59,7 +57,7 @@ public class KafkaSource
 
     @Override
     public List<CatalogTable> getProducedCatalogTables() {
-        return Lists.newArrayList(kafkaSourceConfig.getCatalogTable());
+        return kafkaSourceConfig.getCatalogTables();
     }
 
     @Override

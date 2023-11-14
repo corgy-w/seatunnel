@@ -34,7 +34,7 @@ import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.selectdb.exception.SelectDBConnectorException;
 
@@ -353,7 +353,7 @@ public class SelectDBCatalog implements Catalog {
                 return new DecimalType(precision, scale);
             default:
                 throw new SelectDBConnectorException(
-                        CommonErrorCode.UNSUPPORTED_DATA_TYPE,
+                        CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
                         String.format(
                                 "Doesn't support Starrocks type '%s' yet",
                                 starrocksType.getName()));

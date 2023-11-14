@@ -42,6 +42,8 @@ import org.bson.json.JsonWriterSettings;
 import org.bson.types.Decimal128;
 
 import com.mongodb.client.model.changestream.OperationType;
+import io.debezium.relational.TableId;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Nonnull;
 
@@ -70,7 +72,7 @@ import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.ch
 
 @Slf4j
 public class MongoDBConnectorDeserializationSchema
-        implements DebeziumDeserializationSchema<SeaTunnelRow> {
+        extends AbstractDebeziumDeserializationSchema<SeaTunnelRow> {
     private final SeaTunnelDataType<SeaTunnelRow> resultTypeInfo;
 
     private final Map<String, DeserializationRuntimeConverter> tableRowConverters;

@@ -18,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.seatunnel.api.common.CommonOptions.FACTORY_ID;
 import static org.apache.seatunnel.api.common.CommonOptions.PLUGIN_NAME;
 import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
 
@@ -100,8 +99,7 @@ public class DolphinDBSaveModeHandler extends DefaultSaveModeHandler {
     private DolphinDBCatalog createCatalog() {
         Map<String, String> catalogOptions =
                 readonlyConfig.getOptional(CatalogOptions.CATALOG_OPTIONS).orElse(new HashMap<>());
-        String factoryId =
-                catalogOptions.getOrDefault(FACTORY_ID.key(), readonlyConfig.get(PLUGIN_NAME));
+        String factoryId = readonlyConfig.get(PLUGIN_NAME);
         CatalogFactory catalogFactory =
                 discoverFactory(
                         Thread.currentThread().getContextClassLoader(),

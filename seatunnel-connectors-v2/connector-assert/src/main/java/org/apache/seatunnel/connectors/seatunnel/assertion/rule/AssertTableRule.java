@@ -15,13 +15,7 @@
  * limitations under the License.
  */
 
-<<<<<<<< HEAD:seatunnel-connectors-v2/connector-iceberg/src/main/java/org/apache/seatunnel/connectors/seatunnel/iceberg/sink/commiter/IcebergAggregatedCommitInfo.java
-package org.apache.seatunnel.connectors.seatunnel.iceberg.sink.commiter;
-
-import org.apache.iceberg.io.WriteResult;
-========
 package org.apache.seatunnel.connectors.seatunnel.assertion.rule;
->>>>>>>> github.com/dev:seatunnel-connectors-v2/connector-assert/src/main/java/org/apache/seatunnel/connectors/seatunnel/assertion/rule/AssertTableRule.java
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -29,14 +23,8 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.List;
 
-/** @Author: Liuli @Date: 2023/7/12 18:31 */
 @Data
 @AllArgsConstructor
-<<<<<<<< HEAD:seatunnel-connectors-v2/connector-iceberg/src/main/java/org/apache/seatunnel/connectors/seatunnel/iceberg/sink/commiter/IcebergAggregatedCommitInfo.java
-public class IcebergAggregatedCommitInfo implements Serializable {
-    List<WriteResult> writeResults;
-========
 public class AssertTableRule implements Serializable {
     private List<String> tableNames;
->>>>>>>> github.com/dev:seatunnel-connectors-v2/connector-assert/src/main/java/org/apache/seatunnel/connectors/seatunnel/assertion/rule/AssertTableRule.java
 }

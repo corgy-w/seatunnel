@@ -142,13 +142,4 @@ public class LocalFileIT extends TestSuiteBase {
         outputStream.close();
         return path;
     }
-
-    private Path convertToLzoFile(File file) throws IOException {
-        LzopCodec lzo = new LzopCodec();
-        Path path = Paths.get(file.getAbsolutePath() + ".lzo");
-        OutputStream outputStream = lzo.createOutputStream(Files.newOutputStream(path));
-        outputStream.write(Files.readAllBytes(file.toPath()));
-        outputStream.close();
-        return path;
-    }
 }

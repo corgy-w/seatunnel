@@ -17,7 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.redshift;
 
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConf;
 import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftConnectorException;
 
@@ -132,13 +132,11 @@ public class RedshiftJdbcClient implements AutoCloseable {
             }
             return result;
         } catch (SQLException e) {
-            throw new S3RedshiftJdbcConnectorException(
-                    CommonErrorCodeDeprecated.TABLE_SCHEMA_GET_FAILED,
-                    String.format(
-                            "Check table is or not existed failed, table name is %s ", tableName),
+            throw new S3RedshiftConnectorException(
+                    CommonErrorCodeDeprecated.SQL_OPERATION_FAILED,
+                    String.format("Execute sql failed, sql is %s ", sql),
                     e);
         }
-        return flag;
     }
 
     public static RedshiftJdbcClient newSingleConnection(S3RedshiftConf conf) {

@@ -28,6 +28,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.JdbcBatc
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
@@ -150,7 +152,8 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                 break;
             } catch (Exception e) {
                 if (!(Throwables.getRootCause(e) instanceof SQLException)) {
-                    throw new JdbcConnectorException(CommonErrorCode.FLUSH_DATA_FAILED, e);
+                    throw new JdbcConnectorException(
+                            CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
                 }
                 LOG.error("JDBC executeBatch error, retry times = {}", i, e);
                 if (i >= jdbcConnectionConfig.getMaxRetries()) {
@@ -211,7 +214,9 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
             } catch (Exception e) {
                 LOG.warn("Close JDBC writer failed.", e);
                 throw new JdbcConnectorException(
-                        CommonErrorCode.FLUSH_DATA_FAILED, "Close JDBC writer failed.", e);
+                        CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
+                        "Close JDBC writer failed.",
+                        e);
             } finally {
                 connectionProvider.closeConnection();
             }

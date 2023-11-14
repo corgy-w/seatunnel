@@ -35,24 +35,10 @@ public class DmdbDialect implements JdbcDialect {
 
     public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
 
-    public DmdbDialect(String fieldIde) {
-        this.fieldIde = fieldIde;
-    }
-
-    public DmdbDialect() {}
-
     @Override
     public String dialectName() {
         return DatabaseIdentifier.DAMENG;
     }
-
-    public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
-
-    public DmdbDialect(String fieldIde) {
-        this.fieldIde = fieldIde;
-    }
-
-    public DmdbDialect() {}
 
     @Override
     public JdbcRowConverter getRowConverter() {

@@ -34,9 +34,8 @@ import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
-import org.apache.seatunnel.connectors.doris.exception.DorisConnectorException;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -352,10 +351,9 @@ public class DorisCatalog implements Catalog {
                 int scale = metadata.getScale(colIndex);
                 return new DecimalType(precision, scale);
             default:
-                throw new DorisConnectorException(
-                        CommonErrorCode.UNSUPPORTED_DATA_TYPE,
-                        String.format(
-                                "Doesn't support doris type '%s' yet", starrocksType.getName()));
+                final String jdbcColumnName = metadata.getColumnName(colIndex);
+                throw CommonError.convertToSeaTunnelTypeError(
+                        "Doris", starrocksType.toString(), jdbcColumnName);
         }
     }
 

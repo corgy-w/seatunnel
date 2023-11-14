@@ -198,9 +198,8 @@ public class DmdbTypeMapper implements JdbcDialectTypeMapper {
             case DM_TIMESTAMP_WITH_TIME_ZONE:
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
             default:
-                final String jdbcColumnName = metadata.getColumnName(colIndex);
                 throw CommonError.convertToSeaTunnelTypeError(
-                        DatabaseIdentifier.DAMENG, dmdbType, jdbcColumnName);
+                        DatabaseIdentifier.DAMENG, columnType, columnName);
         }
     }
 }

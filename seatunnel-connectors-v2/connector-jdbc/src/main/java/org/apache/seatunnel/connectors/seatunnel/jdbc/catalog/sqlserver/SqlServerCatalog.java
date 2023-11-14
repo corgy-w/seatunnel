@@ -202,18 +202,8 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        try (Connection conn = DriverManager.getConnection(dbUrl, username, pwd);
-                PreparedStatement ps =
-                        conn.prepareStatement(
-                                String.format("TRUNCATE TABLE  %s", tablePath.getFullName()))) {
-            // Will there exist concurrent drop for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
+    protected String getTruncateTableSql(TablePath tablePath) {
+        return String.format("TRUNCATE TABLE  %s", tablePath.getFullName());
     }
 
     @Override
@@ -254,11 +244,6 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new SqlserverTypeMapper());
-    }
-
-    @Override
-    public CatalogTable getTable(String sqlQuery) throws SQLException {
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new SqlserverTypeMapper());
     }
 }

@@ -231,9 +231,9 @@ public class ExecutionPlanGenerator {
             }
         } else if (sourceAction instanceof TransformChainAction) {
             List<SeaTunnelTransform> transforms =
-                ((TransformChainAction) sourceAction).getTransforms();
+                    ((TransformChainAction) sourceAction).getTransforms();
             producedCatalogTables =
-                transforms.get(transforms.size() - 1).getProducedCatalogTables();
+                    transforms.get(transforms.size() - 1).getProducedCatalogTables();
         } else {
             throw new SeaTunnelException(
                     "source action must be SourceAction or TransformChainAction");

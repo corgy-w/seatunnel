@@ -20,7 +20,6 @@ package org.apache.seatunnel.connectors.seatunnel.redshift.commit;
 import org.apache.seatunnel.api.sink.MultiTableResourceManager;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkAggregatedCommitter;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggregatedCommitter;
@@ -132,14 +131,6 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
     @Override
     public void close() throws IOException {
         super.close();
-        try {
-            RedshiftJdbcClient.getInstance(pluginConfig).close();
-        } catch (SQLException e) {
-            throw new S3RedshiftJdbcConnectorException(
-                CommonErrorCodeDeprecated.SQL_OPERATION_FAILED,
-                "close redshift jdbc client failed",
-                e);
-        }
     }
 
     @Override

@@ -17,9 +17,11 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase;
 
+import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
+import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
@@ -62,11 +64,14 @@ public class KingbaseTypeMapper implements JdbcDialectTypeMapper {
     private static final String KB_CHAR = "BPCHAR";
     private static final String KB_CHAR_ARRAY = "_BPCHAR";
     private static final String KB_CHARACTER = "CHARACTER";
-
+    private static final String KB_CHARACTER_ARRAY = "_CHARACTER";
     private static final String KB_CHARACTER_VARYING = "VARCHAR";
     private static final String KB_CHARACTER_VARYING_ARRAY = "_VARCHAR";
     private static final String KB_JSON = "JSON";
     private static final String KB_JSONB = "JSONB";
+    private static final String KB_INTERVAL = "INTERVAL";
+    private static final String KB_GEOMETRY = "GEOMETRY";
+    private static final String KB_GEOGRAPHY = "GEOGRAPHY";
 
     @SuppressWarnings("checkstyle:MagicNumber")
     @Override
@@ -80,19 +85,33 @@ public class KingbaseTypeMapper implements JdbcDialectTypeMapper {
         switch (kbType) {
             case KB_BOOLEAN:
                 return BasicType.BOOLEAN_TYPE;
+            case KB_BOOLEAN_ARRAY:
+                return ArrayType.BOOLEAN_ARRAY_TYPE;
+            case KB_BYTEA:
+                return PrimitiveByteArrayType.INSTANCE;
+            case KB_BYTEA_ARRAY:
+                return ArrayType.BYTE_ARRAY_TYPE;
             case KB_SMALLINT:
-                return BasicType.SHORT_TYPE;
             case KB_SMALLSERIAL:
             case KB_INTEGER:
             case KB_SERIAL:
                 return BasicType.INT_TYPE;
+            case KB_SMALLINT_ARRAY:
+            case KB_INTEGER_ARRAY:
+                return ArrayType.INT_ARRAY_TYPE;
             case KB_BIGINT:
             case KB_BIGSERIAL:
                 return BasicType.LONG_TYPE;
+            case KB_BIGINT_ARRAY:
+                return ArrayType.LONG_ARRAY_TYPE;
             case KB_REAL:
                 return BasicType.FLOAT_TYPE;
+            case KB_REAL_ARRAY:
+                return ArrayType.FLOAT_ARRAY_TYPE;
             case KB_DOUBLE_PRECISION:
                 return BasicType.DOUBLE_TYPE;
+            case KB_DOUBLE_PRECISION_ARRAY:
+                return ArrayType.DOUBLE_ARRAY_TYPE;
             case KB_NUMERIC:
                 // see SPARK-26538: handle numeric without explicit precision and scale.
                 if (precision > 0) {
@@ -103,32 +122,30 @@ public class KingbaseTypeMapper implements JdbcDialectTypeMapper {
             case KB_CHARACTER:
             case KB_CHARACTER_VARYING:
             case KB_TEXT:
+            case KB_INTERVAL:
+            case KB_GEOMETRY:
+            case KB_GEOGRAPHY:
+            case KB_JSON:
+            case KB_JSONB:
                 return BasicType.STRING_TYPE;
+            case KB_CHAR_ARRAY:
+            case KB_CHARACTER_ARRAY:
+            case KB_CHARACTER_VARYING_ARRAY:
+            case KB_TEXT_ARRAY:
+                return ArrayType.STRING_ARRAY_TYPE;
             case KB_TIMESTAMP:
+            case KB_TIMESTAMPTZ:
                 return LocalTimeType.LOCAL_DATE_TIME_TYPE;
             case KB_TIME:
                 return LocalTimeType.LOCAL_TIME_TYPE;
             case KB_DATE:
                 return LocalTimeType.LOCAL_DATE_TYPE;
-            case KB_CHAR_ARRAY:
-            case KB_CHARACTER_VARYING_ARRAY:
-            case KB_TEXT_ARRAY:
-            case KB_DOUBLE_PRECISION_ARRAY:
-            case KB_REAL_ARRAY:
-            case KB_BIGINT_ARRAY:
-            case KB_SMALLINT_ARRAY:
-            case KB_INTEGER_ARRAY:
-            case KB_BYTEA_ARRAY:
-            case KB_BOOLEAN_ARRAY:
+
             case KB_TIMESTAMP_ARRAY:
             case KB_NUMERIC_ARRAY:
-            case KB_TIMESTAMPTZ:
             case KB_TIMESTAMPTZ_ARRAY:
             case KB_TIME_ARRAY:
             case KB_DATE_ARRAY:
-            case KB_JSONB:
-            case KB_JSON:
-            case KB_BYTEA:
             default:
                 final String jdbcColumnName = metadata.getColumnName(colIndex);
                 throw CommonError.convertToSeaTunnelTypeError(

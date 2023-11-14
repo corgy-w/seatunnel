@@ -10,8 +10,6 @@ import lombok.experimental.UtilityClass;
 
 import java.util.List;
 
-import static org.apache.seatunnel.api.sink.DataSaveMode.KEEP_SCHEMA_AND_DATA;
-
 @UtilityClass
 public class DolphinDBConfig {
 
@@ -72,7 +70,7 @@ public class DolphinDBConfig {
     public static final Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key("data_save_mode")
                     .enumType(DataSaveMode.class)
-                    .defaultValue(KEEP_SCHEMA_AND_DATA)
+                    .defaultValue(DataSaveMode.APPEND_DATA)
                     .withDescription("data_save_mode");
 
     public static final Option<SchemaSaveMode> SCHEMA_SAVE_MODE =

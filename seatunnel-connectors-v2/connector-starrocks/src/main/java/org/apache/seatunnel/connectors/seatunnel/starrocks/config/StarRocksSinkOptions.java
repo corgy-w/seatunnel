@@ -19,10 +19,13 @@ package org.apache.seatunnel.connectors.seatunnel.starrocks.config;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
+import org.apache.seatunnel.api.configuration.SingleChoiceOption;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
+import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.config.SinkConfig.StreamLoadFormat;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -131,18 +134,18 @@ public interface StarRocksSinkOptions {
                     .withDescription("");
 
     Option<String> FIELD_IDE =
-        Options.key("field_ide")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Whether case conversion is required");
+            Options.key("field_ide")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Whether case conversion is required");
 
     Option<SchemaSaveMode> SCHEMA_SAVE_MODE =
-        Options.key("schema_save_mode")
-            .enumType(SchemaSaveMode.class)
-            .defaultValue(SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST)
-            .withDescription("schema_save_mode");
+            Options.key("schema_save_mode")
+                    .enumType(SchemaSaveMode.class)
+                    .defaultValue(SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST)
+                    .withDescription("schema_save_mode");
 
-    SingleChoiceOption<DataSaveMode> SAVE_MODE =
+    SingleChoiceOption<DataSaveMode> DATA_SAVE_MODE =
             Options.key(SupportSaveMode.DATA_SAVE_MODE_KEY)
                     .singleChoice(DataSaveMode.class, Arrays.asList(DataSaveMode.APPEND_DATA))
                     .defaultValue(DataSaveMode.APPEND_DATA)

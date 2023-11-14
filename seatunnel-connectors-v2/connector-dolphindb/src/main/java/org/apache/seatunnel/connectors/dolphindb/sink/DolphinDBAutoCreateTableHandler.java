@@ -64,7 +64,7 @@ public class DolphinDBAutoCreateTableHandler {
 
     private Catalog createCatalog() {
         Map<String, String> catalogOptions = readonlyConfig.get(CatalogOptions.CATALOG_OPTIONS);
-        String factoryId = catalogOptions.get(CommonOptions.FACTORY_ID.key());
+        String factoryId = catalogOptions.get(CommonOptions.PLUGIN_NAME.key());
         CatalogFactory catalogFactory =
                 discoverFactory(
                         Thread.currentThread().getContextClassLoader(),

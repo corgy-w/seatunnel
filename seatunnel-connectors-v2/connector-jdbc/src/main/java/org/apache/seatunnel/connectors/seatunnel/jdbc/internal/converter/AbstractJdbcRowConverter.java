@@ -156,7 +156,8 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                         statement.setDouble(statementIndex, (Double) row.getField(fieldIndex));
                         break;
                     case DECIMAL:
-                        statement.setBigDecimal(statementIndex, (BigDecimal) row.getField(fieldIndex));
+                        statement.setBigDecimal(
+                                statementIndex, (BigDecimal) row.getField(fieldIndex));
                         break;
                     case DATE:
                         LocalDate localDate = (LocalDate) row.getField(fieldIndex);
@@ -187,9 +188,9 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                 }
             } catch (Exception e) {
                 throw new JdbcConnectorException(
-                    JdbcConnectorErrorCode.DATA_TYPE_CAST_FAILED,
-                    "error field:" + rowType.getFieldNames()[fieldIndex],
-                    e);
+                        JdbcConnectorErrorCode.DATA_TYPE_CAST_FAILED,
+                        "error field:" + rowType.getFieldNames()[fieldIndex],
+                        e);
             }
         }
         return statement;

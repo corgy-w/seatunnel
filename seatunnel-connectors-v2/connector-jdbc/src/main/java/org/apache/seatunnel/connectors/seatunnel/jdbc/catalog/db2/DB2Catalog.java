@@ -70,7 +70,11 @@ public class DB2Catalog extends AbstractJdbcCatalog {
     @Override
     public List<String> listDatabases() throws CatalogException {
         return Collections.singletonList(
-                defaultConnection.getMetaData().getCatalogs().getMetaData().getCatalogName(1));
+                getConnection(getUrlFromDatabaseName(defaultDatabase))
+                        .getMetaData()
+                        .getCatalogs()
+                        .getMetaData()
+                        .getCatalogName(1));
     }
 
     @Override
@@ -150,91 +154,29 @@ public class DB2Catalog extends AbstractJdbcCatalog {
         }
     }
 
-    private Map<String, String> buildConnectorOptions(TablePath tablePath) {
-        Map<String, String> options = new HashMap<>(8);
-        options.put("connector", "jdbc");
-        options.put("url", baseUrl + tablePath.getDatabaseName());
-        options.put("table-name", tablePath.getFullName());
-        options.put("username", username);
-        options.put("password", pwd);
-        return options;
-    }
-
-    @SneakyThrows
     @Override
-    public List<String> listTables(String databaseName)
-            throws CatalogException, DatabaseNotExistException {
-        List<String> tableNames = new ArrayList<>();
-        String getTableSql =
-                "SELECT TABSCHEMA , TABNAME FROM SYSCAT.TABLES WHERE TABSCHEMA NOT IN ('SYSCAT','SYSIBM','SYSIBMADM','SYSPUBLIC','SYSSTAT','SYSTOOLS');";
-        Statement statement = defaultConnection.createStatement();
-        final ResultSet resultSet = statement.executeQuery(getTableSql);
-        while (resultSet.next()) {
-            String schemaName = resultSet.getString("TABSCHEMA");
-            String tableName = resultSet.getString("TABNAME");
-            if (StringUtils.isNotBlank(tableName)) {
-                tableNames.add(schemaName.trim() + "." + tableName);
-            }
-        }
-        return tableNames;
+    protected String getListTableSql(String databaseName) {
+        return "SELECT TABSCHEMA , TABNAME FROM SYSCAT.TABLES WHERE TABSCHEMA NOT IN ('SYSCAT','SYSIBM','SYSIBMADM','SYSPUBLIC','SYSSTAT','SYSTOOLS');";
     }
 
     @Override
-    protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
-            throws CatalogException {
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
         String createTableSql = new DB2CreateTableSqlBuilder(table).build(tablePath);
-        createTableSql =
-                CatalogUtils.getFieldIde(createTableSql, table.getOptions().get("fieldIde"));
-        Connection connection = defaultConnection;
-        log.info("create table sql: {}", createTableSql);
-        try (PreparedStatement ps = connection.prepareStatement(createTableSql)) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed creating table %s", tablePath.getFullName()), e);
-        }
+        return CatalogUtils.getFieldIde(createTableSql, table.getOptions().get("fieldIde"));
     }
 
     @Override
-    protected boolean dropTableInternal(TablePath tablePath) throws CatalogException {
-        String sql =
-                String.format(
-                        "DROP TABLE IF EXISTS %s.%s ",
-                        tablePath.getSchemaName(), "\"" + tablePath.getTableName() + "\"");
-        Connection connection = defaultConnection;
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            // Will there exist concurrent drop for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed dropping table %s", tablePath.getFullName()), e);
-        }
+    protected String getDropTableSql(TablePath tablePath) {
+        return String.format(
+                "DROP TABLE IF EXISTS %s.%s ",
+                tablePath.getSchemaName(), "\"" + tablePath.getTableName() + "\"");
     }
 
     @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        String sql =
-                String.format(
-                        "TRUNCATE TABLE %s.%s immediate ",
-                        tablePath.getSchemaName(), "\"" + tablePath.getTableName() + "\"");
-        Connection connection = defaultConnection;
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            // Will there exist concurrent drop for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
-    }
-
-    @Override
-    protected boolean createDatabaseInternal(String databaseName) {
-        return false;
-    }
-
-    @Override
-    protected boolean dropDatabaseInternal(String databaseName) throws CatalogException {
-        return false;
+    protected String getTruncateTableSql(TablePath tablePath) {
+        return String.format(
+                "TRUNCATE TABLE %s.%s immediate ",
+                tablePath.getSchemaName(), "\"" + tablePath.getTableName() + "\"");
     }
 
     protected Optional<PrimaryKey> getPrimaryKey(
@@ -250,7 +192,7 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                 String.format(
                         "SELECT COLNAME FROM SYSCAT.KEYCOLUSE WHERE TABSCHEMA = '%s' AND TABNAME = '%s';",
                         schema, table);
-        Connection connection = defaultConnection;
+        Connection connection = getConnection(getUrlFromDatabaseName(defaultDatabase));
         List<String> primaryKeyColNameList = new ArrayList<>();
         try (Statement ps = connection.createStatement()) {
             ResultSet resultSet = ps.executeQuery(getPrimaryKeyFieldSql);
@@ -270,7 +212,7 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                 String.format(
                         "SELECT INDNAME FROM SYSCAT.INDEXES WHERE UNIQUERULE = 'P' AND TABSCHEMA  = '%s' AND TABNAME = '%s' ;",
                         schema, table);
-        Connection connection = defaultConnection;
+        Connection connection = getConnection(getUrlFromDatabaseName(defaultDatabase));
         try (Statement ps = connection.createStatement()) {
             ResultSet resultSet = ps.executeQuery(getPrimaryKeyNameSql);
             while (resultSet.next()) {
@@ -291,11 +233,6 @@ public class DB2Catalog extends AbstractJdbcCatalog {
         return String.format(
                 "select count(*) from %s.%s;",
                 tablePath.getSchemaName(), "\"" + tablePath.getTableName() + "\"");
-    }
-
-    private String getUrlFromDatabaseName(String databaseName) {
-        String url = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
-        return url + databaseName + suffix;
     }
 
     public Connection getConnection(String url) {
@@ -321,7 +258,7 @@ public class DB2Catalog extends AbstractJdbcCatalog {
         Object defaultValue = resultSet.getObject("default_value");
         boolean isNullable = resultSet.getString("is_nullable").equals("Y");
 
-        SeaTunnelDataType<?> type = fromJdbcType(typeName, columnLength, columnScale);
+        SeaTunnelDataType<?> type = fromJdbcType(columnName, typeName, columnLength, columnScale);
         long bitLen = 0;
         switch (typeName) {
             case DB2_BLOB:
@@ -348,15 +285,19 @@ public class DB2Catalog extends AbstractJdbcCatalog {
         builder.column(physicalColumn);
     }
 
-    private SeaTunnelDataType<?> fromJdbcType(String typeName, long precision, long scale) {
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
         Map<String, Object> dataTypeProperties = new HashMap<>();
         dataTypeProperties.put(DB2DataTypeConvertor.PRECISION, precision);
         dataTypeProperties.put(DB2DataTypeConvertor.SCALE, scale);
-        return new DB2DataTypeConvertor().toSeaTunnelType(typeName, dataTypeProperties);
+        return new DB2DataTypeConvertor().toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new DB2TypeMapper());
+        return CatalogUtils.getCatalogTable(
+                getConnection(getUrlFromDatabaseName(defaultDatabase)),
+                sqlQuery,
+                new DB2TypeMapper());
     }
 }

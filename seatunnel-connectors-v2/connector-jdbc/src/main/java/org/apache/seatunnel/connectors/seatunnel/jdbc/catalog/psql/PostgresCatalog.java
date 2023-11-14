@@ -236,21 +236,10 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-
+    protected String getTruncateTableSql(TablePath tablePath) {
         String schemaName = tablePath.getSchemaName();
         String tableName = tablePath.getTableName();
-
-        String sql = "TRUNCATE TABLE  \"" + schemaName + "\".\"" + tableName + "\"";
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            // Will there exist concurrent drop for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
+        return "TRUNCATE TABLE  \"" + schemaName + "\".\"" + tableName + "\"";
     }
 
     @Override
@@ -290,11 +279,6 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new PostgresTypeMapper());
-    }
-
-    @Override
-    public CatalogTable getTable(String sqlQuery) throws SQLException {
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new PostgresTypeMapper());
     }
 }

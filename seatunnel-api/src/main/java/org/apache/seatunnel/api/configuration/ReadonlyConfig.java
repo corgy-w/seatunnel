@@ -66,6 +66,11 @@ public class ReadonlyConfig implements Serializable {
         return getOptional(option).orElseGet(option::defaultValue);
     }
 
+    @Deprecated
+    public Map<String, Object> getConfData() {
+        return confData;
+    }
+
     /**
      * Transform to Config todo: This method should be removed after we remove Config
      *

@@ -199,22 +199,6 @@ public class JsonUtils {
         return fieldsMap;
     }
 
-    public static Map<String, String> toStringMap(JsonNode jsonNode) {
-        Map<String, String> fieldsMap = new LinkedHashMap<>();
-        jsonNode.fields()
-                .forEachRemaining(
-                        field -> {
-                            String key = field.getKey();
-                            JsonNode value = field.getValue();
-                            if (value.getNodeType() == JsonNodeType.OBJECT) {
-                                fieldsMap.put(key, value.toString());
-                            } else {
-                                fieldsMap.put(key, value.textValue());
-                            }
-                        });
-        return fieldsMap;
-    }
-
     /**
      * json to map
      *

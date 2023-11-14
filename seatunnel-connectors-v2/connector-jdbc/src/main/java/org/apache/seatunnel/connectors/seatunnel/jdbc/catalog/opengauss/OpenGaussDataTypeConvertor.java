@@ -18,7 +18,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.opengauss;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.BasicType;
@@ -27,6 +26,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
 
@@ -97,14 +97,13 @@ public class OpenGaussDataTypeConvertor implements DataTypeConvertor<String> {
     public static final String PG_JSONB = "jsonb";
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
-        return toSeaTunnelType(connectorDataType, new HashMap<>(0));
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
+        return toSeaTunnelType(field, connectorDataType, new HashMap<>(0));
     }
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            String connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
         checkNotNull(connectorDataType, "OpenGauss Type cannot be null");
         switch (connectorDataType) {
             case PG_BOOLEAN:
@@ -172,16 +171,16 @@ public class OpenGaussDataTypeConvertor implements DataTypeConvertor<String> {
             case PG_TIME_ARRAY:
             case PG_DATE_ARRAY:
             default:
-                throw new UnsupportedOperationException(
-                        String.format(
-                                "Doesn't support OpenGauss type '%s''  yet.", connectorDataType));
+                throw CommonError.convertToSeaTunnelTypeError(
+                        DatabaseIdentifier.OPENGAUSS, connectorDataType, field);
         }
     }
 
     @Override
     public String toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         checkNotNull(seaTunnelDataType, "seaTunnelDataType cannot be null");
         SqlType sqlType = seaTunnelDataType.getSqlType();
         switch (sqlType) {
@@ -211,9 +210,8 @@ public class OpenGaussDataTypeConvertor implements DataTypeConvertor<String> {
             case TIMESTAMP:
                 return PG_TIMESTAMP;
             default:
-                throw new UnsupportedOperationException(
-                        String.format(
-                                "Doesn't support SeaTunnel type '%s''  yet.", seaTunnelDataType));
+                throw CommonError.convertToConnectorTypeError(
+                        DatabaseIdentifier.OPENGAUSS, sqlType.toString(), field);
         }
     }
 

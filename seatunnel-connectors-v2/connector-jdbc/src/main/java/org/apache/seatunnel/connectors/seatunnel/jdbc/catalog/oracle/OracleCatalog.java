@@ -154,11 +154,6 @@ public class OracleCatalog extends AbstractJdbcCatalog {
                 + "  AND (TABLE_NAME NOT LIKE 'SYS_IOT_OVER_%' AND IOT_NAME IS NULL)";
     }
 
-    private List<String> listTables() {
-        List<String> databases = listDatabases();
-        return listTables(databases.get(0));
-    }
-
     @Override
     protected String getTableName(ResultSet rs) throws SQLException {
         if (EXCLUDED_SCHEMAS.contains(rs.getString(1))) {
@@ -266,11 +261,6 @@ public class OracleCatalog extends AbstractJdbcCatalog {
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new OracleTypeMapper());
-    }
-
-    @Override
-    public CatalogTable getTable(String sqlQuery) throws SQLException {
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new OracleTypeMapper());
     }
 }

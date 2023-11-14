@@ -56,7 +56,7 @@ public class OracleAgentIncrementalSourceFactory implements TableSourceFactory {
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
         return () -> {
             List<CatalogTable> catalogTables =
-                    CatalogTableUtil.getCatalogTablesFromConfig(
+                    CatalogTableUtil.getCatalogTables(
                             DatabaseIdentifier.ORACLE,
                             context.getOptions(),
                             context.getClassLoader());

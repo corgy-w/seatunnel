@@ -131,7 +131,7 @@ public class IcebergCatalogFactory implements Serializable {
 
             } catch (Exception e) {
                 throw new IcebergConnectorException(
-                        CommonErrorCode.KERBEROS_AUTHORIZED_FAILED,
+                        CommonErrorCodeDeprecated.KERBEROS_AUTHORIZED_FAILED,
                         String.format("Kerberos authentication failed: %s", e.getMessage()));
             }
         } else {

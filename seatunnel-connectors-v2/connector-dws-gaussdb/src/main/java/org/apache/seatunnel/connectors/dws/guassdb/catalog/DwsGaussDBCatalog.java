@@ -517,7 +517,7 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
             defaultValue = null;
         }
 
-        SeaTunnelDataType<?> type = fromJdbcType(typeName, columnLength, columnScale);
+        SeaTunnelDataType<?> type = fromJdbcType(columnName, typeName, columnLength, columnScale);
         long bitLen = 0;
         switch (typeName) {
             case PG_BYTEA:
@@ -560,11 +560,13 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
         builder.column(physicalColumn);
     }
 
-    private SeaTunnelDataType<?> fromJdbcType(String typeName, long precision, long scale) {
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
         Map<String, Object> dataTypeProperties = new HashMap<>();
         dataTypeProperties.put(DwsGaussDBDataTypeConvertor.PRECISION, precision);
         dataTypeProperties.put(DwsGaussDBDataTypeConvertor.SCALE, scale);
-        return new DwsGaussDBDataTypeConvertor().toSeaTunnelType(typeName, dataTypeProperties);
+        return new DwsGaussDBDataTypeConvertor()
+                .toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     private Map<String, String> buildConnectorOptions(TablePath tablePath) {

@@ -30,7 +30,6 @@ import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.factory.CatalogFactory;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
@@ -99,12 +98,12 @@ public class KafkaSink
     }
 
     @Override
-    public SaveModeHandler getSaveModeHandler() {
+    public Optional<SaveModeHandler> getSaveModeHandler() {
         if (MessageFormat.COMPATIBLE_DEBEZIUM_JSON.equals(pluginConfig.get(FORMAT))) {
-            return null;
+            return Optional.empty();
         }
         if (pluginConfig.get(TOPIC).contains("${")) {
-            return null;
+            return Optional.empty();
         }
         CatalogFactory catalogFactory =
                 discoverFactory(
@@ -112,13 +111,15 @@ public class KafkaSink
                         CatalogFactory.class,
                         getPluginName());
         if (catalogFactory == null) {
-            return null;
+            return Optional.empty();
         }
         Catalog catalog =
                 catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), pluginConfig);
         SchemaSaveMode schemaSaveMode = pluginConfig.get(SCHEMA_SAVE_MODE);
         DataSaveMode dataSaveMode = pluginConfig.get(DATA_SAVE_MODE);
         catalog.open();
-        return new DefaultSaveModeHandler(schemaSaveMode, dataSaveMode, catalog, null, null, null);
+        return Optional.of(
+                new DefaultSaveModeHandler(
+                        schemaSaveMode, dataSaveMode, catalog, null, null, null));
     }
 }

@@ -76,10 +76,6 @@ public final class TablePath implements Serializable {
         return getNameCommon(null, schemaName, tableName, quote, quote);
     }
 
-    public String getSchemaAndTableName(String quote) {
-        return String.format("%s%s%s.%s%s%s", quote, schemaName, quote, quote, tableName, quote);
-    }
-
     public String getFullName() {
         return getNameCommon(databaseName, schemaName, tableName, null, null);
     }

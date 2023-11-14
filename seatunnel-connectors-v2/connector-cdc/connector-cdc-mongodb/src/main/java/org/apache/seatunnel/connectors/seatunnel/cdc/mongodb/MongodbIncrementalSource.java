@@ -131,20 +131,20 @@ public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSou
             return (DebeziumDeserializationSchema<T>)
                     new DebeziumJsonDeserializeSchema(
                             config.get(JdbcSourceOptions.DEBEZIUM_PROPERTIES),
-                        tableIdTableChangeMap);
+                            tableIdTableChangeMap);
         }
 
         SeaTunnelDataType<SeaTunnelRow> physicalRowType;
         if (dataType == null) {
             return (DebeziumDeserializationSchema<T>)
-                new DebeziumJsonDeserializeSchema(
-                    config.get(JdbcSourceOptions.DEBEZIUM_PROPERTIES),
-                    tableIdTableChangeMap);
+                    new DebeziumJsonDeserializeSchema(
+                            config.get(JdbcSourceOptions.DEBEZIUM_PROPERTIES),
+                            tableIdTableChangeMap);
         } else {
             physicalRowType = dataType;
             return (DebeziumDeserializationSchema<T>)
-                new MongoDBConnectorDeserializationSchema(
-                    physicalRowType, physicalRowType, tableIdTableChangeMap);
+                    new MongoDBConnectorDeserializationSchema(
+                            physicalRowType, physicalRowType, tableIdTableChangeMap);
         }
     }
 

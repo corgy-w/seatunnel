@@ -30,12 +30,14 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Locale;
 import java.util.Optional;
 
 public class KingbaseJdbcRowConverter extends AbstractJdbcRowConverter {
@@ -48,12 +50,23 @@ public class KingbaseJdbcRowConverter extends AbstractJdbcRowConverter {
     @Override
     @SuppressWarnings("checkstyle:Indentation")
     public SeaTunnelRow toInternal(ResultSet rs, SeaTunnelRowType typeInfo) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+
         Object[] fields = new Object[typeInfo.getTotalFields()];
         for (int fieldIndex = 0; fieldIndex < typeInfo.getTotalFields(); fieldIndex++) {
             SeaTunnelDataType<?> seaTunnelDataType = typeInfo.getFieldType(fieldIndex);
             int resultSetIndex = fieldIndex + 1;
             switch (seaTunnelDataType.getSqlType()) {
                 case STRING:
+                    String columnTypeName =
+                            metaData.getColumnTypeName(resultSetIndex).toUpperCase(Locale.ROOT);
+                    if (columnTypeName.equals("GEOGRAPHY") || columnTypeName.equals("GEOMETRY")) {
+                        fields[fieldIndex] =
+                                rs.getObject(resultSetIndex) == null
+                                        ? null
+                                        : rs.getObject(resultSetIndex).toString();
+                        break;
+                    }
                     fields[fieldIndex] = JdbcUtils.getString(rs, resultSetIndex);
                     break;
                 case BOOLEAN:

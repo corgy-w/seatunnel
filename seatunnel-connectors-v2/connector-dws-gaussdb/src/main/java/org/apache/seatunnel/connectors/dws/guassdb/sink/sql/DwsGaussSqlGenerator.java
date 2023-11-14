@@ -310,7 +310,8 @@ public class DwsGaussSqlGenerator implements Serializable {
                 }
             default:
                 String type =
-                        dwsGaussDBDataTypeConvertor.toConnectorType(column.getDataType(), null);
+                        dwsGaussDBDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
                 if (type.equals("numeric")) {
                     DecimalType decimalType = (DecimalType) column.getDataType();
                     return "numeric("

@@ -40,15 +40,7 @@ import java.util.stream.Collectors;
 public class PostgresDialect implements JdbcDialect {
 
     public static final int DEFAULT_POSTGRES_FETCH_SIZE = 128;
-    public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
-
-    public PostgresDialect() {}
-
-    public PostgresDialect(String fieldIde) {
-        this.fieldIde = fieldIde;
-    }
-
-    public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
+    protected String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
 
     public PostgresDialect() {}
 

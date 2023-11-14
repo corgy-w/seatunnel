@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.kafka.source;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.DeserializationSchema;
+import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
@@ -33,6 +34,8 @@ import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormatErrorHandleWay;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
+import org.apache.seatunnel.connectors.seatunnel.kafka.kingbase.KingbaseCatalogFactory;
+import org.apache.seatunnel.connectors.seatunnel.kafka.kingbase.KingbaseJsonDeserializationSchema;
 import org.apache.seatunnel.format.compatible.kafka.connect.json.CompatibleKafkaConnectDeserializationSchema;
 import org.apache.seatunnel.format.compatible.kafka.connect.json.KafkaConnectJsonFormatOptions;
 import org.apache.seatunnel.format.json.JsonDeserializationSchema;
@@ -46,11 +49,13 @@ import org.apache.seatunnel.format.text.constant.TextFormatConstant;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.kafka.common.TopicPartition;
 
+import com.google.common.collect.Lists;
 import lombok.Getter;
 
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -79,7 +84,7 @@ public class KafkaSourceConfig implements Serializable {
 
     @Getter private final DeserializationSchema<SeaTunnelRow> deserializationSchema;
 
-    @Getter private final CatalogTable catalogTable;
+    @Getter private final List<CatalogTable> catalogTables;
 
     @Getter private final MessageFormatErrorHandleWay messageFormatErrorHandleWay;
 
@@ -90,8 +95,8 @@ public class KafkaSourceConfig implements Serializable {
         this.discoveryIntervalMillis = readonlyConfig.get(KEY_PARTITION_DISCOVERY_INTERVAL_MILLIS);
         this.messageFormatErrorHandleWay =
                 readonlyConfig.get(MESSAGE_FORMAT_ERROR_HANDLE_WAY_OPTION);
-        this.catalogTable = createCatalogTable(readonlyConfig);
-        this.deserializationSchema = createDeserializationSchema(catalogTable, readonlyConfig);
+        this.catalogTables = createCatalogTable(readonlyConfig);
+        this.deserializationSchema = createDeserializationSchema(catalogTables, readonlyConfig);
     }
 
     private ConsumerMetadata createConsumerMetadata(ReadonlyConfig readonlyConfig) {
@@ -163,11 +168,16 @@ public class KafkaSourceConfig implements Serializable {
         return consumerMetadata;
     }
 
-    private CatalogTable createCatalogTable(ReadonlyConfig readonlyConfig) {
+    private List<CatalogTable> createCatalogTable(ReadonlyConfig readonlyConfig) {
         Optional<Map<String, Object>> schemaOptions =
                 readonlyConfig.getOptional(TableSchemaOptions.SCHEMA);
         if (schemaOptions.isPresent()) {
-            return CatalogTableUtil.buildWithConfig(readonlyConfig);
+            return Lists.newArrayList(CatalogTableUtil.buildWithConfig(readonlyConfig));
+        } else if (readonlyConfig.get(FORMAT).equals(MessageFormat.KINGBASE_JSON)) {
+            try (Catalog catalog =
+                    new KingbaseCatalogFactory().createCatalog("KafkaKingbase", readonlyConfig)) {
+                return catalog.getTables(readonlyConfig);
+            }
         } else {
             TableIdentifier tableIdentifier = TableIdentifier.of(CONNECTOR_IDENTITY, null, null);
             TableSchema tableSchema =
@@ -185,18 +195,19 @@ public class KafkaSourceConfig implements Serializable {
                                             null,
                                             null))
                             .build();
-            return CatalogTable.of(
-                    tableIdentifier,
-                    tableSchema,
-                    Collections.emptyMap(),
-                    Collections.emptyList(),
-                    null);
+            return Lists.newArrayList(
+                    CatalogTable.of(
+                            tableIdentifier,
+                            tableSchema,
+                            Collections.emptyMap(),
+                            Collections.emptyList(),
+                            null));
         }
     }
 
     private DeserializationSchema<SeaTunnelRow> createDeserializationSchema(
-            CatalogTable catalogTable, ReadonlyConfig readonlyConfig) {
-        SeaTunnelRowType seaTunnelRowType = catalogTable.getSeaTunnelRowType();
+            List<CatalogTable> catalogTables, ReadonlyConfig readonlyConfig) {
+        SeaTunnelRowType seaTunnelRowType = catalogTables.get(0).getSeaTunnelRowType();
 
         if (!readonlyConfig.getOptional(TableSchemaOptions.SCHEMA).isPresent()) {
             return TextDeserializationSchema.builder()
@@ -235,6 +246,8 @@ public class KafkaSourceConfig implements Serializable {
             case DEBEZIUM_JSON:
                 boolean includeSchema = readonlyConfig.get(DEBEZIUM_RECORD_INCLUDE_SCHEMA);
                 return new DebeziumJsonDeserializationSchema(seaTunnelRowType, true, includeSchema);
+            case KINGBASE_JSON:
+                return new KingbaseJsonDeserializationSchema(catalogTables);
             default:
                 throw new SeaTunnelJsonFormatException(
                         CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,

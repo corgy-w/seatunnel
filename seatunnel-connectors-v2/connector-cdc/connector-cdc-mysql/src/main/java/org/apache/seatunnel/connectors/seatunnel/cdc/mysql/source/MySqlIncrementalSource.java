@@ -45,6 +45,8 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.source.offset.BinlogO
 import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.utils.MySqlConnectionUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
 
+import org.apache.kafka.connect.data.Struct;
+
 import com.google.auto.service.AutoService;
 import io.debezium.connector.mysql.MySqlConnectorConfig;
 import io.debezium.jdbc.JdbcConnection;
@@ -55,6 +57,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @NoArgsConstructor
 @AutoService(SeaTunnelSource.class)

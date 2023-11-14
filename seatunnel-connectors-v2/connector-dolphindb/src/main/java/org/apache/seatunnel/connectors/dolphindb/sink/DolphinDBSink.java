@@ -23,6 +23,7 @@ import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSinkWriter;
 import com.google.auto.service.AutoService;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @AutoService(SeaTunnelSink.class)
 public class DolphinDBSink extends AbstractSimpleSink<SeaTunnelRow, Void>
@@ -82,11 +83,12 @@ public class DolphinDBSink extends AbstractSimpleSink<SeaTunnelRow, Void>
     }
 
     @Override
-    public SaveModeHandler getSaveModeHandler() {
-        return new DolphinDBSaveModeHandler(
-                readonlyConfig.get(DolphinDBConfig.SCHEMA_SAVE_MODE),
-                readonlyConfig.get(DolphinDBConfig.DATA_SAVE_MODE),
-                catalogTable,
-                readonlyConfig);
+    public Optional<SaveModeHandler> getSaveModeHandler() {
+        return Optional.of(
+                new DolphinDBSaveModeHandler(
+                        readonlyConfig.get(DolphinDBConfig.SCHEMA_SAVE_MODE),
+                        readonlyConfig.get(DolphinDBConfig.DATA_SAVE_MODE),
+                        catalogTable,
+                        readonlyConfig));
     }
 }

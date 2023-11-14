@@ -156,7 +156,8 @@ public class DolphinDBCatalog implements Catalog {
                 PhysicalColumn physicalColumn =
                         PhysicalColumn.of(
                                 columnName,
-                                dolphinDBDataTypeConvertor.toSeaTunnelType(dataType.name()),
+                                dolphinDBDataTypeConvertor.toSeaTunnelType(
+                                        columnName, dataType.name()),
                                 null,
                                 true,
                                 null,
@@ -273,7 +274,10 @@ public class DolphinDBCatalog implements Catalog {
                                     column.getName()
                                             + " "
                                             + dolphinDBDataTypeConvertor
-                                                    .toConnectorType(column.getDataType(), null)
+                                                    .toConnectorType(
+                                                            column.getName(),
+                                                            column.getDataType(),
+                                                            null)
                                                     .name());
                         });
         createTableSql =

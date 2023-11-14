@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
+import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -195,24 +196,8 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
     @Override
     protected String getDropTableSql(TablePath tablePath) {
         return String.format(
-                "DROP TABLE IF EXISTS `%s`.`%s`;", tablePath.getDatabaseName(), tablePath.getTableName());
-    }
-
-    @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format(
-                                "TRUNCATE TABLE %s.%s;",
-                                tablePath.getDatabaseName(), tablePath.getTableName()))) {
-            // Will there exist concurrent truncate for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
+                "DROP TABLE IF EXISTS `%s`.`%s`;",
+                tablePath.getDatabaseName(), tablePath.getTableName());
     }
 
     @Override
@@ -250,10 +235,5 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
         return String.format(
                 "select * from `%s`.`%s` limit 1;",
                 tablePath.getDatabaseName(), tablePath.getTableName());
-    }
-
-    @Override
-    public CatalogTable getTable(String sqlQuery) throws SQLException {
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new MySqlTypeMapper());
     }
 }

@@ -18,7 +18,6 @@
 package org.apache.seatunnel.engine.server.task;
 
 import org.apache.seatunnel.api.common.metrics.MetricsContext;
-import org.apache.seatunnel.api.env.EnvCommonOptions;
 import org.apache.seatunnel.api.serialization.Serializer;
 import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;

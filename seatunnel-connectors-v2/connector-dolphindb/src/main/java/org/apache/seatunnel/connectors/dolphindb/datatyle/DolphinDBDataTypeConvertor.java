@@ -1,6 +1,5 @@
 package org.apache.seatunnel.connectors.dolphindb.datatyle;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.BasicType;
@@ -18,7 +17,7 @@ import java.util.Map;
 public class DolphinDBDataTypeConvertor implements DataTypeConvertor<Entity.DATA_TYPE> {
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
         // The connectorDataType is not used in Sink, we will get the schema from the database
         if (Entity.DATA_TYPE.DT_VOID.name().equals(connectorDataType)) {
             return BasicType.VOID_TYPE;
@@ -51,15 +50,17 @@ public class DolphinDBDataTypeConvertor implements DataTypeConvertor<Entity.DATA
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            Entity.DATA_TYPE connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            Entity.DATA_TYPE connectorDataType,
+            Map<String, Object> dataTypeProperties) {
         return null;
     }
 
     @Override
     public Entity.DATA_TYPE toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         SqlType sqlType = seaTunnelDataType.getSqlType();
         switch (sqlType) {
             case ARRAY:
