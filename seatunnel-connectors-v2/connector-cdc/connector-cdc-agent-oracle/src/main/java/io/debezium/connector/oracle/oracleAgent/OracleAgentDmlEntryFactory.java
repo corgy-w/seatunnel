@@ -14,6 +14,7 @@ import io.debezium.connector.oracle.OracleValueConverters;
 import io.debezium.relational.Column;
 import io.debezium.relational.Table;
 import io.debezium.relational.ValueConverter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class OracleAgentDmlEntryFactory {
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
@@ -88,23 +90,32 @@ public class OracleAgentDmlEntryFactory {
             OracleValueConverters oracleValueConverters,
             OracleUpdateOperation updateOperation,
             Table table) {
-        List<Column> columns = table.columns();
-        Map<String, String> newRow = updateOperation.getUpdatedRow();
-        Map<String, String> oldRow = updateOperation.getUpdateCondition();
+        try {
+            List<Column> columns = table.columns();
+            Map<String, String> newRow = updateOperation.getUpdatedRow();
+            Map<String, String> oldRow = updateOperation.getUpdateCondition();
 
-        Object[] oldValues = getWholeColumnValues(oracleValueConverters, oldRow, table);
-        Object[] newValues = new Object[columns.size()];
-        for (int i = 0; i < columns.size(); i++) {
-            Column column = columns.get(i);
-            if (newRow.containsKey(column.name())) {
-                newValues[i] =
-                        transformToOracleType(
-                                oracleValueConverters, newRow.get(column.name()), column);
-            } else {
-                newValues[i] = oldValues[i];
+            Object[] oldValues = getWholeColumnValues(oracleValueConverters, oldRow, table);
+            Object[] newValues = new Object[columns.size()];
+            for (int i = 0; i < columns.size(); i++) {
+                Column column = columns.get(i);
+                if (newRow.containsKey(column.name())) {
+                    newValues[i] =
+                            transformToOracleType(
+                                    oracleValueConverters, newRow.get(column.name()), column);
+                } else {
+                    newValues[i] = oldValues[i];
+                }
             }
+            return OracleAgentDmlEntryImpl.forUpdate(newValues, oldValues);
+        } catch (Exception ex) {
+            log.error(
+                    "Error when transform the update operation: {}, table: {}",
+                    updateOperation,
+                    table,
+                    ex);
+            throw ex;
         }
-        return OracleAgentDmlEntryImpl.forUpdate(newValues, oldValues);
     }
 
     public static OracleAgentDmlEntry transformDelete(
@@ -133,20 +144,34 @@ public class OracleAgentDmlEntryFactory {
             OracleValueConverters oracleValueConverters,
             Map<String, String> columnValues,
             Table table) {
-        List<Column> columns = table.columns();
-        Object[] objects = new Object[columns.size()];
-        for (int i = 0; i < columns.size(); i++) {
-            Column column = columns.get(i);
-            objects[i] =
-                    transformToOracleType(
-                            oracleValueConverters, columnValues.get(column.name()), column);
+        try {
+            List<Column> columns = table.columns();
+            Object[] objects = new Object[columns.size()];
+            for (int i = 0; i < columns.size(); i++) {
+                Column column = columns.get(i);
+                objects[i] =
+                        transformToOracleType(
+                                oracleValueConverters, columnValues.get(column.name()), column);
+            }
+            return objects;
+        } catch (Exception ex) {
+            log.error(
+                    "Error when transform the column values: {}, table: {}",
+                    columnValues,
+                    table,
+                    ex);
+            throw ex;
         }
-        return objects;
     }
 
     private static Object transformToOracleType(
             OracleValueConverters oracleValueConverters, String value, Column column) {
         Object oracleValue = value;
+
+        // Oracle agent doesn't distinguish between null and empty string
+        if (value == null || value.equals("")) {
+            return null;
+        }
 
         try {
             if (column.typeName().equals("DATE")) {
