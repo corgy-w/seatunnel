@@ -25,7 +25,7 @@
         <artifactId>connector-cdc</artifactId>
         <version>${revision}</version>
     </parent>
-    <artifactId>connector-cdc-informix</artifactId>
+    <artifactId>connector-cdc-informix-wt</artifactId>
 
     <dependencyManagement>
         <dependencies>

@@ -148,7 +148,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
             columnLength = 38;
             columnScale = 10;
         }
-        if (defaultValue != null && defaultValue.toString().contains("regclass"))
+        if (defaultValue != null && defaultValue.toString().contains("regclass")) {
             defaultValue = null;
         }
 
