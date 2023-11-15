@@ -135,6 +135,11 @@ public class PostgresDialect implements JdbcDialect {
     }
 
     @Override
+    public String tableIdentifier(TablePath tablePath) {
+        return tablePath.getFullNameWithQuoted("\"");
+    }
+
+    @Override
     public String quoteDatabaseIdentifier(String identifier) {
         return "\"" + identifier + "\"";
     }
