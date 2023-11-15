@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.common.PluginIdentifierInterface;
 import org.apache.seatunnel.api.common.SeaTunnelPluginLifeCycle;
 import org.apache.seatunnel.api.source.SeaTunnelJobAware;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 
 import java.io.Serializable;
@@ -58,13 +59,11 @@ public interface SeaTunnelTransform<T>
 
     List<CatalogTable> getProducedCatalogTables();
 
-    /**
-     * Transform input data to {@link this#getProducedType()} types data.
-     *
-     * @param row the data need be transform.
-     * @return transformed data.
-     */
     T map(T row);
+
+    default SchemaChangeEvent mapSchemaChangeEvent(SchemaChangeEvent schemaChangeEvent) {
+        return schemaChangeEvent;
+    }
 
     /** call it when Transformer completed */
     default void close() {}

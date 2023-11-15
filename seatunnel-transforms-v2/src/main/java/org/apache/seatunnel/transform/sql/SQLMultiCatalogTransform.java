@@ -2,6 +2,7 @@ package org.apache.seatunnel.transform.sql;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.transform.common.AbstractMultiCatalogSupportTransform;
@@ -24,5 +25,9 @@ public class SQLMultiCatalogTransform extends AbstractMultiCatalogSupportTransfo
             CatalogTable inputCatalogTable, ReadonlyConfig config) {
         return new SQLTransform(
                 SQLTransformConfig.of(config, inputCatalogTable), config, inputCatalogTable);
+    }
+
+    public SchemaChangeEvent mapSchemaChangeEvent(SchemaChangeEvent schemaChangeEvent) {
+        throw new UnsupportedOperationException("SQL Transform not support DDL");
     }
 }
