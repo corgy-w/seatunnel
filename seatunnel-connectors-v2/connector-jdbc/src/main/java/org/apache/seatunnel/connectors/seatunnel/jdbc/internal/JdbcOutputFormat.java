@@ -17,7 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal;
 
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
@@ -82,7 +82,9 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
             exec.prepareStatements(connectionProvider.getConnection());
         } catch (SQLException e) {
             throw new JdbcConnectorException(
-                    CommonErrorCode.SQL_OPERATION_FAILED, "unable to open JDBC writer", e);
+                    CommonErrorCodeDeprecated.SQL_OPERATION_FAILED,
+                    "unable to open JDBC writer",
+                    e);
         }
         return exec;
     }
@@ -90,7 +92,7 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
     public void checkFlushException() {
         if (flushException != null) {
             throw new JdbcConnectorException(
-                    CommonErrorCode.FLUSH_DATA_FAILED,
+                    CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
                     "Writing records to JDBC failed.",
                     flushException);
         }
@@ -107,7 +109,9 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
             }
         } catch (Exception e) {
             throw new JdbcConnectorException(
-                    CommonErrorCode.SQL_OPERATION_FAILED, "Writing records to JDBC failed.", e);
+                    CommonErrorCodeDeprecated.SQL_OPERATION_FAILED,
+                    "Writing records to JDBC failed.",
+                    e);
         }
     }
 
@@ -148,11 +152,13 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                 break;
             } catch (Exception e) {
                 if (!(Throwables.getRootCause(e) instanceof SQLException)) {
-                    throw new JdbcConnectorException(CommonErrorCode.FLUSH_DATA_FAILED, e);
+                    throw new JdbcConnectorException(
+                            CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
                 }
                 LOG.error("JDBC executeBatch error, retry times = {}", i, e);
                 if (i >= jdbcConnectionConfig.getMaxRetries()) {
-                    throw new JdbcConnectorException(CommonErrorCode.FLUSH_DATA_FAILED, e);
+                    throw new JdbcConnectorException(
+                            CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
                 }
                 try {
                     if (!connectionProvider.isConnectionValid()) {
@@ -172,7 +178,7 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                     throw new JdbcConnectorException(
-                            CommonErrorCode.FLUSH_DATA_FAILED,
+                            CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
                             "unable to flush; interrupted while doing another attempt",
                             e);
                 }
@@ -196,7 +202,7 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                     LOG.warn("Writing records to JDBC failed.", e);
                     flushException =
                             new JdbcConnectorException(
-                                    CommonErrorCode.FLUSH_DATA_FAILED,
+                                    CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
                                     "Writing records to JDBC failed.",
                                     e);
                 }
@@ -208,7 +214,9 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
             } catch (Exception e) {
                 LOG.warn("Close JDBC writer failed.", e);
                 throw new JdbcConnectorException(
-                        CommonErrorCode.FLUSH_DATA_FAILED, "Close JDBC writer failed.", e);
+                        CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
+                        "Close JDBC writer failed.",
+                        e);
             } finally {
                 connectionProvider.closeConnection();
             }

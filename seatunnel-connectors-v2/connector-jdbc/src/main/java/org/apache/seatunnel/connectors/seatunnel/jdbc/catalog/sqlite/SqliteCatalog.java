@@ -136,11 +136,8 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
         try {
             DatabaseMetaData metaData = conn.getMetaData();
 
-            Optional<PrimaryKey> primaryKey =
-                    getPrimaryKey(metaData, tablePath.getDatabaseName(), tablePath.getTableName());
-            List<ConstraintKey> constraintKeys =
-                    getConstraintKeys(
-                            metaData, tablePath.getDatabaseName(), tablePath.getTableName());
+            Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
+            List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
             try (ResultSet resultSet =
                     metaData.getColumns(
                             tablePath.getDatabaseName(),
@@ -193,7 +190,7 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
         boolean isNullable = resultSet.getInt("NULLABLE") == 1;
 
         String dataType = JDBCType.valueOf(resultSet.getInt("DATA_TYPE")).getName();
-        SeaTunnelDataType<?> type = fromJdbcType(dataType, columnLength, columnScale);
+        SeaTunnelDataType<?> type = fromJdbcType(columnName, dataType, columnLength, columnScale);
 
         PhysicalColumn physicalColumn =
                 PhysicalColumn.of(
@@ -237,7 +234,7 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
 
     // todo: If the origin source is mysql, we can directly use create table like to create the
     @Override
-    protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
+    protected void createTableInternal(TablePath tablePath, CatalogTable table)
             throws CatalogException {
         //
         //        String createTableSql =
@@ -255,78 +252,42 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
         //                    String.format("Failed creating table %s", tablePath.getFullName()),
         // e);
         //        }
-        return true;
     }
 
     @Override
-    protected boolean dropTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format("DROP TABLE IF EXISTS `%s`;", tablePath.getTableName()))) {
-            // Will there exist concurrent drop for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed dropping table %s", tablePath.getFullName()), e);
-        }
+    protected String getDropTableSql(TablePath tablePath) {
+        return String.format("DROP TABLE IF EXISTS `%s`;", tablePath.getTableName());
     }
 
     @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        Connection connection = getConnection(dbUrl);
-        // sqlite nonsupport truncate
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format("DELETE FROM `%s`;", tablePath.getTableName()))) {
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
+    protected String getTruncateTableSql(TablePath tablePath) {
+        return String.format("DELETE FROM `%s`;", tablePath.getTableName());
     }
 
     @Override
-    protected boolean createDatabaseInternal(String databaseName) throws CatalogException {
-        return true;
-    }
+    protected void createDatabaseInternal(String databaseName) throws CatalogException {}
 
     @Override
-    protected boolean dropDatabaseInternal(String databaseName) throws CatalogException {
-        return true;
-    }
+    protected void dropDatabaseInternal(String databaseName) throws CatalogException {}
 
     public String getCountSql(TablePath tablePath) {
         return String.format("select count(*) from `%s`;", tablePath.getTableName());
     }
 
-    private SeaTunnelDataType<?> fromJdbcType(String typeName, long precision, long scale) {
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
         Map<String, Object> dataTypeProperties = new HashMap<>();
         dataTypeProperties.put(MysqlDataTypeConvertor.PRECISION, precision);
         dataTypeProperties.put(MysqlDataTypeConvertor.SCALE, scale);
-        return new SqliteDataTypeConvertor().toSeaTunnelType(typeName, dataTypeProperties);
-    }
-
-    @SuppressWarnings("MagicNumber")
-    private Map<String, String> buildConnectorOptions(TablePath tablePath) {
-        Map<String, String> options = new HashMap<>(8);
-        options.put("connector", "jdbc");
-        options.put("url", baseUrl + tablePath.getDatabaseName());
-        options.put("table-name", tablePath.getFullName());
-        options.put("username", username);
-        options.put("password", pwd);
-        return options;
-    }
-
-    private String getUrlFromDatabaseName(String databaseName) {
-        String url = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
-        return url + databaseName + suffix;
+        return new SqliteDataTypeConvertor()
+                .toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new SqliteTypeMapper());
+        return CatalogUtils.getCatalogTable(
+                getConnection(getUrlFromDatabaseName(defaultDatabase)),
+                sqlQuery,
+                new SqliteTypeMapper());
     }
 }

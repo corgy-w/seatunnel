@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.sink.MultiTableResourceManager;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SinkAggregatedCommitter;
 import org.apache.seatunnel.api.sink.SupportResourceShare;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 
 import org.apache.spark.sql.catalyst.InternalRow;
@@ -46,12 +47,16 @@ public class SparkDataSourceWriter<StateT, CommitInfoT, AggregatedCommitInfoT>
     @Nullable protected final SinkAggregatedCommitter<CommitInfoT, AggregatedCommitInfoT>
             sinkAggregatedCommitter;
 
+    protected final CatalogTable catalogTable;
+
     private MultiTableResourceManager resourceManager;
 
     public SparkDataSourceWriter(
-            SeaTunnelSink<SeaTunnelRow, StateT, CommitInfoT, AggregatedCommitInfoT> sink)
+            SeaTunnelSink<SeaTunnelRow, StateT, CommitInfoT, AggregatedCommitInfoT> sink,
+            CatalogTable catalogTable)
             throws IOException {
         this.sink = sink;
+        this.catalogTable = catalogTable;
         this.sinkAggregatedCommitter = sink.createAggregatedCommitter().orElse(null);
         if (sinkAggregatedCommitter != null) {
             if (this.sinkAggregatedCommitter instanceof SupportResourceShare) {
@@ -69,7 +74,7 @@ public class SparkDataSourceWriter<StateT, CommitInfoT, AggregatedCommitInfoT>
 
     @Override
     public DataWriterFactory<InternalRow> createWriterFactory() {
-        return new SparkDataWriterFactory<>(sink);
+        return new SparkDataWriterFactory<>(sink, catalogTable);
     }
 
     @Override

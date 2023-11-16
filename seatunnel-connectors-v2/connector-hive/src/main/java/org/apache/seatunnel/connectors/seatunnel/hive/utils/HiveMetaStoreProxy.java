@@ -74,25 +74,11 @@ public class HiveMetaStoreProxy {
             }
             FileSystemUtils.doKerberosAuthentication(configuration, principal, keytabPath);
         }
-        if (config.hasPath(HiveConfig.HIVE_SITE_PATH.key())) {
-            try {
-                hiveConf.addResource(
-                        new File(config.getString(HiveConfig.HIVE_SITE_PATH.key()))
-                                .toURI()
-                                .toURL());
-            } catch (MalformedURLException e) {
-                String errorMsg =
-                        String.format(
-                                "Using this hive_site uris [%s] to initialize "
-                                        + "hive metastore client instance failed",
-                                config.getString(HiveConfig.HIVE_SITE_PATH.key()));
-                throw new HiveConnectorException(
-                        HiveConnectorErrorCode.INITIALIZE_HIVE_METASTORE_CLIENT_FAILED,
-                        errorMsg,
-                        e);
-            }
-        }
         try {
+            if (config.hasPath(HiveConfig.HIVE_SITE_PATH.key())) {
+                String hiveSitePath = config.getString(HiveConfig.HIVE_SITE_PATH.key());
+                hiveConf.addResource(new File(hiveSitePath).toURI().toURL());
+            }
             hiveMetaStoreClient = new HiveMetaStoreClient(hiveConf);
         } catch (MetaException e) {
             String errorMsg =
@@ -100,6 +86,14 @@ public class HiveMetaStoreProxy {
                             "Using this hive uris [%s] to initialize "
                                     + "hive metastore client instance failed",
                             metastoreUri);
+            throw new HiveConnectorException(
+                    HiveConnectorErrorCode.INITIALIZE_HIVE_METASTORE_CLIENT_FAILED, errorMsg, e);
+        } catch (MalformedURLException e) {
+            String errorMsg =
+                    String.format(
+                            "Using this hive uris [%s], hive conf [%s] to initialize "
+                                    + "hive metastore client instance failed",
+                            metastoreUri, config.getString(HiveConfig.HIVE_SITE_PATH.key()));
             throw new HiveConnectorException(
                     HiveConnectorErrorCode.INITIALIZE_HIVE_METASTORE_CLIENT_FAILED, errorMsg, e);
         }

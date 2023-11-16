@@ -164,11 +164,11 @@ public class TextReadStrategy extends AbstractReadStrategy {
     public void setSeaTunnelRowTypeInfo(SeaTunnelRowType seaTunnelRowType) {
         SeaTunnelRowType userDefinedRowTypeWithPartition =
                 mergePartitionTypes(fileNames.get(0), seaTunnelRowType);
-        Optional<String> optional =
+        Optional<String> fieldDelimiterOptional =
                 ReadonlyConfig.fromConfig(pluginConfig)
                         .getOptional(BaseSourceConfig.FIELD_DELIMITER);
-        if (optional.isPresent()) {
-            fieldDelimiter = optional.get();
+        if (fieldDelimiterOptional.isPresent()) {
+            fieldDelimiter = fieldDelimiterOptional.get();
         } else {
             FileFormat fileFormat =
                     FileFormat.valueOf(

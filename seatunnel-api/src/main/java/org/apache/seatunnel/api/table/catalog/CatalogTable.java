@@ -93,6 +93,7 @@ public final class CatalogTable implements Serializable {
             String catalogName) {
         this.tableId = tableId;
         this.tableSchema = tableSchema;
+        // Make sure the options and partitionKeys are mutable
         this.options = new HashMap<>(options);
         this.partitionKeys = new ArrayList<>(partitionKeys);
         this.comment = comment;

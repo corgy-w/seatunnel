@@ -47,17 +47,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class InformixCatalog extends AbstractJdbcCatalog {
-
-    protected static final Set<String> SYS_DATABASES = new HashSet<>(9);
 
     static {
         SYS_DATABASES.add("sysmaster");
@@ -113,25 +109,8 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public List<String> listDatabases() throws CatalogException {
-        try (PreparedStatement ps =
-                defaultConnection.prepareStatement("select name from sysmaster:sysdatabases")) {
-
-            List<String> databases = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                String databaseName = rs.getString(1).trim();
-                if (!SYS_DATABASES.contains(databaseName)) {
-                    databases.add(databaseName);
-                }
-            }
-
-            return databases;
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", this.catalogName), e);
-        }
+    protected String getListDatabaseSql() {
+        return "select name from sysmaster:sysdatabases";
     }
 
     @Override
@@ -243,7 +222,8 @@ public class InformixCatalog extends AbstractJdbcCatalog {
         Object defaultValue = resultSet.getObject("COLUMN_DEF");
         boolean isNullable = resultSet.getInt("NULLABLE") == 1;
 
-        SeaTunnelDataType<?> type = fromJdbcType(fullTypeName, columnLength, columnScale);
+        SeaTunnelDataType<?> type =
+                fromJdbcType(columnName, fullTypeName, columnLength, columnScale);
 
         PhysicalColumn physicalColumn =
                 PhysicalColumn.of(
@@ -263,72 +243,28 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
-            throws CatalogException {
-        String createTableSql =
-                new InformixCreateTableSqlBuilder(table)
-                        .build(tablePath, table.getOptions().get("fieldIde"));
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        Connection conn = getConnection(dbUrl);
-        log.info("create table sql: {}", createTableSql);
-        try (PreparedStatement ps = conn.prepareStatement(createTableSql)) {
-            ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed creating table %s", tablePath.getFullName()), e);
-        }
-        return true;
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return new InformixCreateTableSqlBuilder(table)
+                .build(tablePath, table.getOptions().get("fieldIde"));
     }
 
     @Override
-    protected boolean dropTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-
+    protected String getDropTableSql(TablePath tablePath) {
         String schemaName = tablePath.getSchemaName();
         String tableName = tablePath.getTableName();
-
-        String sql = "DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"";
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            // Will there exist concurrent drop for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed dropping table %s", tablePath.getFullName()), e);
-        }
+        return "DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"";
     }
 
     @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        String sql =
-                String.format(
-                        "truncate table %s:%s.%s",
-                        tablePath.getDatabaseName(),
-                        tablePath.getSchemaName(),
-                        tablePath.getTableName());
-        try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format(
-                            "Failed truncating table %s in catalog %s",
-                            tablePath.getFullName(), this.catalogName),
-                    e);
-        }
+    protected String getTruncateTableSql(TablePath tablePath) {
+        return String.format(
+                "truncate table %s:%s.%s",
+                tablePath.getDatabaseName(), tablePath.getSchemaName(), tablePath.getTableName());
     }
 
     @Override
-    protected boolean createDatabaseInternal(String databaseName) throws CatalogException {
-        String sql = "CREATE DATABASE \"" + databaseName + "\"";
-        try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format(
-                            "Failed creating database %s in catalog %s",
-                            databaseName, this.catalogName),
-                    e);
-        }
+    protected String getCreateDatabaseSql(String databaseName) {
+        return "CREATE DATABASE \"" + databaseName + "\"";
     }
 
     @Override
@@ -346,44 +282,22 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected boolean dropDatabaseInternal(String databaseName) throws CatalogException {
-        String sql = "DROP DATABASE IF EXISTS \"" + databaseName + "\"";
-        try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format(
-                            "Failed dropping database %s in catalog %s",
-                            databaseName, this.catalogName),
-                    e);
-        }
+    protected String getDropDatabaseSql(String databaseName) {
+        return "DROP DATABASE IF EXISTS \"" + databaseName + "\"";
     }
 
-    private SeaTunnelDataType<?> fromJdbcType(String typeName, long precision, long scale) {
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
         Map<String, Object> dataTypeProperties = new HashMap<>();
         dataTypeProperties.put(InformixDataTypeConvertor.PRECISION, precision);
         dataTypeProperties.put(InformixDataTypeConvertor.SCALE, scale);
-        return new InformixDataTypeConvertor().toSeaTunnelType(typeName, dataTypeProperties);
-    }
-
-    @SuppressWarnings("MagicNumber")
-    private Map<String, String> buildConnectorOptions(TablePath tablePath) {
-        Map<String, String> options = new HashMap<>(8);
-        options.put("connector", "jdbc");
-        options.put("url", baseUrl + tablePath.getDatabaseName());
-        options.put("table-name", tablePath.getFullName());
-        options.put("username", username);
-        options.put("password", pwd);
-        return options;
-    }
-
-    private String getUrlFromDatabaseName(String databaseName) {
-        String url = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
-        return url + databaseName + suffix;
+        return new InformixDataTypeConvertor()
+                .toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new InformixTypeMapper());
+        return CatalogUtils.getCatalogTable(
+                getConnection(defaultUrl), sqlQuery, new InformixTypeMapper());
     }
 }

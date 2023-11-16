@@ -40,6 +40,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -198,7 +199,7 @@ public class KingbaseJsonDeserializationSchema
 
     @Override
     public SeaTunnelDataType<SeaTunnelRow> getProducedType() {
-        return CatalogTableUtil.toSeaTunnelRowType(catalogTableMap.values());
+        return CatalogTableUtil.convertToDataType(new ArrayList<>(catalogTableMap.values()));
     }
 
     @Override

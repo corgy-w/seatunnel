@@ -138,7 +138,7 @@ public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSou
         if (dataType == null) {
             return (DebeziumDeserializationSchema<T>)
                     new DebeziumJsonDeserializeSchema(
-                            config.get(MongodbSourceOptions.DEBEZIUM_PROPERTIES),
+                            config.get(JdbcSourceOptions.DEBEZIUM_PROPERTIES),
                             tableIdTableChangeMap);
         } else {
             physicalRowType = dataType;

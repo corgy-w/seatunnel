@@ -48,7 +48,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -121,6 +123,46 @@ public class MysqlDialect implements JdbcDialect {
     }
 
     @Override
+    public Map<String, String> defaultParameter() {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("rewriteBatchedStatements", "true");
+        return map;
+    }
+
+    @Override
+    public TablePath parse(String tablePath) {
+        return TablePath.of(tablePath, false);
+    }
+
+    @Override
+    public Long approximateRowCntStatement(Connection connection, JdbcSourceTable table)
+            throws SQLException {
+        if (StringUtils.isBlank(table.getQuery())) {
+            // The statement used to get approximate row count which is less
+            // accurate than COUNT(*), but is more efficient for large table.
+            TablePath tablePath = table.getTablePath();
+            String useDatabaseStatement =
+                    String.format("USE %s;", quoteDatabaseIdentifier(tablePath.getDatabaseName()));
+            String rowCountQuery =
+                    String.format("SHOW TABLE STATUS LIKE '%s';", tablePath.getTableName());
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute(useDatabaseStatement);
+                try (ResultSet rs = stmt.executeQuery(rowCountQuery)) {
+                    if (!rs.next() || rs.getMetaData().getColumnCount() < 5) {
+                        throw new SQLException(
+                                String.format(
+                                        "No result returned after running query [%s]",
+                                        rowCountQuery));
+                    }
+                    return rs.getLong(5);
+                }
+            }
+        }
+
+        return SQLUtils.countForSubquery(connection, table.getQuery());
+    }
+
+    @Override
     public List<String> getSQLFromSchemaChangeEvent(TablePath tablePath, SchemaChangeEvent event) {
         List<String> sqlList = new ArrayList<>();
         if (event instanceof AlterTableColumnsEvent) {
@@ -181,7 +223,6 @@ public class MysqlDialect implements JdbcDialect {
         final MysqlDataTypeConvertor mysqlDataTypeConvertor = new MysqlDataTypeConvertor();
         final List<String> columnSqls = new ArrayList<>();
         columnSqls.add(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "`"));
-        boolean isSupportDef = true;
         // Column name
         SqlType dataType = column.getDataType().getSqlType();
         boolean isBytes = StringUtils.equals(dataType.name(), SqlType.BYTES.name());
@@ -202,30 +243,26 @@ public class MysqlDialect implements JdbcDialect {
                 } else {
                     columnSqls.add(MysqlType.LONGBLOB.getName());
                 }
-                isSupportDef = false;
             }
         } else {
             if (columnLength >= 16383 && columnLength <= 65535) {
                 columnSqls.add(MysqlType.TEXT.getName());
-                isSupportDef = false;
             } else if (columnLength >= 65535 && columnLength <= 16777215) {
                 columnSqls.add(MysqlType.MEDIUMTEXT.getName());
-                isSupportDef = false;
             } else if (columnLength > 16777215) {
                 columnSqls.add(MysqlType.LONGTEXT.getName());
-                isSupportDef = false;
             } else {
                 // Column type
                 columnSqls.add(
                         mysqlDataTypeConvertor
-                                .toConnectorType(column.getDataType(), null)
+                                .toConnectorType(column.getName(), column.getDataType(), null)
                                 .getName());
                 // Column length
                 // add judge is need column legth
                 if (column.getColumnLength() != null) {
                     final String name =
                             mysqlDataTypeConvertor
-                                    .toConnectorType(column.getDataType(), null)
+                                    .toConnectorType(column.getName(), column.getDataType(), null)
                                     .getName();
                     String fieSql = "";
                     List<String> list = new ArrayList<>();
@@ -275,38 +312,5 @@ public class MysqlDialect implements JdbcDialect {
             columnSqls.add("COMMENT '" + column.getComment() + "'");
         }
         return String.join(" ", columnSqls);
-    }
-
-    @Override
-    public TablePath parse(String tablePath) {
-        return TablePath.of(tablePath, false);
-    }
-
-    @Override
-    public Long approximateRowCntStatement(Connection connection, JdbcSourceTable table)
-            throws SQLException {
-        if (StringUtils.isBlank(table.getQuery())) {
-            // The statement used to get approximate row count which is less
-            // accurate than COUNT(*), but is more efficient for large table.
-            TablePath tablePath = table.getTablePath();
-            String useDatabaseStatement =
-                    String.format("USE %s;", quoteDatabaseIdentifier(tablePath.getDatabaseName()));
-            String rowCountQuery =
-                    String.format("SHOW TABLE STATUS LIKE '%s';", tablePath.getTableName());
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute(useDatabaseStatement);
-                try (ResultSet rs = stmt.executeQuery(rowCountQuery)) {
-                    if (!rs.next() || rs.getMetaData().getColumnCount() < 5) {
-                        throw new SQLException(
-                                String.format(
-                                        "No result returned after running query [%s]",
-                                        rowCountQuery));
-                    }
-                    return rs.getLong(5);
-                }
-            }
-        }
-
-        return SQLUtils.countForSubquery(connection, table.getQuery());
     }
 }

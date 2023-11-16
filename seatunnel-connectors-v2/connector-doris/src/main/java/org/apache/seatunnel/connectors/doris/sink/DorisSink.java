@@ -37,7 +37,6 @@ import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.factory.CatalogFactory;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.config.CheckConfigUtil;
@@ -118,11 +117,6 @@ public class DorisSink
     }
 
     @Override
-    public SeaTunnelDataType<SeaTunnelRow> getConsumedType() {
-        return this.seaTunnelRowType;
-    }
-
-    @Override
     public SinkWriter<SeaTunnelRow, DorisCommitInfo, DorisSinkState> createWriter(
             SinkWriter.Context context) throws IOException {
         DorisSinkWriter dorisSinkWriter =
@@ -168,7 +162,7 @@ public class DorisSink
     }
 
     @Override
-    public SaveModeHandler getSaveModeHandler() {
+    public Optional<SaveModeHandler> getSaveModeHandler() {
         CatalogFactory catalogFactory =
                 discoverFactory(
                         Thread.currentThread().getContextClassLoader(),
@@ -186,6 +180,6 @@ public class DorisSink
                 catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), readonlyConfig);
         catalog.open();
 
-        return new DorisSaveModeHandler(readonlyConfig, catalog, catalogTable);
+        return Optional.of(new DorisSaveModeHandler(readonlyConfig, catalog, catalogTable));
     }
 }

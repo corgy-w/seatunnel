@@ -140,7 +140,7 @@ public class MongodbSink
     }
 
     @Override
-    public SaveModeHandler getSaveModeHandler() {
+    public Optional<SaveModeHandler> getSaveModeHandler() {
 
         MongodbClientProvider clientProvider =
                 MongodbCollectionProvider.builder()
@@ -151,11 +151,12 @@ public class MongodbSink
 
         MongoDBCatalog catalog = new MongoDBCatalog(clientProvider);
 
-        return new DefaultSaveModeHandler(
-                options.getSchemaSaveMode(),
-                options.getDataSaveMode(),
-                catalog,
-                catalogTable,
-                null);
+        return Optional.of(
+                new DefaultSaveModeHandler(
+                        options.getSchemaSaveMode(),
+                        options.getDataSaveMode(),
+                        catalog,
+                        catalogTable,
+                        null));
     }
 }

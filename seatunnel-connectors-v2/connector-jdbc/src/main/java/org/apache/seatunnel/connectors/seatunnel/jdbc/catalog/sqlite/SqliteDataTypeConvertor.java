@@ -17,14 +17,12 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.sqlite;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import com.google.auto.service.AutoService;
@@ -107,14 +105,13 @@ public class SqliteDataTypeConvertor implements DataTypeConvertor<String> {
     private static final String SQLITE_LONGVARBINARY = "LONGVARBINARY";
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
-        return toSeaTunnelType(connectorDataType, new HashMap<>(0));
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
+        return toSeaTunnelType(field, connectorDataType, new HashMap<>(0));
     }
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            String connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
         switch (connectorDataType.toUpperCase(Locale.ROOT)) {
             case SQLITE_BIT:
             case SQLITE_BOOLEAN:
@@ -183,15 +180,16 @@ public class SqliteDataTypeConvertor implements DataTypeConvertor<String> {
                 // Doesn't support yet
             case SQLITE_UNKNOWN:
             default:
-                throw DataTypeConvertException.convertToSeaTunnelDataTypeException(
-                        connectorDataType);
+                throw CommonError.convertToSeaTunnelTypeError(
+                        DatabaseIdentifier.SQLITE, connectorDataType, field);
         }
     }
 
     @Override
     public String toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         SqlType sqlType = seaTunnelDataType.getSqlType();
         // todo: verify
         switch (sqlType) {
@@ -227,9 +225,8 @@ public class SqliteDataTypeConvertor implements DataTypeConvertor<String> {
             case TIMESTAMP:
                 return SQLITE_TIMESTAMP;
             default:
-                throw new JdbcConnectorException(
-                        CommonErrorCode.UNSUPPORTED_DATA_TYPE,
-                        String.format("Doesn't support Sqlite type '%s' yet", sqlType));
+                throw CommonError.convertToConnectorTypeError(
+                        DatabaseIdentifier.SQLITE, sqlType.toString(), field);
         }
     }
 

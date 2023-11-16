@@ -18,7 +18,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.hive.catalog;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.DecimalType;
@@ -26,6 +25,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,14 +79,13 @@ public class HiveDataTypeConvertor implements DataTypeConvertor<String> {
     public static final String HIVE_CUSTOM_TYPE = "custom_type";
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
-        return toSeaTunnelType(connectorDataType, new HashMap<>(0));
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
+        return toSeaTunnelType(field, connectorDataType, new HashMap<>(0));
     }
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            String connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
         checkNotNull(connectorDataType, "Postgres Type cannot be null");
 
         switch (connectorDataType.toLowerCase(Locale.ROOT)) {
@@ -125,15 +124,15 @@ public class HiveDataTypeConvertor implements DataTypeConvertor<String> {
             case HIVE_DECIMAL:
                 return new DecimalType(DEFAULT_PRECISION, DEFAULT_SCALE);
             default:
-                throw new UnsupportedOperationException(
-                        String.format("Doesn't support HIVE type '%s''  yet.", connectorDataType));
+                throw CommonError.convertToSeaTunnelTypeError("Hive", connectorDataType, field);
         }
     }
 
     @Override
     public String toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         checkNotNull(seaTunnelDataType, "seaTunnelDataType cannot be null");
         SqlType sqlType = seaTunnelDataType.getSqlType();
         // todo: verify
@@ -169,8 +168,7 @@ public class HiveDataTypeConvertor implements DataTypeConvertor<String> {
             case TIMESTAMP:
                 return HIVE_TIMESTAMP;
             default:
-                throw new UnsupportedOperationException(
-                        String.format("Doesn't support HIVE type '%s''  yet.", sqlType));
+                throw CommonError.convertToConnectorTypeError("Hive", sqlType.toString(), field);
         }
     }
 

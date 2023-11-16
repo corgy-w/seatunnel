@@ -20,21 +20,17 @@ package org.apache.seatunnel.connectors.seatunnel.kafka.source;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceSplit;
-import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions;
 import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.Config;
-import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
 
 import com.google.auto.service.AutoService;
 
 import java.io.Serializable;
-import java.util.List;
 
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.FORMAT;
 
@@ -57,7 +53,7 @@ public class KafkaSourceFactory implements TableSourceFactory {
                         Config.COMMIT_ON_CHECKPOINT,
                         Config.KAFKA_CONFIG,
                         TableSchemaOptions.SCHEMA,
-                        Config.FORMAT,
+                        FORMAT,
                         Config.DEBEZIUM_RECORD_INCLUDE_SCHEMA,
                         Config.KEY_PARTITION_DISCOVERY_INTERVAL_MILLIS)
                 .conditional(Config.START_MODE, StartMode.TIMESTAMP, Config.START_MODE_TIMESTAMP)
@@ -69,20 +65,7 @@ public class KafkaSourceFactory implements TableSourceFactory {
     @Override
     public <T, SplitT extends SourceSplit, StateT extends Serializable>
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
-        return () -> {
-            List<CatalogTable> catalogTables;
-            if (context.getOptions().get(FORMAT).equals(MessageFormat.KINGBASE_JSON)) {
-                catalogTables =
-                        CatalogTableUtil.getCatalogTablesFromConfig(
-                                "KafkaKingbase", context.getOptions(), context.getClassLoader());
-            } else {
-                catalogTables =
-                        CatalogTableUtil.getCatalogTablesFromConfig(
-                                context.getOptions(), context.getClassLoader());
-            }
-            return (SeaTunnelSource<T, SplitT, StateT>)
-                    new KafkaSource(context.getOptions(), catalogTables);
-        };
+        return () -> (SeaTunnelSource<T, SplitT, StateT>) new KafkaSource(context.getOptions());
     }
 
     @Override

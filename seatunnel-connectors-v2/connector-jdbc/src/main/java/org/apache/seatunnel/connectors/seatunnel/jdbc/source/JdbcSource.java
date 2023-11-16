@@ -17,11 +17,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.source;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.PrepareFailException;
-import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.configuration.util.ConfigValidator;
 import org.apache.seatunnel.api.serialization.Serializer;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
@@ -40,8 +35,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcCatalogUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.auto.service.AutoService;
-import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 
 import java.util.HashMap;
@@ -49,16 +42,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@AutoService(SeaTunnelSource.class)
-@NoArgsConstructor
 public class JdbcSource
         implements SeaTunnelSource<SeaTunnelRow, JdbcSourceSplit, JdbcSourceState>,
                 SupportParallelism,
                 SupportColumnProjection {
     protected static final Logger LOG = LoggerFactory.getLogger(JdbcSource.class);
 
-    private JdbcSourceConfig jdbcSourceConfig;
-    private Map<TablePath, JdbcSourceTable> jdbcSourceTables;
+    private final JdbcSourceConfig jdbcSourceConfig;
+    private final Map<TablePath, JdbcSourceTable> jdbcSourceTables;
 
     @SneakyThrows
     public JdbcSource(JdbcSourceConfig jdbcSourceConfig) {
@@ -74,19 +65,6 @@ public class JdbcSource
         return "Jdbc";
     }
 
-    @SneakyThrows
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        ReadonlyConfig config = ReadonlyConfig.fromConfig(pluginConfig);
-        ConfigValidator.of(config).validate(new JdbcSourceFactory().optionRule());
-
-        this.jdbcSourceConfig = JdbcSourceConfig.of(config);
-        this.jdbcSourceTables =
-                JdbcCatalogUtils.getTables(
-                        jdbcSourceConfig.getJdbcConnectionConfig(),
-                        jdbcSourceConfig.getTableConfigList());
-    }
-
     @Override
     public Boundedness getBoundedness() {
         return Boundedness.BOUNDED;
@@ -95,7 +73,7 @@ public class JdbcSource
     @Override
     public List<CatalogTable> getProducedCatalogTables() {
         return jdbcSourceTables.values().stream()
-                .map(e -> e.getCatalogTable())
+                .map(JdbcSourceTable::getCatalogTable)
                 .collect(Collectors.toList());
     }
 

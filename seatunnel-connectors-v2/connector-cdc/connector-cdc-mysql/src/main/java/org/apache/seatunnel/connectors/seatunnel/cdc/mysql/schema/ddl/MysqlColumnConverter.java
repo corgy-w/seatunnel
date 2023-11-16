@@ -111,6 +111,6 @@ public class MysqlColumnConverter {
         if (column.scale().isPresent()) {
             properties.put(SCALE, column.scale().get());
         }
-        return MYSQL_DATA_TYPE_CONVERTOR.toSeaTunnelType(mysqlType, properties);
+        return MYSQL_DATA_TYPE_CONVERTOR.toSeaTunnelType(column.name(), mysqlType, properties);
     }
 }

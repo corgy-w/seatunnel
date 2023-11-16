@@ -22,6 +22,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDiale
 
 import com.google.auto.service.AutoService;
 
+import javax.annotation.Nonnull;
+
 /** Factory for {@link OracleDialect}. */
 @AutoService(JdbcDialectFactory.class)
 public class OracleDialectFactory implements JdbcDialectFactory {
@@ -36,7 +38,7 @@ public class OracleDialectFactory implements JdbcDialectFactory {
     }
 
     @Override
-    public JdbcDialect createWithFieldIde(String fieldIde) {
+    public JdbcDialect create(@Nonnull String compatibleMode, String fieldIde) {
         return new OracleDialect(fieldIde);
     }
 }

@@ -76,7 +76,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-jdbc</artifactId>
+            <artifactId>connector-fake</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -87,7 +87,7 @@
 
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-dws-gaussdb</artifactId>
+            <artifactId>connector-dws-gaussdb-wt</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -99,7 +99,7 @@
 
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-cdc-agent-oracle</artifactId>
+            <artifactId>connector-cdc-agent-oracle-wt</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
