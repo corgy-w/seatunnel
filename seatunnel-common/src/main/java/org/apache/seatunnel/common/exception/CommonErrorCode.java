@@ -17,7 +17,7 @@
 
 package org.apache.seatunnel.common.exception;
 
-/** SeaTunnel connector error code interface, it only should be invoked by {@link CommonError} */
+/** SeaTunnel connector error code interface */
 public enum CommonErrorCode implements SeaTunnelErrorCode {
     UNSUPPORTED_DATA_TYPE(
             "COMMON-07", "'<identifier>' unsupported data type '<dataType>' of '<field>'"),
@@ -32,7 +32,13 @@ public enum CommonErrorCode implements SeaTunnelErrorCode {
             "'<connector>' <type> unsupported convert SeaTunnel data type '<dataType>' of '<field>' to connector data type."),
     CONVERT_TO_CONNECTOR_TYPE_ERROR_SIMPLE(
             "COMMON-19",
-            "'<identifier>' unsupported convert SeaTunnel data type '<dataType>' of '<field>' to connector data type.");
+            "'<identifier>' unsupported convert SeaTunnel data type '<dataType>' of '<field>' to connector data type."),
+    GET_CATALOG_TABLE_WITH_UNSUPPORTED_TYPE_ERROR(
+            "COMMON-20",
+            "'<catalogName>' table '<tableName>' unsupported get catalog table with field data types '<fieldWithDataTypes>'"),
+    GET_CATALOG_TABLES_WITH_UNSUPPORTED_TYPE_ERROR(
+            "COMMON-21",
+            "'<catalogName>' tables unsupported get catalog table，the corresponding field types in the following tables are not supported: '<tableUnsupportedTypes>'");
 
     private final String code;
     private final String description;
