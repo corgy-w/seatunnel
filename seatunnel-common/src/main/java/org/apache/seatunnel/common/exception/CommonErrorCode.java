@@ -18,7 +18,7 @@
 package org.apache.seatunnel.common.exception;
 
 /** SeaTunnel connector error code interface, it only should be invoked by {@link CommonError} */
-enum CommonErrorCode implements SeaTunnelErrorCode {
+public enum CommonErrorCode implements SeaTunnelErrorCode {
     UNSUPPORTED_DATA_TYPE(
             "COMMON-07", "'<identifier>' unsupported data type '<dataType>' of '<field>'"),
     CONVERT_TO_SEATUNNEL_TYPE_ERROR(

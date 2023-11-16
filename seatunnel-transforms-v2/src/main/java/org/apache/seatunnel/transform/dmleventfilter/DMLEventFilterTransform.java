@@ -25,7 +25,7 @@ import org.apache.seatunnel.api.table.type.RowKind;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 
 import lombok.NonNull;
@@ -71,7 +71,7 @@ public class DMLEventFilterTransform implements SeaTunnelTransform<SeaTunnelRow>
             return includeKinds.contains(row.getRowKind()) ? row : null;
         }
         throw new SeaTunnelRuntimeException(
-                CommonErrorCode.UNSUPPORTED_OPERATION,
+                CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
                 "Transform config error! Either excludeKinds or includeKinds must be configured");
     }
 
