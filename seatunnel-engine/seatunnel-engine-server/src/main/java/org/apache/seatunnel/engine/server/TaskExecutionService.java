@@ -135,7 +135,6 @@ public class TaskExecutionService implements DynamicMetricsProvider {
     private final SeaTunnelConfig seaTunnelConfig;
 
     private final ScheduledExecutorService scheduledExecutorService;
-    private final IMap<Long, HashMap<TaskLocation, SeaTunnelMetricsContext>> metricsImap;
 
     private final ServerConnectorPackageClient serverConnectorPackageClient;
 
@@ -144,8 +143,6 @@ public class TaskExecutionService implements DynamicMetricsProvider {
         this.hzInstanceName = nodeEngine.getHazelcastInstance().getName();
         this.nodeEngine = nodeEngine;
         this.logger = nodeEngine.getLoggingService().getLogger(TaskExecutionService.class);
-        this.metricsImap =
-                nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_RUNNING_JOB_METRICS);
 
         MetricsRegistry registry = nodeEngine.getMetricsRegistry();
         MetricDescriptor descriptor =
@@ -540,6 +537,8 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                             nodeEngine.getNode().getState()));
             return;
         }
+        IMap<Long, HashMap<TaskLocation, SeaTunnelMetricsContext>> metricsImap =
+                nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_RUNNING_JOB_METRICS);
         Map<TaskGroupLocation, TaskGroupContext> contextMap = new HashMap<>();
         contextMap.putAll(finishedExecutionContexts);
         contextMap.putAll(executionContexts);
