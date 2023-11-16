@@ -255,7 +255,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-s3-redshift</artifactId>
+                    <artifactId>connector-s3-redshift-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -291,7 +291,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-cdc-agent-oracle</artifactId>
+                    <artifactId>connector-cdc-agent-oracle-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -309,7 +309,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-dws-gaussdb</artifactId>
+                    <artifactId>connector-dws-gaussdb-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -323,7 +323,7 @@
 
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-dolphindb</artifactId>
+                    <artifactId>connector-dolphindb-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>

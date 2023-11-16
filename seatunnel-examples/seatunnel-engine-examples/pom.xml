@@ -81,7 +81,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-dolphindb</artifactId>
+            <artifactId>connector-dolphindb-wt</artifactId>
             <version>${project.version}</version>
         </dependency>
 
