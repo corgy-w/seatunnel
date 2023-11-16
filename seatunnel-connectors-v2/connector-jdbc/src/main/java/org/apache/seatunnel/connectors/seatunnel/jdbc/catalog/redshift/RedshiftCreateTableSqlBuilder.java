@@ -74,9 +74,10 @@ public class RedshiftCreateTableSqlBuilder {
         StringBuilder columnSql = new StringBuilder();
         columnSql.append("\"").append(column.getName()).append("\" ");
         String columnType =
-                StringUtils.equals(sourceCatalogName, DatabaseIdentifier.REDSHIFT)
-                                || StringUtils.equals(
-                                        sourceCatalogName, DatabaseIdentifier.POSTGRESQL)
+                (StringUtils.equals(sourceCatalogName, DatabaseIdentifier.REDSHIFT)
+                                        || StringUtils.equals(
+                                                sourceCatalogName, DatabaseIdentifier.POSTGRESQL))
+                                && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);
