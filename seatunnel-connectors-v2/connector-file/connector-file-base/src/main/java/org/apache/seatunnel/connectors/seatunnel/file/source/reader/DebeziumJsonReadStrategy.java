@@ -3,7 +3,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.source.reader;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.CompressFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
@@ -90,7 +90,8 @@ public class DebeziumJsonReadStrategy extends AbstractReadStrategy {
                                                     "Read data from this file [%s] failed",
                                                     filePath);
                                     throw new FileConnectorException(
-                                            CommonErrorCode.FILE_OPERATION_FAILED, errorMsg);
+                                            CommonErrorCodeDeprecated.FILE_OPERATION_FAILED,
+                                            errorMsg);
                                 }
                             });
         }
@@ -100,7 +101,7 @@ public class DebeziumJsonReadStrategy extends AbstractReadStrategy {
     public SeaTunnelRowType getSeaTunnelRowTypeInfo(HadoopConf hadoopConf, String path)
             throws FileConnectorException {
         throw new FileConnectorException(
-                CommonErrorCode.UNSUPPORTED_OPERATION,
+                CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
                 "User must defined schema for json file type");
     }
 }

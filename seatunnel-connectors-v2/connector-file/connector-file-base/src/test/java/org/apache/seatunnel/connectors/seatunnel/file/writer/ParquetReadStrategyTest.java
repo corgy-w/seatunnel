@@ -88,13 +88,13 @@ public class ParquetReadStrategyTest {
         TimeZone tz1 = TimeZone.getTimeZone("Asia/Shanghai");
         TimeZone.setDefault(tz1);
         TestCollector testCollector = new TestCollector();
-        parquetReadStrategy.read(path, testCollector);
+        parquetReadStrategy.read(path, "", testCollector);
         LocalDateTime time1 = (LocalDateTime) testCollector.getRows().get(0).getField(index);
 
         TimeZone tz2 = TimeZone.getTimeZone("UTC");
         TimeZone.setDefault(tz2);
         TestCollector testCollector2 = new TestCollector();
-        parquetReadStrategy.read(path, testCollector2);
+        parquetReadStrategy.read(path, "", testCollector2);
         LocalDateTime time2 = (LocalDateTime) testCollector2.getRows().get(0).getField(index);
 
         Assertions.assertTrue(time1.isAfter(time2));

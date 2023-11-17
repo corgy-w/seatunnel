@@ -17,7 +17,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.file.local.source;
 
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
@@ -87,10 +86,5 @@ public class LocalFileSource
             LocalFileSourceState checkpointState) {
         return new MultipleTableLocalFileSourceSplitEnumerator(
                 enumeratorContext, multipleTableLocalFileSourceConfig, checkpointState);
-    }
-
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 }
