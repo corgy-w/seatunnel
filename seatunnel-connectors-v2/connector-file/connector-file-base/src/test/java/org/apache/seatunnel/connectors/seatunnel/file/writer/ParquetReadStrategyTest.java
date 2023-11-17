@@ -53,7 +53,7 @@ public class ParquetReadStrategyTest {
         Assertions.assertNotNull(seaTunnelRowTypeInfo);
         System.out.println(seaTunnelRowTypeInfo);
         TestCollector testCollector = new TestCollector();
-        parquetReadStrategy.read(path, testCollector);
+        parquetReadStrategy.read(path, "", testCollector);
     }
 
     @Test
@@ -69,7 +69,7 @@ public class ParquetReadStrategyTest {
         Assertions.assertNotNull(seaTunnelRowTypeInfo);
         System.out.println(seaTunnelRowTypeInfo);
         TestCollector testCollector = new TestCollector();
-        parquetReadStrategy.read(path, testCollector);
+        parquetReadStrategy.read(path, "", testCollector);
     }
 
     @Test
@@ -121,7 +121,7 @@ public class ParquetReadStrategyTest {
         Assertions.assertNotNull(seaTunnelRowTypeInfo);
         System.out.println(seaTunnelRowTypeInfo);
         TestCollector testCollector = new TestCollector();
-        parquetReadStrategy.read(path, testCollector);
+        parquetReadStrategy.read(path, "", testCollector);
         List<SeaTunnelRow> rows = testCollector.getRows();
         for (SeaTunnelRow row : rows) {
             Assertions.assertEquals(row.getField(0).getClass(), Long.class);
@@ -151,7 +151,7 @@ public class ParquetReadStrategyTest {
         Assertions.assertNotNull(seaTunnelRowTypeInfo);
         System.out.println(seaTunnelRowTypeInfo);
         TestCollector testCollector = new TestCollector();
-        parquetReadStrategy.read(path, testCollector);
+        parquetReadStrategy.read(path, "", testCollector);
     }
 
     public static class TestCollector implements Collector<SeaTunnelRow> {

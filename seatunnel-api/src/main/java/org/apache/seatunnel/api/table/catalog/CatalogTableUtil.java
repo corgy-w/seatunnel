@@ -37,8 +37,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -231,5 +233,30 @@ public class CatalogTableUtil implements Serializable {
 
     public static CatalogTable buildSimpleTextTable() {
         return getCatalogTable("default", buildSimpleTextSchema());
+    }
+
+    public static SeaTunnelDataType toSeaTunnelRowType(Collection<CatalogTable> catalogTables) {
+
+        if (catalogTables.size() == 1) {
+            Iterator<CatalogTable> iterator = catalogTables.iterator();
+            return iterator.next().getSeaTunnelRowType();
+        }
+
+        Map<String, SeaTunnelRowType> rowTypeMap = new HashMap<>();
+
+        for (CatalogTable catalogTable : catalogTables) {
+            String tableId = catalogTable.getTableId().toTablePath().toString();
+            rowTypeMap.put(tableId, catalogTable.getTableSchema().toPhysicalRowDataType());
+        }
+        return new MultipleRowType(rowTypeMap);
+    }
+
+    public static CatalogTable buildEmptyCatalogTable(String catalogName) {
+        return CatalogTable.of(
+                TableIdentifier.of(catalogName, TablePath.EMPTY),
+                TableSchema.builder().build(),
+                new HashMap<>(),
+                new ArrayList<>(),
+                null);
     }
 }
