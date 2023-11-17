@@ -140,6 +140,13 @@ public class OracleCatalog extends AbstractJdbcCatalog {
         return String.format("DROP TABLE %s", tablePath.getSchemaAndTableName("\""));
     }
 
+    @Override
+    protected String getTruncateTableSql(TablePath tablePath) {
+        return String.format(
+                "TRUNCATE TABLE \"%s\".\"%s\"",
+                tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
     public String getCountSql(TablePath tablePath) {
         return String.format(
                 "select count(*) from %s.%s", tablePath.getSchemaName(), tablePath.getTableName());
