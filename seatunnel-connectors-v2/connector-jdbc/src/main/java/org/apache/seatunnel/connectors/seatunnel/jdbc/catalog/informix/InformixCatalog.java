@@ -19,6 +19,7 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.informix;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
@@ -182,12 +183,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
                             tablePath.getTableName(),
                             null)) {
                 TableSchema.Builder builder = TableSchema.builder();
-
-                // add column
-                while (resultSet.next()) {
-                    buildColumn(resultSet, builder);
-                }
-
+                buildColumnsWithErrorCheck(tablePath, resultSet, builder);
                 // add primary key
                 primaryKey.ifPresent(builder::primaryKey);
                 // add constraint key
@@ -213,7 +209,8 @@ public class InformixCatalog extends AbstractJdbcCatalog {
         }
     }
 
-    private void buildColumn(ResultSet resultSet, TableSchema.Builder builder) throws SQLException {
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
         String fullTypeName = resultSet.getString("TYPE_NAME");
         long columnLength = resultSet.getLong("COLUMN_SIZE");
@@ -225,21 +222,19 @@ public class InformixCatalog extends AbstractJdbcCatalog {
         SeaTunnelDataType<?> type =
                 fromJdbcType(columnName, fullTypeName, columnLength, columnScale);
 
-        PhysicalColumn physicalColumn =
-                PhysicalColumn.of(
-                        columnName,
-                        type,
-                        0,
-                        isNullable,
-                        defaultValue,
-                        columnComment,
-                        fullTypeName,
-                        false,
-                        false,
-                        0L,
-                        null,
-                        columnLength);
-        builder.column(physicalColumn);
+        return PhysicalColumn.of(
+                columnName,
+                type,
+                0,
+                isNullable,
+                defaultValue,
+                columnComment,
+                fullTypeName,
+                false,
+                false,
+                0L,
+                null,
+                columnLength);
     }
 
     @Override

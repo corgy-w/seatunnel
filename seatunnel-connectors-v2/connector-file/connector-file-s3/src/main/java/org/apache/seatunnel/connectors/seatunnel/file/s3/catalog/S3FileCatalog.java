@@ -33,6 +33,11 @@ public class S3FileCatalog implements Catalog {
     public void close() throws CatalogException {}
 
     @Override
+    public String name() {
+        return "S3File";
+    }
+
+    @Override
     public String getDefaultDatabase() throws CatalogException {
         return null;
     }

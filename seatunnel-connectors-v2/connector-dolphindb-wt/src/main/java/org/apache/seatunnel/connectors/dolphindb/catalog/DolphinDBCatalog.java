@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.seatunnel.connectors.dolphindb.exception.DolphinDBErrorCode.CHECK_DATA_ERROR;
@@ -93,6 +94,11 @@ public class DolphinDBCatalog implements Catalog {
     }
 
     @Override
+    public String name() {
+        return catalogName;
+    }
+
+    @Override
     public String getDefaultDatabase() throws CatalogException {
         return databaseName;
     }
@@ -149,12 +155,15 @@ public class DolphinDBCatalog implements Catalog {
             TableSchema.Builder builder = TableSchema.builder();
             DolphinDBDataTypeConvertor dolphinDBDataTypeConvertor =
                     new DolphinDBDataTypeConvertor();
-            for (int i = 0; i < columns; i++) {
-                Vector column = basicTable.getColumn(i);
-                String columnName = basicTable.getColumnName(i);
-                Entity.DATA_TYPE dataType = column.getDataType();
-                PhysicalColumn physicalColumn =
-                        PhysicalColumn.of(
+            buildColumnsWithErrorCheck(
+                    tablePath,
+                    builder,
+                    IntStream.range(0, columns).iterator(),
+                    i -> {
+                        Vector column = basicTable.getColumn(i);
+                        String columnName = basicTable.getColumnName(i);
+                        Entity.DATA_TYPE dataType = column.getDataType();
+                        return PhysicalColumn.of(
                                 columnName,
                                 dolphinDBDataTypeConvertor.toSeaTunnelType(
                                         columnName, dataType.name()),
@@ -162,8 +171,7 @@ public class DolphinDBCatalog implements Catalog {
                                 true,
                                 null,
                                 null);
-                builder.column(physicalColumn);
-            }
+                    });
             return CatalogTable.of(
                     TableIdentifier.of(
                             catalogName, tablePath.getDatabaseName(), tablePath.getTableName()),

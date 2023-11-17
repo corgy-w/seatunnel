@@ -2,6 +2,7 @@ package org.apache.seatunnel.connectors.dws.guassdb.catalog;
 
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
@@ -162,6 +163,11 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
     }
 
     @Override
+    public String name() {
+        return catalogName;
+    }
+
+    @Override
     public String getDefaultDatabase() throws CatalogException {
         return defaultDatabase;
     }
@@ -273,9 +279,23 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
                 TableSchema.Builder builder = TableSchema.builder();
 
                 // add column
-                while (resultSet.next()) {
-                    buildColumn(resultSet, builder);
-                }
+                buildColumnsWithErrorCheck(
+                        tablePath,
+                        builder,
+                        () -> {
+                            try {
+                                return resultSet.next();
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        },
+                        () -> {
+                            try {
+                                return buildColumn(resultSet);
+                            } catch (SQLException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
 
                 // add primary key
                 primaryKey.ifPresent(builder::primaryKey);
@@ -503,7 +523,7 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
         return new ArrayList<>(constraintKeyMap.values());
     }
 
-    private void buildColumn(ResultSet resultSet, TableSchema.Builder builder) throws SQLException {
+    private Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("column_name");
         String typeName = resultSet.getString("type_name");
         String fullTypeName = resultSet.getString("full_type_name");
@@ -543,21 +563,19 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
                 break;
         }
 
-        PhysicalColumn physicalColumn =
-                PhysicalColumn.of(
-                        columnName,
-                        type,
-                        0,
-                        isNullable,
-                        defaultValue,
-                        columnComment,
-                        fullTypeName,
-                        false,
-                        false,
-                        bitLen,
-                        null,
-                        columnLength);
-        builder.column(physicalColumn);
+        return PhysicalColumn.of(
+                columnName,
+                type,
+                0,
+                isNullable,
+                defaultValue,
+                columnComment,
+                fullTypeName,
+                false,
+                false,
+                bitLen,
+                null,
+                columnLength);
     }
 
     private SeaTunnelDataType<?> fromJdbcType(

@@ -20,15 +20,10 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dm;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
-import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
-import org.apache.seatunnel.api.table.catalog.PrimaryKey;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
-import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -40,7 +35,6 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -50,7 +44,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 public class DamengCatalog extends AbstractJdbcCatalog {
@@ -251,126 +244,6 @@ public class DamengCatalog extends AbstractJdbcCatalog {
             throw new CatalogException(
                     String.format("Failed listing table in catalog %s", catalogName), e);
         }
-    }
-
-    @Override
-    public CatalogTable getTable(TablePath tablePath)
-            throws CatalogException, TableNotExistException {
-        if (!tableExists(tablePath)) {
-            throw new TableNotExistException(catalogName, tablePath);
-        }
-
-        try {
-            DatabaseMetaData metaData = getConnection(defaultUrl).getMetaData();
-            Optional<PrimaryKey> primaryKey =
-                    getPrimaryKey(
-                            metaData,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-            List<ConstraintKey> constraintKeys =
-                    getConstraintKeys(
-                            metaData,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-
-            TableSchema.Builder builder = TableSchema.builder();
-            primaryKey.ifPresent(builder::primaryKey);
-            constraintKeys.forEach(builder::constraintKey);
-            builder.columns(getColumns(tablePath));
-            TableIdentifier tableIdentifier =
-                    TableIdentifier.of(
-                            catalogName,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-            return CatalogTable.of(
-                    tableIdentifier,
-                    builder.build(),
-                    buildConnectorOptions(tablePath),
-                    Collections.emptyList(),
-                    "",
-                    catalogName);
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed getting table %s", tablePath.getFullName()), e);
-        }
-    }
-
-    private List<Column> getColumns(TablePath tablePath) throws SQLException {
-        List<Column> columns = new ArrayList<>();
-
-        try (PreparedStatement ps =
-                getConnection(defaultUrl).prepareStatement(SELECT_COLUMNS_SQL)) {
-            ps.setString(1, tablePath.getSchemaName());
-            ps.setString(2, tablePath.getTableName());
-            try (ResultSet resultSet = ps.executeQuery()) {
-                while (resultSet.next()) {
-                    String columnName = resultSet.getString("COLUMN_NAME");
-                    String typeName = resultSet.getString("DATA_TYPE");
-                    String sourceTypeName = resultSet.getString("SOURCE_TYPE");
-                    long columnLength = resultSet.getLong("DATA_LENGTH");
-                    long columnPrecision = resultSet.getLong("DATA_PRECISION");
-                    long columnScale = resultSet.getLong("DATA_SCALE");
-                    String columnComment = resultSet.getString("COMMENTS");
-                    Object defaultValue = resultSet.getObject("DATA_DEFAULT");
-                    boolean isNullable = resultSet.getString("NULLABLE").equals("Y");
-
-                    SeaTunnelDataType<?> type =
-                            fromJdbcType(columnName, typeName, columnPrecision, columnScale);
-                    long bitLen = 0;
-                    long longColumnLength = 0;
-                    switch (typeName) {
-                        case DamengDataTypeConvertor.DM_BIT:
-                            bitLen = columnLength;
-                            break;
-                        case DamengDataTypeConvertor.DM_DECIMAL:
-                        case DamengDataTypeConvertor.DM_TIMESTAMP:
-                        case DamengDataTypeConvertor.DM_DATETIME:
-                        case DamengDataTypeConvertor.DM_TIME:
-                            columnLength = columnScale;
-                            break;
-                        case DamengDataTypeConvertor.DM_CHAR:
-                        case DamengDataTypeConvertor.DM_CHARACTER:
-                        case DamengDataTypeConvertor.DM_VARCHAR:
-                        case DamengDataTypeConvertor.DM_VARCHAR2:
-                        case DamengDataTypeConvertor.DM_LONGVARCHAR:
-                        case DamengDataTypeConvertor.DM_CLOB:
-                        case DamengDataTypeConvertor.DM_TEXT:
-                        case DamengDataTypeConvertor.DM_LONG:
-                        case DamengDataTypeConvertor.DM_BFILE:
-                            longColumnLength = columnLength;
-                            break;
-                        case DamengDataTypeConvertor.DM_BINARY:
-                        case DamengDataTypeConvertor.DM_VARBINARY:
-                        case DamengDataTypeConvertor.DM_BLOB:
-                        case DamengDataTypeConvertor.DM_IMAGE:
-                        case DamengDataTypeConvertor.DM_LONGVARBINARY:
-                            bitLen = columnLength * 8;
-                            break;
-                        default:
-                            break;
-                    }
-                    PhysicalColumn physicalColumn =
-                            PhysicalColumn.of(
-                                    columnName,
-                                    type,
-                                    ((int) columnLength),
-                                    isNullable,
-                                    defaultValue,
-                                    columnComment,
-                                    sourceTypeName,
-                                    false,
-                                    false,
-                                    bitLen,
-                                    null,
-                                    longColumnLength);
-                    columns.add(physicalColumn);
-                }
-            }
-        }
-        return columns;
     }
 
     private SeaTunnelDataType<?> fromJdbcType(

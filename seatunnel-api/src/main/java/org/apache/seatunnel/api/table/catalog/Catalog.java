@@ -24,13 +24,21 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistExceptio
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.factory.Factory;
+import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -57,6 +65,9 @@ public interface Catalog extends AutoCloseable {
      * @throws CatalogException in case of any runtime exception
      */
     void close() throws CatalogException;
+
+    /** Get the name of the catalog. */
+    String name();
 
     // --------------------------------------------------------------------------------------------
     // database
@@ -154,6 +165,50 @@ public interface Catalog extends AutoCloseable {
                     });
         }
         return catalogTables;
+    }
+
+    default <T> void buildColumnsWithErrorCheck(
+            TablePath tablePath,
+            TableSchema.Builder builder,
+            Iterator<T> keys,
+            Function<T, Column> getColumn) {
+        Map<String, String> unsupported = new LinkedHashMap<>();
+        while (keys.hasNext()) {
+            try {
+                builder.column(getColumn.apply(keys.next()));
+            } catch (SeaTunnelRuntimeException e) {
+                if (e.getSeaTunnelErrorCode()
+                        .equals(CommonErrorCode.CONVERT_TO_SEATUNNEL_TYPE_ERROR_SIMPLE)) {
+                    unsupported.put(e.getParams().get("field"), e.getParams().get("dataType"));
+                } else {
+                    throw e;
+                }
+            }
+        }
+        if (!unsupported.isEmpty()) {
+            throw CommonError.getCatalogTableWithUnsupportedType(
+                    name(), tablePath.getFullName(), unsupported);
+        }
+    }
+
+    default void buildColumnsWithErrorCheck(
+            TablePath tablePath,
+            TableSchema.Builder builder,
+            Supplier<Boolean> hasNext,
+            Supplier<Column> getColumn) {
+        Iterator<Column> iterator =
+                new Iterator<Column>() {
+                    @Override
+                    public boolean hasNext() {
+                        return hasNext.get();
+                    }
+
+                    @Override
+                    public Column next() {
+                        return getColumn.get();
+                    }
+                };
+        buildColumnsWithErrorCheck(tablePath, builder, iterator, Function.identity());
     }
 
     /**
