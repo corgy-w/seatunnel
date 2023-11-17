@@ -245,9 +245,9 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
                 pgType,
                 false,
                 false,
-                null,
-                null,
-                null);
+                (long) columnSize << 2,
+                new HashMap<>(),
+                (long) columnSize);
     }
 
     public Connection getConnection(String url) {

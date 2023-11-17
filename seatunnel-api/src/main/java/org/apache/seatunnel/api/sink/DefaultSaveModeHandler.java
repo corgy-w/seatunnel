@@ -72,10 +72,10 @@ public class DefaultSaveModeHandler implements SaveModeHandler {
     @Override
     public void handleDataSaveMode() {
         switch (dataSaveMode) {
-            case DROP_DATA:
+            case KEEP_SCHEMA_DROP_DATA:
                 keepSchemaDropData();
                 break;
-            case APPEND_DATA:
+            case KEEP_SCHEMA_AND_DATA:
                 keepSchemaAndData();
                 break;
             case CUSTOM_PROCESSING:
