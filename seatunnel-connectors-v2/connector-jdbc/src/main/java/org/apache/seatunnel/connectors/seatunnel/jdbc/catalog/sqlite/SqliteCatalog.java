@@ -1,15 +1,12 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.sqlite;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
-import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
-import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -21,19 +18,16 @@ import com.mysql.cj.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -126,60 +120,18 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public CatalogTable getTable(TablePath tablePath)
-            throws CatalogException, TableNotExistException {
-        if (!tableExists(tablePath)) {
-            throw new TableNotExistException(catalogName, tablePath);
-        }
-
-        Connection conn = getConnection(defaultUrl);
-        try {
-            DatabaseMetaData metaData = conn.getMetaData();
-
-            Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
-            List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
-            try (ResultSet resultSet =
-                    metaData.getColumns(
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName(),
-                            null)) {
-
-                TableSchema.Builder builder = TableSchema.builder();
-                while (resultSet.next()) {
-                    buildTable(resultSet, builder);
-                }
-                // add primary key
-                primaryKey.ifPresent(builder::primaryKey);
-                // add constraint key
-                constraintKeys.forEach(builder::constraintKey);
-                TableIdentifier tableIdentifier =
-                        TableIdentifier.of(
-                                catalogName, tablePath.getDatabaseName(), tablePath.getTableName());
-                return CatalogTable.of(
-                        tableIdentifier,
-                        builder.build(),
-                        buildConnectorOptions(tablePath),
-                        Collections.emptyList(),
-                        "",
-                        catalogName);
-            }
-
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed getting table %s", tablePath.getFullName()), e);
-        }
+    protected String getUrlFromDatabaseName(String databaseName) {
+        return defaultUrl;
     }
 
-    private void buildTable(ResultSet resultSet, TableSchema.Builder builder) throws SQLException {
+    @Override
+    protected TableIdentifier getTableIdentifier(TablePath tablePath) {
+        return TableIdentifier.of(
+                catalogName, tablePath.getDatabaseName(), tablePath.getTableName());
+    }
 
-        //        String columnName = resultSet.getString("COLUMN_NAME");
-        //        String fullTypeName = resultSet.getString("TYPE_NAME");
-        //        long columnLength = resultSet.getLong("COLUMN_SIZE");
-        //        long columnScale = resultSet.getLong("DECIMAL_DIGITS");
-        //        String columnComment = resultSet.getString("REMARKS");
-        //        Object defaultValue = resultSet.getObject("COLUMN_DEF");
-        //        boolean isNullable = resultSet.getInt("NULLABLE") == 1;
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
 
         String columnName = resultSet.getString("COLUMN_NAME");
         String fullTypeName = resultSet.getString("TYPE_NAME");
@@ -192,21 +144,19 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
         String dataType = JDBCType.valueOf(resultSet.getInt("DATA_TYPE")).getName();
         SeaTunnelDataType<?> type = fromJdbcType(columnName, dataType, columnLength, columnScale);
 
-        PhysicalColumn physicalColumn =
-                PhysicalColumn.of(
-                        columnName,
-                        type,
-                        0,
-                        isNullable,
-                        defaultValue,
-                        columnComment,
-                        fullTypeName,
-                        false,
-                        false,
-                        0L,
-                        null,
-                        columnLength);
-        builder.column(physicalColumn);
+        return PhysicalColumn.of(
+                columnName,
+                type,
+                0,
+                isNullable,
+                defaultValue,
+                columnComment,
+                fullTypeName,
+                false,
+                false,
+                0L,
+                null,
+                columnLength);
     }
 
     public static Map<String, Object> getColumnsDefaultValue(TablePath tablePath, Connection conn) {

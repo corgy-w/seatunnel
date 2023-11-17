@@ -34,6 +34,11 @@ public class MongoDBCatalog implements Catalog {
     }
 
     @Override
+    public String name() {
+        return "MongoDB";
+    }
+
+    @Override
     public String getDefaultDatabase() {
         return clientProvider.getDefaultDatabase().getName();
     }

@@ -105,6 +105,11 @@ public class KingbaseCatalog implements Catalog {
     public void close() throws CatalogException {}
 
     @Override
+    public String name() {
+        return catalogName;
+    }
+
+    @Override
     public String getDefaultDatabase() throws CatalogException {
         return null;
     }
@@ -185,19 +190,33 @@ public class KingbaseCatalog implements Catalog {
                             tablePath.getTableName(),
                             null)) {
                 while (resultSet.next()) {
-                    String columnName = resultSet.getString("COLUMN_NAME");
-                    int columnDisplaySize = resultSet.getInt("COLUMN_SIZE");
-                    String defaultValue = resultSet.getString("COLUMN_DEF");
-                    PhysicalColumn physicalColumn =
-                            PhysicalColumn.of(
-                                    columnName,
-                                    KingbaseTypeConvertor.mapping(resultSet),
-                                    columnDisplaySize,
-                                    Boolean.parseBoolean(
-                                            resultSet.getObject("IS_NULLABLE").toString()),
-                                    defaultValue,
-                                    resultSet.getString("REMARKS"));
-                    builder.column(physicalColumn);
+                    buildColumnsWithErrorCheck(
+                            tablePath,
+                            builder,
+                            () -> {
+                                try {
+                                    return resultSet.next();
+                                } catch (SQLException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            },
+                            () -> {
+                                try {
+                                    String columnName = resultSet.getString("COLUMN_NAME");
+                                    int columnDisplaySize = resultSet.getInt("COLUMN_SIZE");
+                                    String defaultValue = resultSet.getString("COLUMN_DEF");
+                                    return PhysicalColumn.of(
+                                            columnName,
+                                            KingbaseTypeConvertor.mapping(resultSet),
+                                            columnDisplaySize,
+                                            Boolean.parseBoolean(
+                                                    resultSet.getObject("IS_NULLABLE").toString()),
+                                            defaultValue,
+                                            resultSet.getString("REMARKS"));
+                                } catch (SQLException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            });
                 }
             }
             primaryKey.ifPresent(builder::primaryKey);

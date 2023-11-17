@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.kingbase;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
@@ -207,32 +208,7 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
                             tablePath.getSchemaName(),
                             tablePath.getTableName(),
                             null)) {
-                while (resultSet.next()) {
-                    String pgType = resultSet.getString("TYPE_NAME").toUpperCase();
-                    String columnName = resultSet.getString("COLUMN_NAME");
-                    int columnDisplaySize = resultSet.getInt("COLUMN_SIZE");
-                    String defaultValue = resultSet.getString("COLUMN_DEF");
-                    int columnSize = resultSet.getInt("COLUMN_SIZE");
-                    int decimalDigits = resultSet.getInt("DECIMAL_DIGITS");
-                    int nullable = resultSet.getInt("NULLABLE");
-                    String remarks = resultSet.getString("REMARKS");
-
-                    PhysicalColumn physicalColumn =
-                            PhysicalColumn.of(
-                                    columnName,
-                                    fromJdbcType(columnName, pgType, columnSize, decimalDigits),
-                                    columnDisplaySize,
-                                    nullable != ResultSetMetaData.columnNoNulls,
-                                    defaultValue,
-                                    remarks,
-                                    pgType,
-                                    false,
-                                    false,
-                                    null,
-                                    null,
-                                    null);
-                    builder.column(physicalColumn);
-                }
+                buildColumnsWithErrorCheck(tablePath, resultSet, builder);
             }
             primaryKey.ifPresent(builder::primaryKey);
             TableIdentifier tableIdentifier =
@@ -246,6 +222,32 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
         } catch (Exception e) {
             throw new CatalogException("get table fields failed", e);
         }
+    }
+
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
+        String pgType = resultSet.getString("TYPE_NAME").toUpperCase();
+        String columnName = resultSet.getString("COLUMN_NAME");
+        int columnDisplaySize = resultSet.getInt("COLUMN_SIZE");
+        String defaultValue = resultSet.getString("COLUMN_DEF");
+        int columnSize = resultSet.getInt("COLUMN_SIZE");
+        int decimalDigits = resultSet.getInt("DECIMAL_DIGITS");
+        int nullable = resultSet.getInt("NULLABLE");
+        String remarks = resultSet.getString("REMARKS");
+
+        return PhysicalColumn.of(
+                columnName,
+                fromJdbcType(columnName, pgType, columnSize, decimalDigits),
+                columnDisplaySize,
+                nullable != ResultSetMetaData.columnNoNulls,
+                defaultValue,
+                remarks,
+                pgType,
+                false,
+                false,
+                null,
+                null,
+                null);
     }
 
     public Connection getConnection(String url) {

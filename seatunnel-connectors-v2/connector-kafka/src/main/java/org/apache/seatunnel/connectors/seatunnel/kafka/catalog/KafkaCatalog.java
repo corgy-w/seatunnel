@@ -87,6 +87,11 @@ public class KafkaCatalog implements Catalog {
     }
 
     @Override
+    public String name() {
+        return catalogName;
+    }
+
+    @Override
     public String getDefaultDatabase() throws CatalogException {
         throw new UnsupportedOperationException();
     }
