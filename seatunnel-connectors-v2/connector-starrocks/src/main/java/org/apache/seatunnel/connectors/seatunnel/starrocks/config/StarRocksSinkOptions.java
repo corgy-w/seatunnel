@@ -147,8 +147,9 @@ public interface StarRocksSinkOptions {
 
     SingleChoiceOption<DataSaveMode> DATA_SAVE_MODE =
             Options.key(SupportSaveMode.DATA_SAVE_MODE_KEY)
-                    .singleChoice(DataSaveMode.class, Arrays.asList(DataSaveMode.APPEND_DATA))
-                    .defaultValue(DataSaveMode.APPEND_DATA)
+                    .singleChoice(
+                            DataSaveMode.class, Arrays.asList(DataSaveMode.KEEP_SCHEMA_AND_DATA))
+                    .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
                     .withDescription(
                             "Table structure and data processing methods that already exist on the target end");
 
