@@ -126,6 +126,11 @@ public class InMemoryCatalog implements Catalog {
     }
 
     @Override
+    public String name() {
+        return "InMemory";
+    }
+
+    @Override
     public String getDefaultDatabase() throws CatalogException {
         return DEFAULT_DATABASE;
     }
