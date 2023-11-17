@@ -20,7 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.local.source.reader;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.file.local.source.config.LocalFileSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.local.source.config.MultipleTableLocalFileSourceConfig;
@@ -86,7 +86,7 @@ public class MultipleTableLocalFileSourceReader
                     String errorMsg =
                             String.format("Read data from this file [%s] failed", split.splitId());
                     throw new FileConnectorException(
-                            CommonErrorCode.FILE_OPERATION_FAILED, errorMsg, e);
+                            CommonErrorCodeDeprecated.FILE_OPERATION_FAILED, errorMsg, e);
                 }
             } else if (noMoreSplit && sourceSplits.isEmpty()) {
                 // signal to the source that we have reached the end of the data.
