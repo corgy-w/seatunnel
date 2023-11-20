@@ -5,7 +5,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
@@ -43,7 +43,7 @@ public class DbfReadStrategy extends AbstractReadStrategy {
                     || skipHeaderNumber < Integer.MIN_VALUE
                     || skipHeaderNumber > reader.getRecordCount()) {
                 throw new FileConnectorException(
-                        CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
+                        CommonErrorCode.UNSUPPORTED_OPERATION,
                         "Skip the number of rows exceeds the maximum or minimum limit of Sheet");
             }
             reader.skipRecords((int) skipHeaderNumber);
@@ -69,7 +69,7 @@ public class DbfReadStrategy extends AbstractReadStrategy {
         if (ArrayUtils.isEmpty(seaTunnelRowType.getFieldNames())
                 || ArrayUtils.isEmpty(seaTunnelRowType.getFieldTypes())) {
             throw new FileConnectorException(
-                    CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
+                    CommonErrorCode.UNSUPPORTED_OPERATION,
                     "Schmea information is not set or incorrect schema settings");
         }
         SeaTunnelRowType userDefinedRowTypeWithPartition =
@@ -98,7 +98,7 @@ public class DbfReadStrategy extends AbstractReadStrategy {
     public SeaTunnelRowType getSeaTunnelRowTypeInfo(HadoopConf hadoopConf, String path)
             throws FileConnectorException {
         throw new FileConnectorException(
-                CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
+                CommonErrorCode.UNSUPPORTED_OPERATION,
                 "User must defined schema for json file type");
     }
 
@@ -180,17 +180,26 @@ public class DbfReadStrategy extends AbstractReadStrategy {
                 case DECIMAL: // CURRENCY
                     return dbfData;
                 case DATE:
+                    if (dbfData == null) {
+                        return null;
+                    }
                     Instant instant1 = Instant.ofEpochMilli(((Date) dbfData).getTime());
                     return LocalDateTime.ofInstant(instant1, ZoneId.systemDefault()).toLocalDate();
                 case TIME:
+                    if (dbfData == null) {
+                        return null;
+                    }
                     Instant instant2 = Instant.ofEpochMilli(((Date) dbfData).getTime());
                     return LocalDateTime.ofInstant(instant2, ZoneId.systemDefault()).toLocalTime();
                 case TIMESTAMP:
+                    if (dbfData == null) {
+                        return null;
+                    }
                     Instant instant3 = Instant.ofEpochMilli(((Date) dbfData).getTime());
                     return LocalDateTime.ofInstant(instant3, ZoneId.systemDefault());
                 default:
                     throw new SeaTunnelJsonFormatException(
-                            CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
+                            CommonErrorCode.UNSUPPORTED_DATA_TYPE,
                             "Unsupported type: "
                                     + seaTunnelDataType.getSqlType()
                                     + " the dbfType is "

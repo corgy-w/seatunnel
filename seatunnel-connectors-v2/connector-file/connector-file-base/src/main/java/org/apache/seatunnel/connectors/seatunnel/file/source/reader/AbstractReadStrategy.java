@@ -31,6 +31,7 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.util.FileSystemUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -209,6 +210,13 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
     @Override
     public SeaTunnelRowType getActualSeaTunnelRowTypeInfo() {
         return isMergePartition ? seaTunnelRowTypeWithPartition : seaTunnelRowType;
+    }
+
+    protected FSDataInputStream openFile(String path) throws IOException {
+        Configuration configuration = getConfiguration(hadoopConf);
+        FileSystem hdfs = FileSystem.get(configuration);
+        Path filePath = new Path(path);
+        return hdfs.open(filePath);
     }
 
     protected Map<String, String> parsePartitionsByPath(String path) {
