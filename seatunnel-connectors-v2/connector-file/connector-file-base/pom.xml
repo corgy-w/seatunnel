@@ -36,6 +36,7 @@
         <parquet-avro.version>1.12.3</parquet-avro.version>
         <poi.version>4.1.2</poi.version>
         <poi-ooxml.version>4.1.2</poi-ooxml.version>
+        <dbf.version>1.13.1</dbf.version>
     </properties>
 
     <dependencyManagement>
@@ -141,6 +142,12 @@
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>${poi-ooxml.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.albfernandez</groupId>
+            <artifactId>javadbf</artifactId>
+            <version>${dbf.version}</version>
         </dependency>
     </dependencies>
 
