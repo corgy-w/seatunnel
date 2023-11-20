@@ -51,7 +51,12 @@ public class HdfsFileSourceFactory implements TableSourceFactory {
                 .conditional(
                         BaseSourceConfig.FILE_FORMAT_TYPE,
                         Arrays.asList(
-                                FileFormat.TEXT, FileFormat.JSON, FileFormat.EXCEL, FileFormat.CSV),
+                                FileFormat.TEXT,
+                                FileFormat.JSON,
+                                FileFormat.EXCEL,
+                                FileFormat.CSV,
+                                FileFormat.DBF,
+                                FileFormat.DEBEZIUM_JSON),
                         TableSchemaOptions.SCHEMA)
                 .optional(BaseSourceConfig.PARSE_PARTITION_FROM_PATH)
                 .optional(BaseSourceConfig.DATE_FORMAT)

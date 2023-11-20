@@ -1,0 +1,167 @@
+package org.apache.seatunnel.connectors.seatunnel.file.sink.writer;
+
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
+import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
+import org.apache.seatunnel.connectors.seatunnel.file.sink.config.FileSinkConfig;
+
+import org.apache.hadoop.fs.FSDataOutputStream;
+
+import com.linuxense.javadbf.DBFDataType;
+import com.linuxense.javadbf.DBFField;
+import com.linuxense.javadbf.DBFWriter;
+import lombok.NonNull;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Date;
+import java.util.LinkedHashMap;
+
+public class DbfWriteStrategy extends AbstractWriteStrategy {
+    private final LinkedHashMap<String, DBFWriter> beingWrittenWriter;
+
+    private DbfSerializer dbfSerializer;
+
+    public DbfWriteStrategy(FileSinkConfig fileSinkConfig) {
+        super(fileSinkConfig);
+        this.beingWrittenWriter = new LinkedHashMap<>();
+    }
+
+    @Override
+    public void setSeaTunnelRowTypeInfo(SeaTunnelRowType seaTunnelRowType) {
+        super.setSeaTunnelRowTypeInfo(seaTunnelRowType);
+        this.dbfSerializer =
+                new DbfSerializer(buildSchemaWithRowType(seaTunnelRowType, sinkColumnsIndexInRow));
+    }
+
+    @Override
+    public void write(SeaTunnelRow seaTunnelRow) {
+        super.write(seaTunnelRow);
+        String filePath = getOrCreateFilePathBeingWritten(seaTunnelRow);
+        DBFWriter dbfWriter = getOrCreateDBFWriter(filePath);
+        Object[] dbfRow = dbfSerializer.serializeToDbfRow(seaTunnelRow);
+        dbfWriter.addRecord(dbfRow);
+    }
+
+    @Override
+    public void finishAndCloseFile() {
+        this.beingWrittenWriter.forEach(
+                (k, v) -> {
+                    v.close();
+                    needMoveFiles.put(k, getTargetLocation(k));
+                });
+    }
+
+    private DBFWriter getOrCreateDBFWriter(@NonNull String filePath) {
+        DBFWriter dbfWriter = beingWrittenWriter.get(filePath);
+        if (dbfWriter != null) {
+            return dbfWriter;
+        }
+        try {
+            FSDataOutputStream outputStream = fileSystemUtils.getOutputStream(filePath);
+            DBFWriter newWriter = new DBFWriter(outputStream, StandardCharsets.UTF_8);
+            newWriter.setFields(dbfSerializer.getDbfFields());
+            beingWrittenWriter.put(filePath, newWriter);
+            return dbfWriter;
+        } catch (IOException e) {
+            throw new FileConnectorException(
+                    CommonErrorCodeDeprecated.FILE_OPERATION_FAILED,
+                    "can not get output file stream");
+        }
+    }
+
+    private static class DbfSerializer {
+        private final DBFField[] dbfFields;
+        private final SeaTunnelRowType seaTunnelRowType;
+
+        public DbfSerializer(SeaTunnelRowType seaTunnelRowType) {
+            this.seaTunnelRowType = seaTunnelRowType;
+            this.dbfFields = new DBFField[seaTunnelRowType.getTotalFields()];
+
+            for (int i = 0; i < seaTunnelRowType.getTotalFields(); i++) {
+                String fieldName = seaTunnelRowType.getFieldName(i);
+                dbfFields[i] = new DBFField();
+                dbfFields[i].setName(fieldName);
+                dbfFields[i].setType(convertToDbfType(seaTunnelRowType.getFieldType(i)));
+                // TODO: set length
+                // dbfFields[i].setLength(20);
+            }
+        }
+
+        public DBFField[] getDbfFields() {
+            return dbfFields;
+        }
+
+        public Object[] serializeToDbfRow(SeaTunnelRow seaTunnelRow) {
+            SeaTunnelDataType<?>[] fieldTypes = seaTunnelRowType.getFieldTypes();
+
+            Object[] fields = seaTunnelRow.getFields();
+            Object[] dbfRow = new Object[fields.length];
+            for (int i = 0; i < fields.length; i++) {
+                dbfRow[i] =
+                        convertSeaTunnelObjectToDbfObject(fields[i], dbfFields[i], fieldTypes[i]);
+            }
+            return dbfRow;
+        }
+
+        private DBFDataType convertToDbfType(SeaTunnelDataType seaTunnelDataType) {
+            SqlType sqlType = seaTunnelDataType.getSqlType();
+            switch (sqlType) {
+                case STRING:
+                    return DBFDataType.CHARACTER;
+                case BOOLEAN:
+                    return DBFDataType.LOGICAL;
+                case TINYINT:
+                case SMALLINT:
+                case DOUBLE:
+                case INT:
+                case BIGINT:
+                case FLOAT:
+                    return DBFDataType.NUMERIC;
+                case DECIMAL:
+                    return DBFDataType.CURRENCY;
+                case BYTES:
+                    return DBFDataType.VARCHAR;
+                case DATE:
+                case TIME:
+                case TIMESTAMP:
+                    return DBFDataType.DATE;
+                default:
+                    throw new UnsupportedOperationException(
+                            sqlType + " type is not supported in DBF");
+            }
+        }
+
+        private Object convertSeaTunnelObjectToDbfObject(
+                Object seatunnelObject, DBFField dbfField, SeaTunnelDataType seaTunnelDataType) {
+            SqlType sqlType = seaTunnelDataType.getSqlType();
+
+            switch (sqlType) {
+                case STRING:
+                case BOOLEAN:
+                case TINYINT:
+                case SMALLINT:
+                case INT:
+                case BIGINT:
+                case FLOAT:
+                case DOUBLE:
+                case DECIMAL:
+                case BYTES:
+                    return seatunnelObject;
+                case TIMESTAMP:
+                    return new Date(
+                            ((LocalDateTime) seatunnelObject)
+                                    .toInstant(ZoneOffset.UTC)
+                                    .toEpochMilli());
+                default:
+                    throw new UnsupportedOperationException(
+                            sqlType + " type is not supported in DBF");
+            }
+        }
+    }
+}

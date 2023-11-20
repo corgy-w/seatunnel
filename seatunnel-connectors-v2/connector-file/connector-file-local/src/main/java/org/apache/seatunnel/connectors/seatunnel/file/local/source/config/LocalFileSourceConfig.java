@@ -121,6 +121,7 @@ public class LocalFileSourceConfig implements Serializable {
             case JSON:
             case DEBEZIUM_JSON:
             case EXCEL:
+            case DBF:
                 readStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
                 return newCatalogTable(catalogTable, readStrategy.getActualSeaTunnelRowTypeInfo());
             case ORC:
