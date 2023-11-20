@@ -32,6 +32,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -135,15 +136,10 @@ public interface Catalog extends AutoCloseable {
     default List<CatalogTable> getTables(ReadonlyConfig config) throws CatalogException {
         // Get the list of specified tables
         List<String> tableNames = config.get(CatalogOptions.TABLE_NAMES);
-        List<CatalogTable> catalogTables = new ArrayList<>();
         if (tableNames != null && !tableNames.isEmpty()) {
-            for (String tableName : tableNames) {
-                TablePath tablePath = TablePath.of(tableName);
-                if (this.tableExists(tablePath)) {
-                    catalogTables.add(this.getTable(tablePath));
-                }
-            }
-            return catalogTables;
+            Iterator<TablePath> tablePaths =
+                    tableNames.stream().map(TablePath::of).filter(this::tableExists).iterator();
+            return buildCatalogTablesWithErrorCheck(tablePaths);
         }
 
         // Get the list of table pattern
@@ -155,14 +151,38 @@ public interface Catalog extends AutoCloseable {
         Pattern tablePattern = Pattern.compile(config.get(CatalogOptions.TABLE_PATTERN));
         List<String> allDatabase = this.listDatabases();
         allDatabase.removeIf(s -> !databasePattern.matcher(s).matches());
+        List<TablePath> tablePaths = new ArrayList<>();
         for (String databaseName : allDatabase) {
             tableNames = this.listTables(databaseName);
             tableNames.forEach(
                     tableName -> {
                         if (tablePattern.matcher(databaseName + "." + tableName).matches()) {
-                            catalogTables.add(this.getTable(TablePath.of(databaseName, tableName)));
+                            tablePaths.add(TablePath.of(databaseName, tableName));
                         }
                     });
+        }
+        return buildCatalogTablesWithErrorCheck(tablePaths.iterator());
+    }
+
+    default List<CatalogTable> buildCatalogTablesWithErrorCheck(Iterator<TablePath> tablePaths) {
+        Map<String, Map<String, String>> unsupportedTable = new HashMap<>();
+        List<CatalogTable> catalogTables = new ArrayList<>();
+        while (tablePaths.hasNext()) {
+            try {
+                catalogTables.add(getTable(tablePaths.next()));
+            } catch (SeaTunnelRuntimeException e) {
+                if (e.getSeaTunnelErrorCode()
+                        .equals(CommonErrorCode.GET_CATALOG_TABLE_WITH_UNSUPPORTED_TYPE_ERROR)) {
+                    unsupportedTable.put(
+                            e.getParams().get("tableName"),
+                            e.getParamsValueAsMap("fieldWithDataTypes"));
+                } else {
+                    throw e;
+                }
+            }
+        }
+        if (!unsupportedTable.isEmpty()) {
+            throw CommonError.getCatalogTablesWithUnsupportedType(name(), unsupportedTable);
         }
         return catalogTables;
     }
