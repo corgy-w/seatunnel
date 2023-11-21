@@ -93,6 +93,9 @@ public class FieldReplacerTransform implements SeaTunnelTransform<SeaTunnelRow> 
         Map<String, FieldReplacerTransformConfig.FieldReplacer> stringFieldBaseConfMap =
                 fieldBaseConfMap.get(tableId);
         SeaTunnelRowType seaTunnelRowType = seaTunnelRowTypeMap.get(tableId);
+        if (stringFieldBaseConfMap == null) {
+            return row;
+        }
         stringFieldBaseConfMap.forEach(
                 (filedName, conf) -> {
                     int pos = seaTunnelRowType.indexOf(filedName);
