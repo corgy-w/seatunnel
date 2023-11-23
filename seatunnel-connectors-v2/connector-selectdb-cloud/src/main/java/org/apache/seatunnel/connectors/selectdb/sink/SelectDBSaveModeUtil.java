@@ -57,7 +57,7 @@ public class SelectDBSaveModeUtil {
         String rowTypeFields =
                 tableSchema.getColumns().stream()
                         .filter(column -> !columnInTemplate.containsKey(column.getName()))
-                        .map(SelectDBSaveModeUtil::columnToStarrocksType)
+                        .map(SelectDBSaveModeUtil::columnToSelectDBType)
                         .collect(Collectors.joining(",\n"));
         return template.replaceAll(
                         String.format("\\$\\{%s\\}", SaveModeConstants.DATABASE), database)
@@ -67,12 +67,12 @@ public class SelectDBSaveModeUtil {
                         rowTypeFields);
     }
 
-    public static String columnToStarrocksType(Column column) {
+    public static String columnToSelectDBType(Column column) {
         checkNotNull(column, "The column is required.");
         return String.format(
                 "`%s` %s %s ",
                 column.getName(),
-                dataTypeToStarrocksType(column.getDataType()),
+                dataTypeToSelectDBType(column.getDataType()),
                 column.isNullable() ? "NULL" : "NOT NULL");
     }
 
@@ -95,7 +95,7 @@ public class SelectDBSaveModeUtil {
             if (StringUtils.isEmpty(columnInfo.getInfo())) {
                 if (columnMap.containsKey(col)) {
                     Column column = columnMap.get(col);
-                    String newCol = columnToStarrocksType(column);
+                    String newCol = columnToSelectDBType(column);
                     String prefix = template.substring(0, columnInfo.getStartIndex() + offset);
                     String suffix = template.substring(offset + columnInfo.getEndIndex());
                     if (prefix.endsWith("`")) {
@@ -116,7 +116,7 @@ public class SelectDBSaveModeUtil {
         return template;
     }
 
-    private static String dataTypeToStarrocksType(SeaTunnelDataType<?> dataType) {
+    private static String dataTypeToSelectDBType(SeaTunnelDataType<?> dataType) {
         checkNotNull(dataType, "The SeaTunnel's data type is required.");
         switch (dataType.getSqlType()) {
             case NULL:
@@ -146,7 +146,7 @@ public class SelectDBSaveModeUtil {
                 return "DATETIME";
             case ARRAY:
                 return "ARRAY<"
-                        + dataTypeToStarrocksType(((ArrayType<?, ?>) dataType).getElementType())
+                        + dataTypeToSelectDBType(((ArrayType<?, ?>) dataType).getElementType())
                         + ">";
             case DECIMAL:
                 DecimalType decimalType = (DecimalType) dataType;

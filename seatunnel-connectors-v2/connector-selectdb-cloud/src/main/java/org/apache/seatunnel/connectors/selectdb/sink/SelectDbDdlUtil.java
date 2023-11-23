@@ -80,7 +80,7 @@ public class SelectDbDdlUtil {
                                             String.format(
                                                     "alter table %s MODIFY COLUMN %s",
                                                     tablePath.getFullName(),
-                                                    SelectDBSaveModeUtil.columnToStarrocksType(
+                                                    SelectDBSaveModeUtil.columnToSelectDBType(
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn()));
                                     sqlList.add(sql);
@@ -89,7 +89,7 @@ public class SelectDbDdlUtil {
                                             String.format(
                                                     "alter table %s add column %s ",
                                                     tablePath.getFullName(),
-                                                    SelectDBSaveModeUtil.columnToStarrocksType(
+                                                    SelectDBSaveModeUtil.columnToSelectDBType(
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn()));
                                     sqlList.add(sql);
