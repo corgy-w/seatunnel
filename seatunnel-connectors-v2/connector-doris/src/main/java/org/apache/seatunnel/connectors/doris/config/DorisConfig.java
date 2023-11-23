@@ -391,8 +391,13 @@ public class DorisConfig {
         } else {
             dorisConfig.setEnableDelete(SINK_ENABLE_DELETE.defaultValue());
         }
-        dorisConfig.setNeedsUnsupportedTypeCasting(
-                pluginConfig.getBoolean(NEEDS_UNSUPPORTED_TYPE_CASTING.key()));
+        if (pluginConfig.hasPath(NEEDS_UNSUPPORTED_TYPE_CASTING.key())) {
+            dorisConfig.setNeedsUnsupportedTypeCasting(
+                    pluginConfig.getBoolean(NEEDS_UNSUPPORTED_TYPE_CASTING.key()));
+        } else {
+            dorisConfig.setNeedsUnsupportedTypeCasting(
+                    NEEDS_UNSUPPORTED_TYPE_CASTING.defaultValue());
+        }
         return dorisConfig;
     }
 
