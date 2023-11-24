@@ -274,7 +274,13 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
                                     columnDisplaySize,
                                     nullable != ResultSetMetaData.columnNoNulls,
                                     defaultValue,
-                                    remarks);
+                                    remarks,
+                                    pgType,
+                                    false,
+                                    false,
+                                    (long) columnSize << 2,
+                                    new HashMap<>(),
+                                    (long) columnSize);
                     builder.column(physicalColumn);
                 }
             }

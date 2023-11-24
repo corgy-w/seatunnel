@@ -129,6 +129,7 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
         // For simplicity, assume the column type in SeaTunnelDataType is the same as in PostgreSQL
         String columnType =
                 sourceCatalogName.equals(DatabaseIdentifier.POSTGRESQL)
+                                && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);

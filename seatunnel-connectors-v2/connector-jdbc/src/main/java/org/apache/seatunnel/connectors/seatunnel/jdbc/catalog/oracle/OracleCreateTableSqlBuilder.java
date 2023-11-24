@@ -132,6 +132,7 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
 
         String columnType =
                 sourceCatalogName.equals(DatabaseIdentifier.ORACLE)
+                                && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);

@@ -207,7 +207,8 @@ public class SqlServerCreateTableSqlBuilder {
         final List<String> columnSqls = new ArrayList<>();
         columnSqls.add("[" + CatalogUtils.getFieldIde(column.getName(), fieldIde) + "]");
         String tyNameDef = "";
-        if (StringUtils.equals(catalogName, DatabaseIdentifier.SQLSERVER)) {
+        if (StringUtils.equals(catalogName, DatabaseIdentifier.SQLSERVER)
+                && StringUtils.isNotBlank(column.getSourceType())) {
             columnSqls.add(column.getSourceType());
         } else {
             // Column name

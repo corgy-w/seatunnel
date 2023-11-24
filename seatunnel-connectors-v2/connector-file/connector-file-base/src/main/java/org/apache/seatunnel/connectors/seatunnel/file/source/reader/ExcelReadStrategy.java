@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.source.reader;
 
 import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -73,7 +74,7 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
 
     @SneakyThrows
     @Override
-    public void read(String path, Collector<SeaTunnelRow> output) {
+    public void read(String path, String tableId, Collector<SeaTunnelRow> output) {
         Configuration conf = getConfiguration();
         FileSystem fs = FileSystem.get(conf);
         Map<String, String> partitionsMap = parsePartitionsByPath(path);
@@ -123,6 +124,7 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                                     seaTunnelRow.setField(index++, value);
                                 }
                             }
+                            seaTunnelRow.setTableId(tableId);
                             output.collect(seaTunnelRow);
                         });
     }
@@ -233,7 +235,9 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
             case BYTES:
                 return field.toString().getBytes(StandardCharsets.UTF_8);
             case ROW:
-                String delimiter = pluginConfig.getString(BaseSourceConfig.DELIMITER.key());
+                String delimiter =
+                        ReadonlyConfig.fromConfig(pluginConfig)
+                                .get(BaseSourceConfig.FIELD_DELIMITER);
                 String[] context = field.toString().split(delimiter);
                 SeaTunnelRowType ft = (SeaTunnelRowType) fieldType;
                 int length = context.length;

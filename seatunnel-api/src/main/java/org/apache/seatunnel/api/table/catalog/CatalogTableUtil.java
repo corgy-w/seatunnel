@@ -193,13 +193,17 @@ public class CatalogTableUtil implements Serializable {
         if (catalogTables.size() == 1) {
             return catalogTables.get(0).getTableSchema().toPhysicalRowDataType();
         } else {
-            Map<String, SeaTunnelRowType> rowTypeMap = new HashMap<>();
-            for (CatalogTable catalogTable : catalogTables) {
-                String tableId = catalogTable.getTableId().toTablePath().toString();
-                rowTypeMap.put(tableId, catalogTable.getTableSchema().toPhysicalRowDataType());
-            }
-            return new MultipleRowType(rowTypeMap);
+            return convertToMultipleRowType(catalogTables);
         }
+    }
+
+    public static MultipleRowType convertToMultipleRowType(List<CatalogTable> catalogTables) {
+        Map<String, SeaTunnelRowType> rowTypeMap = new HashMap<>();
+        for (CatalogTable catalogTable : catalogTables) {
+            String tableId = catalogTable.getTableId().toTablePath().toString();
+            rowTypeMap.put(tableId, catalogTable.getTableSchema().toPhysicalRowDataType());
+        }
+        return new MultipleRowType(rowTypeMap);
     }
 
     // We need to use buildWithConfig(String catalogName, ReadonlyConfig readonlyConfig);
@@ -267,6 +271,10 @@ public class CatalogTableUtil implements Serializable {
         return SIMPLE_SCHEMA;
     }
 
+    public static CatalogTable buildSimpleTextTable() {
+        return getCatalogTable("default", buildSimpleTextSchema());
+    }
+
     public static SeaTunnelDataType toSeaTunnelRowType(Collection<CatalogTable> catalogTables) {
 
         if (catalogTables.size() == 1) {
@@ -281,5 +289,14 @@ public class CatalogTableUtil implements Serializable {
             rowTypeMap.put(tableId, catalogTable.getTableSchema().toPhysicalRowDataType());
         }
         return new MultipleRowType(rowTypeMap);
+    }
+
+    public static CatalogTable buildEmptyCatalogTable(String catalogName) {
+        return CatalogTable.of(
+                TableIdentifier.of(catalogName, TablePath.EMPTY),
+                TableSchema.builder().build(),
+                new HashMap<>(),
+                new ArrayList<>(),
+                null);
     }
 }

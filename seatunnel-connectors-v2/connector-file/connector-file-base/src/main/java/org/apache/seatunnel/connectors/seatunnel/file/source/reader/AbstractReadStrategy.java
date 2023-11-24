@@ -28,8 +28,10 @@ import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErr
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.util.FileSystemUtils;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -172,7 +174,9 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
             isMergePartition =
                     pluginConfig.getBoolean(BaseSourceConfig.PARSE_PARTITION_FROM_PATH.key());
         }
-        if (pluginConfig.hasPath(BaseSourceConfig.SKIP_HEADER_ROW_NUMBER.key())) {
+        if (pluginConfig.hasPath(BaseSourceConfig.SKIP_HEADER_ROW_NUMBER.key())
+                && StringUtils.isNotEmpty(
+                        pluginConfig.getString(BaseSourceConfig.SKIP_HEADER_ROW_NUMBER.key()))) {
             skipHeaderNumber = pluginConfig.getLong(BaseSourceConfig.SKIP_HEADER_ROW_NUMBER.key());
         }
         if (pluginConfig.hasPath(BaseSourceConfig.READ_PARTITIONS.key())) {
@@ -206,6 +210,13 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
     @Override
     public SeaTunnelRowType getActualSeaTunnelRowTypeInfo() {
         return isMergePartition ? seaTunnelRowTypeWithPartition : seaTunnelRowType;
+    }
+
+    protected FSDataInputStream openFile(String path) throws IOException {
+        Configuration configuration = getConfiguration(hadoopConf);
+        FileSystem hdfs = FileSystem.get(configuration);
+        Path filePath = new Path(path);
+        return hdfs.open(filePath);
     }
 
     protected Map<String, String> parsePartitionsByPath(String path) {

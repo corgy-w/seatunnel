@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.assertion.rule;
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
 
 import org.apache.seatunnel.api.table.type.BasicType;
+import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 
@@ -86,6 +87,12 @@ public class AssertRuleParser {
     }
 
     private SeaTunnelDataType<?> getFieldType(String fieldTypeStr) {
+        if (fieldTypeStr.toLowerCase().startsWith("decimal(")) {
+            String lengthAndScale =
+                    fieldTypeStr.toLowerCase().replace("decimal(", "").replace(")", "");
+            String[] split = lengthAndScale.split(",");
+            return new DecimalType(Integer.valueOf(split[0]), Integer.valueOf(split[1]));
+        }
         return TYPES.get(fieldTypeStr.toLowerCase());
     }
 

@@ -50,17 +50,23 @@ public class SftpFileSourceFactory implements TableSourceFactory {
                 .conditional(
                         BaseSourceConfig.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
-                        BaseSourceConfig.DELIMITER)
+                        BaseSourceConfig.FIELD_DELIMITER)
                 .conditional(
                         BaseSourceConfig.FILE_FORMAT_TYPE,
                         Arrays.asList(
-                                FileFormat.TEXT, FileFormat.JSON, FileFormat.EXCEL, FileFormat.CSV),
+                                FileFormat.TEXT,
+                                FileFormat.JSON,
+                                FileFormat.EXCEL,
+                                FileFormat.CSV,
+                                FileFormat.DEBEZIUM_JSON,
+                                FileFormat.DBF),
                         TableSchemaOptions.SCHEMA)
                 .optional(BaseSourceConfig.PARSE_PARTITION_FROM_PATH)
                 .optional(BaseSourceConfig.DATE_FORMAT)
                 .optional(BaseSourceConfig.DATETIME_FORMAT)
                 .optional(BaseSourceConfig.TIME_FORMAT)
                 .optional(BaseSourceConfig.FILE_FILTER_PATTERN)
+                .optional(BaseSourceConfig.COMPRESS_CODEC)
                 .build();
     }
 

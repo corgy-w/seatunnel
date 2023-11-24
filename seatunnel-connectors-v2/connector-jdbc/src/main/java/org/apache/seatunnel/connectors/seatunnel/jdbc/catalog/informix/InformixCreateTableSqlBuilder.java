@@ -79,6 +79,7 @@ public class InformixCreateTableSqlBuilder {
         // SQL
         String columnType =
                 sourceCatalogName.equalsIgnoreCase(DatabaseIdentifier.INFORMIX)
+                                && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);

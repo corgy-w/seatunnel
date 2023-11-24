@@ -95,6 +95,8 @@ public class SftpFileSource extends BaseFileSource {
                 case TEXT:
                 case JSON:
                 case EXCEL:
+                case DEBEZIUM_JSON:
+                case DBF:
                     SeaTunnelRowType userDefinedSchema =
                             CatalogTableUtil.buildWithConfig(pluginConfig).getSeaTunnelRowType();
                     readStrategy.setSeaTunnelRowTypeInfo(userDefinedSchema);
