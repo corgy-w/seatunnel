@@ -38,7 +38,7 @@ public class StarRocksCreateTableTest {
         List<Column> columns = new ArrayList<>();
 
         columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, null, true, null, ""));
-        columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, null, true, null, ""));
+        columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, 100, true, null, ""));
         columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, null, true, null, ""));
         columns.add(PhysicalColumn.of("gender", BasicType.BYTE_TYPE, null, true, null, ""));
         columns.add(PhysicalColumn.of("create_time", BasicType.LONG_TYPE, null, true, null, ""));
