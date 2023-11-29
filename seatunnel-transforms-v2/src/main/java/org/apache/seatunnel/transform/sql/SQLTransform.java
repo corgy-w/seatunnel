@@ -123,6 +123,7 @@ public class SQLTransform extends AbstractCatalogSupportTransform {
 
         TableSchema.Builder builder = TableSchema.builder();
         if (inputCatalogTable.getTableSchema().getPrimaryKey() != null
+                && inputCatalogTable.getTableSchema().getPrimaryKey().getColumnNames() != null
                 && outputColumns.containsAll(
                         inputCatalogTable.getTableSchema().getPrimaryKey().getColumnNames())) {
             builder.primaryKey(inputCatalogTable.getTableSchema().getPrimaryKey().copy());
