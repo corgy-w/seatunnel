@@ -20,6 +20,7 @@ import com.linuxense.javadbf.DBFField;
 import com.linuxense.javadbf.DBFReader;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @NoArgsConstructor
 public class DbfReadStrategy extends AbstractReadStrategy {
     @SneakyThrows
@@ -121,6 +123,8 @@ public class DbfReadStrategy extends AbstractReadStrategy {
             this.partitionsMap = partitionsMap;
             this.totalFieldCount = seaTunnelRowType.getTotalFields() + partitionsMap.size();
 
+            log.info("The current dbf schema is \n{}", dbfFields);
+
             this.seaTunnelRowFieldIndexInDbfIndexMapping = new HashMap<>();
             for (int i = 0; i < seaTunnelRowType.getTotalFields(); i++) {
                 String fieldName = seaTunnelRowType.getFieldName(i);
@@ -133,7 +137,7 @@ public class DbfReadStrategy extends AbstractReadStrategy {
                 }
                 if (!seaTunnelRowFieldIndexInDbfIndexMapping.containsKey(i)) {
                     throw new IllegalArgumentException(
-                            "can't find field [" + fieldName + "] in dbf file");
+                            "can't find field [" + fieldName + "] in dbf file: " + dbfFields);
                 }
             }
 
