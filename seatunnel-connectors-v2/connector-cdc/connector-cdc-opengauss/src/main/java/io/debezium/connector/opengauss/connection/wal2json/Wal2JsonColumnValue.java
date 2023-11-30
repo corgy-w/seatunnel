@@ -12,9 +12,7 @@ import io.debezium.util.Strings;
 
 import java.math.BigDecimal;
 
-/**
- * @author Chris Cranford
- */
+/** @author Chris Cranford */
 class Wal2JsonColumnValue extends AbstractColumnValue<Value> {
 
     private Value value;
@@ -42,11 +40,9 @@ class Wal2JsonColumnValue extends AbstractColumnValue<Value> {
     public Boolean asBoolean() {
         if (value.isBoolean()) {
             return value.asBoolean();
-        }
-        else if (value.isString()) {
+        } else if (value.isString()) {
             return "t".equalsIgnoreCase(value.asString());
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -55,11 +51,9 @@ class Wal2JsonColumnValue extends AbstractColumnValue<Value> {
     public Integer asInteger() {
         if (value.isNumber()) {
             return value.asInteger();
-        }
-        else if (value.isString()) {
+        } else if (value.isString()) {
             return Integer.valueOf(value.asString());
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -68,11 +62,9 @@ class Wal2JsonColumnValue extends AbstractColumnValue<Value> {
     public Long asLong() {
         if (value.isNumber()) {
             return value.asLong();
-        }
-        else if (value.isString()) {
+        } else if (value.isString()) {
             return Long.valueOf(value.asString());
-        }
-        else {
+        } else {
             return null;
         }
     }
@@ -91,11 +83,9 @@ class Wal2JsonColumnValue extends AbstractColumnValue<Value> {
     public SpecialValueDecimal asDecimal() {
         if (value.isInteger()) {
             return new SpecialValueDecimal(new BigDecimal(value.asInteger()));
-        }
-        else if (value.isLong()) {
+        } else if (value.isLong()) {
             return new SpecialValueDecimal(new BigDecimal(value.asLong()));
-        }
-        else if (value.isBigInteger()) {
+        } else if (value.isBigInteger()) {
             return new SpecialValueDecimal(new BigDecimal(value.asBigInteger()));
         }
         return SpecialValueDecimal.valueOf(value.asString());

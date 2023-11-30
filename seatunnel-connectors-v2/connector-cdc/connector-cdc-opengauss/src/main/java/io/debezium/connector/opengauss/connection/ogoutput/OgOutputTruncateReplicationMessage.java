@@ -12,8 +12,12 @@ public class OgOutputTruncateReplicationMessage extends OgOutputReplicationMessa
 
     private final boolean lastTableInTruncate;
 
-    public OgOutputTruncateReplicationMessage(Operation op, String table, Instant commitTimestamp, long transactionId,
-                                              boolean lastTableInTruncate) {
+    public OgOutputTruncateReplicationMessage(
+            Operation op,
+            String table,
+            Instant commitTimestamp,
+            long transactionId,
+            boolean lastTableInTruncate) {
         super(op, table, commitTimestamp, transactionId, null, null);
         this.lastTableInTruncate = lastTableInTruncate;
     }
@@ -22,5 +26,4 @@ public class OgOutputTruncateReplicationMessage extends OgOutputReplicationMessa
     public boolean isLastEventForLsn() {
         return lastTableInTruncate;
     }
-
 }

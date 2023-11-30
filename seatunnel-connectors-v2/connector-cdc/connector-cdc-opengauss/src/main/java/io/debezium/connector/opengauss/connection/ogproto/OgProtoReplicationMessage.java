@@ -24,7 +24,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
- * Replication message representing message sent by <a href="https://github.com/debezium/postgres-decoderbufs">Postgres Decoderbufs</>
+ * Replication message representing message sent by <a
+ * href="https://github.com/debezium/postgres-decoderbufs">Postgres Decoderbufs</>
  *
  * @author Jiri Pechanec
  */
@@ -52,7 +53,10 @@ class OgProtoReplicationMessage implements ReplicationMessage {
             case COMMIT:
                 return Operation.COMMIT;
             default:
-                throw new IllegalArgumentException("Unknown operation '" + rawMessage.getOp() + "' in replication stream message");
+                throw new IllegalArgumentException(
+                        "Unknown operation '"
+                                + rawMessage.getOp()
+                                + "' in replication stream message");
         }
     }
 
@@ -84,36 +88,65 @@ class OgProtoReplicationMessage implements ReplicationMessage {
 
     @Override
     public boolean hasTypeMetadata() {
-        return !(rawMessage.getNewTypeinfoList() == null || rawMessage.getNewTypeinfoList().isEmpty());
+        return !(rawMessage.getNewTypeinfoList() == null
+                || rawMessage.getNewTypeinfoList().isEmpty());
     }
 
-    private List<Column> transform(List<PgProto.DatumMessage> messageList, List<PgProto.TypeInfo> typeInfoList) {
+    private List<Column> transform(
+            List<PgProto.DatumMessage> messageList, List<PgProto.TypeInfo> typeInfoList) {
         return IntStream.range(0, messageList.size())
-                .mapToObj(index -> {
-                    final PgProto.DatumMessage datum = messageList.get(index);
-                    final Optional<PgProto.TypeInfo> typeInfo = Optional.ofNullable(hasTypeMetadata() && typeInfoList != null ? typeInfoList.get(index) : null);
-                    final String columnName = Strings.unquoteIdentifierPart(datum.getColumnName());
-                    final OpengaussType type = typeRegistry.get((int) datum.getColumnType());
-                    if (datum.hasDatumMissing()) {
-                        return new UnchangedToastedReplicationMessageColumn(columnName, type, typeInfo.map(PgProto.TypeInfo::getModifier).orElse(null),
-                                typeInfo.map(PgProto.TypeInfo::getValueOptional).orElse(Boolean.FALSE), hasTypeMetadata());
-                    }
+                .mapToObj(
+                        index -> {
+                            final PgProto.DatumMessage datum = messageList.get(index);
+                            final Optional<PgProto.TypeInfo> typeInfo =
+                                    Optional.ofNullable(
+                                            hasTypeMetadata() && typeInfoList != null
+                                                    ? typeInfoList.get(index)
+                                                    : null);
+                            final String columnName =
+                                    Strings.unquoteIdentifierPart(datum.getColumnName());
+                            final OpengaussType type =
+                                    typeRegistry.get((int) datum.getColumnType());
+                            if (datum.hasDatumMissing()) {
+                                return new UnchangedToastedReplicationMessageColumn(
+                                        columnName,
+                                        type,
+                                        typeInfo.map(PgProto.TypeInfo::getModifier).orElse(null),
+                                        typeInfo.map(PgProto.TypeInfo::getValueOptional)
+                                                .orElse(Boolean.FALSE),
+                                        hasTypeMetadata());
+                            }
 
-                    final String fullType = typeInfo.map(PgProto.TypeInfo::getModifier).orElse(null);
-                    return new AbstractReplicationMessageColumn(columnName, type, fullType,
-                            typeInfo.map(PgProto.TypeInfo::getValueOptional).orElse(Boolean.FALSE), hasTypeMetadata()) {
+                            final String fullType =
+                                    typeInfo.map(PgProto.TypeInfo::getModifier).orElse(null);
+                            return new AbstractReplicationMessageColumn(
+                                    columnName,
+                                    type,
+                                    fullType,
+                                    typeInfo.map(PgProto.TypeInfo::getValueOptional)
+                                            .orElse(Boolean.FALSE),
+                                    hasTypeMetadata()) {
 
-                        @Override
-                        public Object getValue(OpengaussStreamingChangeEventSource.PgConnectionSupplier connection, boolean includeUnknownDatatypes) {
-                            return OgProtoReplicationMessage.this.getValue(columnName, type, fullType, datum, connection, includeUnknownDatatypes);
-                        }
+                                @Override
+                                public Object getValue(
+                                        OpengaussStreamingChangeEventSource.PgConnectionSupplier
+                                                connection,
+                                        boolean includeUnknownDatatypes) {
+                                    return OgProtoReplicationMessage.this.getValue(
+                                            columnName,
+                                            type,
+                                            fullType,
+                                            datum,
+                                            connection,
+                                            includeUnknownDatatypes);
+                                }
 
-                        @Override
-                        public String toString() {
-                            return datum.toString();
-                        }
-                    };
-                })
+                                @Override
+                                public String toString() {
+                                    return datum.toString();
+                                }
+                            };
+                        })
                 .collect(Collectors.toList());
     }
 
@@ -122,9 +155,21 @@ class OgProtoReplicationMessage implements ReplicationMessage {
         return true;
     }
 
-    public Object getValue(String columnName, OpengaussType type, String fullType, PgProto.DatumMessage datumMessage, final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
-                           boolean includeUnknownDatatypes) {
+    public Object getValue(
+            String columnName,
+            OpengaussType type,
+            String fullType,
+            PgProto.DatumMessage datumMessage,
+            final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
+            boolean includeUnknownDatatypes) {
         final OgProtoColumnValue columnValue = new OgProtoColumnValue(datumMessage);
-        return ReplicationMessageColumnValueResolver.resolveValue(columnName, type, fullType, columnValue, connection, includeUnknownDatatypes, typeRegistry);
+        return ReplicationMessageColumnValueResolver.resolveValue(
+                columnName,
+                type,
+                fullType,
+                columnValue,
+                connection,
+                includeUnknownDatatypes,
+                typeRegistry);
     }
 }

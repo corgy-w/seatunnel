@@ -3,7 +3,7 @@
  *
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.debezium.connector.opengauss.process;
+package io.debezium.connector.opengauss.utils;
 
 /**
  * Description: TableInfo
@@ -144,14 +144,5 @@ public class TableInfo {
      */
     public void setSchema(String schema) {
         this.schema = schema;
-    }
-
-    /**
-     * update Status
-     *
-     * @param progressStatus ProgressStatus
-     */
-    public void updateStatus(ProgressStatus progressStatus) {
-        this.status = progressStatus.getCode();
     }
 }

@@ -6,6 +6,9 @@
 
 package io.debezium.connector.opengauss;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.annotation.ThreadSafe;
 import io.debezium.connector.common.CdcSourceTaskContext;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
@@ -15,22 +18,20 @@ import io.debezium.relational.TableId;
 import io.debezium.schema.TopicSelector;
 import io.debezium.util.Clock;
 import io.debezium.util.ElapsedTimeStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.Collections;
 
 /**
- * The context of a {@link OpengaussConnectorTask}. This deals with most of the brunt of reading various configuration options
- * and creating other objects with these various options.
+ * The context of a {@link}. This deals with most of the brunt of reading various configuration
+ * options and creating other objects with these various options.
  *
  * @author Horia Chiorean (hchiorea@redhat.com)
  */
 @ThreadSafe
 public class OpengaussTaskContext extends CdcSourceTaskContext {
 
-    protected final static Logger LOGGER = LoggerFactory.getLogger(OpengaussTaskContext.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(OpengaussTaskContext.class);
 
     private final OpengaussConnectorConfig config;
     private final TopicSelector<TableId> topicSelector;
@@ -39,12 +40,17 @@ public class OpengaussTaskContext extends CdcSourceTaskContext {
     private ElapsedTimeStrategy refreshXmin;
     private Long lastXmin;
 
-    protected OpengaussTaskContext(OpengaussConnectorConfig config, OpengaussSchema schema, TopicSelector<TableId> topicSelector) {
+    public OpengaussTaskContext(
+            OpengaussConnectorConfig config,
+            OpengaussSchema schema,
+            TopicSelector<TableId> topicSelector) {
         super(config.getContextName(), config.getLogicalName(), Collections::emptySet);
 
         this.config = config;
         if (config.xminFetchInterval().toMillis() > 0) {
-            this.refreshXmin = ElapsedTimeStrategy.constant(Clock.SYSTEM, config.xminFetchInterval().toMillis());
+            this.refreshXmin =
+                    ElapsedTimeStrategy.constant(
+                            Clock.SYSTEM, config.xminFetchInterval().toMillis());
         }
         this.topicSelector = topicSelector;
         assert schema != null;
@@ -63,7 +69,8 @@ public class OpengaussTaskContext extends CdcSourceTaskContext {
         return config;
     }
 
-    protected void refreshSchema(OpengaussConnection connection, boolean printReplicaIdentityInfo) throws SQLException {
+    public void refreshSchema(OpengaussConnection connection, boolean printReplicaIdentityInfo)
+            throws SQLException {
         schema.refresh(connection, printReplicaIdentityInfo);
     }
 
@@ -80,8 +87,7 @@ public class OpengaussTaskContext extends CdcSourceTaskContext {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Fetched new xmin from slot of {}", lastXmin);
             }
-        }
-        else {
+        } else {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("reusing xmin value of {}", lastXmin);
             }
@@ -91,16 +97,18 @@ public class OpengaussTaskContext extends CdcSourceTaskContext {
     }
 
     private SlotState getCurrentSlotState(OpengaussConnection connection) throws SQLException {
-        return connection.getReplicationSlotState(config.slotName(), config.plugin().getPostgresPluginName());
+        return connection.getReplicationSlotState(
+                config.slotName(), config.plugin().getPostgresPluginName());
     }
 
-    protected ReplicationConnection createReplicationConnection(boolean doSnapshot) throws SQLException {
+    public ReplicationConnection createReplicationConnection(boolean doSnapshot)
+            throws SQLException {
         final boolean dropSlotOnStop = config.dropSlotOnStop();
         if (dropSlotOnStop) {
             LOGGER.warn(
-                    "Connector has enabled automated replication slot removal upon restart ({} = true). " +
-                            "This setting is not recommended for production environments, as a new replication slot " +
-                            "will be created after a connector restart, resulting in missed data change events.",
+                    "Connector has enabled automated replication slot removal upon restart ({} = true). "
+                            + "This setting is not recommended for production environments, as a new replication slot "
+                            + "will be created after a connector restart, resulting in missed data change events.",
                     OpengaussConnectorConfig.DROP_SLOT_ON_STOP.name());
         }
         return ReplicationConnection.builder(config)

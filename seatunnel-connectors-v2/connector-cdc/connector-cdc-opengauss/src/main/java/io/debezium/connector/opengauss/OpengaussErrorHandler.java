@@ -5,10 +5,11 @@
  */
 package io.debezium.connector.opengauss;
 
+import org.postgresql.util.PSQLException;
+
 import io.debezium.annotation.Immutable;
 import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.pipeline.ErrorHandler;
-import org.postgresql.util.PSQLException;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -21,8 +22,7 @@ import java.util.Set;
  */
 public class OpengaussErrorHandler extends ErrorHandler {
 
-    @Immutable
-    private static final Set<String> RETRIABLE_EXCEPTION_MESSSAGES;
+    @Immutable private static final Set<String> RETRIABLE_EXCEPTION_MESSSAGES;
 
     public OpengaussErrorHandler(String logicalName, ChangeEventQueue<?> queue) {
         super(OpengaussConnector.class, logicalName, queue);

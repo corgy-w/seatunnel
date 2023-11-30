@@ -5,12 +5,8 @@
  */
 package io.debezium.connector.opengauss.connection;
 
-import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
-import io.debezium.connector.opengauss.OpengaussType;
-import io.debezium.connector.opengauss.OpengaussValueConverter;
-import io.debezium.connector.opengauss.TypeRegistry;
-import io.debezium.connector.opengauss.connection.wal2json.DateTimeFormat;
 import org.apache.kafka.connect.errors.ConnectException;
+
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
 import org.postgresql.geometric.PGline;
@@ -24,6 +20,12 @@ import org.postgresql.util.PGmoney;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
+import io.debezium.connector.opengauss.OpengaussType;
+import io.debezium.connector.opengauss.OpengaussValueConverter;
+import io.debezium.connector.opengauss.TypeRegistry;
+import io.debezium.connector.opengauss.connection.wal2json.DateTimeFormat;
+
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,9 +33,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
 
-/**
- * @author Chris Cranford
- */
+/** @author Chris Cranford */
 public abstract class AbstractColumnValue<T> implements ReplicationMessage.ColumnValue<T> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractColumnValue.class);
@@ -62,19 +62,19 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public OffsetDateTime asOffsetDateTimeAtUtc() {
         if ("infinity".equals(asString())) {
             return OpengaussValueConverter.POSITIVE_INFINITY_OFFSET_DATE_TIME;
-        }
-        else if ("-infinity".equals(asString())) {
+        } else if ("-infinity".equals(asString())) {
             return OpengaussValueConverter.NEGATIVE_INFINITY_OFFSET_DATE_TIME;
         }
-        return DateTimeFormat.get().timestampWithTimeZoneToOffsetDateTime(asString()).withOffsetSameInstant(ZoneOffset.UTC);
+        return DateTimeFormat.get()
+                .timestampWithTimeZoneToOffsetDateTime(asString())
+                .withOffsetSameInstant(ZoneOffset.UTC);
     }
 
     @Override
     public Instant asInstant() {
         if ("infinity".equals(asString())) {
             return OpengaussValueConverter.POSITIVE_INFINITY_INSTANT;
-        }
-        else if ("-infinity".equals(asString())) {
+        } else if ("-infinity".equals(asString())) {
             return OpengaussValueConverter.NEGATIVE_INFINITY_INSTANT;
         }
         return DateTimeFormat.get().timestampToInstant(asString());
@@ -84,8 +84,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public PGbox asBox() {
         try {
             return new PGbox(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse point {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -95,8 +94,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public PGcircle asCircle() {
         try {
             return new PGcircle(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse circle {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -106,8 +104,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public Object asInterval() {
         try {
             return new PGInterval(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse point {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -117,8 +114,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public PGline asLine() {
         try {
             return new PGline(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse point {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -128,8 +124,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public PGlseg asLseg() {
         try {
             return new PGlseg(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse point {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -144,8 +139,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
                 return new PGmoney(negativeMoney);
             }
             return new PGmoney(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse money {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -155,8 +149,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public PGpath asPath() {
         try {
             return new PGpath(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse point {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -166,8 +159,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public PGpoint asPoint() {
         try {
             return new PGpoint(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse point {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -177,8 +169,7 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     public PGpolygon asPolygon() {
         try {
             return new PGpolygon(asString());
-        }
-        catch (final SQLException e) {
+        } catch (final SQLException e) {
             LOGGER.error("Failed to parse point {}, {}", asString(), e);
             throw new ConnectException(e);
         }
@@ -190,24 +181,39 @@ public abstract class AbstractColumnValue<T> implements ReplicationMessage.Colum
     }
 
     @Override
-    public Object asArray(String columnName, OpengaussType type, String fullType, OpengaussStreamingChangeEventSource.PgConnectionSupplier connection) {
+    public Object asArray(
+            String columnName,
+            OpengaussType type,
+            String fullType,
+            OpengaussStreamingChangeEventSource.PgConnectionSupplier connection) {
         try {
             final String dataString = asString();
             return new PgArray(connection.get(), type.getOid(), dataString);
-        }
-        catch (SQLException e) {
-            LOGGER.warn("Unexpected exception trying to process PgArray ({}) column '{}', {}", fullType, columnName, e);
+        } catch (SQLException e) {
+            LOGGER.warn(
+                    "Unexpected exception trying to process PgArray ({}) column '{}', {}",
+                    fullType,
+                    columnName,
+                    e);
         }
         return null;
     }
 
     @Override
-    public Object asDefault(TypeRegistry typeRegistry, int columnType, String columnName, String fullType, boolean includeUnknownDatatypes,
-                            OpengaussStreamingChangeEventSource.PgConnectionSupplier connection) {
+    public Object asDefault(
+            TypeRegistry typeRegistry,
+            int columnType,
+            String columnName,
+            String fullType,
+            boolean includeUnknownDatatypes,
+            OpengaussStreamingChangeEventSource.PgConnectionSupplier connection) {
         if (includeUnknownDatatypes) {
             // this includes things like PostGIS geoemetries or other custom types
             // leave up to the downstream message recipient to deal with
-            LOGGER.debug("processing column '{}' with unknown data type '{}' as byte array", columnName, fullType);
+            LOGGER.debug(
+                    "processing column '{}' with unknown data type '{}' as byte array",
+                    columnName,
+                    fullType);
             return asString();
         }
         LOGGER.debug("Unknown column type {} for column {} – ignoring", fullType, columnName);

@@ -21,26 +21,34 @@ import java.util.stream.Collectors;
 public abstract class QueryingSnapshotter implements Snapshotter {
 
     @Override
-    public void init(OpengaussConnectorConfig config, OffsetState sourceInfo, SlotState slotState) {
-    }
+    public void init(
+            OpengaussConnectorConfig config, OffsetState sourceInfo, SlotState slotState) {}
 
     @Override
-    public Optional<String> buildSnapshotQuery(TableId tableId, List<String> snapshotSelectColumns) {
-        String query = snapshotSelectColumns.stream()
-                .collect(Collectors.joining(", ", "SELECT ", " FROM " + tableId.toDoubleQuotedString()));
+    public Optional<String> buildSnapshotQuery(
+            TableId tableId, List<String> snapshotSelectColumns) {
+        String query =
+                snapshotSelectColumns.stream()
+                        .collect(
+                                Collectors.joining(
+                                        ", ",
+                                        "SELECT ",
+                                        " FROM " + tableId.toDoubleQuotedString()));
 
         return Optional.of(query);
     }
 
     @Override
-    public Optional<String> snapshotTableLockingStatement(Duration lockTimeout, Set<TableId> tableIds) {
+    public Optional<String> snapshotTableLockingStatement(
+            Duration lockTimeout, Set<TableId> tableIds) {
         return Optional.empty();
     }
 
     @Override
     public String snapshotTransactionIsolationLevelStatement(SlotCreationResult newSlotInfo) {
         if (newSlotInfo != null) {
-            String snapSet = String.format("SET TRANSACTION SNAPSHOT '%s';", newSlotInfo.snapshotName());
+            String snapSet =
+                    String.format("SET TRANSACTION SNAPSHOT '%s';", newSlotInfo.snapshotName());
             return "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ; \n" + snapSet;
         }
         return Snapshotter.super.snapshotTransactionIsolationLevelStatement(newSlotInfo);

@@ -6,12 +6,13 @@
 
 package io.debezium.connector.opengauss;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.function.BlockingConsumer;
 import io.debezium.relational.TableId;
 import io.debezium.schema.TopicSelector;
 import io.debezium.util.Clock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
@@ -35,20 +36,20 @@ public abstract class RecordsProducer {
     }
 
     /**
-     * Starts up this producer. This is normally done by a {@link OpengaussConnectorTask} instance. Subclasses should start
-     * enqueuing records via a separate thread at the end of this method.
+     * Starts up this producer. This is normally done by a {@link OpengaussConnectorTask} instance.
+     * Subclasses should start enqueuing records via a separate thread at the end of this method.
      *
      * @param recordsConsumer a consumer of {@link ChangeEvent} instances, may not be null
      */
-    protected abstract void start(BlockingConsumer<ChangeEvent> recordsConsumer, Consumer<Throwable> failureConsumer);
+    protected abstract void start(
+            BlockingConsumer<ChangeEvent> recordsConsumer, Consumer<Throwable> failureConsumer);
 
-    /**
-     * Notification that offsets have been committed to Kafka up to the given LSN.
-     */
+    /** Notification that offsets have been committed to Kafka up to the given LSN. */
     protected abstract void commit(long lsn);
 
     /**
-     * Requests that this producer be stopped. This is normally a request coming from a {@link OpengaussConnectorTask} instance
+     * Requests that this producer be stopped. This is normally a request coming from a {@link
+     * OpengaussConnectorTask} instance
      */
     protected abstract void stop();
 

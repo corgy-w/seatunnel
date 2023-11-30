@@ -18,40 +18,34 @@ import java.nio.ByteOrder;
  */
 public class OpengisGeometry {
 
-    /**
-     * Static Hex EKWB for a GEOMETRYCOLLECTION EMPTY.
-     */
+    /** Static Hex EKWB for a GEOMETRYCOLLECTION EMPTY. */
     private static final String HEXEWKB_EMPTY_GEOMETRYCOLLECTION = "010700000000000000";
 
     /**
-     * PostGIS Extended-Well-Known-Binary (EWKB) geometry representation. An extension of the
-     * Open Geospatial Consortium Well-Known-Binary format. Since EWKB is a superset of
-     * WKB, we use EWKB here.
-     * https://postgis.net/docs/using_postgis_dbmanagement.html#EWKB_EWKT
+     * PostGIS Extended-Well-Known-Binary (EWKB) geometry representation. An extension of the Open
+     * Geospatial Consortium Well-Known-Binary format. Since EWKB is a superset of WKB, we use EWKB
+     * here. https://postgis.net/docs/using_postgis_dbmanagement.html#EWKB_EWKT
      * http://www.opengeospatial.org/standards/sfa
      */
     private final byte[] wkb;
 
     /**
-     * Coordinate reference system identifier. While it's technically user-defined,
-     * the standard/common values in use are the EPSG code list http://www.epsg.org/
-     * null if unset/unspecified
+     * Coordinate reference system identifier. While it's technically user-defined, the
+     * standard/common values in use are the EPSG code list http://www.epsg.org/ null if
+     * unset/unspecified
      */
     private final Integer srid;
 
     /**
-     * Create a PostgisGeometry using the supplied PostGIS Hex EWKB string.
-     * SRID is extracted from the EWKB
+     * Create a PostgisGeometry using the supplied PostGIS Hex EWKB string. SRID is extracted from
+     * the EWKB
      */
     public static OpengisGeometry fromHexEwkb(String hexEwkb) {
         byte[] ewkb = HexConverter.convertFromHex(hexEwkb);
         return fromEwkb(ewkb);
     }
 
-    /**
-     * Create a PostgisGeometry using the supplied PostGIS EWKB.
-     * SRID is extracted from the EWKB
-     */
+    /** Create a PostgisGeometry using the supplied PostGIS EWKB. SRID is extracted from the EWKB */
     public static OpengisGeometry fromEwkb(byte[] ewkb) {
         return new OpengisGeometry(ewkb, parseSrid(ewkb));
     }
@@ -68,7 +62,8 @@ public class OpengisGeometry {
     /**
      * Create a PostgisGeometry using the supplied EWKB and SRID.
      *
-     * @param ewkb the Extended Well-Known binary representation of the coordinate in the standard format
+     * @param ewkb the Extended Well-Known binary representation of the coordinate in the standard
+     *     format
      * @param srid the coordinate system identifier (SRID); null if unset/unknown
      */
     private OpengisGeometry(byte[] ewkb, Integer srid) {
@@ -87,6 +82,7 @@ public class OpengisGeometry {
 
     /**
      * Returns the coordinate reference system identifier (SRID)
+     *
      * @return srid
      */
     public Integer getSrid() {
@@ -96,7 +92,7 @@ public class OpengisGeometry {
     /**
      * Parses an EWKB Geometry and extracts the SRID (if any)
      *
-     * https://trac.osgeo.org/postgis/browser/trunk/doc/ZMSgeoms.txt
+     * <p>https://trac.osgeo.org/postgis/browser/trunk/doc/ZMSgeoms.txt
      *
      * @param ewkb PostGIS EWKB geometry
      * @return Geometry SRID or null if there is no SRID.

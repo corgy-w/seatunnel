@@ -6,6 +6,12 @@
 
 package io.debezium.connector.opengauss.connection.wal2json;
 
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.errors.ConnectException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
 import io.debezium.connector.opengauss.OpengaussType;
 import io.debezium.connector.opengauss.OpengaussValueConverter;
@@ -16,10 +22,6 @@ import io.debezium.connector.opengauss.connection.ReplicationMessageColumnValueR
 import io.debezium.document.Array;
 import io.debezium.document.Document;
 import io.debezium.document.Value;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.errors.ConnectException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -43,7 +45,13 @@ class Wal2JsonReplicationMessage implements ReplicationMessage {
     private final boolean lastEventForLsn;
     private final TypeRegistry typeRegistry;
 
-    public Wal2JsonReplicationMessage(Long txId, Instant commitTime, Document rawMessage, boolean hasMetadata, boolean lastEventForLsn, TypeRegistry typeRegistry) {
+    public Wal2JsonReplicationMessage(
+            Long txId,
+            Instant commitTime,
+            Document rawMessage,
+            boolean hasMetadata,
+            boolean lastEventForLsn,
+            TypeRegistry typeRegistry) {
         this.txId = txId;
         this.commitTime = commitTime;
         this.rawMessage = rawMessage;
@@ -79,18 +87,25 @@ class Wal2JsonReplicationMessage implements ReplicationMessage {
 
     @Override
     public String getTable() {
-        return "\"" + rawMessage.getString("schema") + "\".\"" + rawMessage.getString("table") + "\"";
+        return "\""
+                + rawMessage.getString("schema")
+                + "\".\""
+                + rawMessage.getString("table")
+                + "\"";
     }
 
     @Override
     public List<Column> getOldTupleList() {
         final Document oldkeys = rawMessage.getDocument("oldkeys");
-        return oldkeys != null ? transform(oldkeys, "keynames", "keytypes", "keyvalues", "columnoptionals") : null;
+        return oldkeys != null
+                ? transform(oldkeys, "keynames", "keytypes", "keyvalues", "columnoptionals")
+                : null;
     }
 
     @Override
     public List<Column> getNewTupleList() {
-        return transform(rawMessage, "columnnames", "columntypes", "columnvalues", "columnoptionals");
+        return transform(
+                rawMessage, "columnnames", "columntypes", "columnvalues", "columnoptionals");
     }
 
     @Override
@@ -98,8 +113,12 @@ class Wal2JsonReplicationMessage implements ReplicationMessage {
         return hasMetadata;
     }
 
-    private List<Column> transform(final Document data, final String nameField, final String typeField, final String valueField,
-                                   final String optionalsField) {
+    private List<Column> transform(
+            final Document data,
+            final String nameField,
+            final String typeField,
+            final String valueField,
+            final String optionalsField) {
         final Array columnNames = data.getArray(nameField);
         final Array columnTypes = data.getArray(typeField);
         final Array columnValues = data.getArray(valueField);
@@ -114,33 +133,49 @@ class Wal2JsonReplicationMessage implements ReplicationMessage {
         for (int i = 0; i < columnNames.size(); i++) {
             final String columnName = columnNames.get(i).asString();
             final String columnTypeName = columnTypes.get(i).asString();
-            final boolean columnOptional = columnOptionals != null ? columnOptionals.get(i).asBoolean() : false;
+            final boolean columnOptional =
+                    columnOptionals != null ? columnOptionals.get(i).asBoolean() : false;
             final Value rawValue = columnValues.get(i);
-            final OpengaussType columnType = typeRegistry.get(parseType(columnName, columnTypeName));
+            final OpengaussType columnType =
+                    typeRegistry.get(parseType(columnName, columnTypeName));
 
-            columns.add(new AbstractReplicationMessageColumn(columnName, columnType, columnTypeName, columnOptional, true) {
+            columns.add(
+                    new AbstractReplicationMessageColumn(
+                            columnName, columnType, columnTypeName, columnOptional, true) {
 
-                @Override
-                public Object getValue(OpengaussStreamingChangeEventSource.PgConnectionSupplier connection, boolean includeUnknownDatatypes) {
-                    return Wal2JsonReplicationMessage.this.getValue(columnName, columnType, columnTypeName, rawValue, connection, includeUnknownDatatypes);
-                }
+                        @Override
+                        public Object getValue(
+                                OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
+                                boolean includeUnknownDatatypes) {
+                            return Wal2JsonReplicationMessage.this.getValue(
+                                    columnName,
+                                    columnType,
+                                    columnTypeName,
+                                    rawValue,
+                                    connection,
+                                    includeUnknownDatatypes);
+                        }
 
-                @Override
-                public String toString() {
-                    return columnName + "(" + columnTypeName + ")=" + rawValue;
-                }
-
-            });
+                        @Override
+                        public String toString() {
+                            return columnName + "(" + columnTypeName + ")=" + rawValue;
+                        }
+                    });
         }
 
         return columns;
     }
 
     private String parseType(String columnName, String typeWithModifiers) {
-        Matcher m = AbstractReplicationMessageColumn.TypeMetadataImpl.TYPE_PATTERN.matcher(typeWithModifiers);
+        Matcher m =
+                AbstractReplicationMessageColumn.TypeMetadataImpl.TYPE_PATTERN.matcher(
+                        typeWithModifiers);
         if (!m.matches()) {
             LOGGER.error("Failed to parse columnType for {} '{}'", columnName, typeWithModifiers);
-            throw new ConnectException(String.format("Failed to parse columnType '%s' for column %s", typeWithModifiers, columnName));
+            throw new ConnectException(
+                    String.format(
+                            "Failed to parse columnType '%s' for column %s",
+                            typeWithModifiers, columnName));
         }
         String baseType = m.group("base").trim();
         final String suffix = m.group("suffix");
@@ -155,20 +190,33 @@ class Wal2JsonReplicationMessage implements ReplicationMessage {
     }
 
     /**
-     * Converts the value (string representation) coming from wal2json plugin to
-     * a Java value based on the type of the column from the message. This value will be converted later on if necessary by the
-     * {@link OpengaussValueConverter#converter(Column, Field)} instance to match whatever the Connect schema type expects.
+     * Converts the value (string representation) coming from wal2json plugin to a Java value based
+     * on the type of the column from the message. This value will be converted later on if
+     * necessary by the {@link OpengaussValueConverter#converter(Column, Field)} instance to match
+     * whatever the Connect schema type expects.
      *
-     * Note that the logic here is tightly coupled (i.e. dependent) on the wal2json plugin logic which writes the actual
-     * JSON messages.
+     * <p>Note that the logic here is tightly coupled (i.e. dependent) on the wal2json plugin logic
+     * which writes the actual JSON messages.
+     *
      * @param a supplier to get a connection to Postgres instance for array handling
-     *
      * @return the value; may be null
      */
-    public Object getValue(String columnName, OpengaussType type, String fullType, Value rawValue, final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
-                           boolean includeUnknownDatatypes) {
+    public Object getValue(
+            String columnName,
+            OpengaussType type,
+            String fullType,
+            Value rawValue,
+            final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
+            boolean includeUnknownDatatypes) {
         final Wal2JsonColumnValue columnValue = new Wal2JsonColumnValue(rawValue);
-        return ReplicationMessageColumnValueResolver.resolveValue(columnName, type, fullType, columnValue, connection, includeUnknownDatatypes, typeRegistry);
+        return ReplicationMessageColumnValueResolver.resolveValue(
+                columnName,
+                type,
+                fullType,
+                columnValue,
+                connection,
+                includeUnknownDatatypes,
+                typeRegistry);
     }
 
     @Override

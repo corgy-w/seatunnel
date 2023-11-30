@@ -11,8 +11,8 @@ import io.debezium.relational.Column;
 import java.util.Optional;
 
 /**
- * This interface is used to convert the string default value to a Java type
- * recognized by value converters for a subset of types.
+ * This interface is used to convert the string default value to a Java type recognized by value
+ * converters for a subset of types.
  *
  * @author Jiabao Sun
  */
@@ -20,8 +20,8 @@ import java.util.Optional;
 public interface DefaultValueConverter {
 
     /**
-     * This interface is used to convert the default value literal to a Java type
-     * recognized by value converters for a subset of types.
+     * This interface is used to convert the default value literal to a Java type recognized by
+     * value converters for a subset of types.
      *
      * @param column the column definition describing the {@code data} value; never null
      * @param defaultValueExpression the default value literal; may be null
@@ -38,9 +38,7 @@ public interface DefaultValueConverter {
         return (column, defaultValueExpression) -> Optional.ofNullable(defaultValueExpression);
     }
 
-    /**
-     * Converts the raw JDBC default value expression for a column into an object.
-     */
+    /** Converts the raw JDBC default value expression for a column into an object. */
     @FunctionalInterface
     public interface DefaultValueMapper {
         /**

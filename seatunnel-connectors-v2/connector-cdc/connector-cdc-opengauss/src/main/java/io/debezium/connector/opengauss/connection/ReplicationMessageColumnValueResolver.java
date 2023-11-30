@@ -5,20 +5,20 @@
  */
 package io.debezium.connector.opengauss.connection;
 
-import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
-import io.debezium.connector.opengauss.OpengaussType;
-import io.debezium.connector.opengauss.TypeRegistry;
-import io.debezium.connector.opengauss.connection.ReplicationMessage.ColumnValue;
 import org.postgresql.util.PGmoney;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @author Chris Cranford
- */
+import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
+import io.debezium.connector.opengauss.OpengaussType;
+import io.debezium.connector.opengauss.TypeRegistry;
+import io.debezium.connector.opengauss.connection.ReplicationMessage.ColumnValue;
+
+/** @author Chris Cranford */
 public class ReplicationMessageColumnValueResolver {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ReplicationMessageColumnValueResolver.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(ReplicationMessageColumnValueResolver.class);
 
     /**
      * Resolve the value of a {@link ColumnValue}.
@@ -32,15 +32,28 @@ public class ReplicationMessageColumnValueResolver {
      * @param typeRegistry the postgres type registry
      * @return
      */
-    public static Object resolveValue(String columnName, OpengaussType type, String fullType, ColumnValue value, final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
-                                      boolean includeUnknownDatatypes, TypeRegistry typeRegistry) {
+    public static Object resolveValue(
+            String columnName,
+            OpengaussType type,
+            String fullType,
+            ColumnValue value,
+            final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
+            boolean includeUnknownDatatypes,
+            TypeRegistry typeRegistry) {
         if (value.isNull()) {
             // nulls are null
             return null;
         }
 
         if (!type.isRootType()) {
-            return resolveValue(columnName, type.getParentType(), fullType, value, connection, includeUnknownDatatypes, typeRegistry);
+            return resolveValue(
+                    columnName,
+                    type.getParentType(),
+                    fullType,
+                    value,
+                    connection,
+                    includeUnknownDatatypes,
+                    typeRegistry);
         }
 
         if (value.isArray(type)) {
@@ -52,8 +65,9 @@ public class ReplicationMessageColumnValueResolver {
         }
 
         switch (type.getName()) {
-            // include all types from https://www.postgresql.org/docs/current/static/datatype.html#DATATYPE-TABLE
-            // plus aliases from the shorter names produced by older wal2json
+                // include all types from
+                // https://www.postgresql.org/docs/current/static/datatype.html#DATATYPE-TABLE
+                // plus aliases from the shorter names produced by older wal2json
             case "boolean":
             case "bool":
                 return value.asBoolean();
@@ -124,9 +138,11 @@ public class ReplicationMessageColumnValueResolver {
             case "bytea":
                 return value.asByteArray();
 
-            // these are all PG-specific types and we use the JDBC representations
-            // note that, with the exception of point, no converters for these types are implemented yet,
-            // i.e. those values won't actually be propagated to the outbound message until that's the case
+                // these are all PG-specific types and we use the JDBC representations
+                // note that, with the exception of point, no converters for these types are
+                // implemented yet,
+                // i.e. those values won't actually be propagated to the outbound message until
+                // that's the case
             case "box":
                 return value.asBox();
             case "circle":
@@ -147,8 +163,8 @@ public class ReplicationMessageColumnValueResolver {
             case "polygon":
                 return value.asPolygon();
 
-            // PostGIS types are HexEWKB strings
-            // ValueConverter turns them into the correct types
+                // PostGIS types are HexEWKB strings
+                // ValueConverter turns them into the correct types
             case "geometry":
             case "geography":
                 return value.asString();
@@ -173,8 +189,8 @@ public class ReplicationMessageColumnValueResolver {
             case "int8range":
                 return value.asString();
 
-            // catch-all for other known/builtin PG types
-            // TODO: improve with more specific/useful classes here?
+                // catch-all for other known/builtin PG types
+                // TODO: improve with more specific/useful classes here?
             case "pg_lsn":
             case "tsquery":
             case "tsvector":
@@ -184,6 +200,12 @@ public class ReplicationMessageColumnValueResolver {
                 break;
         }
 
-        return value.asDefault(typeRegistry, type.getOid(), columnName, fullType, includeUnknownDatatypes, connection);
+        return value.asDefault(
+                typeRegistry,
+                type.getOid(),
+                columnName,
+                fullType,
+                includeUnknownDatatypes,
+                connection);
     }
 }

@@ -5,6 +5,10 @@
  */
 package io.debezium.connector.opengauss.connection.ogoutput;
 
+import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
 import io.debezium.connector.opengauss.OpengaussType;
@@ -13,21 +17,18 @@ import io.debezium.connector.opengauss.UnchangedToastedReplicationMessageColumn;
 import io.debezium.connector.opengauss.connection.AbstractMessageDecoder;
 import io.debezium.connector.opengauss.connection.AbstractReplicationMessageColumn;
 import io.debezium.connector.opengauss.connection.LogicalDecodingMessage;
-import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.MessageDecoderContext;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.connection.ReplicationMessage;
 import io.debezium.connector.opengauss.connection.ReplicationStream;
 import io.debezium.connector.opengauss.connection.TransactionMessage;
 import io.debezium.connector.opengauss.connection.WalPositionLocator;
+import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.relational.ColumnEditor;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.util.HexConverter;
 import io.debezium.util.Strings;
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -51,17 +52,18 @@ import java.util.function.Function;
 import static java.util.stream.Collectors.toMap;
 
 /**
- * Decodes messages from the PG logical replication plug-in ("pgoutput").
- * See https://www.postgresql.org/docs/10/protocol-logicalrep-message-formats.html for the protocol specification.
+ * Decodes messages from the PG logical replication plug-in ("pgoutput"). See
+ * https://www.postgresql.org/docs/10/protocol-logicalrep-message-formats.html for the protocol
+ * specification.
  *
  * @author Gunnar Morling
  * @author Chris Cranford
- *
  */
 public class OgOutputMessageDecoder extends AbstractMessageDecoder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OgOutputMessageDecoder.class);
-    private static final Instant PG_EPOCH = LocalDate.of(2000, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
+    private static final Instant PG_EPOCH =
+            LocalDate.of(2000, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC);
     private static final byte SPACE = 32;
 
     private final MessageDecoderContext decoderContext;
@@ -69,9 +71,7 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
 
     private Instant commitTimestamp;
 
-    /**
-     * Will be null for a non-transactional decoding message
-     */
+    /** Will be null for a non-transactional decoding message */
     private Long transactionId;
 
     public enum MessageType {
@@ -116,23 +116,29 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
 
     public OgOutputMessageDecoder(MessageDecoderContext decoderContext) {
         this.decoderContext = decoderContext;
-        this.connection = new OpengaussConnection(decoderContext.getConfig(), decoderContext.getSchema().getTypeRegistry());
+        this.connection =
+                new OpengaussConnection(
+                        decoderContext.getConfig(), decoderContext.getSchema().getTypeRegistry());
     }
 
     private void refreshConnection() {
         connection.close();
-        connection = new OpengaussConnection(decoderContext.getConfig(), decoderContext.getSchema().getTypeRegistry());
+        connection =
+                new OpengaussConnection(
+                        decoderContext.getConfig(), decoderContext.getSchema().getTypeRegistry());
     }
 
     @Override
-    public boolean shouldMessageBeSkipped(ByteBuffer buffer, Lsn lastReceivedLsn, Lsn startLsn, WalPositionLocator walPosition) {
+    public boolean shouldMessageBeSkipped(
+            ByteBuffer buffer, Lsn lastReceivedLsn, Lsn startLsn, WalPositionLocator walPosition) {
         // Cache position as we're going to peak at the first byte to determine message type
         // We need to reprocess all BEGIN/COMMIT messages regardless.
         int position = buffer.position();
         try {
             MessageType type = MessageType.forType((char) buffer.get());
             LOGGER.trace("Message Type: {}", type);
-            final boolean candidateForSkipping = super.shouldMessageBeSkipped(buffer, lastReceivedLsn, startLsn, walPosition);
+            final boolean candidateForSkipping =
+                    super.shouldMessageBeSkipped(buffer, lastReceivedLsn, startLsn, walPosition);
             switch (type) {
                 case COMMIT:
                 case BEGIN:
@@ -150,29 +156,37 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
                     return false;
                 default:
                     // INSERT/UPDATE/DELETE/TRUNCATE/TYPE/ORIGIN/LOGICAL_DECODING_MESSAGE
-                    // These should be excluded based on the normal behavior, delegating to default method
+                    // These should be excluded based on the normal behavior, delegating to default
+                    // method
                     return candidateForSkipping;
             }
-        }
-        finally {
+        } finally {
             // Reset buffer position
             buffer.position(position);
         }
     }
 
     @Override
-    public void processNotEmptyMessage(ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor, TypeRegistry typeRegistry) throws SQLException, InterruptedException {
+    public void processNotEmptyMessage(
+            ByteBuffer buffer,
+            ReplicationStream.ReplicationMessageProcessor processor,
+            TypeRegistry typeRegistry)
+            throws SQLException, InterruptedException {
         if (LOGGER.isTraceEnabled()) {
             if (!buffer.hasArray()) {
-                throw new IllegalStateException("Invalid buffer received from PG server during streaming replication");
+                throw new IllegalStateException(
+                        "Invalid buffer received from PG server during streaming replication");
             }
             final byte[] source = buffer.array();
-            // Extend the array by two as we might need to append two chars and set them to space by default
-            final byte[] content = Arrays.copyOfRange(source, buffer.arrayOffset(), source.length + 2);
+            // Extend the array by two as we might need to append two chars and set them to space by
+            // default
+            final byte[] content =
+                    Arrays.copyOfRange(source, buffer.arrayOffset(), source.length + 2);
             final int lastPos = content.length - 1;
             content[lastPos - 1] = SPACE;
             content[lastPos] = SPACE;
-            LOGGER.trace("Message arrived from database {}", HexConverter.convertToHexString(content));
+            LOGGER.trace(
+                    "Message arrived from database {}", HexConverter.convertToHexString(content));
         }
 
         final MessageType messageType = MessageType.forType((char) buffer.get());
@@ -199,10 +213,10 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
                 decodeDelete(buffer, typeRegistry, processor);
                 break;
             case TRUNCATE:
-                if (decoderContext.getConfig().truncateHandlingMode() == OpengaussConnectorConfig.TruncateHandlingMode.INCLUDE) {
+                if (decoderContext.getConfig().truncateHandlingMode()
+                        == OpengaussConnectorConfig.TruncateHandlingMode.INCLUDE) {
                     decodeTruncate(buffer, typeRegistry, processor);
-                }
-                else {
+                } else {
                     LOGGER.trace("Message Type {} skipped, not processed.", messageType);
                 }
                 break;
@@ -213,9 +227,13 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
     }
 
     @Override
-    public ChainedLogicalStreamBuilder optionsWithMetadata(ChainedLogicalStreamBuilder builder, Function<Integer, Boolean> hasMinimumServerVersion) {
-        builder = builder.withSlotOption("proto_version", 1)
-                .withSlotOption("publication_names", decoderContext.getConfig().publicationName());
+    public ChainedLogicalStreamBuilder optionsWithMetadata(
+            ChainedLogicalStreamBuilder builder,
+            Function<Integer, Boolean> hasMinimumServerVersion) {
+        builder =
+                builder.withSlotOption("proto_version", 1)
+                        .withSlotOption(
+                                "publication_names", decoderContext.getConfig().publicationName());
 
         // DBZ-4374 Use enum once the driver got updated
         if (hasMinimumServerVersion.apply(140000)) {
@@ -226,7 +244,9 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
     }
 
     @Override
-    public ChainedLogicalStreamBuilder optionsWithoutMetadata(ChainedLogicalStreamBuilder builder, Function<Integer, Boolean> hasMinimumServerVersion) {
+    public ChainedLogicalStreamBuilder optionsWithoutMetadata(
+            ChainedLogicalStreamBuilder builder,
+            Function<Integer, Boolean> hasMinimumServerVersion) {
         return builder;
     }
 
@@ -236,7 +256,9 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
      * @param buffer The replication stream buffer
      * @param processor The replication message processor
      */
-    private void handleBeginMessage(ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor) throws SQLException, InterruptedException {
+    private void handleBeginMessage(
+            ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor)
+            throws SQLException, InterruptedException {
         final Lsn lsn = Lsn.valueOf(buffer.getLong()); // LSN
         this.commitTimestamp = PG_EPOCH.plus(buffer.getLong(), ChronoUnit.MICROS);
         this.transactionId = Integer.toUnsignedLong(buffer.getInt());
@@ -244,7 +266,9 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
         LOGGER.trace("Final LSN of transaction: {}", lsn);
         LOGGER.trace("Commit timestamp of transaction: {}", commitTimestamp);
         LOGGER.trace("XID of transaction: {}", transactionId);
-        processor.process(new TransactionMessage(ReplicationMessage.Operation.BEGIN, transactionId, commitTimestamp));
+        processor.process(
+                new TransactionMessage(
+                        ReplicationMessage.Operation.BEGIN, transactionId, commitTimestamp));
     }
 
     /**
@@ -253,7 +277,9 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
      * @param buffer The replication stream buffer
      * @param processor The replication message processor
      */
-    private void handleCommitMessage(ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor) throws SQLException, InterruptedException {
+    private void handleCommitMessage(
+            ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor)
+            throws SQLException, InterruptedException {
         int flags = buffer.get(); // flags, currently unused
         final Lsn lsn = Lsn.valueOf(buffer.getLong()); // LSN of the commit
         final Lsn endLsn = Lsn.valueOf(buffer.getLong()); // End LSN of the transaction
@@ -263,7 +289,9 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
         LOGGER.trace("Commit LSN: {}", lsn);
         LOGGER.trace("End LSN of transaction: {}", endLsn);
         LOGGER.trace("Commit timestamp of transaction: {}", commitTimestamp);
-        processor.process(new TransactionMessage(ReplicationMessage.Operation.COMMIT, transactionId, commitTimestamp));
+        processor.process(
+                new TransactionMessage(
+                        ReplicationMessage.Operation.COMMIT, transactionId, commitTimestamp));
     }
 
     /**
@@ -272,14 +300,20 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
      * @param buffer The replication stream buffer
      * @param typeRegistry The postgres type registry
      */
-    private void handleRelationMessage(ByteBuffer buffer, TypeRegistry typeRegistry) throws SQLException {
+    private void handleRelationMessage(ByteBuffer buffer, TypeRegistry typeRegistry)
+            throws SQLException {
         int relationId = buffer.getInt();
         String schemaName = readString(buffer);
         String tableName = readString(buffer);
         int replicaIdentityId = buffer.get();
         short columnCount = buffer.getShort();
 
-        LOGGER.trace("Event: {}, RelationId: {}, Replica Identity: {}, Columns: {}", MessageType.RELATION, relationId, replicaIdentityId, columnCount);
+        LOGGER.trace(
+                "Event: {}, RelationId: {}, Replica Identity: {}, Columns: {}",
+                MessageType.RELATION,
+                relationId,
+                replicaIdentityId,
+                columnCount);
         LOGGER.trace("Schema: '{}', Table: '{}'", schemaName, tableName);
 
         Map<String, Boolean> columnOptionality;
@@ -291,12 +325,20 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
         final DatabaseMetaData databaseMetadata = connection.connection().getMetaData();
         final TableId tableId = new TableId(null, schemaName, tableName);
 
-        final List<io.debezium.relational.Column> readColumns = getTableColumnsFromDatabase(connection, databaseMetadata, tableId);
+        final List<io.debezium.relational.Column> readColumns =
+                getTableColumnsFromDatabase(connection, databaseMetadata, tableId);
 
-        columnOptionality = readColumns.stream().collect(toMap(io.debezium.relational.Column::name, io.debezium.relational.Column::isOptional));
+        columnOptionality =
+                readColumns.stream()
+                        .collect(
+                                toMap(
+                                        io.debezium.relational.Column::name,
+                                        io.debezium.relational.Column::isOptional));
         primaryKeyColumns = connection.readPrimaryKeyNames(databaseMetadata, tableId);
         if (primaryKeyColumns == null || primaryKeyColumns.isEmpty()) {
-            LOGGER.warn("Primary keys are not defined for table '{}', defaulting to unique indices", tableName);
+            LOGGER.warn(
+                    "Primary keys are not defined for table '{}', defaulting to unique indices",
+                    tableName);
             primaryKeyColumns = connection.readTableUniqueIndices(databaseMetadata, tableId);
         }
 
@@ -309,19 +351,26 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
             int attypmod = buffer.getInt();
 
             final OpengaussType postgresType = typeRegistry.get(columnType);
-            boolean key = isColumnInPrimaryKey(schemaName, tableName, columnName, primaryKeyColumns);
+            boolean key =
+                    isColumnInPrimaryKey(schemaName, tableName, columnName, primaryKeyColumns);
 
             Boolean optional = columnOptionality.get(columnName);
             if (optional == null) {
-                LOGGER.warn("Column '{}' optionality could not be determined, defaulting to true", columnName);
+                LOGGER.warn(
+                        "Column '{}' optionality could not be determined, defaulting to true",
+                        columnName);
                 optional = true;
             }
-            columns.add(new ColumnMetaData(columnName, postgresType, key, optional, false, "", attypmod));
+            columns.add(
+                    new ColumnMetaData(
+                            columnName, postgresType, key, optional, false, "", attypmod));
             columnNames.add(columnName);
         }
 
-        // Remove any PKs that do not exist as part of this this relation message. This can occur when issuing
-        // multiple schema changes in sequence since the lookup of primary keys is an out-of-band procedure, without
+        // Remove any PKs that do not exist as part of this this relation message. This can occur
+        // when issuing
+        // multiple schema changes in sequence since the lookup of primary keys is an out-of-band
+        // procedure, without
         // any logical linkage or context to the point in time the relation message was emitted.
         //
         // Example DDL:
@@ -329,56 +378,80 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
         // ALTER TABLE changepk.test_table ADD COLUMN pk3 SERIAL; -- <- relation message #2
         // ALTER TABLE changepk.test_table ADD PRIMARY KEY(newpk,pk3); -- <- relation message #3
         //
-        // Consider the above schema changes. There's a possible temporal ordering where the messages arrive
-        // in the replication slot data stream at time `t0`, `t1`, and `t2`. It then takes until `t10` for _this_ method
-        // to start processing message #1. At `t10` invoking `connection.readPrimaryKeyNames()` returns the new
-        // primary key column, 'pk3', defined by message #3. We must remove this primary key column that came
-        // "from the future" (with temporal respect to the current relate message #1) as a best effort attempt
+        // Consider the above schema changes. There's a possible temporal ordering where the
+        // messages arrive
+        // in the replication slot data stream at time `t0`, `t1`, and `t2`. It then takes until
+        // `t10` for _this_ method
+        // to start processing message #1. At `t10` invoking `connection.readPrimaryKeyNames()`
+        // returns the new
+        // primary key column, 'pk3', defined by message #3. We must remove this primary key column
+        // that came
+        // "from the future" (with temporal respect to the current relate message #1) as a best
+        // effort attempt
         // to reflect the actual primary key state at time `t0`.
         primaryKeyColumns.retainAll(columnNames);
 
-        Table table = resolveRelationFromMetadata(new OgOutputRelationMetaData(relationId, schemaName, tableName, columns, primaryKeyColumns));
+        Table table =
+                resolveRelationFromMetadata(
+                        new OgOutputRelationMetaData(
+                                relationId, schemaName, tableName, columns, primaryKeyColumns));
         decoderContext.getSchema().applySchemaChangesForTable(relationId, table);
     }
 
-    private List<io.debezium.relational.Column> getTableColumnsFromDatabase(OpengaussConnection connection, DatabaseMetaData databaseMetadata, TableId tableId)
+    private List<io.debezium.relational.Column> getTableColumnsFromDatabase(
+            OpengaussConnection connection, DatabaseMetaData databaseMetadata, TableId tableId)
             throws SQLException {
         List<io.debezium.relational.Column> readColumns = new ArrayList<>();
         try {
-            try (ResultSet columnMetadata = databaseMetadata.getColumns(null, tableId.schema(), tableId.table(), null)) {
+            try (ResultSet columnMetadata =
+                    databaseMetadata.getColumns(null, tableId.schema(), tableId.table(), null)) {
                 while (columnMetadata.next()) {
-                    connection.readColumnForDecoder(columnMetadata, tableId, decoderContext.getConfig().getColumnFilter())
+                    connection
+                            .readColumnForDecoder(
+                                    columnMetadata,
+                                    tableId,
+                                    decoderContext.getConfig().getColumnFilter())
                             .ifPresent(readColumns::add);
                 }
             }
-        }
-        catch (SQLException e) {
-            LOGGER.error("Failed to read column metadata for '{}.{}'", tableId.schema(), tableId.table());
+        } catch (SQLException e) {
+            LOGGER.error(
+                    "Failed to read column metadata for '{}.{}'",
+                    tableId.schema(),
+                    tableId.table());
             throw e;
         }
 
         return readColumns;
     }
 
-    private boolean isColumnInPrimaryKey(String schemaName, String tableName, String columnName, List<String> primaryKeyColumns) {
+    private boolean isColumnInPrimaryKey(
+            String schemaName,
+            String tableName,
+            String columnName,
+            List<String> primaryKeyColumns) {
         // todo (DBZ-766) - Discuss this logic with team as there may be a better way to handle this
         // Personally I think its sufficient enough to resolve the PK based on the out-of-bands call
         // and should any test fail due to this it should be rewritten or excluded from the pgoutput
         // scope.
         //
-        // In RecordsStreamProducerIT#shouldReceiveChangesForInsertsIndependentOfReplicaIdentity, we have
-        // a situation where the table is replica identity full, the primary key is dropped but the replica
-        // identity is kept and later the replica identity is changed to default. In order to support this
+        // In RecordsStreamProducerIT#shouldReceiveChangesForInsertsIndependentOfReplicaIdentity, we
+        // have
+        // a situation where the table is replica identity full, the primary key is dropped but the
+        // replica
+        // identity is kept and later the replica identity is changed to default. In order to
+        // support this
         // use case, the following abides by these rules:
         //
         if (!primaryKeyColumns.isEmpty() && primaryKeyColumns.contains(columnName)) {
             return true;
-        }
-        else if (primaryKeyColumns.isEmpty()) {
+        } else if (primaryKeyColumns.isEmpty()) {
             // The table's metadata was either not fetched or table no longer has a primary key
             // Lets attempt to use the known schema primary key configuration as a fallback
-            Table existingTable = decoderContext.getSchema().tableFor(new TableId(null, schemaName, tableName));
-            if (existingTable != null && existingTable.primaryKeyColumnNames().contains(columnName)) {
+            Table existingTable =
+                    decoderContext.getSchema().tableFor(new TableId(null, schemaName, tableName));
+            if (existingTable != null
+                    && existingTable.primaryKeyColumnNames().contains(columnName)) {
                 return true;
             }
         }
@@ -392,28 +465,37 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
      * @param typeRegistry The postgres type registry
      * @param processor The replication message processor
      */
-    private void decodeInsert(ByteBuffer buffer, TypeRegistry typeRegistry, ReplicationStream.ReplicationMessageProcessor processor) throws SQLException, InterruptedException {
+    private void decodeInsert(
+            ByteBuffer buffer,
+            TypeRegistry typeRegistry,
+            ReplicationStream.ReplicationMessageProcessor processor)
+            throws SQLException, InterruptedException {
         int relationId = buffer.getInt();
         char tupleType = (char) buffer.get(); // Always 'N" for inserts
 
-        LOGGER.trace("Event: {}, Relation Id: {}, Tuple Type: {}", MessageType.INSERT, relationId, tupleType);
+        LOGGER.trace(
+                "Event: {}, Relation Id: {}, Tuple Type: {}",
+                MessageType.INSERT,
+                relationId,
+                tupleType);
 
         Optional<Table> resolvedTable = resolveRelation(relationId);
 
         // non-captured table
         if (!resolvedTable.isPresent()) {
             processor.process(new ReplicationMessage.NoopMessage(transactionId, commitTimestamp));
-        }
-        else {
+        } else {
             Table table = resolvedTable.get();
-            List<ReplicationMessage.Column> columns = resolveColumnsFromStreamTupleData(buffer, typeRegistry, table);
-            processor.process(new OgOutputReplicationMessage(
-                    ReplicationMessage.Operation.INSERT,
-                    table.id().toDoubleQuotedString(),
-                    commitTimestamp,
-                    transactionId,
-                    null,
-                    columns));
+            List<ReplicationMessage.Column> columns =
+                    resolveColumnsFromStreamTupleData(buffer, typeRegistry, table);
+            processor.process(
+                    new OgOutputReplicationMessage(
+                            ReplicationMessage.Operation.INSERT,
+                            table.id().toDoubleQuotedString(),
+                            commitTimestamp,
+                            transactionId,
+                            null,
+                            columns));
         }
     }
 
@@ -424,7 +506,11 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
      * @param typeRegistry The postgres type registry
      * @param processor The replication message processor
      */
-    private void decodeUpdate(ByteBuffer buffer, TypeRegistry typeRegistry, ReplicationStream.ReplicationMessageProcessor processor) throws SQLException, InterruptedException {
+    private void decodeUpdate(
+            ByteBuffer buffer,
+            TypeRegistry typeRegistry,
+            ReplicationStream.ReplicationMessageProcessor processor)
+            throws SQLException, InterruptedException {
         int relationId = buffer.getInt();
 
         LOGGER.trace("Event: {}, RelationId: {}", MessageType.UPDATE, relationId);
@@ -434,13 +520,14 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
         // non-captured table
         if (!resolvedTable.isPresent()) {
             processor.process(new ReplicationMessage.NoopMessage(transactionId, commitTimestamp));
-        }
-        else {
+        } else {
             Table table = resolvedTable.get();
 
             // When reading the tuple-type, we could get 3 different values, 'O', 'K', or 'N'.
-            // 'O' (Optional) - States the following tuple-data is the key, only for replica identity index configs.
-            // 'K' (Optional) - States the following tuple-data is the old tuple, only for replica identity full configs.
+            // 'O' (Optional) - States the following tuple-data is the key, only for replica
+            // identity index configs.
+            // 'K' (Optional) - States the following tuple-data is the old tuple, only for replica
+            // identity full configs.
             //
             // 'N' (Not-Optional) - States the following tuple-data is the new tuple.
             // This is always present.
@@ -449,18 +536,21 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
             if ('O' == tupleType || 'K' == tupleType) {
                 oldColumns = resolveColumnsFromStreamTupleData(buffer, typeRegistry, table);
                 // Read the 'N' tuple type
-                // This is necessary so the stream position is accurate for resolving the column tuple data
+                // This is necessary so the stream position is accurate for resolving the column
+                // tuple data
                 tupleType = (char) buffer.get();
             }
 
-            List<ReplicationMessage.Column> columns = resolveColumnsFromStreamTupleData(buffer, typeRegistry, table);
-            processor.process(new OgOutputReplicationMessage(
-                    ReplicationMessage.Operation.UPDATE,
-                    table.id().toDoubleQuotedString(),
-                    commitTimestamp,
-                    transactionId,
-                    oldColumns,
-                    columns));
+            List<ReplicationMessage.Column> columns =
+                    resolveColumnsFromStreamTupleData(buffer, typeRegistry, table);
+            processor.process(
+                    new OgOutputReplicationMessage(
+                            ReplicationMessage.Operation.UPDATE,
+                            table.id().toDoubleQuotedString(),
+                            commitTimestamp,
+                            transactionId,
+                            oldColumns,
+                            columns));
         }
     }
 
@@ -471,40 +561,53 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
      * @param typeRegistry The postgres type registry
      * @param processor The replication message processor
      */
-    private void decodeDelete(ByteBuffer buffer, TypeRegistry typeRegistry, ReplicationStream.ReplicationMessageProcessor processor) throws SQLException, InterruptedException {
+    private void decodeDelete(
+            ByteBuffer buffer,
+            TypeRegistry typeRegistry,
+            ReplicationStream.ReplicationMessageProcessor processor)
+            throws SQLException, InterruptedException {
         int relationId = buffer.getInt();
 
         char tupleType = (char) buffer.get();
 
-        LOGGER.trace("Event: {}, RelationId: {}, Tuple Type: {}", MessageType.DELETE, relationId, tupleType);
+        LOGGER.trace(
+                "Event: {}, RelationId: {}, Tuple Type: {}",
+                MessageType.DELETE,
+                relationId,
+                tupleType);
 
         Optional<Table> resolvedTable = resolveRelation(relationId);
 
         // non-captured table
         if (!resolvedTable.isPresent()) {
             processor.process(new ReplicationMessage.NoopMessage(transactionId, commitTimestamp));
-        }
-        else {
+        } else {
             Table table = resolvedTable.get();
-            List<ReplicationMessage.Column> columns = resolveColumnsFromStreamTupleData(buffer, typeRegistry, table);
-            processor.process(new OgOutputReplicationMessage(
-                    ReplicationMessage.Operation.DELETE,
-                    table.id().toDoubleQuotedString(),
-                    commitTimestamp,
-                    transactionId,
-                    columns,
-                    null));
+            List<ReplicationMessage.Column> columns =
+                    resolveColumnsFromStreamTupleData(buffer, typeRegistry, table);
+            processor.process(
+                    new OgOutputReplicationMessage(
+                            ReplicationMessage.Operation.DELETE,
+                            table.id().toDoubleQuotedString(),
+                            commitTimestamp,
+                            transactionId,
+                            columns,
+                            null));
         }
     }
 
     /**
      * Callback handler for the 'T' truncate replication stream message.
      *
-     * @param buffer       The replication stream buffer
+     * @param buffer The replication stream buffer
      * @param typeRegistry The postgres type registry
-     * @param processor    The replication message processor
+     * @param processor The replication message processor
      */
-    private void decodeTruncate(ByteBuffer buffer, TypeRegistry typeRegistry, ReplicationStream.ReplicationMessageProcessor processor) throws SQLException, InterruptedException {
+    private void decodeTruncate(
+            ByteBuffer buffer,
+            TypeRegistry typeRegistry,
+            ReplicationStream.ReplicationMessageProcessor processor)
+            throws SQLException, InterruptedException {
         // As of PG11, the Truncate message format is as described:
         // Byte Message Type (Always 'T')
         // Int32 number of relations described by the truncate message
@@ -533,19 +636,24 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
         }
 
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("Event: {}, RelationIds: {}, OptionBits: {}", MessageType.TRUNCATE, Arrays.toString(relationIds), optionBits);
+            LOGGER.trace(
+                    "Event: {}, RelationIds: {}, OptionBits: {}",
+                    MessageType.TRUNCATE,
+                    Arrays.toString(relationIds),
+                    optionBits);
         }
 
         int noOfResolvedTables = tables.size();
         for (int i = 0; i < noOfResolvedTables; i++) {
             Table table = tables.get(i);
             boolean lastTableInTruncate = (i + 1) == noOfResolvedTables;
-            processor.process(new OgOutputTruncateReplicationMessage(
-                    ReplicationMessage.Operation.TRUNCATE,
-                    table.id().toDoubleQuotedString(),
-                    commitTimestamp,
-                    transactionId,
-                    lastTableInTruncate));
+            processor.process(
+                    new OgOutputTruncateReplicationMessage(
+                            ReplicationMessage.Operation.TRUNCATE,
+                            table.id().toDoubleQuotedString(),
+                            commitTimestamp,
+                            transactionId,
+                            lastTableInTruncate));
         }
     }
 
@@ -571,14 +679,16 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
     /**
      * Callback handler for the 'M' logical decoding message
      *
-     * @param buffer       The replication stream buffer
-     * @param processor    The replication message processor
+     * @param buffer The replication stream buffer
+     * @param processor The replication message processor
      */
-    private void handleLogicalDecodingMessage(ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor)
+    private void handleLogicalDecodingMessage(
+            ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor)
             throws SQLException, InterruptedException {
         // As of PG14, the MESSAGE message format is as described:
         // Byte1 Always 'M'
-        // Int32 Xid of the transaction (only present for streamed transactions in protocol version 2).
+        // Int32 Xid of the transaction (only present for streamed transactions in protocol version
+        // 2).
         // Int8 flags; Either 0 for no flags or 1 if the logical decoding message is transactional.
         // Int64 The LSN of the logical decoding message
         // String The prefix of the logical decoding message.
@@ -605,21 +715,22 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
         LOGGER.trace("Transactional: {}", isTransactional);
         LOGGER.trace("Prefix: {}", prefix);
 
-        processor.process(new LogicalDecodingMessage(
-                ReplicationMessage.Operation.MESSAGE,
-                commitTimestamp,
-                transactionId,
-                isTransactional,
-                prefix,
-                content));
+        processor.process(
+                new LogicalDecodingMessage(
+                        ReplicationMessage.Operation.MESSAGE,
+                        commitTimestamp,
+                        transactionId,
+                        isTransactional,
+                        prefix,
+                        content));
     }
 
     /**
      * Resolves a given replication message relation identifier to a {@link Table}.
      *
      * @param relationId The replication message stream's relation identifier
-     * @return table resolved from a prior relation message or direct lookup from the schema
-     * or empty when the table is filtered
+     * @return table resolved from a prior relation message or direct lookup from the schema or
+     *     empty when the table is filtered
      */
     private Optional<Table> resolveRelation(int relationId) {
         return Optional.ofNullable(decoderContext.getSchema().tableFor(relationId));
@@ -634,23 +745,27 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
     private Table resolveRelationFromMetadata(OgOutputRelationMetaData metadata) {
         List<io.debezium.relational.Column> columns = new ArrayList<>();
         for (ColumnMetaData columnMetadata : metadata.getColumns()) {
-            ColumnEditor editor = io.debezium.relational.Column.editor()
-                    .name(columnMetadata.getColumnName())
-                    .jdbcType(columnMetadata.getPostgresType().getRootType().getJdbcId())
-                    .nativeType(columnMetadata.getPostgresType().getRootType().getOid())
-                    .optional(columnMetadata.isOptional())
-                    .type(columnMetadata.getPostgresType().getName(), columnMetadata.getTypeName())
-                    .length(columnMetadata.getLength())
-                    .scale(columnMetadata.getScale());
+            ColumnEditor editor =
+                    io.debezium.relational.Column.editor()
+                            .name(columnMetadata.getColumnName())
+                            .jdbcType(columnMetadata.getPostgresType().getRootType().getJdbcId())
+                            .nativeType(columnMetadata.getPostgresType().getRootType().getOid())
+                            .optional(columnMetadata.isOptional())
+                            .type(
+                                    columnMetadata.getPostgresType().getName(),
+                                    columnMetadata.getTypeName())
+                            .length(columnMetadata.getLength())
+                            .scale(columnMetadata.getScale());
 
             columns.add(editor.create());
         }
 
-        Table table = Table.editor()
-                .addColumns(columns)
-                .setPrimaryKeyNames(metadata.getPrimaryKeyNames())
-                .tableId(metadata.getTableId())
-                .create();
+        Table table =
+                Table.editor()
+                        .addColumns(columns)
+                        .setPrimaryKeyNames(metadata.getPrimaryKeyNames())
+                        .tableId(metadata.getTableId())
+                        .create();
 
         LOGGER.trace("Resolved '{}' as '{}'", table.id(), table);
 
@@ -658,7 +773,8 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
     }
 
     /**
-     * Reads the replication stream up to the next null-terminator byte and returns the contents as a string.
+     * Reads the replication stream up to the next null-terminator byte and returns the contents as
+     * a string.
      *
      * @param buffer The replication stream buffer
      * @return string read from the replication stream
@@ -673,7 +789,8 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
     }
 
     /**
-     * Reads the replication stream where the column stream specifies a length followed by the value.
+     * Reads the replication stream where the column stream specifies a length followed by the
+     * value.
      *
      * @param buffer The replication stream buffer
      * @return the column value as a string read from the replication stream
@@ -693,7 +810,8 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
      * @param table The database table
      * @return list of replication message columns
      */
-    private static List<ReplicationMessage.Column> resolveColumnsFromStreamTupleData(ByteBuffer buffer, TypeRegistry typeRegistry, Table table) {
+    private static List<ReplicationMessage.Column> resolveColumnsFromStreamTupleData(
+            ByteBuffer buffer, TypeRegistry typeRegistry, Table table) {
         // Read number of the columns
         short numberOfColumns = buffer.getShort();
 
@@ -715,10 +833,20 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
             if (type == 't') {
                 final String valueStr = readColumnValueAsString(buffer);
                 columns.add(
-                        new AbstractReplicationMessageColumn(columnName, columnType, typeExpression, optional, true) {
+                        new AbstractReplicationMessageColumn(
+                                columnName, columnType, typeExpression, optional, true) {
                             @Override
-                            public Object getValue(OpengaussStreamingChangeEventSource.PgConnectionSupplier connection, boolean includeUnknownDatatypes) {
-                                return OgOutputReplicationMessage.getValue(columnName, columnType, typeExpression, valueStr, connection, includeUnknownDatatypes,
+                            public Object getValue(
+                                    OpengaussStreamingChangeEventSource.PgConnectionSupplier
+                                            connection,
+                                    boolean includeUnknownDatatypes) {
+                                return OgOutputReplicationMessage.getValue(
+                                        columnName,
+                                        columnType,
+                                        typeExpression,
+                                        valueStr,
+                                        connection,
+                                        includeUnknownDatatypes,
                                         typeRegistry);
                             }
 
@@ -727,21 +855,27 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
                                 return columnName + "(" + typeExpression + ")=" + valueStr;
                             }
                         });
-            }
-            else if (type == 'u') {
+            } else if (type == 'u') {
                 columns.add(
-                        new UnchangedToastedReplicationMessageColumn(columnName, columnType, typeExpression, optional, true) {
+                        new UnchangedToastedReplicationMessageColumn(
+                                columnName, columnType, typeExpression, optional, true) {
                             @Override
                             public String toString() {
-                                return columnName + "(" + typeExpression + ") - Unchanged toasted column";
+                                return columnName
+                                        + "("
+                                        + typeExpression
+                                        + ") - Unchanged toasted column";
                             }
                         });
-            }
-            else if (type == 'n') {
+            } else if (type == 'n') {
                 columns.add(
-                        new AbstractReplicationMessageColumn(columnName, columnType, typeExpression, true, true) {
+                        new AbstractReplicationMessageColumn(
+                                columnName, columnType, typeExpression, true, true) {
                             @Override
-                            public Object getValue(OpengaussStreamingChangeEventSource.PgConnectionSupplier connection, boolean includeUnknownDatatypes) {
+                            public Object getValue(
+                                    OpengaussStreamingChangeEventSource.PgConnectionSupplier
+                                            connection,
+                                    boolean includeUnknownDatatypes) {
                                 return null;
                             }
                         });

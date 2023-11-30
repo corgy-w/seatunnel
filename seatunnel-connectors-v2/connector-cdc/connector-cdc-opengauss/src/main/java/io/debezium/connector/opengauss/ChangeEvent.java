@@ -11,7 +11,6 @@ import org.apache.kafka.connect.source.SourceRecord;
  * Container for {@link SourceRecord}s and associated metadata
  *
  * @author Jiri Pechanec
- *
  */
 public class ChangeEvent {
 
@@ -21,8 +20,8 @@ public class ChangeEvent {
     private final SourceRecord record;
 
     /**
-     * The last LSN of that was completely processed. Depending on the batching it is either
-     * LSN of a current record or LSN of the previous transaction.
+     * The last LSN of that was completely processed. Depending on the batching it is either LSN of
+     * a current record or LSN of the previous transaction.
      */
     private final Long lastCompletelyProcessedLsn;
 
@@ -41,6 +40,10 @@ public class ChangeEvent {
 
     @Override
     public String toString() {
-        return "ChangeEvent [record=" + record + ", lastCompletelyProcessedLsn=" + lastCompletelyProcessedLsn + "]";
+        return "ChangeEvent [record="
+                + record
+                + ", lastCompletelyProcessedLsn="
+                + lastCompletelyProcessedLsn
+                + "]";
     }
 }

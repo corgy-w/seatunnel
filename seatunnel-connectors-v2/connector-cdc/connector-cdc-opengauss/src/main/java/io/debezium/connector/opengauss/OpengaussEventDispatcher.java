@@ -6,6 +6,13 @@
 
 package io.debezium.connector.opengauss;
 
+import io.debezium.relational.TableId;
+import org.apache.kafka.connect.source.SourceRecord;
+
+import org.apache.seatunnel.connectors.cdc.base.relational.JdbcSourceEventDispatcher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.connector.opengauss.connection.LogicalDecodingMessage;
 import io.debezium.heartbeat.Heartbeat;
@@ -20,58 +27,104 @@ import io.debezium.schema.DataCollectionId;
 import io.debezium.schema.DatabaseSchema;
 import io.debezium.schema.TopicSelector;
 import io.debezium.util.SchemaNameAdjuster;
-import org.apache.kafka.connect.source.SourceRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashMap;
 
 /**
- * Custom extension of the {@link EventDispatcher} to accommodate routing {@link LogicalDecodingMessage} events to the change event queue.
+ * Custom extension of the {@link EventDispatcher} to accommodate routing {@link
+ * LogicalDecodingMessage} events to the change event queue.
  *
  * @author Lairen Hightower
  */
-public class OpengaussEventDispatcher<T extends DataCollectionId> extends EventDispatcher<T> {
+public class OpengaussEventDispatcher<T extends DataCollectionId> extends JdbcSourceEventDispatcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpengaussEventDispatcher.class);
     private final ChangeEventQueue<DataChangeEvent> queue;
     private final LogicalDecodingMessageMonitor logicalDecodingMessageMonitor;
     private final LogicalDecodingMessageFilter messageFilter;
 
-    public OpengaussEventDispatcher(OpengaussConnectorConfig connectorConfig, TopicSelector<T> topicSelector,
-                                    DatabaseSchema<T> schema, ChangeEventQueue<DataChangeEvent> queue, DataCollectionFilters.DataCollectionFilter<T> filter,
-                                    ChangeEventCreator changeEventCreator, EventMetadataProvider metadataProvider, SchemaNameAdjuster schemaNameAdjuster) {
-        this(connectorConfig, topicSelector, schema, queue, filter, changeEventCreator, null, metadataProvider,
-                null, schemaNameAdjuster, null);
+    public OpengaussEventDispatcher(
+            OpengaussConnectorConfig connectorConfig,
+            TopicSelector<TableId> topicSelector,
+            DatabaseSchema<TableId> schema,
+            ChangeEventQueue<DataChangeEvent> queue,
+            DataCollectionFilters.DataCollectionFilter<TableId> filter,
+            ChangeEventCreator changeEventCreator,
+            EventMetadataProvider metadataProvider,
+            SchemaNameAdjuster schemaNameAdjuster) {
+        this(
+                connectorConfig,
+                topicSelector,
+                schema,
+                queue,
+                filter,
+                changeEventCreator,
+                null,
+                metadataProvider,
+                null,
+                schemaNameAdjuster,
+                null);
     }
 
-    public OpengaussEventDispatcher(OpengaussConnectorConfig connectorConfig, TopicSelector<T> topicSelector,
-                                    DatabaseSchema<T> schema, ChangeEventQueue<DataChangeEvent> queue, DataCollectionFilters.DataCollectionFilter<T> filter,
-                                    ChangeEventCreator changeEventCreator, EventMetadataProvider metadataProvider,
-                                    Heartbeat heartbeat, SchemaNameAdjuster schemaNameAdjuster) {
-        this(connectorConfig, topicSelector, schema, queue, filter, changeEventCreator, null, metadataProvider,
-                heartbeat, schemaNameAdjuster, null);
+    public OpengaussEventDispatcher(
+            OpengaussConnectorConfig connectorConfig,
+            TopicSelector<TableId> topicSelector,
+            DatabaseSchema<TableId> schema,
+            ChangeEventQueue<DataChangeEvent> queue,
+            DataCollectionFilters.DataCollectionFilter<TableId> filter,
+            ChangeEventCreator changeEventCreator,
+            EventMetadataProvider metadataProvider,
+            Heartbeat heartbeat,
+            SchemaNameAdjuster schemaNameAdjuster) {
+        this(
+                connectorConfig,
+                topicSelector,
+                schema,
+                queue,
+                filter,
+                changeEventCreator,
+                null,
+                metadataProvider,
+                heartbeat,
+                schemaNameAdjuster,
+                null);
     }
 
-    public OpengaussEventDispatcher(OpengaussConnectorConfig connectorConfig, TopicSelector<T> topicSelector,
-                                    DatabaseSchema<T> schema, ChangeEventQueue<DataChangeEvent> queue, DataCollectionFilters.DataCollectionFilter<T> filter,
-                                    ChangeEventCreator changeEventCreator, InconsistentSchemaHandler<T> inconsistentSchemaHandler,
-                                    EventMetadataProvider metadataProvider, Heartbeat customHeartbeat, SchemaNameAdjuster schemaNameAdjuster,
-                                    JdbcConnection jdbcConnection) {
-        super(connectorConfig, topicSelector, schema, queue, filter, changeEventCreator, inconsistentSchemaHandler, metadataProvider,
-                customHeartbeat, schemaNameAdjuster, jdbcConnection);
+    public OpengaussEventDispatcher(
+            OpengaussConnectorConfig connectorConfig,
+            TopicSelector<TableId> topicSelector,
+            DatabaseSchema<TableId> schema,
+            ChangeEventQueue<DataChangeEvent> queue,
+            DataCollectionFilters.DataCollectionFilter<TableId> filter,
+            ChangeEventCreator changeEventCreator,
+            InconsistentSchemaHandler<T> inconsistentSchemaHandler,
+            EventMetadataProvider metadataProvider,
+            Heartbeat customHeartbeat,
+            SchemaNameAdjuster schemaNameAdjuster,
+            JdbcConnection jdbcConnection) {
+        super(
+                connectorConfig,
+                topicSelector,
+                schema,
+                queue,
+                filter,
+                changeEventCreator,
+                metadataProvider,
+                schemaNameAdjuster);
         this.queue = queue;
-        this.logicalDecodingMessageMonitor = new LogicalDecodingMessageMonitor(connectorConfig, this::enqueueLogicalDecodingMessage);
+        this.logicalDecodingMessageMonitor =
+                new LogicalDecodingMessageMonitor(
+                        connectorConfig, this::enqueueLogicalDecodingMessage);
         this.messageFilter = connectorConfig.getMessageFilter();
     }
 
-    public void dispatchLogicalDecodingMessage( OffsetContext offset, Long decodeTimestamp,
-                                               LogicalDecodingMessage message)
+    public void dispatchLogicalDecodingMessage(
+            OffsetContext offset, Long decodeTimestamp, LogicalDecodingMessage message)
             throws InterruptedException {
         if (messageFilter.isIncluded(message.getPrefix())) {
-            logicalDecodingMessageMonitor.logicalDecodingMessageEvent(offset, decodeTimestamp, message);
-        }
-        else {
-            LOGGER.trace("Filtered data change event for logical decoding message with prefix{}", message.getPrefix());
+            logicalDecodingMessageMonitor.logicalDecodingMessageEvent(
+                    offset, decodeTimestamp, message);
+        } else {
+            LOGGER.trace(
+                    "Filtered data change event for logical decoding message with prefix{}",
+                    message.getPrefix());
         }
     }
 

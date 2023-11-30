@@ -9,7 +9,6 @@ package io.debezium.connector.opengauss;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.connection.ReplicationMessage;
 import io.debezium.pipeline.spi.OffsetContext;
-import io.debezium.pipeline.spi.Partition;
 import io.debezium.relational.TableId;
 import io.debezium.util.Clock;
 
@@ -32,9 +31,14 @@ public class TruncateRecordEmitter extends OpengaussChangeRecordEmitter {
      * @param tableId TableId
      * @param message ReplicationMessage
      */
-    public TruncateRecordEmitter(Partition partition, OffsetContext offset, Clock clock,
-        OpengaussConnectorConfig connectorConfig, OpengaussSchema schema,
-        OpengaussConnection connection, TableId tableId, ReplicationMessage message) {
-        super(partition, offset, clock, connectorConfig, schema, connection, tableId, message);
+    public TruncateRecordEmitter(
+            OffsetContext offset,
+            Clock clock,
+            OpengaussConnectorConfig connectorConfig,
+            OpengaussSchema schema,
+            OpengaussConnection connection,
+            TableId tableId,
+            ReplicationMessage message) {
+        super(offset, clock, connectorConfig, schema, connection, tableId, message);
     }
 }

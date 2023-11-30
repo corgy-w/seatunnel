@@ -5,6 +5,12 @@
  */
 package io.debezium.connector.opengauss.connection.ogproto;
 
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.jdbc.PgArray;
+import org.postgresql.util.PGmoney;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.connector.opengauss.OgOid;
 import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
 import io.debezium.connector.opengauss.OpengaussType;
@@ -15,11 +21,6 @@ import io.debezium.connector.opengauss.connection.wal2json.DateTimeFormat;
 import io.debezium.connector.postgresql.proto.PgProto;
 import io.debezium.data.SpecialValueDecimal;
 import io.debezium.time.Conversions;
-import org.postgresql.geometric.PGpoint;
-import org.postgresql.jdbc.PgArray;
-import org.postgresql.util.PGmoney;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
@@ -34,7 +35,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 
 /**
- * Replication message column sent by <a href="https://github.com/debezium/postgres-decoderbufs">Postgres Decoderbufs</>
+ * Replication message column sent by <a
+ * href="https://github.com/debezium/postgres-decoderbufs">Postgres Decoderbufs</>
  *
  * @author Chris Cranford
  */
@@ -43,14 +45,12 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
     private static final Logger LOGGER = LoggerFactory.getLogger(OgProtoColumnValue.class);
 
     /**
-     * A number used by PostgreSQL to define minimum timestamp (inclusive).
-     * Defined in timestamp.h
+     * A number used by PostgreSQL to define minimum timestamp (inclusive). Defined in timestamp.h
      */
     private static final long TIMESTAMP_MIN = -211813488000000000L;
 
     /**
-     * A number used by PostgreSQL to define maximum timestamp (exclusive).
-     * Defined in timestamp.h
+     * A number used by PostgreSQL to define maximum timestamp (exclusive). Defined in timestamp.h
      */
     private static final long TIMESTAMP_MAX = 9223371331200000000L;
 
@@ -74,8 +74,7 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
     public String asString() {
         if (value.hasDatumString()) {
             return value.getDatumString();
-        }
-        else if (value.hasDatumBytes()) {
+        } else if (value.hasDatumBytes()) {
             return new String(asByteArray(), Charset.forName("UTF-8"));
         }
         return null;
@@ -91,8 +90,7 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
         if (s != null) {
             if (s.equalsIgnoreCase("t")) {
                 return Boolean.TRUE;
-            }
-            else if (s.equalsIgnoreCase("f")) {
+            } else if (s.equalsIgnoreCase("f")) {
                 return Boolean.FALSE;
             }
         }
@@ -147,7 +145,8 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
 
         final String s = asString();
         if (s != null) {
-            return OpengaussValueConverter.toSpecialValue(s).orElseGet(() -> new SpecialValueDecimal(new BigDecimal(s)));
+            return OpengaussValueConverter.toSpecialValue(s)
+                    .orElseGet(() -> new SpecialValueDecimal(new BigDecimal(s)));
         }
         return null;
     }
@@ -183,7 +182,9 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
     @Override
     public OffsetTime asOffsetTimeUtc() {
         if (value.hasDatumDouble()) {
-            return Conversions.toInstantFromMicros((long) value.getDatumDouble()).atOffset(ZoneOffset.UTC).toOffsetTime();
+            return Conversions.toInstantFromMicros((long) value.getDatumDouble())
+                    .atOffset(ZoneOffset.UTC)
+                    .toOffsetTime();
         }
 
         final String s = asString();
@@ -196,8 +197,7 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
             if (value.getDatumInt64() >= TIMESTAMP_MAX) {
                 LOGGER.trace("Infinite(+) value '{}' arrived from database", value.getDatumInt64());
                 return OpengaussValueConverter.POSITIVE_INFINITY_OFFSET_DATE_TIME;
-            }
-            else if (value.getDatumInt64() < TIMESTAMP_MIN) {
+            } else if (value.getDatumInt64() < TIMESTAMP_MIN) {
                 LOGGER.trace("Infinite(-) value '{}' arrived from database", value.getDatumInt64());
                 return OpengaussValueConverter.NEGATIVE_INFINITY_OFFSET_DATE_TIME;
             }
@@ -205,7 +205,11 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
         }
 
         final String s = asString();
-        return s != null ? DateTimeFormat.get().timestampWithTimeZoneToOffsetDateTime(s).withOffsetSameInstant(ZoneOffset.UTC) : null;
+        return s != null
+                ? DateTimeFormat.get()
+                        .timestampWithTimeZoneToOffsetDateTime(s)
+                        .withOffsetSameInstant(ZoneOffset.UTC)
+                : null;
     }
 
     @Override
@@ -214,8 +218,7 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
             if (value.getDatumInt64() >= TIMESTAMP_MAX) {
                 LOGGER.trace("Infinite(+) value '{}' arrived from database", value.getDatumInt64());
                 return OpengaussValueConverter.POSITIVE_INFINITY_INSTANT;
-            }
-            else if (value.getDatumInt64() < TIMESTAMP_MIN) {
+            } else if (value.getDatumInt64() < TIMESTAMP_MIN) {
                 LOGGER.trace("Infinite(-) value '{}' arrived from database", value.getDatumInt64());
                 return OpengaussValueConverter.NEGATIVE_INFINITY_INSTANT;
             }
@@ -254,8 +257,7 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
         if (value.hasDatumPoint()) {
             PgProto.Point datumPoint = value.getDatumPoint();
             return new PGpoint(datumPoint.getX(), datumPoint.getY());
-        }
-        else if (value.hasDatumBytes()) {
+        } else if (value.hasDatumBytes()) {
             return super.asPoint();
         }
         return null;
@@ -310,15 +312,23 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
     }
 
     @Override
-    public Object asArray(String columnName, OpengaussType type, String fullType, OpengaussStreamingChangeEventSource.PgConnectionSupplier connection) {
-        // Currently the logical decoding plugin sends unhandled types as a byte array containing the string
+    public Object asArray(
+            String columnName,
+            OpengaussType type,
+            String fullType,
+            OpengaussStreamingChangeEventSource.PgConnectionSupplier connection) {
+        // Currently the logical decoding plugin sends unhandled types as a byte array containing
+        // the string
         // representation (in Postgres) of the array value.
-        // The approach to decode this is sub-optimal but the only way to improve this is to update the plugin.
+        // The approach to decode this is sub-optimal but the only way to improve this is to update
+        // the plugin.
         // Reasons for it being sub-optimal include:
         // 1. It requires a Postgres JDBC connection to deserialize
-        // 2. The byte-array is a serialised string but we make the assumption its UTF-8 encoded (which it will
+        // 2. The byte-array is a serialised string but we make the assumption its UTF-8 encoded
+        // (which it will
         // be in most cases)
-        // 3. For larger arrays and especially 64-bit integers and the like it is less efficient sending string
+        // 3. For larger arrays and especially 64-bit integers and the like it is less efficient
+        // sending string
         // representations over the wire.
         try {
             byte[] data = asByteArray();
@@ -326,24 +336,32 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
                 return null;
             }
             String dataString = new String(data, Charset.forName("UTF-8"));
-            PgArray arrayData = new PgArray(connection.get(), (int) value.getColumnType(), dataString);
+            PgArray arrayData =
+                    new PgArray(connection.get(), (int) value.getColumnType(), dataString);
             Object deserializedArray = arrayData.getArray();
             return Arrays.asList((Object[]) deserializedArray);
-        }
-        catch (SQLException e) {
-            LOGGER.warn("Unexpected exception trying to process PgArray column '{}'", value.getColumnName(), e);
+        } catch (SQLException e) {
+            LOGGER.warn(
+                    "Unexpected exception trying to process PgArray column '{}'",
+                    value.getColumnName(),
+                    e);
         }
         return null;
     }
 
     @Override
-    public Object asDefault(TypeRegistry typeRegistry, int columnType, String columnName, String fullType, boolean includeUnknownDatatypes,
-                            OpengaussStreamingChangeEventSource.PgConnectionSupplier connection) {
+    public Object asDefault(
+            TypeRegistry typeRegistry,
+            int columnType,
+            String columnName,
+            String fullType,
+            boolean includeUnknownDatatypes,
+            OpengaussStreamingChangeEventSource.PgConnectionSupplier connection) {
         final OpengaussType type = typeRegistry.get(columnType);
-        if (type.getOid() == typeRegistry.geometryOid() ||
-                type.getOid() == typeRegistry.geographyOid() ||
-                type.getOid() == typeRegistry.citextOid() ||
-                type.getOid() == typeRegistry.hstoreOid()) {
+        if (type.getOid() == typeRegistry.geometryOid()
+                || type.getOid() == typeRegistry.geographyOid()
+                || type.getOid() == typeRegistry.citextOid()
+                || type.getOid() == typeRegistry.hstoreOid()) {
             return asByteArray();
         }
 

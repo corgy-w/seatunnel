@@ -12,9 +12,7 @@ import io.debezium.util.Strings;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-/**
- * @author Chris Cranford
- */
+/** @author Chris Cranford */
 class OgOutputColumnValue extends AbstractColumnValue<String> {
 
     private String value;
@@ -63,7 +61,7 @@ class OgOutputColumnValue extends AbstractColumnValue<String> {
         return Double.valueOf(value);
     }
 
-    public String asNumberString(){
+    public String asNumberString() {
         BigInteger number = new BigInteger(value, 16);
         return number.toString();
     }
@@ -72,8 +70,7 @@ class OgOutputColumnValue extends AbstractColumnValue<String> {
     public SpecialValueDecimal asDecimal() {
         if ("NaN".equals(value)) {
             return SpecialValueDecimal.NOT_A_NUMBER;
-        }
-        else {
+        } else {
             return new SpecialValueDecimal(new BigDecimal(value));
         }
     }
@@ -85,8 +82,6 @@ class OgOutputColumnValue extends AbstractColumnValue<String> {
 
     @Override
     public String toString() {
-        return "OgOutputColumnValue{" +
-                "value='" + value + '\'' +
-                '}';
+        return "OgOutputColumnValue{" + "value='" + value + '\'' + '}';
     }
 }

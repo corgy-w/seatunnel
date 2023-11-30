@@ -6,16 +6,15 @@
 package io.debezium.connector.opengauss.spi;
 
 import io.debezium.common.annotation.Incubating;
-import io.debezium.connector.opengauss.connection.Lsn;
+import io.debezium.connector.postgresql.connection.Lsn;
 
 import java.time.Instant;
 
 /**
- * A simple data container that represents the last seen offset
- * which was written by debezium.
+ * A simple data container that represents the last seen offset which was written by debezium.
  *
- * This data may differ based on decoding plugin and settings, such as
- * lastSeenXmin being null if xmin tracking isn't enabled
+ * <p>This data may differ based on decoding plugin and settings, such as lastSeenXmin being null if
+ * xmin tracking isn't enabled
  */
 @Incubating
 public class OffsetState {
@@ -33,37 +32,27 @@ public class OffsetState {
         this.snapshotting = isSnapshot;
     }
 
-    /**
-     * @return the last LSN seen by debezium
-     */
+    /** @return the last LSN seen by debezium */
     public Lsn lastSeenLsn() {
         return lsn;
     }
 
-    /**
-     * @return the last txid seen by debezium
-     */
+    /** @return the last txid seen by debezium */
     public Long lastSeenTxId() {
         return txId;
     }
 
-    /**
-     * @return the last xmin seen by debezium
-     */
+    /** @return the last xmin seen by debezium */
     public Long lastSeenXmin() {
         return xmin;
     }
 
-    /**
-     * @return the last commit timestamp seen by debezium
-     */
+    /** @return the last commit timestamp seen by debezium */
     public Instant lastCommitTs() {
         return commitTs;
     }
 
-    /**
-     * @return indicates if a snapshot is happening
-     */
+    /** @return indicates if a snapshot is happening */
     public boolean snapshotInEffect() {
         return snapshotting;
     }

@@ -5,20 +5,21 @@
  */
 package io.debezium.connector.opengauss.connection;
 
-import io.debezium.connector.opengauss.OpengaussType;
 import org.apache.kafka.connect.errors.ConnectException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.debezium.connector.opengauss.OpengaussType;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Extracts type information from replication messages and associates them with each column.
- * The metadata are parsed lazily.
+ * Extracts type information from replication messages and associates them with each column. The
+ * metadata are parsed lazily.
  *
  * @author Jiri Pechanec
- *
  */
 public abstract class AbstractReplicationMessageColumn implements ReplicationMessage.Column {
 
@@ -28,35 +29,37 @@ public abstract class AbstractReplicationMessageColumn implements ReplicationMes
 
         private static final String[] NO_MODIFIERS = new String[0];
 
-        public static final Pattern TYPE_PATTERN = Pattern
-                .compile("^(?<schema>[^\\.\\(]+\\.)?(?<full>(?<base>[^(\\[]+)(?:\\((?<mod>.+)\\))?(?<suffix>.*?))(?<array>\\[\\])?$");
+        public static final Pattern TYPE_PATTERN =
+                Pattern.compile(
+                        "^(?<schema>[^\\.\\(]+\\.)?(?<full>(?<base>[^(\\[]+)(?:\\((?<mod>.+)\\))?(?<suffix>.*?))(?<array>\\[\\])?$");
         private static final Pattern TYPEMOD_PATTERN = Pattern.compile("\\s*,\\s*");
-        // "text"; "character varying(255)"; "numeric(12,3)"; "geometry(MultiPolygon,4326)"; "timestamp (12) with time zone"; "int[]"; "myschema.geometry"
+        // "text"; "character varying(255)"; "numeric(12,3)"; "geometry(MultiPolygon,4326)";
+        // "timestamp (12) with time zone"; "int[]"; "myschema.geometry"
 
-        /**
-         * Length of the type, if present
-         */
+        /** Length of the type, if present */
         private Integer length;
 
-        /**
-         * Scale of the type, if present
-         */
+        /** Scale of the type, if present */
         private Integer scale;
 
-        /**
-         * True if the type has not <code>NOT NULL</code> constraint
-         */
+        /** True if the type has not <code>NOT NULL</code> constraint */
         private final boolean optional;
 
-        public TypeMetadataImpl(String columnName, OpengaussType type, String typeWithModifiers, boolean optional) {
+        public TypeMetadataImpl(
+                String columnName, OpengaussType type, String typeWithModifiers, boolean optional) {
             this.optional = optional;
             Matcher m = TYPE_PATTERN.matcher(typeWithModifiers);
             if (!m.matches()) {
-                LOGGER.error("Failed to parse columnType for {} '{}'", columnName, typeWithModifiers);
-                throw new ConnectException(String.format("Failed to parse columnType '%s' for column %s", typeWithModifiers, columnName));
+                LOGGER.error(
+                        "Failed to parse columnType for {} '{}'", columnName, typeWithModifiers);
+                throw new ConnectException(
+                        String.format(
+                                "Failed to parse columnType '%s' for column %s",
+                                typeWithModifiers, columnName));
             }
 
-            String[] typeModifiers = m.group("mod") != null ? TYPEMOD_PATTERN.split(m.group("mod")) : NO_MODIFIERS;
+            String[] typeModifiers =
+                    m.group("mod") != null ? TYPEMOD_PATTERN.split(m.group("mod")) : NO_MODIFIERS;
 
             // TODO: make this more elegant/type-specific
             length = type.getDefaultLength();
@@ -66,16 +69,14 @@ public abstract class AbstractReplicationMessageColumn implements ReplicationMes
                     final String typMod = typeModifiers[0];
                     this.length = type.length(Integer.parseInt(typMod));
                     this.scale = type.scale(Integer.parseInt(typMod));
-                }
-                catch (NumberFormatException e) {
+                } catch (NumberFormatException e) {
                 }
             }
 
             if (typeModifiers.length > 1) {
                 try {
                     this.scale = Integer.parseInt(typeModifiers[1]);
-                }
-                catch (NumberFormatException e) {
+                } catch (NumberFormatException e) {
                 }
             }
         }
@@ -102,7 +103,12 @@ public abstract class AbstractReplicationMessageColumn implements ReplicationMes
     private final boolean hasMetadata;
     private final OpengaussType type;
 
-    public AbstractReplicationMessageColumn(String columnName, OpengaussType type, String typeWithModifiers, boolean optional, boolean hasMetadata) {
+    public AbstractReplicationMessageColumn(
+            String columnName,
+            OpengaussType type,
+            String typeWithModifiers,
+            boolean optional,
+            boolean hasMetadata) {
         super();
         this.columnName = columnName;
         this.type = type;
@@ -116,9 +122,7 @@ public abstract class AbstractReplicationMessageColumn implements ReplicationMes
         typeMetadata = new TypeMetadataImpl(columnName, type, typeWithModifiers, optional);
     }
 
-    /**
-     * @return the {@link OpengaussType} containing both OID and JDBC id.
-     */
+    /** @return the {@link OpengaussType} containing both OID and JDBC id. */
     @Override
     public OpengaussType getType() {
         return type;
@@ -129,9 +133,7 @@ public abstract class AbstractReplicationMessageColumn implements ReplicationMes
         return columnName;
     }
 
-    /**
-     * @return true if the column is optional
-     */
+    /** @return true if the column is optional */
     @Override
     public boolean isOptional() {
         return optional;

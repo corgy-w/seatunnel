@@ -32,7 +32,12 @@ public class OgOutputRelationMetaData {
      * @param columns list of column metadata instances describing the state of each column
      * @param primaryKeyNames ordered list of primary key column names
      */
-    OgOutputRelationMetaData(int relationId, String schema, String name, List<ColumnMetaData> columns, List<String> primaryKeyNames) {
+    OgOutputRelationMetaData(
+            int relationId,
+            String schema,
+            String name,
+            List<ColumnMetaData> columns,
+            List<String> primaryKeyNames) {
         this.relationId = relationId;
         this.schema = schema;
         this.name = name;

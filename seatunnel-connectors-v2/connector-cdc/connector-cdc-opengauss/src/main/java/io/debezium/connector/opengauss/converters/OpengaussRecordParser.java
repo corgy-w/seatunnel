@@ -5,12 +5,13 @@
  */
 package io.debezium.connector.opengauss.converters;
 
-import io.debezium.converters.RecordParser;
-import io.debezium.data.Envelope;
-import io.debezium.util.Collect;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.DataException;
+
+import io.debezium.converters.RecordParser;
+import io.debezium.data.Envelope;
+import io.debezium.util.Collect;
 
 import java.util.Set;
 
@@ -24,12 +25,11 @@ public class OpengaussRecordParser extends RecordParser {
     static final String TXID_KEY = "txId";
     static final String XMIN_KEY = "xmin";
     static final String LSN_KEY = "lsn";
-    static final Set<String> SOURCE_FIELDS = Collect.unmodifiableSet("version", "connector", "name", "ts_ms", "snapshot", "db");
+    static final Set<String> SOURCE_FIELDS =
+            Collect.unmodifiableSet("version", "connector", "name", "ts_ms", "snapshot", "db");
 
-    static final Set<String> POSTGRES_SOURCE_FIELD = Collect.unmodifiableSet(
-            TXID_KEY,
-            XMIN_KEY,
-            LSN_KEY);
+    static final Set<String> POSTGRES_SOURCE_FIELD =
+            Collect.unmodifiableSet(TXID_KEY, XMIN_KEY, LSN_KEY);
 
     public OpengaussRecordParser(Schema schema, Struct record) {
         super(schema, record, Envelope.FieldName.BEFORE, Envelope.FieldName.AFTER);
@@ -44,6 +44,9 @@ public class OpengaussRecordParser extends RecordParser {
             return source().get(name);
         }
 
-        throw new DataException("No such field \"" + name + "\" in the \"source\" field of events from PostgreSQL connector");
+        throw new DataException(
+                "No such field \""
+                        + name
+                        + "\" in the \"source\" field of events from PostgreSQL connector");
     }
 }

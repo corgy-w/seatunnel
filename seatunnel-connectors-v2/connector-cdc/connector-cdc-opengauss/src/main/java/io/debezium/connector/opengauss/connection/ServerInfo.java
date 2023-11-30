@@ -7,6 +7,7 @@
 package io.debezium.connector.opengauss.connection;
 
 import io.debezium.connector.opengauss.spi.SlotState;
+import io.debezium.connector.postgresql.connection.Lsn;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -87,22 +88,21 @@ public class ServerInfo {
     @Override
     public String toString() {
         String lineSeparator = System.lineSeparator();
-        String roles = permissionsByRoleName.entrySet()
-                .stream()
-                .map(entry -> "\trole '" + entry.getKey() + "' [" + entry.getValue() + "]")
-                .collect(Collectors.joining(lineSeparator));
+        String roles =
+                permissionsByRoleName.entrySet().stream()
+                        .map(entry -> "\trole '" + entry.getKey() + "' [" + entry.getValue() + "]")
+                        .collect(Collectors.joining(lineSeparator));
 
         return "user '" + username + "' connected to database '" + database + "' on " + server;
     }
 
-    /**
-     * Table REPLICA IDENTITY information.
-     */
+    /** Table REPLICA IDENTITY information. */
     public enum ReplicaIdentity {
         NOTHING("UPDATE and DELETE events will not contain any old values"),
         FULL("UPDATE AND DELETE events will contain the previous values of all the columns"),
         DEFAULT("UPDATE and DELETE events will contain previous values only for PK columns"),
-        INDEX("UPDATE and DELETE events will contain previous values only for columns present in the REPLICA IDENTITY index"),
+        INDEX(
+                "UPDATE and DELETE events will contain previous values only for columns present in the REPLICA IDENTITY index"),
         UNKNOWN("Unknown REPLICA IDENTITY");
 
         private String description;
@@ -134,21 +134,20 @@ public class ServerInfo {
                     return UNKNOWN;
             }
         }
-
     }
 
-    /**
-     * Information about a server replication slot
-     */
+    /** Information about a server replication slot */
     protected static class ReplicationSlot {
-        protected static final ReplicationSlot INVALID = new ReplicationSlot(false, null, null, null);
+        protected static final ReplicationSlot INVALID =
+                new ReplicationSlot(false, null, null, null);
 
         private boolean active;
         private Lsn latestFlushedLsn;
         private Lsn restartLsn;
         private Long catalogXmin;
 
-        protected ReplicationSlot(boolean active, Lsn latestFlushedLsn, Lsn restartLsn, Long catalogXmin) {
+        protected ReplicationSlot(
+                boolean active, Lsn latestFlushedLsn, Lsn restartLsn, Long catalogXmin) {
             this.active = active;
             this.latestFlushedLsn = latestFlushedLsn;
             this.restartLsn = restartLsn;
@@ -162,8 +161,9 @@ public class ServerInfo {
         /**
          * Represents the `confirmed_flushed_lsn` field of the replication slot.
          *
-         * This value represents the latest LSN that the logical replication
-         * consumer has reported back to postgres.
+         * <p>This value represents the latest LSN that the logical replication consumer has
+         * reported back to postgres.
+         *
          * @return the latestFlushedLsn
          */
         protected Lsn latestFlushedLsn() {
@@ -173,10 +173,10 @@ public class ServerInfo {
         /**
          * Represents the `restart_lsn` field of the replication slot.
          *
-         * The restart_lsn will be the LSN the slot restarts from
-         * in the event of the disconnect. This can be distinct from
-         * the `confirmed_flushed_lsn` as the two pointers are moved
+         * <p>The restart_lsn will be the LSN the slot restarts from in the event of the disconnect.
+         * This can be distinct from the `confirmed_flushed_lsn` as the two pointers are moved
          * independently
+         *
          * @return the restartLsn
          */
         protected Lsn restartLsn() {
@@ -197,7 +197,13 @@ public class ServerInfo {
 
         @Override
         public String toString() {
-            return "ReplicationSlot [active=" + active + ", latestFlushedLsn=" + latestFlushedLsn + ", catalogXmin=" + catalogXmin + "]";
+            return "ReplicationSlot [active="
+                    + active
+                    + ", latestFlushedLsn="
+                    + latestFlushedLsn
+                    + ", catalogXmin="
+                    + catalogXmin
+                    + "]";
         }
     }
 }

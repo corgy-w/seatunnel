@@ -23,8 +23,13 @@ public class LogicalDecodingMessage implements ReplicationMessage {
     private final String prefix;
     private final byte[] content;
 
-    public LogicalDecodingMessage(Operation op, Instant commitTimestamp, Long transactionId, boolean isTransactional,
-                                  String prefix, byte[] content) {
+    public LogicalDecodingMessage(
+            Operation op,
+            Instant commitTimestamp,
+            Long transactionId,
+            boolean isTransactional,
+            String prefix,
+            byte[] content) {
         this.operation = op;
         this.commitTime = commitTimestamp;
         this.transactionId = transactionId;

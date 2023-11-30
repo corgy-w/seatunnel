@@ -5,15 +5,16 @@
  */
 package io.debezium.connector.opengauss.utils;
 
-import io.debezium.converters.CloudEventsMaker;
-import io.debezium.converters.RecordParser;
-import io.debezium.converters.SerializerType;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
+import io.debezium.converters.CloudEventsMaker;
+import io.debezium.converters.RecordParser;
+import io.debezium.converters.SerializerType;
+
 /**
- * A {@link java.util.ServiceLoader} interface that connectors should implement if they wish to provide
- * a way to emit change events using the CloudEvents converter and format.
+ * A {@link java.util.ServiceLoader} interface that connectors should implement if they wish to
+ * provide a way to emit change events using the CloudEvents converter and format.
  *
  * @author Chris Cranford
  */
@@ -35,13 +36,14 @@ public interface CloudEventsProvider {
     RecordParser createParser(Schema schema, Struct record);
 
     /**
-     * Create a concrete CloudEvents maker using the outputs of a record parser. Also need to specify the data content
-     * type (that is the serialization format of the data attribute).
+     * Create a concrete CloudEvents maker using the outputs of a record parser. Also need to
+     * specify the data content type (that is the serialization format of the data attribute).
      *
      * @param parser the parser of a change record
      * @param contentType the data content type of CloudEvents
      * @param dataSchemaUriBase the URI of the schema in case of Avro; may be null
      * @return a concrete CloudEvents maker
      */
-    CloudEventsMaker createMaker(RecordParser parser, SerializerType contentType, String dataSchemaUriBase);
+    CloudEventsMaker createMaker(
+            RecordParser parser, SerializerType contentType, String dataSchemaUriBase);
 }

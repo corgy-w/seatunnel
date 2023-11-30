@@ -5,15 +5,16 @@
  */
 package io.debezium.connector.opengauss.snapshot;
 
-import io.debezium.connector.opengauss.OpengaussConnectorConfig;
-import io.debezium.connector.opengauss.spi.OffsetState;
-import io.debezium.connector.opengauss.spi.SlotState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.debezium.connector.opengauss.OpengaussConnectorConfig;
+import io.debezium.connector.opengauss.spi.OffsetState;
+import io.debezium.connector.opengauss.spi.SlotState;
+
 public class InitialSnapshotter extends QueryingSnapshotter {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(InitialSnapshotter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(InitialSnapshotter.class);
     private OffsetState sourceInfo;
 
     @Override
@@ -32,12 +33,10 @@ public class InitialSnapshotter extends QueryingSnapshotter {
         if (sourceInfo == null) {
             LOGGER.info("Taking initial snapshot for new datasource");
             return true;
-        }
-        else if (sourceInfo.snapshotInEffect()) {
+        } else if (sourceInfo.snapshotInEffect()) {
             LOGGER.info("Found previous incomplete snapshot");
             return true;
-        }
-        else {
+        } else {
             LOGGER.info(
                     "Previous snapshot has completed successfully, streaming logical changes from last known position");
             return false;

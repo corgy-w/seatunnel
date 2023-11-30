@@ -6,22 +6,26 @@
 
 package io.debezium.connector.opengauss;
 
+import org.apache.commons.lang3.StringUtils;
+
 import io.debezium.function.Predicates;
-import io.debezium.util.Strings;
 
 import java.util.function.Predicate;
 
-/**
- * Applies the include/exclude filters to logical decoding message prefix.
- *
- */
+/** Applies the include/exclude filters to logical decoding message prefix. */
 public class LogicalDecodingMessageFilter {
 
     private final Predicate<String> filter;
 
     public LogicalDecodingMessageFilter(String inclusionString, String exclusionString) {
-        Predicate<String> inclusions = !Strings.isNullOrBlank(inclusionString) ? Predicates.includes(inclusionString) : null;
-        Predicate<String> exclusions = !Strings.isNullOrBlank(exclusionString) ? Predicates.excludes(exclusionString) : null;
+        Predicate<String> inclusions =
+                StringUtils.isNotEmpty(inclusionString)
+                        ? Predicates.includes(inclusionString)
+                        : null;
+        Predicate<String> exclusions =
+                StringUtils.isNotEmpty(exclusionString)
+                        ? Predicates.excludes(exclusionString)
+                        : null;
         Predicate<String> filter = inclusions != null ? inclusions : exclusions;
         this.filter = filter != null ? filter : (id) -> true;
     }

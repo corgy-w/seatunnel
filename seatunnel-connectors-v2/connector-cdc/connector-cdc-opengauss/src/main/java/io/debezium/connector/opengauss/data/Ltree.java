@@ -18,15 +18,13 @@ public class Ltree {
     public static final String LOGICAL_NAME = "io.debezium.data.Ltree";
 
     /**
-     * Returns a {@link SchemaBuilder} for a Ltree field. You can use the resulting SchemaBuilder
-     * to set additional schema settings such as required/optional, default value, and documentation.
+     * Returns a {@link SchemaBuilder} for a Ltree field. You can use the resulting SchemaBuilder to
+     * set additional schema settings such as required/optional, default value, and documentation.
      *
      * @return the schema builder
      */
     public static SchemaBuilder builder() {
-        return SchemaBuilder.string()
-                .name(LOGICAL_NAME)
-                .version(1);
+        return SchemaBuilder.string().name(LOGICAL_NAME).version(1);
     }
 
     /**

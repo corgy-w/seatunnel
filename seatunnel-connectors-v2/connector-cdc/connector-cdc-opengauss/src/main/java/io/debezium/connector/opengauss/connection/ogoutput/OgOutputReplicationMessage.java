@@ -28,7 +28,13 @@ public class OgOutputReplicationMessage implements ReplicationMessage {
     private List<Column> oldColumns;
     private List<Column> newColumns;
 
-    public OgOutputReplicationMessage(Operation op, String table, Instant commitTimestamp, Long transactionId, List<Column> oldColumns, List<Column> newColumns) {
+    public OgOutputReplicationMessage(
+            Operation op,
+            String table,
+            Instant commitTimestamp,
+            Long transactionId,
+            List<Column> oldColumns,
+            List<Column> newColumns) {
         this.op = op;
         this.commitTimestamp = commitTimestamp;
         this.transactionId = transactionId;
@@ -83,17 +89,32 @@ public class OgOutputReplicationMessage implements ReplicationMessage {
     }
 
     /**
-     * Converts the value (string representation) coming from PgOutput plugin to
-     * a Java value based on the type of the column from the message.  This value will be converted later on if necessary by the
-     * connector's value converter to match whatever the Connect schema type expects.
+     * Converts the value (string representation) coming from PgOutput plugin to a Java value based
+     * on the type of the column from the message. This value will be converted later on if
+     * necessary by the connector's value converter to match whatever the Connect schema type
+     * expects.
      *
-     * Note that the logic here is tightly coupled on the pgoutput plugin logic which writes the actual value.
+     * <p>Note that the logic here is tightly coupled on the pgoutput plugin logic which writes the
+     * actual value.
      *
      * @return the value; may be null
      */
-    public static Object getValue(String columnName, OpengaussType type, String fullType, String rawValue, final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
-                                  boolean includeUnknownDataTypes, TypeRegistry typeRegistry) {
+    public static Object getValue(
+            String columnName,
+            OpengaussType type,
+            String fullType,
+            String rawValue,
+            final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
+            boolean includeUnknownDataTypes,
+            TypeRegistry typeRegistry) {
         final OgOutputColumnValue columnValue = new OgOutputColumnValue(rawValue);
-        return ReplicationMessageColumnValueResolver.resolveValue(columnName, type, fullType, columnValue, connection, includeUnknownDataTypes, typeRegistry);
+        return ReplicationMessageColumnValueResolver.resolveValue(
+                columnName,
+                type,
+                fullType,
+                columnValue,
+                connection,
+                includeUnknownDataTypes,
+                typeRegistry);
     }
 }

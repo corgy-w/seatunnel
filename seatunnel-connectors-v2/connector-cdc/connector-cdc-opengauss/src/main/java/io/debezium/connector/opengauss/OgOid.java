@@ -9,17 +9,16 @@ package io.debezium.connector.opengauss;
 import org.postgresql.core.Oid;
 
 /**
- * Extension to the {@link org.postgresql.core.Oid} class which contains Postgres specific datatypes not found currently in the
- * JDBC driver implementation classes.
+ * Extension to the {@link org.postgresql.core.Oid} class which contains Postgres specific datatypes
+ * not found currently in the JDBC driver implementation classes.
  *
  * @author Horia Chiorean (hchiorea@redhat.com)
  */
 public final class OgOid extends Oid {
 
-    /**
-     * Internal PG types as returned by the plugin
-     */
+    /** Internal PG types as returned by the plugin */
     public static final int JSONB_OID = 3802;
+
     public static final int TSRANGE_OID = 3908;
     public static final int TSRANGE_ARRAY = 3909;
     public static final int TSTZRANGE_OID = 3910;

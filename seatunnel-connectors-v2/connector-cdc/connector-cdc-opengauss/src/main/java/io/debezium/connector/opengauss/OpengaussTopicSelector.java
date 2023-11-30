@@ -17,7 +17,8 @@ import io.debezium.schema.TopicSelector;
 public class OpengaussTopicSelector {
 
     public static TopicSelector<TableId> create(OpengaussConnectorConfig connectorConfig) {
-        return TopicSelector.defaultSelector(connectorConfig,
+        return TopicSelector.defaultSelector(
+                connectorConfig,
                 (id, prefix, delimiter) -> String.join(delimiter, prefix, id.schema(), id.table()));
     }
 }

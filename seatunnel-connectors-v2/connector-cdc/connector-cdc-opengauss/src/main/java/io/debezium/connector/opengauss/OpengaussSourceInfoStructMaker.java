@@ -5,25 +5,28 @@
  */
 package io.debezium.connector.opengauss;
 
-import io.debezium.config.CommonConnectorConfig;
-import io.debezium.connector.AbstractSourceInfoStructMaker;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
+
+import io.debezium.config.CommonConnectorConfig;
+import io.debezium.connector.AbstractSourceInfoStructMaker;
 
 public class OpengaussSourceInfoStructMaker extends AbstractSourceInfoStructMaker<SourceInfo> {
 
     private final Schema schema;
 
-    public OpengaussSourceInfoStructMaker(String connector, String version, CommonConnectorConfig connectorConfig) {
+    public OpengaussSourceInfoStructMaker(
+            String connector, String version, CommonConnectorConfig connectorConfig) {
         super(connector, version, connectorConfig);
-        schema = commonSchemaBuilder()
-                .name("io.debezium.connector.postgresql.Source")
-                .field(SourceInfo.SCHEMA_NAME_KEY, Schema.STRING_SCHEMA)
-                .field(SourceInfo.TABLE_NAME_KEY, Schema.STRING_SCHEMA)
-                .field(SourceInfo.TXID_KEY, Schema.OPTIONAL_INT64_SCHEMA)
-                .field(SourceInfo.LSN_KEY, Schema.OPTIONAL_INT64_SCHEMA)
-                .field(SourceInfo.XMIN_KEY, Schema.OPTIONAL_INT64_SCHEMA)
-                .build();
+        schema =
+                commonSchemaBuilder()
+                        .name("io.debezium.connector.postgresql.Source")
+                        .field(SourceInfo.SCHEMA_NAME_KEY, Schema.STRING_SCHEMA)
+                        .field(SourceInfo.TABLE_NAME_KEY, Schema.STRING_SCHEMA)
+                        .field(SourceInfo.TXID_KEY, Schema.OPTIONAL_INT64_SCHEMA)
+                        .field(SourceInfo.LSN_KEY, Schema.OPTIONAL_INT64_SCHEMA)
+                        .field(SourceInfo.XMIN_KEY, Schema.OPTIONAL_INT64_SCHEMA)
+                        .build();
     }
 
     @Override

@@ -18,8 +18,9 @@ import io.debezium.relational.Table;
  */
 public class OpenGaussDataEventsParam {
     private final ChangeEventSource.ChangeEventSourceContext sourceContext;
-    private final RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussPartition,
-            OpengaussOffsetContext> snapshotContext;
+    private final RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                    OpengaussOffsetContext>
+            snapshotContext;
     private final EventDispatcher.SnapshotReceiver snapshotReceiver;
     private final Table table;
     private final boolean isLastTable;
@@ -28,18 +29,20 @@ public class OpenGaussDataEventsParam {
      * Constructor
      *
      * @param sourceContext ChangeEventSource.ChangeEventSourceContext
-     * @param snapshotContext RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussPartition,
-     *        OpengaussOffsetContext>
-     * @param snapshotReceiver  EventDispatcher.SnapshotReceiver snapshotReceiver
+     * @param snapshotContext
+     *     RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussPartition,
+     *     OpengaussOffsetContext>
+     * @param snapshotReceiver EventDispatcher.SnapshotReceiver snapshotReceiver
      * @param table Table
      * @param isLastTable boolean
      */
-    public OpenGaussDataEventsParam(ChangeEventSource.ChangeEventSourceContext sourceContext,
-                                    RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussPartition,
-                                            OpengaussOffsetContext> snapshotContext,
-                                    EventDispatcher.SnapshotReceiver snapshotReceiver,
-                                    Table table,
-                                    boolean isLastTable) {
+    public OpenGaussDataEventsParam(
+            ChangeEventSource.ChangeEventSourceContext sourceContext,
+            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussOffsetContext>
+                    snapshotContext,
+            EventDispatcher.SnapshotReceiver snapshotReceiver,
+            Table table,
+            boolean isLastTable) {
         this.sourceContext = sourceContext;
         this.snapshotContext = snapshotContext;
         this.snapshotReceiver = snapshotReceiver;
@@ -61,8 +64,8 @@ public class OpenGaussDataEventsParam {
      *
      * @return snapshotContext RelationalSnapshotChangeEventSource.RelationalSnapshotContext
      */
-    public RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussPartition,
-            OpengaussOffsetContext> getSnapshotContext() {
+    public RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussOffsetContext>
+            getSnapshotContext() {
         return snapshotContext;
     }
 

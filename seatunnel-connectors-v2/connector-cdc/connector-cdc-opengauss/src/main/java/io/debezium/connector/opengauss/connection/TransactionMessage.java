@@ -14,7 +14,6 @@ import java.util.OptionalLong;
  * Replication message instance representing transaction demarcation events.
  *
  * @author Jiri Pechanec
- *
  */
 public class TransactionMessage implements ReplicationMessage {
 
@@ -70,7 +69,12 @@ public class TransactionMessage implements ReplicationMessage {
 
     @Override
     public String toString() {
-        return "TransactionMessage [transactionId=" + transactionId + ", commitTime=" + commitTime + ", operation="
-                + operation + "]";
+        return "TransactionMessage [transactionId="
+                + transactionId
+                + ", commitTime="
+                + commitTime
+                + ", operation="
+                + operation
+                + "]";
     }
 }

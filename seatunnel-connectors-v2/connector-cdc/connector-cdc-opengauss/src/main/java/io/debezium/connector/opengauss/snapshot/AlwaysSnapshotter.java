@@ -5,13 +5,14 @@
  */
 package io.debezium.connector.opengauss.snapshot;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.DebeziumException;
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.spi.OffsetState;
 import io.debezium.connector.opengauss.spi.SlotState;
 import io.debezium.relational.TableId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -19,7 +20,7 @@ import java.util.Set;
 
 public class AlwaysSnapshotter extends QueryingSnapshotter {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(AlwaysSnapshotter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AlwaysSnapshotter.class);
 
     @Override
     public boolean shouldStream() {
@@ -36,7 +37,8 @@ public class AlwaysSnapshotter extends QueryingSnapshotter {
     public void init(OpengaussConnectorConfig config, OffsetState sourceInfo, SlotState slotState) {
         String exportCsvPath = config.getExportCsvPath();
         if (exportCsvPath == null) {
-            throw new DebeziumException("full migration configuration export.csv.path No default value.");
+            throw new DebeziumException(
+                    "full migration configuration export.csv.path No default value.");
         }
         super.init(config, sourceInfo, slotState);
     }
@@ -49,17 +51,25 @@ public class AlwaysSnapshotter extends QueryingSnapshotter {
      * @return sql
      */
     @Override
-    public Optional<String> snapshotTableLockingStatement(Duration lockTimeout, Set<TableId> tableIds) {
+    public Optional<String> snapshotTableLockingStatement(
+            Duration lockTimeout, Set<TableId> tableIds) {
         String lineSeparator = System.lineSeparator();
         StringBuilder statements = new StringBuilder();
-        statements.append("SET lockwait_timeout = ").append(lockTimeout.toMillis()).append(";").append(lineSeparator);
+        statements
+                .append("SET lockwait_timeout = ")
+                .append(lockTimeout.toMillis())
+                .append(";")
+                .append(lineSeparator);
         // Locking can only be done within a transaction, so open the transaction
         statements.append("START TRANSACTION;").append(lineSeparator);
         // Prohibit reading any unexpected operation
-        tableIds.forEach(tableId -> statements.append("LOCK TABLE ")
-                .append(tableId.toDoubleQuotedString())
-                .append(" IN EXCLUSIVE MODE;")
-                .append(lineSeparator));
+        tableIds.forEach(
+                tableId ->
+                        statements
+                                .append("LOCK TABLE ")
+                                .append(tableId.toDoubleQuotedString())
+                                .append(" IN EXCLUSIVE MODE;")
+                                .append(lineSeparator));
         return Optional.of(statements.toString());
     }
 }

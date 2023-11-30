@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.debezium.annotation.NotThreadSafe;
 import io.debezium.connector.SnapshotRecord;
 import io.debezium.connector.common.BaseSourceInfo;
-import io.debezium.connector.opengauss.connection.Lsn;
+import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.relational.TableId;
 
 import java.time.Instant;
@@ -19,13 +19,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Information about the source of information, which for normal events contains information about the transaction id and the
- * LSN position in the server WAL.
+ * Information about the source of information, which for normal events contains information about
+ * the transaction id and the LSN position in the server WAL.
  *
- * <p>
- * The {@link #partition() source partition} information describes the database server for which we're streaming changes.
- * Typically, the server is identified by the host address port number and the name of the database. Here's a JSON-like
- * representation of an example database:
+ * <p>The {@link #partition() source partition} information describes the database server for which
+ * we're streaming changes. Typically, the server is identified by the host address port number and
+ * the name of the database. Here's a JSON-like representation of an example database:
  *
  * <pre>
  * {
@@ -33,12 +32,11 @@ import java.util.List;
  * }
  * </pre>
  *
- * <p>
- * The {@link #offset() source offset} information describes a structure containing the position in the server's WAL for any
- * particular event, transaction id and the server timestamp at which the transaction that generated that particular event has
- * been committed. When performing snapshots, it may also contain a snapshot field which indicates that a particular record
- * is created while a snapshot it taking place.
- * Here's a JSON-like representation of an example:
+ * <p>The {@link #offset() source offset} information describes a structure containing the position
+ * in the server's WAL for any particular event, transaction id and the server timestamp at which
+ * the transaction that generated that particular event has been committed. When performing
+ * snapshots, it may also contain a snapshot field which indicates that a particular record is
+ * created while a snapshot it taking place. Here's a JSON-like representation of an example:
  *
  * <pre>
  * {
@@ -49,16 +47,17 @@ import java.util.List;
  * }
  * </pre>
  *
- * The "{@code ts_usec}" field contains the <em>microseconds</em> since Unix epoch (since Jan 1, 1970) representing the time at
- * which the transaction that generated the event was committed while the "{@code txId}" represents the server's unique transaction
- * identifier. The "{@code lsn}" field represent a numerical (long) value corresponding to the server's LSN for that particular
- * event and can be used to uniquely identify an event within the WAL.
+ * The "{@code ts_usec}" field contains the <em>microseconds</em> since Unix epoch (since Jan 1,
+ * 1970) representing the time at which the transaction that generated the event was committed while
+ * the "{@code txId}" represents the server's unique transaction identifier. The "{@code lsn}" field
+ * represent a numerical (long) value corresponding to the server's LSN for that particular event
+ * and can be used to uniquely identify an event within the WAL.
  *
- * The {@link #source() source} struct appears in each message envelope and contains information about the event. It is
- * a mixture the fields from the {@link #partition() partition} and {@link #offset() offset}.
- * Like with the offset, the "{@code snapshot}" field only appears for events produced when the connector is in the
- * middle of a snapshot. Here's a JSON-like representation of the source for an event that corresponds to the above partition and
- * offset:
+ * <p>The {@link #source() source} struct appears in each message envelope and contains information
+ * about the event. It is a mixture the fields from the {@link #partition() partition} and {@link
+ * #offset() offset}. Like with the offset, the "{@code snapshot}" field only appears for events
+ * produced when the connector is in the middle of a snapshot. Here's a JSON-like representation of
+ * the source for an event that corresponds to the above partition and offset:
  *
  * <pre>
  * {
@@ -101,16 +100,18 @@ public final class SourceInfo extends BaseSourceInfo {
     /**
      * Updates the source with information about a particular received or read event.
      *
-     * @param lsn the position in the server WAL for a particular event; may be null indicating that this information is not
-     * available
-     * @param commitTime the commit time of the transaction that generated the event;
-     * may be null indicating that this information is not available
-     * @param txId the ID of the transaction that generated the transaction; may be null if this information is not available
+     * @param lsn the position in the server WAL for a particular event; may be null indicating that
+     *     this information is not available
+     * @param commitTime the commit time of the transaction that generated the event; may be null
+     *     indicating that this information is not available
+     * @param txId the ID of the transaction that generated the transaction; may be null if this
+     *     information is not available
      * @param xmin the xmin of the slot, may be null
      * @param tableId the table that should be included in the source info; may be null
      * @return this instance
      */
-    protected SourceInfo update(Lsn lsn, Instant commitTime, Long txId, Long xmin, TableId tableId) {
+    protected SourceInfo update(
+            Lsn lsn, Instant commitTime, Long txId, Long xmin, TableId tableId) {
         this.lsn = lsn;
         if (commitTime != null) {
             this.timestamp = commitTime;
@@ -119,20 +120,19 @@ public final class SourceInfo extends BaseSourceInfo {
         this.xmin = xmin;
         if (tableId != null && tableId.schema() != null) {
             this.schemaName = tableId.schema();
-        }
-        else {
+        } else {
             this.schemaName = "";
         }
         if (tableId != null && tableId.table() != null) {
             this.tableName = tableId.table();
-        }
-        else {
+        } else {
             this.tableName = "";
         }
         return this;
     }
 
-    // TODO https://issues.redhat.com/browse/DBZ-4329, make this call the method above, so to reset the attributes not provided here
+    // TODO https://issues.redhat.com/browse/DBZ-4329, make this call the method above, so to reset
+    // the attributes not provided here
     protected SourceInfo update(Instant timestamp, TableId tableId) {
         this.timestamp = timestamp;
         if (tableId != null && tableId.schema() != null) {
@@ -144,9 +144,7 @@ public final class SourceInfo extends BaseSourceInfo {
         return this;
     }
 
-    /**
-     * Updates the source with the LSN of the last committed transaction.
-     */
+    /** Updates the source with the LSN of the last committed transaction. */
     protected SourceInfo updateLastCommit(Lsn lsn) {
         this.lastCommitLsn = lsn;
         this.lsn = lsn;
@@ -164,18 +162,14 @@ public final class SourceInfo extends BaseSourceInfo {
     @Override
     public String sequence() {
         List<String> sequence = new ArrayList<String>(2);
-        String lastCommitLsn = (this.lastCommitLsn != null)
-                ? Long.toString(this.lastCommitLsn.asLong())
-                : null;
-        String lsn = (this.lsn != null)
-                ? Long.toString(this.lsn.asLong())
-                : null;
+        String lastCommitLsn =
+                (this.lastCommitLsn != null) ? Long.toString(this.lastCommitLsn.asLong()) : null;
+        String lsn = (this.lsn != null) ? Long.toString(this.lsn.asLong()) : null;
         sequence.add(lastCommitLsn);
         sequence.add(lsn);
         try {
             return MAPPER.writeValueAsString(sequence);
-        }
-        catch (JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
         }
     }

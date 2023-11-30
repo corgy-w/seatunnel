@@ -12,15 +12,15 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A class that binds together a PostgresSQL OID, JDBC type id and the string name of the type.
- * The array types contain link to their element type.
+ * A class that binds together a PostgresSQL OID, JDBC type id and the string name of the type. The
+ * array types contain link to their element type.
  *
  * @author Jiri Pechanec
- *
  */
 public class OpengaussType {
 
-    public static final OpengaussType UNKNOWN = new OpengaussType("unknown", -1, Integer.MIN_VALUE, null, null, null, null);
+    public static final OpengaussType UNKNOWN =
+            new OpengaussType("unknown", -1, Integer.MIN_VALUE, null, null, null, null);
 
     private final String name;
     private final int oid;
@@ -31,11 +31,34 @@ public class OpengaussType {
     private final int modifiers;
     private final List<String> enumValues;
 
-    private OpengaussType(String name, int oid, int jdbcId, TypeInfo typeInfo, List<String> enumValues, OpengaussType parentType, OpengaussType elementType) {
-        this(name, oid, jdbcId, TypeRegistry.NO_TYPE_MODIFIER, typeInfo, enumValues, parentType, elementType);
+    private OpengaussType(
+            String name,
+            int oid,
+            int jdbcId,
+            TypeInfo typeInfo,
+            List<String> enumValues,
+            OpengaussType parentType,
+            OpengaussType elementType) {
+        this(
+                name,
+                oid,
+                jdbcId,
+                TypeRegistry.NO_TYPE_MODIFIER,
+                typeInfo,
+                enumValues,
+                parentType,
+                elementType);
     }
 
-    private OpengaussType(String name, int oid, int jdbcId, int modifiers, TypeInfo typeInfo, List<String> enumValues, OpengaussType parentType, OpengaussType elementType) {
+    private OpengaussType(
+            String name,
+            int oid,
+            int jdbcId,
+            int modifiers,
+            TypeInfo typeInfo,
+            List<String> enumValues,
+            OpengaussType parentType,
+            OpengaussType elementType) {
         Objects.requireNonNull(name);
         this.name = name;
         this.oid = oid;
@@ -47,17 +70,15 @@ public class OpengaussType {
         this.enumValues = enumValues;
     }
 
-    /**
-     * @return true if this type is an array
-     */
+    /** @return true if this type is an array */
     public boolean isArrayType() {
         return elementType != null;
     }
 
     /**
-     * The type system allows for the creation of user defined types (UDTs) which can be based
-     * on any existing type.  When a type does not extend another type, it is considered to be
-     * a base or root type in the type hierarchy.
+     * The type system allows for the creation of user defined types (UDTs) which can be based on
+     * any existing type. When a type does not extend another type, it is considered to be a base or
+     * root type in the type hierarchy.
      *
      * @return true if this type is a base/root type
      */
@@ -65,57 +86,37 @@ public class OpengaussType {
         return parentType == null;
     }
 
-    /**
-     * @return true if this type is an enum type
-     */
+    /** @return true if this type is an enum type */
     public boolean isEnumType() {
         return enumValues != null;
     }
 
-    /**
-     *
-     * @return symbolic name of the type
-     */
+    /** @return symbolic name of the type */
     public String getName() {
         return name;
     }
 
-    /**
-     *
-     * @return PostgreSQL OID of this type
-     */
+    /** @return PostgreSQL OID of this type */
     public int getOid() {
         return oid;
     }
 
-    /**
-     *
-     * @return JDBC id of the type as reported by JDBC metadata
-     */
+    /** @return JDBC id of the type as reported by JDBC metadata */
     public int getJdbcId() {
         return jdbcId;
     }
 
-    /**
-     *
-     * @return the type of element in arrays or null for primitive types
-     */
+    /** @return the type of element in arrays or null for primitive types */
     public OpengaussType getElementType() {
         return elementType;
     }
 
-    /**
-     *
-     * @return the parent postgres type this type is based upon
-     */
+    /** @return the parent postgres type this type is based upon */
     public OpengaussType getParentType() {
         return parentType;
     }
 
-    /**
-     *
-     * @return the postgres type at the top/root level for this type's hierarchy
-     */
+    /** @return the postgres type at the top/root level for this type's hierarchy */
     public OpengaussType getRootType() {
         OpengaussType rootType = this;
         while (!rootType.isRootType()) {
@@ -128,10 +129,7 @@ public class OpengaussType {
         return enumValues;
     }
 
-    /**
-     *
-     * @return the default length of the type
-     */
+    /** @return the default length of the type */
     public int getDefaultLength() {
         if (typeInfo == null) {
             return TypeRegistry.UNKNOWN_LENGTH;
@@ -139,8 +137,7 @@ public class OpengaussType {
         if (parentType != null) {
             if (modifiers == TypeRegistry.NO_TYPE_MODIFIER) {
                 return parentType.getDefaultLength();
-            }
-            else {
+            } else {
                 int size = typeInfo.getPrecision(parentType.getOid(), modifiers);
                 if (size == 0) {
                     size = typeInfo.getDisplaySize(parentType.getOid(), modifiers);
@@ -157,10 +154,7 @@ public class OpengaussType {
         return size;
     }
 
-    /**
-     *
-     * @return the default scale of the type
-     */
+    /** @return the default scale of the type */
     public int getDefaultScale() {
         if (typeInfo == null) {
             return TypeRegistry.UNKNOWN_LENGTH;
@@ -168,8 +162,7 @@ public class OpengaussType {
         if (parentType != null) {
             if (modifiers == TypeRegistry.NO_TYPE_MODIFIER) {
                 return parentType.getDefaultScale();
-            }
-            else {
+            } else {
                 return typeInfo.getScale(parentType.getOid(), modifiers);
             }
         }
@@ -197,6 +190,7 @@ public class OpengaussType {
 
     /**
      * Get the underlying postgres type information object
+     *
      * @return the type information object; may be null
      */
     public TypeInfo getTypeInfo() {
@@ -250,8 +244,23 @@ public class OpengaussType {
 
     @Override
     public String toString() {
-        return "PostgresType [name=" + name + ", oid=" + oid + ", jdbcId=" + jdbcId + ", modifiers=" + modifiers + ", defaultLength=" + getDefaultLength()
-                + ", defaultScale=" + getDefaultScale() + ", parentType=" + parentType + ", elementType=" + elementType + "]";
+        return "PostgresType [name="
+                + name
+                + ", oid="
+                + oid
+                + ", jdbcId="
+                + jdbcId
+                + ", modifiers="
+                + modifiers
+                + ", defaultLength="
+                + getDefaultLength()
+                + ", defaultScale="
+                + getDefaultScale()
+                + ", parentType="
+                + parentType
+                + ", elementType="
+                + elementType
+                + "]";
     }
 
     public static class Builder {
@@ -265,7 +274,13 @@ public class OpengaussType {
         private int elementTypeOid;
         private List<String> enumValues;
 
-        public Builder(TypeRegistry typeRegistry, String name, int oid, int jdbcId, int modifiers, TypeInfo typeInfo) {
+        public Builder(
+                TypeRegistry typeRegistry,
+                String name,
+                int oid,
+                int jdbcId,
+                int modifiers,
+                TypeInfo typeInfo) {
             this.typeRegistry = typeRegistry;
             this.name = name;
             this.oid = oid;
@@ -304,7 +319,8 @@ public class OpengaussType {
                 elementType = typeRegistry.get(elementTypeOid);
             }
 
-            return new OpengaussType(name, oid, jdbcId, modifiers, typeInfo, enumValues, parentType, elementType);
+            return new OpengaussType(
+                    name, oid, jdbcId, modifiers, typeInfo, enumValues, parentType, elementType);
         }
     }
 }

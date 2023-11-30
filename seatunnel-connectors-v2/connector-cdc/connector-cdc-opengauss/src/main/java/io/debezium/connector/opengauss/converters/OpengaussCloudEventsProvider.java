@@ -5,14 +5,14 @@
  */
 package io.debezium.connector.opengauss.converters;
 
-import io.debezium.connector.opengauss.Module;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 
+import io.debezium.connector.opengauss.Module;
 import io.debezium.connector.opengauss.utils.CloudEventsProvider;
 import io.debezium.converters.CloudEventsMaker;
 import io.debezium.converters.RecordParser;
 import io.debezium.converters.SerializerType;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 
 /**
  * An implementation of {@link CloudEventsProvider} for PostgreSQL.
@@ -31,7 +31,8 @@ public class OpengaussCloudEventsProvider implements CloudEventsProvider {
     }
 
     @Override
-    public CloudEventsMaker createMaker(RecordParser parser, SerializerType contentType, String dataSchemaUriBase) {
+    public CloudEventsMaker createMaker(
+            RecordParser parser, SerializerType contentType, String dataSchemaUriBase) {
         return null;
     }
 }

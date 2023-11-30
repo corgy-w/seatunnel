@@ -6,21 +6,24 @@
 
 package io.debezium.connector.opengauss.connection;
 
+import org.postgresql.replication.PGReplicationStream;
+
 import io.debezium.annotation.NotThreadSafe;
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.OpengaussSchema;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.spi.SlotCreationResult;
+import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.relational.RelationalTableFilters;
-import org.postgresql.replication.PGReplicationStream;
 
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Optional;
 
 /**
- * A Postgres logical streaming replication connection. Replication connections are established for a slot and a given plugin
- * and WAL offset tracking is specific to the [database name, plugin name, slot name] triple.
+ * A Postgres logical streaming replication connection. Replication connections are established for
+ * a slot and a given plugin and WAL offset tracking is specific to the [database name, plugin name,
+ * slot name] triple.
  *
  * @author Horia Chiorean (hchiorea@redhat.com)
  */
@@ -28,47 +31,50 @@ import java.util.Optional;
 public interface ReplicationConnection extends AutoCloseable {
 
     /**
-     * Opens a stream for reading logical replication changes from the last known position of the slot for which the connection
-     * was opened. The last known position is based on the server's {@code confirmed_flush_lsn} value from the {@code pg_replication_slots}
-     * table.
-     * <p>
-     * If there is no "last known value" (i.e. the connection is for a newly created slot) then the Postgres server will start
-     * streaming changes from that last position reported during this connection's creation.
-     * </p>
+     * Opens a stream for reading logical replication changes from the last known position of the
+     * slot for which the connection was opened. The last known position is based on the server's
+     * {@code confirmed_flush_lsn} value from the {@code pg_replication_slots} table.
+     *
+     * <p>If there is no "last known value" (i.e. the connection is for a newly created slot) then
+     * the Postgres server will start streaming changes from that last position reported during this
+     * connection's creation.
      *
      * @return a {@link PGReplicationStream} from which data is read; never null
      * @throws SQLException if there is a problem obtaining the replication stream
      */
-    ReplicationStream startStreaming(WalPositionLocator walPosition) throws SQLException, InterruptedException;
+    ReplicationStream startStreaming(WalPositionLocator walPosition)
+            throws SQLException, InterruptedException;
 
     /**
      * Opens a stream for reading logical replication changes from a given LSN position.
-     * <p>
-     * Note that it is possible for a server to have recycled old WAL segments (see the {@code wal_keep_segments} setting). If
-     * that is the case, then even though a LSN number may be valid, the server will not stream back any changes because they
-     * are not available.
-     * </p>
-     * @param offset a value representing the WAL sequence number where replication should start from; if the value
-     * is {@code null} or negative, this behaves exactly like {@link #startStreaming()}.
+     *
+     * <p>Note that it is possible for a server to have recycled old WAL segments (see the {@code
+     * wal_keep_segments} setting). If that is the case, then even though a LSN number may be valid,
+     * the server will not stream back any changes because they are not available.
+     *
+     * @param offset a value representing the WAL sequence number where replication should start
+     *     from; if the value is {@code null} or negative, this behaves exactly like {@link
+     *     #startStreaming()}.
      * @return a {@link PGReplicationStream} from which data is read; never null
      * @see org.postgresql.replication.LogSequenceNumber
      * @throws SQLException if anything fails
      */
-    ReplicationStream startStreaming(Lsn offset, WalPositionLocator walPosition) throws SQLException, InterruptedException;
+    ReplicationStream startStreaming(Lsn offset, WalPositionLocator walPosition)
+            throws SQLException, InterruptedException;
 
     /**
-     * Creates a new replication slot with the given option and returns the result of the command, which
-     * may contain results (depending on postgres versions)
+     * Creates a new replication slot with the given option and returns the result of the command,
+     * which may contain results (depending on postgres versions)
      *
      * @throws SQLException if anything fails
      */
     Optional<SlotCreationResult> createReplicationSlot() throws SQLException;
 
     /**
-     *  Forces the connection to be created, is called by startStreaming, but can be called manually
-     *  in cases where we want the connection but not to to start streaming yet.
+     * Forces the connection to be created, is called by startStreaming, but can be called manually
+     * in cases where we want the connection but not to to start streaming yet.
      *
-     *  Can be called multiple times
+     * <p>Can be called multiple times
      */
     void initConnection() throws SQLException, InterruptedException;
 
@@ -81,7 +87,8 @@ public interface ReplicationConnection extends AutoCloseable {
     boolean isConnected() throws SQLException;
 
     /**
-     * Creates a new {@link Builder} instance which can be used for creating replication connections.
+     * Creates a new {@link Builder} instance which can be used for creating replication
+     * connections.
      *
      * @param config a {@link OpengaussConnectorConfig} instance; may not be null
      * @return a builder, never null
@@ -92,15 +99,12 @@ public interface ReplicationConnection extends AutoCloseable {
 
     public void reconnect() throws SQLException;
 
-    /**
-     * A builder for {@link ReplicationConnection}
-     */
+    /** A builder for {@link ReplicationConnection} */
     interface Builder {
 
-        /**
-         * Default replication settings
-         */
+        /** Default replication settings */
         String DEFAULT_SLOT_NAME = "debezium";
+
         String DEFAULT_PUBLICATION_NAME = "dbz_publication";
         boolean DEFAULT_DROP_SLOT_ON_CLOSE = true;
 
@@ -138,7 +142,8 @@ public interface ReplicationConnection extends AutoCloseable {
          * @return this instance
          * @see #PostgresConnectorConfig.PublicationAutocreateMode.ALL_TABLES
          */
-        Builder withPublicationAutocreateMode(final OpengaussConnectorConfig.AutoCreateMode publicationAutocreateMode);
+        Builder withPublicationAutocreateMode(
+                final OpengaussConnectorConfig.AutoCreateMode publicationAutocreateMode);
 
         /**
          * Sets the instance for the PG logical decoding plugin
@@ -152,16 +157,19 @@ public interface ReplicationConnection extends AutoCloseable {
         /**
          * Whether or not to drop the replication slot once the replication connection closes
          *
-         * @param dropSlotOnClose true if the slot should be dropped once the connection is closed, false otherwise
+         * @param dropSlotOnClose true if the slot should be dropped once the connection is closed,
+         *     false otherwise
          * @return this instance
          * @see #DEFAULT_DROP_SLOT_ON_CLOSE
          */
         Builder dropSlotOnClose(final boolean dropSlotOnClose);
 
         /**
-         * The number of milli-seconds the replication connection should periodically send updates to the server.
+         * The number of milli-seconds the replication connection should periodically send updates
+         * to the server.
          *
-         * @param statusUpdateInterval a duration; null or non-positive value causes Postgres' default to be applied
+         * @param statusUpdateInterval a duration; null or non-positive value causes Postgres'
+         *     default to be applied
          * @return this instance
          */
         Builder statusUpdateInterval(final Duration statusUpdateInterval);
@@ -179,8 +187,8 @@ public interface ReplicationConnection extends AutoCloseable {
         /**
          * Optional parameters to pass to the logical decoder when the stream starts.
          *
-         * @param streamParams String of key and value pairs declared with "=". Pairs are separated by ";".
-         *                     Example: "add-tables=public.table,public.table2;include-lsn=true"
+         * @param streamParams String of key and value pairs declared with "=". Pairs are separated
+         *     by ";". Example: "add-tables=public.table,public.table2;include-lsn=true"
          * @return this instance
          * @see #STREAM_PARAMS
          */
@@ -188,6 +196,7 @@ public interface ReplicationConnection extends AutoCloseable {
 
         /**
          * Whether or not the snapshot is executed
+         *
          * @param doSnapshot true if a snapshot is going to be executed, false if otherwise
          * @return this instance
          */
@@ -195,6 +204,7 @@ public interface ReplicationConnection extends AutoCloseable {
 
         /**
          * Creates a new {@link ReplicationConnection} instance
+         *
          * @return a connection, never null
          */
         ReplicationConnection build();

@@ -5,6 +5,12 @@
  */
 package io.debezium.connector.opengauss.connection.wal2json;
 
+import org.apache.kafka.connect.errors.ConnectException;
+
+import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.connection.AbstractMessageDecoder;
 import io.debezium.connector.opengauss.connection.ReplicationMessage;
@@ -12,10 +18,6 @@ import io.debezium.connector.opengauss.connection.ReplicationStream;
 import io.debezium.connector.opengauss.connection.TransactionMessage;
 import io.debezium.document.Document;
 import io.debezium.document.DocumentReader;
-import org.apache.kafka.connect.errors.ConnectException;
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -25,13 +27,14 @@ import java.util.Arrays;
 import java.util.function.Function;
 
 /**
- * <p>JSON deserialization of a message sent by
- * <a href="https://github.com/eulerto/wal2json">wal2json</a> logical decoding plugin. The plugin sends all
- * changes in one transaction as a single batch and they are passed to processor one-by-one.
- * The JSON file arrives in chunks of a big JSON file where the chunks are not valid JSON itself.</p>
+ * JSON deserialization of a message sent by <a
+ * href="https://github.com/eulerto/wal2json">wal2json</a> logical decoding plugin. The plugin sends
+ * all changes in one transaction as a single batch and they are passed to processor one-by-one. The
+ * JSON file arrives in chunks of a big JSON file where the chunks are not valid JSON itself.
  *
- * <p>There are four different chunks that can arrive from the decoder.
- * <b>Beginning of message</b></br>
+ * <p>There are four different chunks that can arrive from the decoder. <b>Beginning of
+ * message</b></br>
+ *
  * <pre>
  * {
  *   "xid": 563,
@@ -40,6 +43,7 @@ import java.util.function.Function;
  * </pre>
  *
  * <b>First change</b>
+ *
  * <pre>
  *      {
  *          "kind": "insert",
@@ -53,6 +57,7 @@ import java.util.function.Function;
  * </pre>
  *
  * <b>Further changes</b>
+ *
  * <pre>
  *      ,{
  *          "kind": "insert",
@@ -66,22 +71,21 @@ import java.util.function.Function;
  * </pre>
  *
  * <b>End of message</b>
+ *
  * <pre>
  *      ]
  * }
  * </pre>
- * </p>
  *
- * <p>
- * For parsing purposes it is necessary to add or remove a fragment of JSON to make a well-formatted JSON out of it.
- * The last message is just dropped.
- * </p>
+ * <p>For parsing purposes it is necessary to add or remove a fragment of JSON to make a
+ * well-formatted JSON out of it. The last message is just dropped.
+ *
  * @author Jiri Pechanec
- *
  */
 public class StreamingWal2JsonMessageDecoder extends AbstractMessageDecoder {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StreamingWal2JsonMessageDecoder.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(StreamingWal2JsonMessageDecoder.class);
 
     private static final byte TAB = 9;
     private static final byte CR = 13;
@@ -98,8 +102,8 @@ public class StreamingWal2JsonMessageDecoder extends AbstractMessageDecoder {
     private boolean messageInProgress = false;
 
     /**
-     * To identify if the last current chunk is the last one we can send the current one
-     * for processing only after we read the next one or the end of message fragment.
+     * To identify if the last current chunk is the last one we can send the current one for
+     * processing only after we read the next one or the end of message fragment.
      */
     private byte[] currentChunk;
 
@@ -108,14 +112,21 @@ public class StreamingWal2JsonMessageDecoder extends AbstractMessageDecoder {
     private Instant commitTime;
 
     @Override
-    public void processNotEmptyMessage(ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor, TypeRegistry typeRegistry) throws SQLException, InterruptedException {
+    public void processNotEmptyMessage(
+            ByteBuffer buffer,
+            ReplicationStream.ReplicationMessageProcessor processor,
+            TypeRegistry typeRegistry)
+            throws SQLException, InterruptedException {
         try {
             if (!buffer.hasArray()) {
-                throw new IllegalStateException("Invalid buffer received from PG server during streaming replication");
+                throw new IllegalStateException(
+                        "Invalid buffer received from PG server during streaming replication");
             }
             final byte[] source = buffer.array();
-            // Extend the array by two as we might need to append two chars and set them to space by default
-            final byte[] content = Arrays.copyOfRange(source, buffer.arrayOffset(), source.length + 2);
+            // Extend the array by two as we might need to append two chars and set them to space by
+            // default
+            final byte[] content =
+                    Arrays.copyOfRange(source, buffer.arrayOffset(), source.length + 2);
             final int lastPos = content.length - 1;
             content[lastPos - 1] = SPACE;
             content[lastPos] = SPACE;
@@ -129,11 +140,11 @@ public class StreamingWal2JsonMessageDecoder extends AbstractMessageDecoder {
                 if (firstChar != LEFT_BRACE) {
                     outOfOrderChunk(content);
                     nonInitialChunk(processor, typeRegistry, content);
-                }
-                else {
+                } else {
                     // We received the beginning of a transaction
                     if (getLastNonWhiteChar(content) != RIGHT_BRACE) {
-                        // Chunks are enabled and we have an unfinished message, it is necessary to add a sequence of closing chars
+                        // Chunks are enabled and we have an unfinished message, it is necessary to
+                        // add a sequence of closing chars
                         content[lastPos - 1] = RIGHT_BRACKET;
                         content[lastPos] = RIGHT_BRACE;
                     }
@@ -142,61 +153,60 @@ public class StreamingWal2JsonMessageDecoder extends AbstractMessageDecoder {
                         // This is not a preamble but out-of-order change chunk
                         outOfOrderChunk(content);
                         nonInitialChunk(processor, typeRegistry, content);
-                    }
-                    else {
+                    } else {
                         // Correct initial chunk
                         txId = message.getLong("xid");
                         final String timestamp = message.getString("timestamp");
                         commitTime = dateTime.systemTimestampToInstant(timestamp);
                         messageInProgress = true;
                         currentChunk = null;
-                        processor.process(new TransactionMessage(ReplicationMessage.Operation.BEGIN, txId, commitTime));
+                        processor.process(
+                                new TransactionMessage(
+                                        ReplicationMessage.Operation.BEGIN, txId, commitTime));
                     }
                 }
-            }
-            else {
+            } else {
                 nonInitialChunk(processor, typeRegistry, content);
             }
-        }
-        catch (final IOException e) {
+        } catch (final IOException e) {
             throw new ConnectException(e);
         }
     }
 
-    protected void nonInitialChunk(ReplicationStream.ReplicationMessageProcessor processor, TypeRegistry typeRegistry,
-                                   final byte[] content)
+    protected void nonInitialChunk(
+            ReplicationStream.ReplicationMessageProcessor processor,
+            TypeRegistry typeRegistry,
+            final byte[] content)
             throws IOException, SQLException, InterruptedException {
         byte firstChar = getFirstNonWhiteChar(content);
         // We are receiving changes in chunks
         if (firstChar == LEFT_BRACE) {
             // First change, this is a valid JSON
             currentChunk = content;
-        }
-        else if (firstChar == COMMA) {
+        } else if (firstChar == COMMA) {
             // following changes, they have an extra comma at the start of message
             if (currentChunk != null) {
                 doProcessMessage(processor, typeRegistry, currentChunk, false);
             }
             replaceFirstNonWhiteChar(content, SPACE);
             currentChunk = content;
-        }
-        else if (firstChar == RIGHT_BRACKET) {
+        } else if (firstChar == RIGHT_BRACKET) {
             // No more changes
             doProcessMessage(processor, typeRegistry, currentChunk, true);
             messageInProgress = false;
-            processor.process(new TransactionMessage(ReplicationMessage.Operation.COMMIT, txId, commitTime));
-        }
-        else {
+            processor.process(
+                    new TransactionMessage(ReplicationMessage.Operation.COMMIT, txId, commitTime));
+        } else {
             throw new ConnectException("Chunk arrived in unexpected state");
         }
     }
 
     /**
-     * This method is called when a database server or Debezium crashes.
-     * With wal2json streaming mode it can happen that the message preamble is no replayed
-     * but the message is streamed form the middle.
-     * This issue is very hard to reproduce so a precaution is taken and metadata are filled with
-     * synthetic values.
+     * This method is called when a database server or Debezium crashes. With wal2json streaming
+     * mode it can happen that the message preamble is no replayed but the message is streamed form
+     * the middle. This issue is very hard to reproduce so a precaution is taken and metadata are
+     * filled with synthetic values.
+     *
      * <p>The new wal2json format will be resilient to this situation.
      *
      * @param content
@@ -244,33 +254,42 @@ public class StreamingWal2JsonMessageDecoder extends AbstractMessageDecoder {
         return (c >= TAB && c <= CR) || c == SPACE;
     }
 
-    private void doProcessMessage(ReplicationStream.ReplicationMessageProcessor processor, TypeRegistry typeRegistry, byte[] content, boolean lastMessage)
+    private void doProcessMessage(
+            ReplicationStream.ReplicationMessageProcessor processor,
+            TypeRegistry typeRegistry,
+            byte[] content,
+            boolean lastMessage)
             throws IOException, SQLException, InterruptedException {
         if (content != null) {
             final Document change = DocumentReader.floatNumbersAsTextReader().read(content);
             LOGGER.trace("Change arrived for decoding {}", change);
-            processor.process(new Wal2JsonReplicationMessage(txId, commitTime, change, containsMetadata, lastMessage, typeRegistry));
-        }
-        else {
-            // If content is null then this is an empty change event that WAL2JSON can generate for events like DDL,
-            // truncate table, materialized views, etc. The transaction still needs to be processed for the heartbeat
+            processor.process(
+                    new Wal2JsonReplicationMessage(
+                            txId, commitTime, change, containsMetadata, lastMessage, typeRegistry));
+        } else {
+            // If content is null then this is an empty change event that WAL2JSON can generate for
+            // events like DDL,
+            // truncate table, materialized views, etc. The transaction still needs to be processed
+            // for the heartbeat
             // to fire.
             LOGGER.trace("Empty change arrived");
             processor.process(new ReplicationMessage.NoopMessage(txId, commitTime));
         }
-
     }
 
     @Override
-    public ChainedLogicalStreamBuilder optionsWithMetadata(ChainedLogicalStreamBuilder builder, Function<Integer, Boolean> hasMinimumServerVersion) {
+    public ChainedLogicalStreamBuilder optionsWithMetadata(
+            ChainedLogicalStreamBuilder builder,
+            Function<Integer, Boolean> hasMinimumServerVersion) {
         return optionsWithoutMetadata(builder, hasMinimumServerVersion)
                 .withSlotOption("include-not-null", "true");
     }
 
     @Override
-    public ChainedLogicalStreamBuilder optionsWithoutMetadata(ChainedLogicalStreamBuilder builder, Function<Integer, Boolean> hasMinimumServerVersion) {
-        return builder
-                .withSlotOption("pretty-print", 1)
+    public ChainedLogicalStreamBuilder optionsWithoutMetadata(
+            ChainedLogicalStreamBuilder builder,
+            Function<Integer, Boolean> hasMinimumServerVersion) {
+        return builder.withSlotOption("pretty-print", 1)
                 .withSlotOption("write-in-chunks", 1)
                 .withSlotOption("include-xids", 1)
                 .withSlotOption("include-timestamp", 1);

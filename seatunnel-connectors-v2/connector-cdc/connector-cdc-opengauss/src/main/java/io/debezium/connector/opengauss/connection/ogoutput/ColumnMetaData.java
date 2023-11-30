@@ -34,12 +34,19 @@ public class ColumnMetaData {
      * @param postgresType postgres database type; must not be null
      * @param key {@code true} if column is part of the primary key, {@code false} otherwise
      * @param optional {@code true} if the column is considered optional, {@code false} otherwise
-     * @param hasDefaultValue {@code true} if the column has a default value specified, {@code false} otherwise
+     * @param hasDefaultValue {@code true} if the column has a default value specified, {@code
+     *     false} otherwise
      * @param defaultValueExpression the parsed default value literal for the column
      * @param typeModifier the attribute type modifier
      */
-    ColumnMetaData(String columnName, OpengaussType postgresType, boolean key, boolean optional, boolean hasDefaultValue, String defaultValueExpression,
-                   int typeModifier) {
+    ColumnMetaData(
+            String columnName,
+            OpengaussType postgresType,
+            boolean key,
+            boolean optional,
+            boolean hasDefaultValue,
+            String defaultValueExpression,
+            int typeModifier) {
         this.columnName = columnName;
         this.postgresType = postgresType;
         this.key = key;
@@ -48,15 +55,15 @@ public class ColumnMetaData {
         this.defaultValueExpression = defaultValueExpression;
 
         // todo: investigate whether this can be removed and PostgresType updated to always delegate
-        // Currently PostgresType only delegates calls to length and scale with an attribute modifier
+        // Currently PostgresType only delegates calls to length and scale with an attribute
+        // modifier
         // for specific types and ideally for PgOutput, we should always delegate if a modifier
         // is provided. For now, I've allowed PostgresType to expose the TypeInfo object where
         // I will use it here for now until further research can be done.
         if (TypeRegistry.NO_TYPE_MODIFIER != typeModifier && postgresType.getTypeInfo() != null) {
             length = postgresType.getTypeInfo().getPrecision(postgresType.getOid(), typeModifier);
             scale = postgresType.getTypeInfo().getScale(postgresType.getOid(), typeModifier);
-        }
-        else {
+        } else {
             length = postgresType.getDefaultLength();
             scale = postgresType.getDefaultScale();
         }

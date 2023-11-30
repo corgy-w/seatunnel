@@ -5,16 +5,18 @@
  */
 package io.debezium.connector.opengauss;
 
-import io.debezium.DebeziumException;
-import io.debezium.annotation.Immutable;
-import io.debezium.connector.opengauss.connection.OpengaussConnection;
-import io.debezium.util.Collect;
 import org.apache.kafka.connect.errors.ConnectException;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.debezium.DebeziumException;
+import io.debezium.annotation.Immutable;
+import io.debezium.connector.opengauss.connection.OpengaussConnection;
+import io.debezium.util.Collect;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -35,7 +37,6 @@ import java.util.Set;
  * type name or OID.
  *
  * @author Jiri Pechanec
- *
  */
 public class TypeRegistry {
 
@@ -62,20 +63,25 @@ public class TypeRegistry {
     private static final String CATEGORY_ARRAY = "A";
     private static final String CATEGORY_ENUM = "E";
 
-    private static final String SQL_ENUM_VALUES = "SELECT t.enumtypid as id, array_agg(t.enumlabel) as values "
-            + "FROM pg_catalog.pg_enum t GROUP BY id";
+    private static final String SQL_ENUM_VALUES =
+            "SELECT t.enumtypid as id, array_agg(t.enumlabel) as values "
+                    + "FROM pg_catalog.pg_enum t GROUP BY id";
 
-    private static final String SQL_TYPES = "SELECT t.oid AS oid, t.typname AS name, t.typelem AS element, t.typbasetype AS parentoid, t.typtypmod as modifiers, t.typcategory as category, e.values as enum_values "
-            + "FROM pg_catalog.pg_type t "
-            + "JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
-            + "LEFT JOIN (" + SQL_ENUM_VALUES + ") e ON (t.oid = e.id) "
-            + "WHERE n.nspname != 'pg_toast'";
+    private static final String SQL_TYPES =
+            "SELECT t.oid AS oid, t.typname AS name, t.typelem AS element, t.typbasetype AS parentoid, t.typtypmod as modifiers, t.typcategory as category, e.values as enum_values "
+                    + "FROM pg_catalog.pg_type t "
+                    + "JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
+                    + "LEFT JOIN ("
+                    + SQL_ENUM_VALUES
+                    + ") e ON (t.oid = e.id) "
+                    + "WHERE n.nspname != 'pg_toast'";
 
     private static final String SQL_NAME_LOOKUP = SQL_TYPES + " AND t.typname = ?";
 
     private static final String SQL_OID_LOOKUP = SQL_TYPES + " AND t.oid = ?";
 
-    private static final Map<String, String> LONG_TYPE_NAMES = Collections.unmodifiableMap(getLongTypeNames());
+    private static final Map<String, String> LONG_TYPE_NAMES =
+            Collections.unmodifiableMap(getLongTypeNames());
 
     private static Map<String, String> getLongTypeNames() {
         Map<String, String> longTypeNames = new HashMap<>();
@@ -123,8 +129,7 @@ public class TypeRegistry {
             sqlTypeMapper = new SqlTypeMapper(this.connection, typeInfo);
 
             prime();
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new DebeziumException("Couldn't initialize type registry", e);
         }
     }
@@ -135,38 +140,28 @@ public class TypeRegistry {
 
         if (TYPE_NAME_GEOMETRY.equals(type.getName())) {
             geometryOid = type.getOid();
-        }
-        else if (TYPE_NAME_GEOGRAPHY.equals(type.getName())) {
+        } else if (TYPE_NAME_GEOGRAPHY.equals(type.getName())) {
             geographyOid = type.getOid();
-        }
-        else if (TYPE_NAME_CITEXT.equals(type.getName())) {
+        } else if (TYPE_NAME_CITEXT.equals(type.getName())) {
             citextOid = type.getOid();
-        }
-        else if (TYPE_NAME_HSTORE.equals(type.getName())) {
+        } else if (TYPE_NAME_HSTORE.equals(type.getName())) {
             hstoreOid = type.getOid();
-        }
-        else if (TYPE_NAME_LTREE.equals(type.getName())) {
+        } else if (TYPE_NAME_LTREE.equals(type.getName())) {
             ltreeOid = type.getOid();
-        }
-        else if (TYPE_NAME_HSTORE_ARRAY.equals(type.getName())) {
+        } else if (TYPE_NAME_HSTORE_ARRAY.equals(type.getName())) {
             hstoreArrayOid = type.getOid();
-        }
-        else if (TYPE_NAME_GEOMETRY_ARRAY.equals(type.getName())) {
+        } else if (TYPE_NAME_GEOMETRY_ARRAY.equals(type.getName())) {
             geometryArrayOid = type.getOid();
-        }
-        else if (TYPE_NAME_GEOGRAPHY_ARRAY.equals(type.getName())) {
+        } else if (TYPE_NAME_GEOGRAPHY_ARRAY.equals(type.getName())) {
             geographyArrayOid = type.getOid();
-        }
-        else if (TYPE_NAME_CITEXT_ARRAY.equals(type.getName())) {
+        } else if (TYPE_NAME_CITEXT_ARRAY.equals(type.getName())) {
             citextArrayOid = type.getOid();
-        }
-        else if (TYPE_NAME_LTREE_ARRAY.equals(type.getName())) {
+        } else if (TYPE_NAME_LTREE_ARRAY.equals(type.getName())) {
             ltreeArrayOid = type.getOid();
         }
     }
 
     /**
-     *
      * @param oid - PostgreSQL OID
      * @return type associated with the given OID
      */
@@ -184,27 +179,41 @@ public class TypeRegistry {
 
     @Override
     public String toString() {
-        return "TypeRegistry{" +
-                "nameToType=" + nameToType +
-                ", oidToType=" + oidToType +
-                ", connection=" + connection +
-                ", typeInfo=" + typeInfo +
-                ", sqlTypeMapper=" + sqlTypeMapper +
-                ", geometryOid=" + geometryOid +
-                ", geographyOid=" + geographyOid +
-                ", citextOid=" + citextOid +
-                ", hstoreOid=" + hstoreOid +
-                ", ltreeOid=" + ltreeOid +
-                ", hstoreArrayOid=" + hstoreArrayOid +
-                ", geometryArrayOid=" + geometryArrayOid +
-                ", geographyArrayOid=" + geographyArrayOid +
-                ", citextArrayOid=" + citextArrayOid +
-                ", ltreeArrayOid=" + ltreeArrayOid +
-                '}';
+        return "TypeRegistry{"
+                + "nameToType="
+                + nameToType
+                + ", oidToType="
+                + oidToType
+                + ", connection="
+                + connection
+                + ", typeInfo="
+                + typeInfo
+                + ", sqlTypeMapper="
+                + sqlTypeMapper
+                + ", geometryOid="
+                + geometryOid
+                + ", geographyOid="
+                + geographyOid
+                + ", citextOid="
+                + citextOid
+                + ", hstoreOid="
+                + hstoreOid
+                + ", ltreeOid="
+                + ltreeOid
+                + ", hstoreArrayOid="
+                + hstoreArrayOid
+                + ", geometryArrayOid="
+                + geometryArrayOid
+                + ", geographyArrayOid="
+                + geographyArrayOid
+                + ", citextArrayOid="
+                + citextArrayOid
+                + ", ltreeArrayOid="
+                + ltreeArrayOid
+                + '}';
     }
 
     /**
-     *
      * @param name - PostgreSQL type name
      * @return type associated with the given type name
      */
@@ -238,89 +247,59 @@ public class TypeRegistry {
         return r;
     }
 
-    /**
-     *
-     * @return OID for {@code GEOMETRY} type of this PostgreSQL instance
-     */
+    /** @return OID for {@code GEOMETRY} type of this PostgreSQL instance */
     public int geometryOid() {
         return geometryOid;
     }
 
-    /**
-     *
-     * @return OID for {@code GEOGRAPHY} type of this PostgreSQL instance
-     */
+    /** @return OID for {@code GEOGRAPHY} type of this PostgreSQL instance */
     public int geographyOid() {
         return geographyOid;
     }
 
-    /**
-     *
-     * @return OID for {@code CITEXT} type of this PostgreSQL instance
-     */
+    /** @return OID for {@code CITEXT} type of this PostgreSQL instance */
     public int citextOid() {
         return citextOid;
     }
 
-    /**
-     *
-     * @return OID for {@code HSTORE} type of this PostgreSQL instance
-     */
+    /** @return OID for {@code HSTORE} type of this PostgreSQL instance */
     public int hstoreOid() {
         return hstoreOid;
     }
 
-    /**
-     *
-     * @return OID for {@code LTREE} type of this PostgreSQL instance
-     */
+    /** @return OID for {@code LTREE} type of this PostgreSQL instance */
     public int ltreeOid() {
         return ltreeOid;
     }
 
-    /**
-    *
-    * @return OID for array of {@code HSTORE} type of this PostgreSQL instance
-    */
+    /** @return OID for array of {@code HSTORE} type of this PostgreSQL instance */
     public int hstoreArrayOid() {
         return hstoreArrayOid;
     }
 
-    /**
-     *
-     * @return OID for array of {@code GEOMETRY} type of this PostgreSQL instance
-     */
+    /** @return OID for array of {@code GEOMETRY} type of this PostgreSQL instance */
     public int geometryArrayOid() {
         return geometryArrayOid;
     }
 
-    /**
-     *
-     * @return OID for array of {@code GEOGRAPHY} type of this PostgreSQL instance
-     */
+    /** @return OID for array of {@code GEOGRAPHY} type of this PostgreSQL instance */
     public int geographyArrayOid() {
         return geographyArrayOid;
     }
 
-    /**
-     *
-     * @return OID for array of {@code CITEXT} type of this PostgreSQL instance
-     */
+    /** @return OID for array of {@code CITEXT} type of this PostgreSQL instance */
     public int citextArrayOid() {
         return citextArrayOid;
     }
 
-    /**
-     *
-     * @return OID for array of {@code LTREE} type of this PostgreSQL instance
-     */
+    /** @return OID for array of {@code LTREE} type of this PostgreSQL instance */
     public int ltreeArrayOid() {
         return ltreeArrayOid;
     }
 
     /**
-     * Converts a type name in long (readable) format like <code>boolean</code> to s standard
-     * data type name like <code>bool</code>.
+     * Converts a type name in long (readable) format like <code>boolean</code> to s standard data
+     * type name like <code>bool</code>.
      *
      * @param typeName - a type name in long format
      * @return - the type name in standardized format
@@ -329,9 +308,7 @@ public class TypeRegistry {
         return LONG_TYPE_NAMES.getOrDefault(typeName, typeName);
     }
 
-    /**
-     * Prime the {@link TypeRegistry} with all existing database types
-     */
+    /** Prime the {@link TypeRegistry} with all existing database types */
     private void prime() throws SQLException {
         try (final Statement statement = connection.createStatement();
                 final ResultSet rs = statement.executeQuery(SQL_TYPES)) {
@@ -365,19 +342,19 @@ public class TypeRegistry {
         String typeName = rs.getString("name");
         String category = rs.getString("category");
 
-        OpengaussType.Builder builder = new OpengaussType.Builder(
-                this,
-                typeName,
-                oid,
-                sqlTypeMapper.getSqlType(typeName),
-                modifiers,
-                typeInfo);
+        OpengaussType.Builder builder =
+                new OpengaussType.Builder(
+                        this,
+                        typeName,
+                        oid,
+                        sqlTypeMapper.getSqlType(typeName),
+                        modifiers,
+                        typeInfo);
 
         if (CATEGORY_ENUM.equals(category)) {
             String[] enumValues = (String[]) rs.getArray("enum_values").getArray();
             builder = builder.enumValues(Arrays.asList(enumValues));
-        }
-        else if (CATEGORY_ARRAY.equals(category)) {
+        } else if (CATEGORY_ARRAY.equals(category)) {
             builder = builder.elementType((int) rs.getLong("element"));
         }
         return builder.parentType(parentTypeOid);
@@ -391,23 +368,24 @@ public class TypeRegistry {
                 statement.setString(1, name);
                 return loadType(statement);
             }
-        }
-        catch (SQLException e) {
-            throw new ConnectException("Database connection failed during resolving unknown type", e);
+        } catch (SQLException e) {
+            throw new ConnectException(
+                    "Database connection failed during resolving unknown type", e);
         }
     }
 
     private OpengaussType resolveUnknownType(int lookupOid) {
         try {
-            LOGGER.trace("Type OID '{}' not cached, attempting to lookup from database.", lookupOid);
+            LOGGER.trace(
+                    "Type OID '{}' not cached, attempting to lookup from database.", lookupOid);
 
             try (final PreparedStatement statement = connection.prepareStatement(SQL_OID_LOOKUP)) {
                 statement.setInt(1, lookupOid);
                 return loadType(statement);
             }
-        }
-        catch (SQLException e) {
-            throw new ConnectException("Database connection failed during resolving unknown type", e);
+        } catch (SQLException e) {
+            throw new ConnectException(
+                    "Database connection failed during resolving unknown type", e);
         }
     }
 
@@ -423,9 +401,9 @@ public class TypeRegistry {
     }
 
     /**
-     * Allows to obtain the SQL type corresponding to PG types. This uses a custom statement instead of going through
-     * {@link PgDatabaseMetaData#getTypeInfo()} as the latter causes N+1 SELECTs, making it very slow on installations
-     * with many custom types.
+     * Allows to obtain the SQL type corresponding to PG types. This uses a custom statement instead
+     * of going through {@link PgDatabaseMetaData#getTypeInfo()} as the latter causes N+1 SELECTs,
+     * making it very slow on installations with many custom types.
      *
      * @author Gunnar Morling
      * @see DBZ-899
@@ -433,30 +411,29 @@ public class TypeRegistry {
     private static class SqlTypeMapper {
 
         /**
-         * Based on org.postgresql.jdbc.TypeInfoCache.getSQLType(String). To emulate the original statement's behavior
-         * (which works for single types only), PG's DISTINCT ON extension is used to just return the first entry should a
-         * type exist in multiple schemas.
+         * Based on org.postgresql.jdbc.TypeInfoCache.getSQLType(String). To emulate the original
+         * statement's behavior (which works for single types only), PG's DISTINCT ON extension is
+         * used to just return the first entry should a type exist in multiple schemas.
          */
-        private static final String SQL_TYPE_DETAILS = "SELECT DISTINCT ON (typname) typname, typinput='array_in'::regproc, typtype, sp.r, pg_type.oid "
-                + "  FROM pg_catalog.pg_type "
-                + "  LEFT "
-                + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
-                + "          from pg_namespace as ns "
-                // -- go with older way of unnesting array to be compatible with 8.0
-                + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-                + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
-                + "         using ( nspname ) "
-                + "       ) as sp "
-                + "    ON sp.nspoid = typnamespace "
-                + " ORDER BY typname, sp.r, pg_type.oid;";
+        private static final String SQL_TYPE_DETAILS =
+                "SELECT DISTINCT ON (typname) typname, typinput='array_in'::regproc, typtype, sp.r, pg_type.oid "
+                        + "  FROM pg_catalog.pg_type "
+                        + "  LEFT "
+                        + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
+                        + "          from pg_namespace as ns "
+                        // -- go with older way of unnesting array to be compatible with 8.0
+                        + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
+                        + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
+                        + "         using ( nspname ) "
+                        + "       ) as sp "
+                        + "    ON sp.nspoid = typnamespace "
+                        + " ORDER BY typname, sp.r, pg_type.oid;";
 
         private final TypeInfo typeInfo;
 
-        @Immutable
-        private final Set<String> preloadedSqlTypes;
+        @Immutable private final Set<String> preloadedSqlTypes;
 
-        @Immutable
-        private final Map<String, Integer> sqlTypesByPgTypeNames;
+        @Immutable private final Map<String, Integer> sqlTypesByPgTypeNames;
 
         private SqlTypeMapper(Connection db, TypeInfo typeInfo) throws SQLException {
             this.typeInfo = typeInfo;
@@ -467,7 +444,8 @@ public class TypeRegistry {
         public int getSqlType(String typeName) throws SQLException {
             boolean isCoreType = preloadedSqlTypes.contains(typeName);
 
-            // obtain core types such as bool, int2 etc. from the driver, as it correctly maps these types to the JDBC
+            // obtain core types such as bool, int2 etc. from the driver, as it correctly maps these
+            // types to the JDBC
             // type codes. Also those values are cached in TypeInfoCache.
             if (isCoreType) {
                 return typeInfo.getSQLType(typeName);
@@ -482,20 +460,26 @@ public class TypeRegistry {
                     if (pgType != null) {
                         return pgType;
                     }
-                    LOGGER.info("Failed to obtain SQL type information for type {} via custom statement, falling back to TypeInfo#getSQLType()", typeName);
+                    LOGGER.info(
+                            "Failed to obtain SQL type information for type {} via custom statement, falling back to TypeInfo#getSQLType()",
+                            typeName);
                     return typeInfo.getSQLType(typeName);
-                }
-                catch (Exception e) {
-                    LOGGER.warn("Failed to obtain SQL type information for type {} via custom statement, falling back to TypeInfo#getSQLType()", typeName, e);
+                } catch (Exception e) {
+                    LOGGER.warn(
+                            "Failed to obtain SQL type information for type {} via custom statement, falling back to TypeInfo#getSQLType()",
+                            typeName,
+                            e);
                     return typeInfo.getSQLType(typeName);
                 }
             }
         }
 
         /**
-         * Builds up a map of SQL (JDBC) types by PG type name; contains only values for non-core types.
+         * Builds up a map of SQL (JDBC) types by PG type name; contains only values for non-core
+         * types.
          */
-        private static Map<String, Integer> getSqlTypes(Connection db, TypeInfo typeInfo) throws SQLException {
+        private static Map<String, Integer> getSqlTypes(Connection db, TypeInfo typeInfo)
+                throws SQLException {
             Map<String, Integer> sqlTypesByPgTypeNames = new HashMap<>();
 
             try (final Statement statement = db.createStatement()) {
@@ -506,17 +490,13 @@ public class TypeRegistry {
                         String typtype = rs.getString(3);
                         if (isArray) {
                             type = Types.ARRAY;
-                        }
-                        else if ("c".equals(typtype)) {
+                        } else if ("c".equals(typtype)) {
                             type = Types.STRUCT;
-                        }
-                        else if ("d".equals(typtype)) {
+                        } else if ("d".equals(typtype)) {
                             type = Types.DISTINCT;
-                        }
-                        else if ("e".equals(typtype)) {
+                        } else if ("e".equals(typtype)) {
                             type = Types.VARCHAR;
-                        }
-                        else {
+                        } else {
                             type = Types.OTHER;
                         }
 

@@ -3,7 +3,7 @@
  *
  * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
  */
-package io.debezium.connector.opengauss.process;
+package io.debezium.connector.opengauss.utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,9 +18,7 @@ public class OgFullSourceProcessInfo {
     private int total;
     private List<TableInfo> tableList;
 
-    /**
-     * Constructor
-     */
+    /** Constructor */
     public OgFullSourceProcessInfo() {
         this.tableList = new ArrayList<>();
     }

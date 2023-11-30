@@ -5,6 +5,12 @@
  */
 package io.debezium.connector.opengauss.connection.wal2json;
 
+import org.apache.kafka.connect.errors.ConnectException;
+
+import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.connection.AbstractMessageDecoder;
 import io.debezium.connector.opengauss.connection.ReplicationMessage;
@@ -15,10 +21,6 @@ import io.debezium.document.Array.Entry;
 import io.debezium.document.Document;
 import io.debezium.document.DocumentReader;
 import io.debezium.document.Value;
-import org.apache.kafka.connect.errors.ConnectException;
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -29,26 +31,31 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 /**
- * A non-streaming version of JSON deserialization of a message sent by
- * <a href="https://github.com/eulerto/wal2json">wal2json</a> logical decoding plugin. The plugin sends all
- * changes in one transaction as a single batch in a big JSON file and they are passed to processor one-by-one.
+ * A non-streaming version of JSON deserialization of a message sent by <a
+ * href="https://github.com/eulerto/wal2json">wal2json</a> logical decoding plugin. The plugin sends
+ * all changes in one transaction as a single batch in a big JSON file and they are passed to
+ * processor one-by-one.
  *
  * @author Jiri Pechanec
- *
  */
-
 public class NonStreamingWal2JsonMessageDecoder extends AbstractMessageDecoder {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(NonStreamingWal2JsonMessageDecoder.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(NonStreamingWal2JsonMessageDecoder.class);
 
     private final DateTimeFormat dateTime = DateTimeFormat.get();
     private boolean containsMetadata = false;
 
     @Override
-    public void processNotEmptyMessage(ByteBuffer buffer, ReplicationStream.ReplicationMessageProcessor processor, TypeRegistry typeRegistry) throws SQLException, InterruptedException {
+    public void processNotEmptyMessage(
+            ByteBuffer buffer,
+            ReplicationStream.ReplicationMessageProcessor processor,
+            TypeRegistry typeRegistry)
+            throws SQLException, InterruptedException {
         try {
             if (!buffer.hasArray()) {
-                throw new IllegalStateException("Invalid buffer received from PG server during streaming replication");
+                throw new IllegalStateException(
+                        "Invalid buffer received from PG server during streaming replication");
             }
             final byte[] source = buffer.array();
             final byte[] content = Arrays.copyOfRange(source, buffer.arrayOffset(), source.length);
@@ -59,37 +66,55 @@ public class NonStreamingWal2JsonMessageDecoder extends AbstractMessageDecoder {
             final Instant commitTime = dateTime.systemTimestampToInstant(timestamp);
             final Array changes = message.getArray("change");
 
-            // WAL2JSON may send empty changes that still have a txid. These events are from things like vacuum,
-            // materialized view, DDL, etc. They still need to be processed for the heartbeat to fire.
+            // WAL2JSON may send empty changes that still have a txid. These events are from things
+            // like vacuum,
+            // materialized view, DDL, etc. They still need to be processed for the heartbeat to
+            // fire.
             if (changes.isEmpty()) {
-                processor.process(new TransactionMessage(ReplicationMessage.Operation.BEGIN, txId, commitTime));
-                processor.process(new TransactionMessage(ReplicationMessage.Operation.COMMIT, txId, commitTime));
-            }
-            else {
+                processor.process(
+                        new TransactionMessage(
+                                ReplicationMessage.Operation.BEGIN, txId, commitTime));
+                processor.process(
+                        new TransactionMessage(
+                                ReplicationMessage.Operation.COMMIT, txId, commitTime));
+            } else {
                 Iterator<Entry> it = changes.iterator();
-                processor.process(new TransactionMessage(ReplicationMessage.Operation.BEGIN, txId, commitTime));
+                processor.process(
+                        new TransactionMessage(
+                                ReplicationMessage.Operation.BEGIN, txId, commitTime));
                 while (it.hasNext()) {
                     Value value = it.next().getValue();
-                    processor.process(new Wal2JsonReplicationMessage(txId, commitTime, value.asDocument(), containsMetadata, !it.hasNext(), typeRegistry));
+                    processor.process(
+                            new Wal2JsonReplicationMessage(
+                                    txId,
+                                    commitTime,
+                                    value.asDocument(),
+                                    containsMetadata,
+                                    !it.hasNext(),
+                                    typeRegistry));
                 }
-                processor.process(new TransactionMessage(ReplicationMessage.Operation.COMMIT, txId, commitTime));
+                processor.process(
+                        new TransactionMessage(
+                                ReplicationMessage.Operation.COMMIT, txId, commitTime));
             }
-        }
-        catch (final IOException e) {
+        } catch (final IOException e) {
             throw new ConnectException(e);
         }
     }
 
     @Override
-    public ChainedLogicalStreamBuilder optionsWithMetadata(ChainedLogicalStreamBuilder builder, Function<Integer, Boolean> hasMinimumServerVersion) {
+    public ChainedLogicalStreamBuilder optionsWithMetadata(
+            ChainedLogicalStreamBuilder builder,
+            Function<Integer, Boolean> hasMinimumServerVersion) {
         return optionsWithoutMetadata(builder, hasMinimumServerVersion)
                 .withSlotOption("include-not-null", "true");
     }
 
     @Override
-    public ChainedLogicalStreamBuilder optionsWithoutMetadata(ChainedLogicalStreamBuilder builder, Function<Integer, Boolean> hasMinimumServerVersion) {
-        return builder
-                .withSlotOption("pretty-print", 1)
+    public ChainedLogicalStreamBuilder optionsWithoutMetadata(
+            ChainedLogicalStreamBuilder builder,
+            Function<Integer, Boolean> hasMinimumServerVersion) {
+        return builder.withSlotOption("pretty-print", 1)
                 .withSlotOption("write-in-chunks", 0)
                 .withSlotOption("include-xids", 1)
                 .withSlotOption("include-timestamp", 1);

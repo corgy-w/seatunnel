@@ -5,34 +5,39 @@
  */
 package io.debezium.connector.opengauss;
 
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.errors.ConnectException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.debezium.connector.SnapshotRecord;
-import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.spi.OffsetState;
+import io.debezium.connector.opengauss.utils.SignalBasedIncrementalSnapshotContext;
+import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.pipeline.source.snapshot.incremental.IncrementalSnapshotContext;
-import io.debezium.pipeline.source.snapshot.incremental.SignalBasedIncrementalSnapshotContext;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
 import io.debezium.relational.TableId;
 import io.debezium.schema.DataCollectionId;
 import io.debezium.time.Conversions;
 import io.debezium.util.Clock;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.ConnectException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class OpengaussOffsetContext implements OffsetContext {
-    private static final Logger LOGGER = LoggerFactory.getLogger(OpengaussSnapshotChangeEventSource.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(OpengaussSnapshotChangeEventSource.class);
 
     public static final String LAST_COMPLETELY_PROCESSED_LSN_KEY = "lsn_proc";
     public static final String LAST_COMMIT_LSN_KEY = "lsn_commit";
+    private static final String SERVER_PARTITION_KEY = "server";
 
     private final Schema sourceInfoSchema;
     private final SourceInfo sourceInfo;
@@ -43,10 +48,17 @@ public class OpengaussOffsetContext implements OffsetContext {
     private final TransactionContext transactionContext;
     private final IncrementalSnapshotContext<TableId> incrementalSnapshotContext;
 
-    private OpengaussOffsetContext(OpengaussConnectorConfig connectorConfig, Lsn lsn, Lsn lastCompletelyProcessedLsn, Lsn lastCommitLsn, Long txId, Instant time,
-                                   boolean snapshot,
-                                   boolean lastSnapshotRecord, TransactionContext transactionContext,
-                                   IncrementalSnapshotContext<TableId> incrementalSnapshotContext) {
+    private OpengaussOffsetContext(
+            OpengaussConnectorConfig connectorConfig,
+            Lsn lsn,
+            Lsn lastCompletelyProcessedLsn,
+            Lsn lastCommitLsn,
+            Long txId,
+            Instant time,
+            boolean snapshot,
+            boolean lastSnapshotRecord,
+            TransactionContext transactionContext,
+            IncrementalSnapshotContext<TableId> incrementalSnapshotContext) {
         sourceInfo = new SourceInfo(connectorConfig);
 
         this.lastCompletelyProcessedLsn = lastCompletelyProcessedLsn;
@@ -58,8 +70,7 @@ public class OpengaussOffsetContext implements OffsetContext {
         this.lastSnapshotRecord = lastSnapshotRecord;
         if (this.lastSnapshotRecord) {
             postSnapshotCompletion();
-        }
-        else {
+        } else {
             sourceInfo.setSnapshot(snapshot ? SnapshotRecord.TRUE : SnapshotRecord.FALSE);
         }
         this.transactionContext = transactionContext;
@@ -75,7 +86,9 @@ public class OpengaussOffsetContext implements OffsetContext {
     public Map<String, ?> getOffset() {
         Map<String, Object> result = new HashMap<>();
         if (sourceInfo.timestamp() != null) {
-            result.put(SourceInfo.TIMESTAMP_USEC_KEY, Conversions.toEpochMicros(sourceInfo.timestamp()));
+            result.put(
+                    SourceInfo.TIMESTAMP_USEC_KEY,
+                    Conversions.toEpochMicros(sourceInfo.timestamp()));
         }
         if (sourceInfo.txId() != null) {
             result.put(SourceInfo.TXID_KEY, sourceInfo.txId());
@@ -96,7 +109,9 @@ public class OpengaussOffsetContext implements OffsetContext {
         if (lastCommitLsn != null) {
             result.put(LAST_COMMIT_LSN_KEY, lastCommitLsn.asLong());
         }
-        return sourceInfo.isSnapshot() ? result : incrementalSnapshotContext.store(transactionContext.store(result));
+        return sourceInfo.isSnapshot()
+                ? result
+                : incrementalSnapshotContext.store(transactionContext.store(result));
     }
 
     @Override
@@ -130,15 +145,20 @@ public class OpengaussOffsetContext implements OffsetContext {
         sourceInfo.setSnapshot(SnapshotRecord.FALSE);
     }
 
-    public void updateWalPosition(Lsn lsn, Lsn lastCompletelyProcessedLsn, Instant commitTime, Long txId, Long xmin, TableId tableId) {
+    public void updateWalPosition(
+            Lsn lsn,
+            Lsn lastCompletelyProcessedLsn,
+            Instant commitTime,
+            Long txId,
+            Long xmin,
+            TableId tableId) {
         this.lastCompletelyProcessedLsn = lastCompletelyProcessedLsn;
         sourceInfo.update(lsn, commitTime, txId, xmin, tableId);
     }
 
-    /**
-     * update wal position for lsn events that do not have an associated table or schema
-     */
-    public void updateWalPosition(Lsn lsn, Lsn lastCompletelyProcessedLsn, Instant commitTime, Long txId, Long xmin) {
+    /** update wal position for lsn events that do not have an associated table or schema */
+    public void updateWalPosition(
+            Lsn lsn, Lsn lastCompletelyProcessedLsn, Instant commitTime, Long txId, Long xmin) {
         updateWalPosition(lsn, lastCompletelyProcessedLsn, commitTime, txId, xmin, null);
     }
 
@@ -169,11 +189,10 @@ public class OpengaussOffsetContext implements OffsetContext {
     }
 
     /**
-     * Returns the LSN that the streaming phase should stream events up to or null if
-     * a stopping point is not set. If set during the streaming phase, any event with
-     * an LSN less than the stopping LSN will be processed and once the stopping LSN
-     * is reached, the streaming phase will end. Useful for a pre-snapshot catch up
-     * streaming phase.
+     * Returns the LSN that the streaming phase should stream events up to or null if a stopping
+     * point is not set. If set during the streaming phase, any event with an LSN less than the
+     * stopping LSN will be processed and once the stopping LSN is reached, the streaming phase will
+     * end. Useful for a pre-snapshot catch up streaming phase.
      */
     Lsn getStreamingStoppingLsn() {
         return streamingStoppingLsn;
@@ -197,40 +216,84 @@ public class OpengaussOffsetContext implements OffsetContext {
 
         private Long readOptionalLong(Map<String, ?> offset, String key) {
             final Object obj = offset.get(key);
-            return (obj == null) ? null : ((Number) obj).longValue();
+            return (obj == null) ? null : Long.parseLong((String)obj);
+        }
+
+        @Override
+        public Map<String, ?> getPartition() {
+            return Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
         }
 
         @SuppressWarnings("unchecked")
         @Override
         public OpengaussOffsetContext load(Map<String, ?> offset) {
             final Lsn lsn = Lsn.valueOf(readOptionalLong(offset, SourceInfo.LSN_KEY));
-            final Lsn lastCompletelyProcessedLsn = Lsn.valueOf(readOptionalLong(offset, LAST_COMPLETELY_PROCESSED_LSN_KEY));
-            final Lsn lastCommitLsn = Lsn.valueOf(readOptionalLong(offset, LAST_COMPLETELY_PROCESSED_LSN_KEY));
+            final Lsn lastCompletelyProcessedLsn =
+                    Lsn.valueOf(readOptionalLong(offset, LAST_COMPLETELY_PROCESSED_LSN_KEY));
+            final Lsn lastCommitLsn =
+                    Lsn.valueOf(readOptionalLong(offset, LAST_COMPLETELY_PROCESSED_LSN_KEY));
             final Long txId = readOptionalLong(offset, SourceInfo.TXID_KEY);
 
-            final Instant useconds = Conversions.toInstantFromMicros((Long) offset.get(SourceInfo.TIMESTAMP_USEC_KEY));
-            final boolean snapshot = (boolean) ((Map<String, Object>) offset).getOrDefault(SourceInfo.SNAPSHOT_KEY, Boolean.FALSE);
-            final boolean lastSnapshotRecord = (boolean) ((Map<String, Object>) offset).getOrDefault(SourceInfo.LAST_SNAPSHOT_RECORD_KEY, Boolean.FALSE);
-            return new OpengaussOffsetContext(connectorConfig, lsn, lastCompletelyProcessedLsn, lastCommitLsn, txId, useconds, snapshot, lastSnapshotRecord,
-                    TransactionContext.load(offset), SignalBasedIncrementalSnapshotContext.load(offset, false));
+            Long microsSinceEpoch = offset.get(SourceInfo.TIMESTAMP_USEC_KEY) == null ? 0L : (Long) offset.get(SourceInfo.TIMESTAMP_USEC_KEY);
+            final Instant useconds =
+                    Conversions.toInstantFromMicros(microsSinceEpoch);
+            final boolean snapshot =
+                    (boolean)
+                            ((Map<String, Object>) offset)
+                                    .getOrDefault(SourceInfo.SNAPSHOT_KEY, Boolean.FALSE);
+            final boolean lastSnapshotRecord =
+                    (boolean)
+                            ((Map<String, Object>) offset)
+                                    .getOrDefault(
+                                            SourceInfo.LAST_SNAPSHOT_RECORD_KEY, Boolean.FALSE);
+            return new OpengaussOffsetContext(
+                    connectorConfig,
+                    lsn,
+                    lastCompletelyProcessedLsn,
+                    lastCommitLsn,
+                    txId,
+                    useconds,
+                    snapshot,
+                    lastSnapshotRecord,
+                    TransactionContext.load(offset),
+                    SignalBasedIncrementalSnapshotContext.load(offset, false));
         }
     }
 
     @Override
     public String toString() {
-        return "PostgresOffsetContext [sourceInfoSchema=" + sourceInfoSchema + ", sourceInfo=" + sourceInfo
-                + ", lastSnapshotRecord=" + lastSnapshotRecord
-                + ", lastCompletelyProcessedLsn=" + lastCompletelyProcessedLsn + ", lastCommitLsn=" + lastCommitLsn
-                + ", streamingStoppingLsn=" + streamingStoppingLsn + ", transactionContext=" + transactionContext
-                + ", incrementalSnapshotContext=" + incrementalSnapshotContext + "]";
+        return "PostgresOffsetContext [sourceInfoSchema="
+                + sourceInfoSchema
+                + ", sourceInfo="
+                + sourceInfo
+                + ", lastSnapshotRecord="
+                + lastSnapshotRecord
+                + ", lastCompletelyProcessedLsn="
+                + lastCompletelyProcessedLsn
+                + ", lastCommitLsn="
+                + lastCommitLsn
+                + ", streamingStoppingLsn="
+                + streamingStoppingLsn
+                + ", transactionContext="
+                + transactionContext
+                + ", incrementalSnapshotContext="
+                + incrementalSnapshotContext
+                + "]";
     }
 
-    public static OpengaussOffsetContext initialContext(OpengaussConnectorConfig connectorConfig, OpengaussConnection jdbcConnection, Clock clock) {
+    public static OpengaussOffsetContext initialContext(
+            OpengaussConnectorConfig connectorConfig,
+            OpengaussConnection jdbcConnection,
+            Clock clock) {
         return initialContext(connectorConfig, jdbcConnection, clock, null, null);
     }
 
-    public static OpengaussOffsetContext initialContext(OpengaussConnectorConfig connectorConfig, OpengaussConnection jdbcConnection, Clock clock, Lsn lastCommitLsn,
-                                                        Lsn lastCompletelyProcessedLsn) {
+    public static OpengaussOffsetContext initialContext(
+            OpengaussConnectorConfig connectorConfig,
+            OpengaussConnection jdbcConnection,
+            Clock clock,
+            Lsn lastCommitLsn,
+            Lsn lastCompletelyProcessedLsn) {
         try {
             LOGGER.info("Creating initial offset context");
             final Lsn lsn = Lsn.valueOf(jdbcConnection.currentXLogLocation());
@@ -247,8 +310,7 @@ public class OpengaussOffsetContext implements OffsetContext {
                     false,
                     new TransactionContext(),
                     new SignalBasedIncrementalSnapshotContext<>(false));
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new ConnectException("Database processing error", e);
         }
     }

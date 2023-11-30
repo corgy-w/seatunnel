@@ -6,9 +6,6 @@
 
 package io.debezium.connector.opengauss.connection;
 
-import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
-import io.debezium.connector.opengauss.OpengaussType;
-import io.debezium.connector.opengauss.TypeRegistry;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
 import org.postgresql.geometric.PGline;
@@ -16,6 +13,10 @@ import org.postgresql.geometric.PGpath;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.geometric.PGpolygon;
 import org.postgresql.util.PGmoney;
+
+import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
+import io.debezium.connector.opengauss.OpengaussType;
+import io.debezium.connector.opengauss.TypeRegistry;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,19 +26,14 @@ import java.util.List;
 import java.util.OptionalLong;
 
 /**
- * An abstract representation of a replication message that is sent by a PostgreSQL logical decoding plugin and
- * is processed by the Debezium PostgreSQL connector.
+ * An abstract representation of a replication message that is sent by a PostgreSQL logical decoding
+ * plugin and is processed by the Debezium PostgreSQL connector.
  *
  * @author Jiri Pechanec
- *
  */
 public interface ReplicationMessage {
 
-    /**
-     *
-     * Data modification operation executed
-     *
-     */
+    /** Data modification operation executed */
     public enum Operation {
         INSERT,
         UPDATE,
@@ -49,21 +45,21 @@ public interface ReplicationMessage {
         NOOP
     }
 
-    /**
-     * A representation of column value delivered as a part of replication message
-     */
+    /** A representation of column value delivered as a part of replication message */
     public interface Column {
         String getName();
 
         OpengaussType getType();
 
         /**
-         * Returns additional metadata about this column's type. May only be called
-         * after checking {@link ReplicationMessage#hasMetadata()}.
+         * Returns additional metadata about this column's type. May only be called after checking
+         * {@link ReplicationMessage#hasMetadata()}.
          */
         ColumnTypeMetadata getTypeMetadata();
 
-        Object getValue(final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection, boolean includeUnknownDatatypes);
+        Object getValue(
+                final OpengaussStreamingChangeEventSource.PgConnectionSupplier connection,
+                boolean includeUnknownDatatypes);
 
         boolean isOptional();
 
@@ -131,69 +127,65 @@ public interface ReplicationMessage {
 
         boolean isArray(OpengaussType type);
 
-        Object asArray(String columnName, OpengaussType type, String fullType, OpengaussStreamingChangeEventSource.PgConnectionSupplier connection);
+        Object asArray(
+                String columnName,
+                OpengaussType type,
+                String fullType,
+                OpengaussStreamingChangeEventSource.PgConnectionSupplier connection);
 
-        Object asDefault(TypeRegistry typeRegistry, int columnType, String columnName, String fullType, boolean includeUnknownDatatypes, OpengaussStreamingChangeEventSource.PgConnectionSupplier connection);
+        Object asDefault(
+                TypeRegistry typeRegistry,
+                int columnType,
+                String columnName,
+                String fullType,
+                boolean includeUnknownDatatypes,
+                OpengaussStreamingChangeEventSource.PgConnectionSupplier connection);
     }
 
-    /**
-     * @return A data operation executed
-     */
+    /** @return A data operation executed */
     public Operation getOperation();
 
-    /**
-     * @return Transaction commit time for this change
-     */
+    /** @return Transaction commit time for this change */
     public Instant getCommitTime();
 
     /**
-     * @return An id of transaction to which this change belongs; will not be
-     *         present for non-transactional logical decoding messages for instance
+     * @return An id of transaction to which this change belongs; will not be present for
+     *     non-transactional logical decoding messages for instance
      */
     public OptionalLong getTransactionId();
 
-    /**
-     * @return Table changed
-     */
+    /** @return Table changed */
     public String getTable();
 
-    /**
-     * @return Set of original values of table columns, null for INSERT
-     */
+    /** @return Set of original values of table columns, null for INSERT */
     public List<Column> getOldTupleList();
 
-    /**
-     * @return Set of new values of table columns, null for DELETE
-     */
+    /** @return Set of new values of table columns, null for DELETE */
     public List<Column> getNewTupleList();
 
-    /**
-     * @return true if type metadata are passed as a part of message
-     */
+    /** @return true if type metadata are passed as a part of message */
     boolean hasTypeMetadata();
 
-    /**
-     * @return true if this is the last message in the batch of messages with same LSN
-     */
+    /** @return true if this is the last message in the batch of messages with same LSN */
     boolean isLastEventForLsn();
 
     /**
-     * @return true if the stream producer should synchronize the schema when processing messages, false otherwise
+     * @return true if the stream producer should synchronize the schema when processing messages,
+     *     false otherwise
      */
     default boolean shouldSchemaBeSynchronized() {
         return true;
     }
 
-    /**
-     * Whether this message represents the begin or end of a transaction.
-     */
+    /** Whether this message represents the begin or end of a transaction. */
     default boolean isTransactionalMessage() {
         return getOperation() == Operation.BEGIN || getOperation() == Operation.COMMIT;
     }
 
     /**
-     * A special message type that is used to replace event filtered already at {@link MessageDecoder}.
-     * Enables {@link OpengaussStreamingChangeEventSource} to advance LSN forward even in case of such messages.
+     * A special message type that is used to replace event filtered already at {@link
+     * MessageDecoder}. Enables {@link OpengaussStreamingChangeEventSource} to advance LSN forward
+     * even in case of such messages.
      */
     public class NoopMessage implements ReplicationMessage {
 

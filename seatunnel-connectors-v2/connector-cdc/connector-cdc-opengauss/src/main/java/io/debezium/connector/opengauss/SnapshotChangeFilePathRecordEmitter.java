@@ -8,7 +8,6 @@ package io.debezium.connector.opengauss;
 
 import io.debezium.data.Envelope;
 import io.debezium.pipeline.spi.OffsetContext;
-import io.debezium.pipeline.spi.Partition;
 import io.debezium.relational.RelationalChangeRecordEmitter;
 import io.debezium.util.Clock;
 
@@ -19,26 +18,26 @@ import io.debezium.util.Clock;
  * @date 2023/06/02
  */
 public class SnapshotChangeFilePathRecordEmitter extends RelationalChangeRecordEmitter {
-    // Contains two elements, the first is file location information, and the second is table column information
+    // Contains two elements, the first is file location information, and the second is table column
+    // information
     private final Object[] row;
 
     /**
      * Constructor
      *
-     * @param partition partition
      * @param offsetContext offsetContext
      * @param clock clock
      * @param row data
      */
-    public SnapshotChangeFilePathRecordEmitter(Partition partition, OffsetContext offsetContext,
-        Clock clock, Object[] row) {
-        super(partition, offsetContext, clock);
+    public SnapshotChangeFilePathRecordEmitter(
+            OffsetContext offsetContext, Clock clock, Object[] row) {
+        super(offsetContext, clock);
         this.row = row;
     }
 
     @Override
     protected Envelope.Operation getOperation() {
-        return Envelope.Operation.PATH;
+        return Envelope.Operation.READ;
     }
 
     @Override

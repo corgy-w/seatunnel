@@ -11,15 +11,19 @@ import io.debezium.connector.opengauss.spi.SlotState;
 import io.debezium.connector.opengauss.spi.Snapshotter;
 
 /**
- * This class is a small wrapper around the snapshotter that takes care of initialization
- * and also lets us access the slotState (which we don't track currently)
+ * This class is a small wrapper around the snapshotter that takes care of initialization and also
+ * lets us access the slotState (which we don't track currently)
  */
 public class SnapshotterWrapper {
 
     private final Snapshotter snapshotter;
     private final SlotState slotState;
 
-    public SnapshotterWrapper(Snapshotter snapshotter, OpengaussConnectorConfig config, OffsetState offsetState, SlotState slotState) {
+    public SnapshotterWrapper(
+            Snapshotter snapshotter,
+            OpengaussConnectorConfig config,
+            OffsetState offsetState,
+            SlotState slotState) {
         this.snapshotter = snapshotter;
         this.slotState = slotState;
         this.snapshotter.init(config, offsetState, slotState);

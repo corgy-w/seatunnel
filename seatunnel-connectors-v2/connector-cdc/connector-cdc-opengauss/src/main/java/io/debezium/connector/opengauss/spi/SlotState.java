@@ -6,11 +6,9 @@
 package io.debezium.connector.opengauss.spi;
 
 import io.debezium.common.annotation.Incubating;
-import io.debezium.connector.opengauss.connection.Lsn;
+import io.debezium.connector.postgresql.connection.Lsn;
 
-/**
- * A simple data container that holds the state of the current slot
- */
+/** A simple data container that holds the state of the current slot */
 @Incubating
 public class SlotState {
     private final Lsn latestFlushedLsn;
@@ -25,30 +23,22 @@ public class SlotState {
         this.catalogXmin = catXmin;
     }
 
-    /**
-     * @return the slot's `confirmed_flushed_lsn` value
-     */
+    /** @return the slot's `confirmed_flushed_lsn` value */
     public Lsn slotLastFlushedLsn() {
         return latestFlushedLsn;
     }
 
-    /**
-     * @return the slot's `restart_lsn` value
-     */
+    /** @return the slot's `restart_lsn` value */
     public Lsn slotRestartLsn() {
         return restartLsn;
     }
 
-    /**
-     * @return the slot's `catalog_xmin` value
-     */
+    /** @return the slot's `catalog_xmin` value */
     public Long slotCatalogXmin() {
         return catalogXmin;
     }
 
-    /**
-     * @return if the slot is active
-     */
+    /** @return if the slot is active */
     public boolean slotIsActive() {
         return active;
     }

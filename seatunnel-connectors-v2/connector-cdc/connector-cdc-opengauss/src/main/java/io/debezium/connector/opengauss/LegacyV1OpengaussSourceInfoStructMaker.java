@@ -5,34 +5,40 @@
  */
 package io.debezium.connector.opengauss;
 
-import io.debezium.config.CommonConnectorConfig;
-import io.debezium.connector.LegacyV1AbstractSourceInfoStructMaker;
-import io.debezium.connector.SnapshotRecord;
-import io.debezium.time.Conversions;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
-public class LegacyV1OpengaussSourceInfoStructMaker extends LegacyV1AbstractSourceInfoStructMaker<SourceInfo> {
+import io.debezium.config.CommonConnectorConfig;
+import io.debezium.connector.LegacyV1AbstractSourceInfoStructMaker;
+import io.debezium.connector.SnapshotRecord;
+import io.debezium.time.Conversions;
+
+public class LegacyV1OpengaussSourceInfoStructMaker
+        extends LegacyV1AbstractSourceInfoStructMaker<SourceInfo> {
 
     private final Schema schema;
     private final String serverName;
 
-    public LegacyV1OpengaussSourceInfoStructMaker(String connector, String version, CommonConnectorConfig connectorConfig) {
+    public LegacyV1OpengaussSourceInfoStructMaker(
+            String connector, String version, CommonConnectorConfig connectorConfig) {
         super(connector, version, connectorConfig);
-        schema = commonSchemaBuilder()
-                .name("io.debezium.connector.postgresql.Source")
-                .field(SourceInfo.SERVER_NAME_KEY, Schema.STRING_SCHEMA)
-                .field(SourceInfo.DATABASE_NAME_KEY, Schema.STRING_SCHEMA)
-                .field(SourceInfo.TIMESTAMP_USEC_KEY, Schema.OPTIONAL_INT64_SCHEMA)
-                .field(SourceInfo.TXID_KEY, Schema.OPTIONAL_INT64_SCHEMA)
-                .field(SourceInfo.LSN_KEY, Schema.OPTIONAL_INT64_SCHEMA)
-                .field(SourceInfo.SCHEMA_NAME_KEY, Schema.OPTIONAL_STRING_SCHEMA)
-                .field(SourceInfo.TABLE_NAME_KEY, Schema.OPTIONAL_STRING_SCHEMA)
-                .field(SourceInfo.SNAPSHOT_KEY, SchemaBuilder.bool().optional().defaultValue(false).build())
-                .field(SourceInfo.LAST_SNAPSHOT_RECORD_KEY, Schema.OPTIONAL_BOOLEAN_SCHEMA)
-                .field(SourceInfo.XMIN_KEY, Schema.OPTIONAL_INT64_SCHEMA)
-                .build();
+        schema =
+                commonSchemaBuilder()
+                        .name("io.debezium.connector.postgresql.Source")
+                        .field(SourceInfo.SERVER_NAME_KEY, Schema.STRING_SCHEMA)
+                        .field(SourceInfo.DATABASE_NAME_KEY, Schema.STRING_SCHEMA)
+                        .field(SourceInfo.TIMESTAMP_USEC_KEY, Schema.OPTIONAL_INT64_SCHEMA)
+                        .field(SourceInfo.TXID_KEY, Schema.OPTIONAL_INT64_SCHEMA)
+                        .field(SourceInfo.LSN_KEY, Schema.OPTIONAL_INT64_SCHEMA)
+                        .field(SourceInfo.SCHEMA_NAME_KEY, Schema.OPTIONAL_STRING_SCHEMA)
+                        .field(SourceInfo.TABLE_NAME_KEY, Schema.OPTIONAL_STRING_SCHEMA)
+                        .field(
+                                SourceInfo.SNAPSHOT_KEY,
+                                SchemaBuilder.bool().optional().defaultValue(false).build())
+                        .field(SourceInfo.LAST_SNAPSHOT_RECORD_KEY, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                        .field(SourceInfo.XMIN_KEY, Schema.OPTIONAL_INT64_SCHEMA)
+                        .build();
         this.serverName = connectorConfig.getLogicalName();
     }
 
@@ -53,7 +59,9 @@ public class LegacyV1OpengaussSourceInfoStructMaker extends LegacyV1AbstractSour
         result.put(SourceInfo.SCHEMA_NAME_KEY, sourceInfo.schemaName());
         result.put(SourceInfo.TABLE_NAME_KEY, sourceInfo.tableName());
         if (sourceInfo.timestamp() != null) {
-            result.put(SourceInfo.TIMESTAMP_USEC_KEY, Conversions.toEpochMicros(sourceInfo.timestamp()));
+            result.put(
+                    SourceInfo.TIMESTAMP_USEC_KEY,
+                    Conversions.toEpochMicros(sourceInfo.timestamp()));
         }
         if (sourceInfo.txId() != null) {
             result.put(SourceInfo.TXID_KEY, sourceInfo.txId());
@@ -66,7 +74,9 @@ public class LegacyV1OpengaussSourceInfoStructMaker extends LegacyV1AbstractSour
         }
         if (sourceInfo.isSnapshot()) {
             result.put(SourceInfo.SNAPSHOT_KEY, true);
-            result.put(SourceInfo.LAST_SNAPSHOT_RECORD_KEY, sourceInfo.snapshot() == SnapshotRecord.LAST);
+            result.put(
+                    SourceInfo.LAST_SNAPSHOT_RECORD_KEY,
+                    sourceInfo.snapshot() == SnapshotRecord.LAST);
         }
         return result;
     }
