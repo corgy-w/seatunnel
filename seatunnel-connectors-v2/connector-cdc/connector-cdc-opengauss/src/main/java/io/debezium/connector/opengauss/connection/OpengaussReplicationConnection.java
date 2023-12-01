@@ -417,23 +417,31 @@ public class OpengaussReplicationConnection extends JdbcConnection
         // For pgoutput specifically, the publication must be created prior to the slot.
         initPublication();
 
-        try (Statement stmt = pgConnection().createStatement()) {
+        try (Statement stmt = pgConnectionWithReplication().createStatement()) {
             String createCommand =
-                    String.format("SELECT * FROM pg_create_logical_replication_slot('%s', 'pgoutput');", slotName);
+                    String.format("CREATE_REPLICATION_SLOT \"%s\"  LOGICAL pgoutput;", slotName);
             LOGGER.info("Creating replication slot with command {}", createCommand);
-            // todo select slot list
-            try {
+            if (!isExistSlot(slotName)){
                 stmt.execute(createCommand);
-            } catch (Exception e) {
-
+            }else{
+                LOGGER.warn("slot {} has already exist",slotName);
             }
             // when we are in Postgres 9.4+, we can parse the slot creation info,
             // otherwise, it returns nothing
             if (canExportSnapshot) {
                 this.slotCreationInfo = parseSlotCreation(stmt.getResultSet());
             }
-
             return Optional.ofNullable(slotCreationInfo);
+        }
+    }
+
+    private boolean isExistSlot(String slotName){
+        try {
+            final ResultSet resultSet = pgConnection().createStatement().executeQuery(String.format("select * from pg_replication_slots where slot_name = '%s' and plugin = 'pgoutput';",slotName));
+            return resultSet.next();
+        } catch (SQLException throwables) {
+            LOGGER.warn("executer error {}",slotName);
+            return false;
         }
     }
 

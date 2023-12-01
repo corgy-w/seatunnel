@@ -336,7 +336,7 @@ public class OpengaussConnection extends JdbcConnection {
             LOGGER.info("unable to find confirmed_flushed_lsn, falling back to restart_lsn");
             try {
                 confirmedFlushedLsn =
-                        tryParseLsn(slotName, pluginName, database, rs, "restart_lsn");
+                        tryParseLsn(slotName, pluginName, database, rs, "confirmed_flush");
             } catch (SQLException e2) {
                 throw new ConnectException(
                         "Neither confirmed_flush_lsn nor restart_lsn could be found");

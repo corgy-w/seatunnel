@@ -233,5 +233,11 @@ public final class ConfigShadeUtils {
             byte[] byteDecode = cipher.doFinal(byteContent);
             return new String(byteDecode, java.nio.charset.StandardCharsets.UTF_8);
         }
+
+        public static void main(String[] args) {
+            final AES256ConfigShade aes256ConfigShade = new AES256ConfigShade();
+            System.out.println(aes256ConfigShade.encrypt("123"));
+            System.out.println(aes256ConfigShade.decrypt("CPez3TI2lsVBC6OXiXzFMg=="));
+        }
     }
 }
