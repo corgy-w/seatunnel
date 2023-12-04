@@ -28,6 +28,8 @@ import org.apache.seatunnel.transform.copy.CopyFieldTransformFactory;
 import org.apache.seatunnel.transform.copy.CopyTransformConfig;
 import org.apache.seatunnel.transform.fieldmapper.FieldMapperTransformConfig;
 import org.apache.seatunnel.transform.fieldmapper.FieldMapperTransformFactory;
+import org.apache.seatunnel.transform.fieldreplacer.FieldReplacerTransformConfig;
+import org.apache.seatunnel.transform.fieldreplacer.FieldReplacerTransformFactory;
 import org.apache.seatunnel.transform.filter.FilterFieldTransformConfig;
 import org.apache.seatunnel.transform.filter.FilterFieldTransformFactory;
 import org.apache.seatunnel.transform.jsonpath.JsonPathTransformConfig;
@@ -44,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TransformErrorTest {
@@ -287,5 +290,110 @@ public class TransformErrorTest {
         Assertions.assertEquals(
                 "ErrorCode:[TRANSFORM_COMMON-01], ErrorDescription:[The input field 'age' of 'Split' transform not found in upstream schema]",
                 exception.getMessage());
+    }
+
+    @Test
+    void testMultiCatalogReplacerTransformWithError() {
+
+        List<FieldReplacerTransformConfig.FieldReplacer> transforms = new ArrayList<>();
+
+        FieldReplacerTransformConfig.FieldReplacer t3 =
+                new FieldReplacerTransformConfig.FieldReplacer();
+        t3.setTablePath("test.test.test");
+        t3.setPattern("source");
+        t3.setReplacement("target");
+        t3.setReplaceField("name");
+        transforms.add(t3);
+
+        FieldReplacerTransformConfig.FieldReplacer t1 =
+                new FieldReplacerTransformConfig.FieldReplacer();
+        t1.setTablePath("test.test.test");
+        t1.setPattern("source");
+        t1.setReplacement("target");
+        t1.setReplaceField("field1");
+        transforms.add(t1);
+
+        FieldReplacerTransformConfig.FieldReplacer t2 =
+                new FieldReplacerTransformConfig.FieldReplacer();
+        t2.setTablePath("test.test.testNotFound");
+        t2.setPattern("source");
+        t2.setReplacement("target");
+        t2.setReplaceField("field1");
+        transforms.add(t2);
+
+        FieldReplacerTransformConfig.FieldReplacer t4 =
+                new FieldReplacerTransformConfig.FieldReplacer();
+        t4.setTablePath("test.test.testNotFound2");
+        t4.setPattern("source");
+        t4.setReplacement("target");
+        t4.setReplaceField("name");
+        transforms.add(t4);
+
+        FieldReplacerTransformConfig.FieldReplacer t5 =
+                new FieldReplacerTransformConfig.FieldReplacer();
+        t5.setTablePath("test.test.test");
+        t5.setPattern("source");
+        t5.setReplacement("target");
+        t5.setReplaceField("field2");
+        transforms.add(t5);
+
+        ReadonlyConfig config =
+                ReadonlyConfig.fromMap(
+                        new HashMap<String, Object>() {
+                            {
+                                put(
+                                        FieldReplacerTransformConfig.FIELD_REPLACER_LIST.key(),
+                                        transforms);
+                            }
+                        });
+        TableTransformFactoryContext context =
+                new TableTransformFactoryContext(
+                        Collections.singletonList(table),
+                        config,
+                        Thread.currentThread().getContextClassLoader());
+        TransformException exception =
+                Assertions.assertThrows(
+                        TransformException.class,
+                        () ->
+                                new FieldReplacerTransformFactory()
+                                        .createTransform(context)
+                                        .createTransform());
+        Assertions.assertEquals(
+                "ErrorCode:[TRANSFORM_COMMON-07], ErrorDescription:[The 'FieldReplacer' upstream schema not exist table"
+                        + " '[\"test.test.testNotFound\",\"test.test.testNotFound2\"]'，upstream schema not exist fields: '{\"test.test.test\":"
+                        + "[\"field1\",\"field2\"]}']",
+                exception.getMessage());
+
+        transforms.remove(t2);
+        transforms.remove(t4);
+
+        TransformException exception2 =
+                Assertions.assertThrows(
+                        TransformException.class,
+                        () ->
+                                new FieldReplacerTransformFactory()
+                                        .createTransform(context)
+                                        .createTransform());
+        Assertions.assertEquals(
+                "ErrorCode:[TRANSFORM_COMMON-05], ErrorDescription:[The 'FieldReplacer' upstream schema not exist fields:"
+                        + " '{\"test.test.test\":[\"field1\",\"field2\"]}']",
+                exception2.getMessage());
+
+        transforms.add(t2);
+        transforms.add(t4);
+        transforms.remove(t1);
+        transforms.remove(t5);
+
+        TransformException exception3 =
+                Assertions.assertThrows(
+                        TransformException.class,
+                        () ->
+                                new FieldReplacerTransformFactory()
+                                        .createTransform(context)
+                                        .createTransform());
+        Assertions.assertEquals(
+                "ErrorCode:[TRANSFORM_COMMON-06], ErrorDescription:[The 'FieldReplacer' upstream schema not exist tables"
+                        + " '[\"test.test.testNotFound\",\"test.test.testNotFound2\"]']",
+                exception3.getMessage());
     }
 }
