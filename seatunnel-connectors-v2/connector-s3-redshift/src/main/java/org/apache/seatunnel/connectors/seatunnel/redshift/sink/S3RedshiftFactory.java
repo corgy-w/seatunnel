@@ -17,8 +17,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.redshift.sink;
 
-import org.apache.seatunnel.shade.com.typesafe.config.ConfigFactory;
-
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.sink.DataSaveMode;
@@ -172,10 +170,6 @@ public class S3RedshiftFactory implements TableSinkFactory {
         }
 
         return () ->
-                new S3RedshiftSink(
-                        finalCatalogTable,
-                        s3RedshiftConf,
-                        ConfigFactory.parseMap(config.toMap()),
-                        config);
+                new S3RedshiftSink(finalCatalogTable, s3RedshiftConf, config.toConfig(), config);
     }
 }
