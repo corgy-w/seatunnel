@@ -90,7 +90,7 @@ public class ClientJobProxy implements Job {
      * @return The job final status
      */
     @Override
-    public JobStatus waitForJobComplete() {
+    public JobResult waitForJobCompleteV2() {
         try {
             jobResult =
                     RetryUtils.retryWithException(
@@ -108,7 +108,7 @@ public class ClientJobProxy implements Job {
             if (jobResult == null) {
                 LOGGER.severe(
                         "Unable to obtain the status of the job, it may have been running during the last cluster shutdown.");
-                return JobStatus.FAILED;
+                return new JobResult(JobStatus.FAILED);
             }
         } catch (Exception e) {
             LOGGER.info(
@@ -122,7 +122,7 @@ public class ClientJobProxy implements Job {
                 || jobResult.getStatus().equals(JobStatus.FAILED)) {
             LOGGER.severe(jobResult.getError());
         }
-        return jobResult.getStatus();
+        return jobResult;
     }
 
     public JobResult getJobResultCache() {
