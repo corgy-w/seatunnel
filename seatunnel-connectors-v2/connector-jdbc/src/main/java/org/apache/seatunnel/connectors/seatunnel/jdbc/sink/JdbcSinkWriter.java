@@ -84,6 +84,12 @@ public class JdbcSinkWriter
         ds.setIdleTimeout(30 * 1000);
         ds.setMaximumPoolSize(queueSize);
         ds.setJdbcUrl(jdbcSinkConfig.getJdbcConnectionConfig().getUrl());
+        if (jdbcSinkConfig
+                .getJdbcConnectionConfig()
+                .driverName
+                .equals("io.transwarp.jdbc.InceptorDriver")) {
+            ds.setDriverClassName("io.transwarp.jdbc.InceptorDriver");
+        }
         if (jdbcSinkConfig.getJdbcConnectionConfig().getUsername().isPresent()) {
             ds.setUsername(jdbcSinkConfig.getJdbcConnectionConfig().getUsername().get());
         }
