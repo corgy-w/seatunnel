@@ -6,7 +6,6 @@
 
 package io.debezium.connector.opengauss;
 
-import io.debezium.util.SchemaNameAdjuster;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.ConnectException;
 
@@ -23,6 +22,7 @@ import io.debezium.relational.TableId;
 import io.debezium.relational.TableSchemaBuilder;
 import io.debezium.relational.Tables;
 import io.debezium.schema.TopicSelector;
+import io.debezium.util.SchemaNameAdjuster;
 
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -232,7 +232,6 @@ public class OpengaussSchema extends RelationalDatabaseSchema {
                         + " and att.attnum > 0"
                         + " and att.attstorage in ('x', 'e', 'm')"
                         + " and not att.attisdropped;";
-
 
         try {
             connection.prepareQuery(

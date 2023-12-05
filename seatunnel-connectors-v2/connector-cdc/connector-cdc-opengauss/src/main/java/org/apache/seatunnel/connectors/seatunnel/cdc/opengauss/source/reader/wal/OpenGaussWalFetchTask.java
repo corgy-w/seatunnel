@@ -17,12 +17,12 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.wal;
 
-import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
 import org.apache.seatunnel.connectors.cdc.base.source.split.IncrementalSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.OpenGaussSourceFetchTaskContext;
 
+import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.util.Clock;
 

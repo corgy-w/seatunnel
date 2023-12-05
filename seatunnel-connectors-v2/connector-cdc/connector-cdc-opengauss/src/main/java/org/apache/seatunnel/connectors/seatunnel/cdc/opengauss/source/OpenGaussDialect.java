@@ -39,9 +39,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.OpengaussValueConverter;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
-import io.debezium.connector.postgresql.PostgresConnectorConfig;
-import io.debezium.connector.postgresql.PostgresValueConverter;
-import io.debezium.connector.postgresql.connection.PostgresConnection;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.TableId;

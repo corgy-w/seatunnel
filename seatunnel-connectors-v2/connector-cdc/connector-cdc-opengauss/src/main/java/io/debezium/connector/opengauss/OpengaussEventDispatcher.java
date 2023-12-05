@@ -6,10 +6,10 @@
 
 package io.debezium.connector.opengauss;
 
-import io.debezium.relational.TableId;
+import org.apache.seatunnel.connectors.cdc.base.relational.JdbcSourceEventDispatcher;
+
 import org.apache.kafka.connect.source.SourceRecord;
 
-import org.apache.seatunnel.connectors.cdc.base.relational.JdbcSourceEventDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +22,7 @@ import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.EventMetadataProvider;
 import io.debezium.pipeline.spi.ChangeEventCreator;
 import io.debezium.pipeline.spi.OffsetContext;
+import io.debezium.relational.TableId;
 import io.debezium.schema.DataCollectionFilters;
 import io.debezium.schema.DataCollectionId;
 import io.debezium.schema.DatabaseSchema;
@@ -34,7 +35,8 @@ import io.debezium.util.SchemaNameAdjuster;
  *
  * @author Lairen Hightower
  */
-public class OpengaussEventDispatcher<T extends DataCollectionId> extends JdbcSourceEventDispatcher {
+public class OpengaussEventDispatcher<T extends DataCollectionId>
+        extends JdbcSourceEventDispatcher {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpengaussEventDispatcher.class);
     private final ChangeEventQueue<DataChangeEvent> queue;
     private final LogicalDecodingMessageMonitor logicalDecodingMessageMonitor;

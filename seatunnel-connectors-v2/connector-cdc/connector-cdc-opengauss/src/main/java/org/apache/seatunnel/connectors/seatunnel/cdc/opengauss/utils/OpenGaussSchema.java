@@ -17,11 +17,10 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.utils;
 
-import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
-import io.debezium.connector.postgresql.connection.PostgresConnection;
+import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;

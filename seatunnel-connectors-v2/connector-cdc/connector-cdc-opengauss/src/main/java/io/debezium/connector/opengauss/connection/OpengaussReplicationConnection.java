@@ -23,7 +23,6 @@ import io.debezium.connector.opengauss.OpengaussSchema;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.spi.SlotCreationResult;
 import io.debezium.connector.postgresql.connection.Lsn;
-import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.jdbc.JdbcConnectionException;
 import io.debezium.relational.RelationalTableFilters;
@@ -85,24 +84,24 @@ public class OpengaussReplicationConnection extends JdbcConnection
     /**
      * Creates a new replication connection with the given params.
      *
-     * @param config                    the JDBC configuration for the connection; may not be null
-     * @param slotName                  the name of the DB slot for logical replication; may not be null
-     * @param publicationName           the name of the DB publication for logical replication; may not be
-     *                                  null
-     * @param tableFilter               the tables to watch of the DB publication for logical replication; may not
-     *                                  be null
+     * @param config the JDBC configuration for the connection; may not be null
+     * @param slotName the name of the DB slot for logical replication; may not be null
+     * @param publicationName the name of the DB publication for logical replication; may not be
+     *     null
+     * @param tableFilter the tables to watch of the DB publication for logical replication; may not
+     *     be null
      * @param publicationAutocreateMode the mode for publication autocreation; may not be null
-     * @param plugin                    decoder matching the server side plug-in used for streaming changes; may not be
-     *                                  null
-     * @param dropSlotOnClose           whether the replication slot should be dropped once the connection is
-     *                                  closed
-     * @param statusUpdateInterval      the interval at which the replication connection should
-     *                                  periodically send status
-     * @param doSnapshot                whether the connector is doing snapshot
-     * @param typeRegistry              registry with PostgreSQL types
-     * @param streamParams              additional parameters to pass to the replication stream
-     * @param schema                    the schema; must not be null
-     *                                  <p>updates to the server
+     * @param plugin decoder matching the server side plug-in used for streaming changes; may not be
+     *     null
+     * @param dropSlotOnClose whether the replication slot should be dropped once the connection is
+     *     closed
+     * @param statusUpdateInterval the interval at which the replication connection should
+     *     periodically send status
+     * @param doSnapshot whether the connector is doing snapshot
+     * @param typeRegistry registry with PostgreSQL types
+     * @param streamParams additional parameters to pass to the replication stream
+     * @param schema the schema; must not be null
+     *     <p>updates to the server
      */
     private OpengaussReplicationConnection(
             OpengaussConnectorConfig config,
@@ -137,7 +136,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
 
     private ServerInfo.ReplicationSlot getSlotInfo() throws SQLException, InterruptedException {
         try (OpengaussConnection connection =
-                     new OpengaussConnection(originalConfig.getJdbcConfig())) {
+                new OpengaussConnection(originalConfig.getJdbcConfig())) {
             return connection.readReplicationSlotInfo(slotName, plugin.getPostgresPluginName());
         }
     }
@@ -152,7 +151,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
                                 "SELECT COUNT(1) FROM pg_publication WHERE pubname = '%s'",
                                 publicationName);
                 try (Statement stmt = connection.createStatement();
-                     ResultSet rs = stmt.executeQuery(selectPublication)) {
+                        ResultSet rs = stmt.executeQuery(selectPublication)) {
                     if (rs.next()) {
                         Long count = rs.getLong(1);
                         if (count == 0L) {
@@ -200,11 +199,11 @@ public class OpengaussReplicationConnection extends JdbcConnection
         String createPublicationStmt;
         List<String> schemaList = new ArrayList<>();
         try (ResultSet rs =
-                     stmt.executeQuery(
-                             "SELECT pn.oid AS schema_oid, iss.catalog_name, iss.schema_owner, "
-                                     + "iss.schema_name FROM information_schema.schemata iss "
-                                     + "INNER JOIN pg_namespace pn ON pn.nspname = iss.schema_name "
-                                     + "where iss.schema_name = 'public' or pn.oid > 16384;")) {
+                stmt.executeQuery(
+                        "SELECT pn.oid AS schema_oid, iss.catalog_name, iss.schema_owner, "
+                                + "iss.schema_name FROM information_schema.schemata iss "
+                                + "INNER JOIN pg_namespace pn ON pn.nspname = iss.schema_name "
+                                + "where iss.schema_name = 'public' or pn.oid > 16384;")) {
             Set<TableId> tablesToCapture = determineCapturedTables();
             while (rs.next()) {
                 schemaList.add(rs.getString("schema_name"));
@@ -243,7 +242,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
         Set<TableId> allTableIds =
                 this.connect()
                         .readTableNames(
-                                pgConnection().getCatalog(), null, null, new String[]{"TABLE"});
+                                pgConnection().getCatalog(), null, null, new String[] {"TABLE"});
 
         Set<TableId> capturedTables = new HashSet<>();
 
@@ -282,7 +281,8 @@ public class OpengaussReplicationConnection extends JdbcConnection
             LOGGER.debug(
                     "running '{}' to validate replication connection", identifySystemStatement);
 
-            final ResultSet resultSet = this.connection.createStatement().executeQuery(identifySystemStatement);
+            final ResultSet resultSet =
+                    this.connection.createStatement().executeQuery(identifySystemStatement);
             if (!resultSet.next()) {
                 throw new IllegalStateException(
                         "The DB connection is not a valid replication connection");
@@ -403,7 +403,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
         LOGGER.debug("Creating new replication slot '{}' for plugin '{}'", slotName, plugin);
         String tempPart = "";
         // Exported snapshots are supported in Postgres 9.4+
-        boolean canExportSnapshot = pgConnection().haveMinimumServerVersion(ServerVersion.v9_4);
+        boolean canExportSnapshot = pgConnectionWithReplication().haveMinimumServerVersion(ServerVersion.v9_4);
         if ((dropSlotOnClose) && !canExportSnapshot) {
             LOGGER.warn(
                     "A slot marked as temporary or with an exported snapshot was created, "
@@ -421,10 +421,10 @@ public class OpengaussReplicationConnection extends JdbcConnection
             String createCommand =
                     String.format("CREATE_REPLICATION_SLOT \"%s\"  LOGICAL pgoutput;", slotName);
             LOGGER.info("Creating replication slot with command {}", createCommand);
-            if (!isExistSlot(slotName)){
+            if (!isExistSlot(slotName)) {
                 stmt.execute(createCommand);
-            }else{
-                LOGGER.warn("slot {} has already exist",slotName);
+            } else {
+                LOGGER.warn("slot {} has already exist", slotName);
             }
             // when we are in Postgres 9.4+, we can parse the slot creation info,
             // otherwise, it returns nothing
@@ -435,12 +435,18 @@ public class OpengaussReplicationConnection extends JdbcConnection
         }
     }
 
-    private boolean isExistSlot(String slotName){
+    private boolean isExistSlot(String slotName) {
         try {
-            final ResultSet resultSet = pgConnection().createStatement().executeQuery(String.format("select * from pg_replication_slots where slot_name = '%s' and plugin = 'pgoutput';",slotName));
+            final ResultSet resultSet =
+                    pgConnection()
+                            .createStatement()
+                            .executeQuery(
+                                    String.format(
+                                            "select * from pg_replication_slots where slot_name = '%s' and plugin = 'pgoutput';",
+                                            slotName));
             return resultSet.next();
         } catch (SQLException throwables) {
-            LOGGER.warn("executer error {}",slotName);
+            LOGGER.warn("executer error {}", slotName);
             return false;
         }
     }
@@ -647,8 +653,8 @@ public class OpengaussReplicationConnection extends JdbcConnection
                 if (--warningCheckCounter == 0 || forced) {
                     warningCheckCounter = CHECK_WARNINGS_AFTER_COUNT;
                     for (SQLWarning w = connection().getWarnings();
-                         w != null;
-                         w = w.getNextWarning()) {
+                            w != null;
+                            w = w.getNextWarning()) {
                         LOGGER.debug(
                                 "Server-side message: '{}', state = {}, code = {}",
                                 w.getMessage(),
@@ -669,9 +675,9 @@ public class OpengaussReplicationConnection extends JdbcConnection
     private PGReplicationStream startPgReplicationStream(
             final Lsn lsn,
             BiFunction<
-                    ChainedLogicalStreamBuilder,
-                    Function<Integer, Boolean>,
-                    ChainedLogicalStreamBuilder>
+                            ChainedLogicalStreamBuilder,
+                            Function<Integer, Boolean>,
+                            ChainedLogicalStreamBuilder>
                     configurator)
             throws SQLException {
         assert lsn != null;
@@ -732,7 +738,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
             // we're dropping the replication slot via a regular - i.e. not a replication -
             // connection
             try (OpengaussConnection connection =
-                         new OpengaussConnection(originalConfig.getJdbcConfig())) {
+                    new OpengaussConnection(originalConfig.getJdbcConfig())) {
                 connection.dropReplicationSlot(slotName);
                 connection.dropPublication(publicationName);
             } catch (Throwable e) {

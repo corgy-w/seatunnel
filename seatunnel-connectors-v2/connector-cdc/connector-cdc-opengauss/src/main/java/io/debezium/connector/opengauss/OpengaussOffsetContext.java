@@ -216,7 +216,7 @@ public class OpengaussOffsetContext implements OffsetContext {
 
         private Long readOptionalLong(Map<String, ?> offset, String key) {
             final Object obj = offset.get(key);
-            return (obj == null) ? null : Long.parseLong((String)obj);
+            return (obj == null) ? null : Long.parseLong((String) obj);
         }
 
         @Override
@@ -234,9 +234,11 @@ public class OpengaussOffsetContext implements OffsetContext {
                     Lsn.valueOf(readOptionalLong(offset, LAST_COMPLETELY_PROCESSED_LSN_KEY));
             final Long txId = readOptionalLong(offset, SourceInfo.TXID_KEY);
 
-            Long microsSinceEpoch = offset.get(SourceInfo.TIMESTAMP_USEC_KEY) == null ? 0L : (Long) offset.get(SourceInfo.TIMESTAMP_USEC_KEY);
-            final Instant useconds =
-                    Conversions.toInstantFromMicros(microsSinceEpoch);
+            Long microsSinceEpoch =
+                    offset.get(SourceInfo.TIMESTAMP_USEC_KEY) == null
+                            ? 0L
+                            : (Long) offset.get(SourceInfo.TIMESTAMP_USEC_KEY);
+            final Instant useconds = Conversions.toInstantFromMicros(microsSinceEpoch);
             final boolean snapshot =
                     (boolean)
                             ((Map<String, Object>) offset)

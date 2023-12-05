@@ -6,6 +6,7 @@
 
 package io.debezium.connector.opengauss;
 
+import io.debezium.connector.postgresql.PostgresConnectorConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -44,8 +45,6 @@ import io.debezium.util.Strings;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -557,8 +556,6 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
             }
         };
 
-
-
         private final String decoderName;
 
         LogicalDecoder(String decoderName) {
@@ -808,7 +805,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
     public static final Field PUBLICATION_AUTOCREATE_MODE =
             Field.create("publication.autocreate.mode")
                     .withDisplayName("Publication Auto Create Mode")
-                    .withEnum(AutoCreateMode.class, AutoCreateMode.FILTERED)
+                    .withEnum(AutoCreateMode.class, AutoCreateMode.ALL_TABLES)
                     .withWidth(Width.MEDIUM)
                     .withImportance(Importance.MEDIUM)
                     .withDescription(
@@ -1495,7 +1492,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
             Properties properties = new Properties();
             PGProperty.USER.set(properties, user());
             PGProperty.PASSWORD.set(properties, password());
-            //对于逻辑复制，以下三个属性是必须配置项
+            // 对于逻辑复制，以下三个属性是必须配置项
             PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
             PGProperty.REPLICATION.set(properties, "database");
             PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
