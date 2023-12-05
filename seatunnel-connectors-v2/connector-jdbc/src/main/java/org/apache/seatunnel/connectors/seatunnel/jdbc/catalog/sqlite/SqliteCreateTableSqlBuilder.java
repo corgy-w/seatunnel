@@ -125,6 +125,7 @@ public class SqliteCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
         // For simplicity, assume the column type in SeaTunnelDataType is the same as in PostgreSQL
         String columnType =
                 sourceCatalogName.equals(DatabaseIdentifier.SQLITE)
+                                && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);

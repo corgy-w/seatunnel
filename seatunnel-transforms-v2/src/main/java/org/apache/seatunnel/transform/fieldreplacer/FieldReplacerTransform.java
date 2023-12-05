@@ -17,9 +17,6 @@
 
 package org.apache.seatunnel.transform.fieldreplacer;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
@@ -31,6 +28,8 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
+import org.apache.seatunnel.transform.exception.TransformCommonError;
+import org.apache.seatunnel.transform.exception.TransformExceptionUtil;
 
 import lombok.AllArgsConstructor;
 
@@ -93,6 +92,9 @@ public class FieldReplacerTransform implements SeaTunnelTransform<SeaTunnelRow> 
         Map<String, FieldReplacerTransformConfig.FieldReplacer> stringFieldBaseConfMap =
                 fieldBaseConfMap.get(tableId);
         SeaTunnelRowType seaTunnelRowType = seaTunnelRowTypeMap.get(tableId);
+        if (stringFieldBaseConfMap == null) {
+            return row;
+        }
         stringFieldBaseConfMap.forEach(
                 (filedName, conf) -> {
                     int pos = seaTunnelRowType.indexOf(filedName);
@@ -100,16 +102,6 @@ public class FieldReplacerTransform implements SeaTunnelTransform<SeaTunnelRow> 
                     row.setField(pos, replacerValue(value, conf));
                 });
         return row;
-    }
-
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
-    public void setTypeInfo(SeaTunnelDataType<SeaTunnelRow> inputDataType) {
-        throw new UnsupportedOperationException("Not supported");
     }
 
     @Override
@@ -173,34 +165,32 @@ public class FieldReplacerTransform implements SeaTunnelTransform<SeaTunnelRow> 
     }
 
     private void reFresh() {
-        this.fieldBaseConfMap =
-                config.getFieldReplacers().stream()
-                        .collect(
-                                Collectors.toMap(
-                                        k -> {
-                                            return tableHistoryMap
-                                                    .get(k.getTablePath())
-                                                    .getCurrentTableName();
-                                        },
-                                        v -> {
-                                            HashMap<
-                                                            String,
-                                                            FieldReplacerTransformConfig
-                                                                    .FieldReplacer>
-                                                    map = new HashMap<>();
-                                            map.put(
-                                                    tableHistoryMap
-                                                            .get(v.getTablePath())
-                                                            .getCurrentColumnName(
-                                                                    v.getReplaceField()),
-                                                    v);
-                                            return map;
-                                        },
-                                        (v1, v2) -> {
-                                            v1.putAll(v2);
-                                            return v1;
-                                        }));
-
+        Map<String, Map<String, FieldReplacerTransformConfig.FieldReplacer>> newFieldBaseConfMap =
+                new HashMap<>();
+        TransformExceptionUtil.withErrorCheck(
+                PLUGIN_NAME,
+                config.getFieldReplacers().iterator(),
+                replacer -> {
+                    if (!tableHistoryMap.containsKey(replacer.getTablePath())) {
+                        throw TransformCommonError.cannotFindInputTableError(
+                                PLUGIN_NAME, replacer.getTablePath());
+                    }
+                    String tableName =
+                            tableHistoryMap.get(replacer.getTablePath()).getCurrentTableName();
+                    Map<String, FieldReplacerTransformConfig.FieldReplacer> columnRules;
+                    if (newFieldBaseConfMap.containsKey(tableName)) {
+                        columnRules = newFieldBaseConfMap.get(tableName);
+                    } else {
+                        columnRules = new HashMap<>();
+                        newFieldBaseConfMap.put(tableName, columnRules);
+                    }
+                    columnRules.put(
+                            tableHistoryMap
+                                    .get(replacer.getTablePath())
+                                    .getCurrentColumnName(replacer.getReplaceField()),
+                            replacer);
+                });
+        this.fieldBaseConfMap = newFieldBaseConfMap;
         checkConf();
     }
 
@@ -282,6 +272,10 @@ public class FieldReplacerTransform implements SeaTunnelTransform<SeaTunnelRow> 
         }
 
         public String getCurrentColumnName(String columnName) {
+            if (!tableColumnHistory.containsKey(columnName)) {
+                throw TransformCommonError.cannotFindInputTableFieldError(
+                        PLUGIN_NAME, getCurrentTableName(), columnName);
+            }
             return tableColumnHistory.get(columnName).getLast();
         }
 

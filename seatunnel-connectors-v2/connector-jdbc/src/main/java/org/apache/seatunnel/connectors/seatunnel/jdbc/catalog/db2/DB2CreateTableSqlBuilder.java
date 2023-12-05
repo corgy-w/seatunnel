@@ -103,6 +103,7 @@ public class DB2CreateTableSqlBuilder {
         // For simplicity, assume the column type in SeaTunnelDataType is the same as in DB2
         String columnType =
                 sourceCatalogName.equals(DatabaseIdentifier.DB_2)
+                                && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);

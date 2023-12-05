@@ -177,7 +177,8 @@ public class MysqlCreateTableSqlBuilder {
         final List<String> columnSqls = new ArrayList<>();
         columnSqls.add(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "`"));
         boolean isSupportDef = true;
-        if (StringUtils.equals(catalogName, DatabaseIdentifier.MYSQL)) {
+        if (StringUtils.equals(catalogName, DatabaseIdentifier.MYSQL)
+                && StringUtils.isNotBlank(column.getSourceType())) {
             columnSqls.add(column.getSourceType());
         } else {
             // Column name
