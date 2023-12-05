@@ -9,9 +9,11 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public abstract class AbstractMultiCatalogSupportTransform
@@ -30,7 +32,10 @@ public abstract class AbstractMultiCatalogSupportTransform
         inputCatalogTables.forEach(
                 inputCatalogTable -> {
                     String tableId = inputCatalogTable.getTableId().toTablePath().toString();
-                    transformMap.put(tableId, buildTransform(inputCatalogTable, config));
+                    transformMap.put(
+                            tableId,
+                            buildTransform(inputCatalogTable, config)
+                                    .orElse(new IdentityTransform(inputCatalogTable)));
                 });
 
         this.outputCatalogTables =
@@ -52,7 +57,7 @@ public abstract class AbstractMultiCatalogSupportTransform
         return transformMap.get(row.getTableId()).map(row);
     }
 
-    protected abstract SeaTunnelTransform<SeaTunnelRow> buildTransform(
+    protected abstract Optional<SeaTunnelTransform<SeaTunnelRow>> buildTransform(
             CatalogTable inputCatalogTable, ReadonlyConfig config);
 
     @Override
@@ -75,4 +80,43 @@ public abstract class AbstractMultiCatalogSupportTransform
 
     @Override
     public void prepare(Config pluginConfig) throws PrepareFailException {}
+
+    public static class IdentityTransform implements SeaTunnelTransform<SeaTunnelRow> {
+        private CatalogTable catalogTable;
+
+        @Override
+        public String getPluginName() {
+            return "Identity";
+        }
+
+        public IdentityTransform(CatalogTable catalogTable) {
+            this.catalogTable = catalogTable;
+        }
+
+        @Override
+        public SeaTunnelRow map(SeaTunnelRow row) {
+            return row;
+        }
+
+        @Override
+        public List<CatalogTable> getProducedCatalogTables() {
+            return Collections.singletonList(catalogTable);
+        }
+
+        @Override
+        public CatalogTable getProducedCatalogTable() {
+            return catalogTable;
+        }
+
+        @Override
+        public SeaTunnelDataType<SeaTunnelRow> getProducedType() {
+            return catalogTable.getTableSchema().toPhysicalRowDataType();
+        }
+
+        @Override
+        public void setTypeInfo(SeaTunnelDataType<SeaTunnelRow> inputDataType) {}
+
+        @Override
+        public void prepare(Config pluginConfig) throws PrepareFailException {}
+    }
 }

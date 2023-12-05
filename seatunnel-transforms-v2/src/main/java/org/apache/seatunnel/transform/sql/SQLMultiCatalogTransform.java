@@ -8,6 +8,7 @@ import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.transform.common.AbstractMultiCatalogSupportTransform;
 
 import java.util.List;
+import java.util.Optional;
 
 public class SQLMultiCatalogTransform extends AbstractMultiCatalogSupportTransform {
 
@@ -21,10 +22,10 @@ public class SQLMultiCatalogTransform extends AbstractMultiCatalogSupportTransfo
     }
 
     @Override
-    protected SeaTunnelTransform<SeaTunnelRow> buildTransform(
+    protected Optional<SeaTunnelTransform<SeaTunnelRow>> buildTransform(
             CatalogTable inputCatalogTable, ReadonlyConfig config) {
-        return new SQLTransform(
-                SQLTransformConfig.of(config, inputCatalogTable), config, inputCatalogTable);
+        return SQLTransformConfig.of(config, inputCatalogTable)
+                .map(sqlConfig -> new SQLTransform(sqlConfig, config, inputCatalogTable));
     }
 
     public SchemaChangeEvent mapSchemaChangeEvent(SchemaChangeEvent schemaChangeEvent) {

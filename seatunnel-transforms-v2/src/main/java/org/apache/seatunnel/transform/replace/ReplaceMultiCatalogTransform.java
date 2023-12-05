@@ -7,6 +7,7 @@ import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.transform.common.AbstractMultiCatalogSupportTransform;
 
 import java.util.List;
+import java.util.Optional;
 
 public class ReplaceMultiCatalogTransform extends AbstractMultiCatalogSupportTransform {
 
@@ -21,9 +22,9 @@ public class ReplaceMultiCatalogTransform extends AbstractMultiCatalogSupportTra
     }
 
     @Override
-    protected SeaTunnelTransform<SeaTunnelRow> buildTransform(
+    protected Optional<SeaTunnelTransform<SeaTunnelRow>> buildTransform(
             CatalogTable inputCatalogTable, ReadonlyConfig config) {
-        return new ReplaceTransform(
-                ReplaceTransformConfig.of(config, inputCatalogTable), inputCatalogTable);
+        return ReplaceTransformConfig.of(config, inputCatalogTable)
+                .map(replaceConfig -> new ReplaceTransform(replaceConfig, inputCatalogTable));
     }
 }

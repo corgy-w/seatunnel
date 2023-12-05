@@ -13,6 +13,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 import static org.apache.seatunnel.transform.sql.SQLEngineFactory.EngineType.ZETA;
 
@@ -58,12 +59,12 @@ public class SQLTransformConfig {
         return sqlTransformConfig;
     }
 
-    public static SQLTransformConfig of(ReadonlyConfig config, CatalogTable catalogTable) {
+    public static Optional<SQLTransformConfig> of(
+            ReadonlyConfig config, CatalogTable catalogTable) {
         String tablePath = catalogTable.getTableId().toTablePath().getFullName();
         if (null != config.get(MULTI_TABLES)) {
             return config.get(MULTI_TABLES).stream()
                     .filter(tableTransforms -> tableTransforms.getTablePath().equals(tablePath))
-                    .findFirst()
                     .map(
                             tableTransforms -> {
                                 SQLTransformConfig sqlTransformConfig = new SQLTransformConfig();
@@ -75,8 +76,8 @@ public class SQLTransformConfig {
                                                 : ZETA);
                                 return sqlTransformConfig;
                             })
-                    .orElseGet(() -> of(config));
+                    .findFirst();
         }
-        return of(config);
+        return Optional.of(of(config));
     }
 }

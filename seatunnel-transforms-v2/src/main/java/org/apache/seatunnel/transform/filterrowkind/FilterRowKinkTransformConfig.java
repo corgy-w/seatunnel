@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Getter
@@ -84,13 +85,12 @@ public class FilterRowKinkTransformConfig implements Serializable {
         return filterRowKinkTransformConfig;
     }
 
-    public static FilterRowKinkTransformConfig of(
+    public static Optional<FilterRowKinkTransformConfig> of(
             ReadonlyConfig config, CatalogTable catalogTable) {
         String tablePath = catalogTable.getTableId().toTablePath().getFullName();
         if (null != config.get(MULTI_TABLES)) {
             return config.get(MULTI_TABLES).stream()
                     .filter(tableTransforms -> tableTransforms.getTablePath().equals(tablePath))
-                    .findFirst()
                     .map(
                             tableTransforms -> {
                                 FilterRowKinkTransformConfig filterRowKinkTransformConfig =
@@ -103,8 +103,8 @@ public class FilterRowKinkTransformConfig implements Serializable {
                                                 Arrays.asList(tableTransforms.getExcludeKinds())));
                                 return filterRowKinkTransformConfig;
                             })
-                    .orElseGet(() -> of(config));
+                    .findFirst();
         }
-        return of(config);
+        return Optional.of(of(config));
     }
 }

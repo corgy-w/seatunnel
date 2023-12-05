@@ -97,36 +97,24 @@ public class CopyTransformConfig implements Serializable {
         return copyTransformConfig;
     }
 
-    public static CopyTransformConfig of(ReadonlyConfig config, CatalogTable catalogTable) {
+    public static Optional<CopyTransformConfig> of(
+            ReadonlyConfig config, CatalogTable catalogTable) {
 
-        String tableID = catalogTable.getTableId().toTablePath().toString();
+        String tablePath = catalogTable.getTableId().toTablePath().getFullName();
 
-        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
-        Optional<List<TableTransforms>> multiTableOp = config.getOptional(MULTI_TABLES);
-        Optional<Map<String, String>> fieldsOp = config.getOptional(FIELDS);
-        Optional<String> destOp = config.getOptional(DEST_FIELD);
-        Optional<String> srcOp = config.getOptional(SRC_FIELD);
-
-        if (multiTableOp.isPresent()) {
-            List<TableTransforms> tableTransforms = config.get(MULTI_TABLES);
-            for (TableTransforms tableTransform : tableTransforms) {
-                if (tableTransform.getTablePath().equals(tableID)) {
-                    fields.putAll(tableTransform.getFields());
-                    break;
-                }
-            }
+        if (null != config.get(MULTI_TABLES)) {
+            return config.get(MULTI_TABLES).stream()
+                    .filter(tableTransforms -> tableTransforms.getTablePath().equals(tablePath))
+                    .map(
+                            tableTransforms -> {
+                                CopyTransformConfig copyTransformConfig = new CopyTransformConfig();
+                                LinkedHashMap<String, String> fields =
+                                        new LinkedHashMap<>(tableTransforms.getFields());
+                                copyTransformConfig.setFields(fields);
+                                return copyTransformConfig;
+                            })
+                    .findFirst();
         }
-
-        if (fields.isEmpty()) {
-            if (fieldsOp.isPresent()) {
-                fields.putAll(config.get(FIELDS));
-            } else if (destOp.isPresent() && srcOp.isPresent()) {
-                fields.put(config.get(DEST_FIELD), config.get(SRC_FIELD));
-            }
-        }
-
-        CopyTransformConfig copyTransformConfig = new CopyTransformConfig();
-        copyTransformConfig.setFields(fields);
-        return copyTransformConfig;
+        return Optional.of(of(config));
     }
 }

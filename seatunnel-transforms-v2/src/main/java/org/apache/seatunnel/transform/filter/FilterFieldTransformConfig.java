@@ -30,6 +30,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Setter
@@ -63,12 +64,12 @@ public class FilterFieldTransformConfig implements Serializable {
         return transformConfig;
     }
 
-    public static FilterFieldTransformConfig of(ReadonlyConfig config, CatalogTable catalogTable) {
+    public static Optional<FilterFieldTransformConfig> of(
+            ReadonlyConfig config, CatalogTable catalogTable) {
         String tablePath = catalogTable.getTableId().toTablePath().getFullName();
         if (null != config.get(MULTI_TABLES)) {
             return config.get(MULTI_TABLES).stream()
                     .filter(tableTransforms -> tableTransforms.getTablePath().equals(tablePath))
-                    .findFirst()
                     .map(
                             tableTransforms -> {
                                 FilterFieldTransformConfig filterFieldTransformConfig =
@@ -76,8 +77,8 @@ public class FilterFieldTransformConfig implements Serializable {
                                 filterFieldTransformConfig.setFields(tableTransforms.getFields());
                                 return filterFieldTransformConfig;
                             })
-                    .orElseGet(() -> of(config));
+                    .findFirst();
         }
-        return of(config);
+        return Optional.of(of(config));
     }
 }

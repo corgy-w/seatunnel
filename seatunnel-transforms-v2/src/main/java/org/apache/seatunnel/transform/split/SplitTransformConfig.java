@@ -30,6 +30,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Setter
@@ -88,12 +89,12 @@ public class SplitTransformConfig implements Serializable {
         return splitTransformConfig;
     }
 
-    public static SplitTransformConfig of(ReadonlyConfig config, CatalogTable catalogTable) {
+    public static Optional<SplitTransformConfig> of(
+            ReadonlyConfig config, CatalogTable catalogTable) {
         String tablePath = catalogTable.getTableId().toTablePath().getFullName();
         if (null != config.get(MULTI_TABLES)) {
             return config.get(MULTI_TABLES).stream()
                     .filter(tableTransforms -> tableTransforms.getTablePath().equals(tablePath))
-                    .findFirst()
                     .map(
                             tableTransforms -> {
                                 SplitTransformConfig splitTransformConfig =
@@ -106,8 +107,8 @@ public class SplitTransformConfig implements Serializable {
                                         new String[splitTransformConfig.getOutputFields().length]);
                                 return splitTransformConfig;
                             })
-                    .orElseGet(() -> of(config));
+                    .findFirst();
         }
-        return of(config);
+        return Optional.of(of(config));
     }
 }

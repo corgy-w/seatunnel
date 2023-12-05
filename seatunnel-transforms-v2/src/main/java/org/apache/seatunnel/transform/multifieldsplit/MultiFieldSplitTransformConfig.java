@@ -31,6 +31,7 @@ import lombok.Setter;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Setter
@@ -83,13 +84,12 @@ public class MultiFieldSplitTransformConfig implements Serializable {
         return splitTransformConfig;
     }
 
-    public static MultiFieldSplitTransformConfig of(
+    public static Optional<MultiFieldSplitTransformConfig> of(
             ReadonlyConfig config, CatalogTable catalogTable) {
         String tablePath = catalogTable.getTableId().toTablePath().getFullName();
         if (null != config.get(MULTI_TABLES)) {
             return config.get(MULTI_TABLES).stream()
                     .filter(tableTransforms -> tableTransforms.getTablePath().equals(tablePath))
-                    .findFirst()
                     .map(
                             tableTransforms -> {
                                 MultiFieldSplitTransformConfig multiFieldSplitTransformConfig =
@@ -108,8 +108,8 @@ public class MultiFieldSplitTransformConfig implements Serializable {
                                 multiFieldSplitTransformConfig.setOutputFields(allOutputFields);
                                 return multiFieldSplitTransformConfig;
                             })
-                    .orElseGet(() -> of(config));
+                    .findFirst();
         }
-        return of(config);
+        return Optional.of(of(config));
     }
 }

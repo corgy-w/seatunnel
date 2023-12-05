@@ -7,6 +7,7 @@ import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.transform.common.AbstractMultiCatalogSupportTransform;
 
 import java.util.List;
+import java.util.Optional;
 
 public class SplitMultiCatalogTransform extends AbstractMultiCatalogSupportTransform {
 
@@ -21,9 +22,9 @@ public class SplitMultiCatalogTransform extends AbstractMultiCatalogSupportTrans
     }
 
     @Override
-    protected SeaTunnelTransform<SeaTunnelRow> buildTransform(
+    protected Optional<SeaTunnelTransform<SeaTunnelRow>> buildTransform(
             CatalogTable inputCatalogTable, ReadonlyConfig config) {
-        return new SplitTransform(
-                SplitTransformConfig.of(config, inputCatalogTable), inputCatalogTable);
+        return SplitTransformConfig.of(config, inputCatalogTable)
+                .map(splitConfig -> new SplitTransform(splitConfig, inputCatalogTable));
     }
 }
