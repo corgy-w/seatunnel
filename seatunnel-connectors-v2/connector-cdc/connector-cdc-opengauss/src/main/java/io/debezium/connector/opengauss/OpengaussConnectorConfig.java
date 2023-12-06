@@ -6,7 +6,6 @@
 
 package io.debezium.connector.opengauss;
 
-import io.debezium.connector.postgresql.PostgresConnectorConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;

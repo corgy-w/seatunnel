@@ -403,7 +403,8 @@ public class OpengaussReplicationConnection extends JdbcConnection
         LOGGER.debug("Creating new replication slot '{}' for plugin '{}'", slotName, plugin);
         String tempPart = "";
         // Exported snapshots are supported in Postgres 9.4+
-        boolean canExportSnapshot = pgConnectionWithReplication().haveMinimumServerVersion(ServerVersion.v9_4);
+        boolean canExportSnapshot =
+                pgConnectionWithReplication().haveMinimumServerVersion(ServerVersion.v9_4);
         if ((dropSlotOnClose) && !canExportSnapshot) {
             LOGGER.warn(
                     "A slot marked as temporary or with an exported snapshot was created, "
