@@ -87,6 +87,8 @@ public class KingBaseTypeMapper implements JdbcDialectTypeMapper {
     private static final String PG_INTERVAL = "INTERVAL";
     private static final String PG_GEOMETRY = "GEOMETRY";
     private static final String PG_GEOGRAPHY = "GEOGRAPHY";
+    // Only support Kingbase
+    private static final String PG_TINYINT = "TINYINT";
 
     @SuppressWarnings("checkstyle:MagicNumber")
     @Override
@@ -107,6 +109,8 @@ public class KingBaseTypeMapper implements JdbcDialectTypeMapper {
                 return PrimitiveByteArrayType.INSTANCE;
             case PG_BYTEA_ARRAY:
                 return ArrayType.BYTE_ARRAY_TYPE;
+            case PG_TINYINT:
+                return BasicType.BYTE_TYPE;
             case PG_SMALLINT:
             case PG_SMALLSERIAL:
             case PG_INTEGER:

@@ -15,15 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.hive;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.inceptor;
 
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.AbstractJdbcRowConverter;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectFactory;
 
-public class HiveJdbcRowConverter extends AbstractJdbcRowConverter {
+import com.google.auto.service.AutoService;
+
+import javax.annotation.Nonnull;
+
+@AutoService(JdbcDialectFactory.class)
+public class InceptorDialectFactory implements JdbcDialectFactory {
+    @Override
+    public boolean acceptsURL(String url) {
+        return url.startsWith("jdbc:transwarp2:");
+    }
 
     @Override
-    public String converterName() {
-        return DatabaseIdentifier.HIVE;
+    public JdbcDialect create() {
+        return new InceptorDialect();
+    }
+
+    @Override
+    public JdbcDialect createWithCompatible(@Nonnull String compatibleMode) {
+        return new InceptorDialect();
     }
 }

@@ -72,7 +72,13 @@ public class DorisSaveModeUtil {
         return String.format(
                 "`%s` %s %s ",
                 column.getName(),
-                dataTypeToDorisType(column.getDataType()),
+                dataTypeToDorisType(
+                        column.getDataType(),
+                        Math.max(
+                                column.getColumnLength() == null ? 0 : column.getColumnLength(),
+                                column.getLongColumnLength() == null
+                                        ? 0
+                                        : column.getLongColumnLength())),
                 column.isNullable() ? "NULL" : "NOT NULL");
     }
 
@@ -116,7 +122,7 @@ public class DorisSaveModeUtil {
         return template;
     }
 
-    private static String dataTypeToDorisType(SeaTunnelDataType<?> dataType) {
+    private static String dataTypeToDorisType(SeaTunnelDataType<?> dataType, long length) {
         checkNotNull(dataType, "The SeaTunnel's data type is required.");
         switch (dataType.getSqlType()) {
             case NULL:
@@ -124,6 +130,11 @@ public class DorisSaveModeUtil {
                 throw new IllegalArgumentException(
                         "Unsupported SeaTunnel's data type: " + dataType);
             case STRING:
+                if (length > 65533 || length <= 0) {
+                    return "STRING";
+                } else {
+                    return "VARCHAR(" + length + ")";
+                }
             case BYTES:
                 return "STRING";
             case BOOLEAN:
@@ -146,7 +157,8 @@ public class DorisSaveModeUtil {
                 return "DATETIME";
             case ARRAY:
                 return "ARRAY<"
-                        + dataTypeToDorisType(((ArrayType<?, ?>) dataType).getElementType())
+                        + dataTypeToDorisType(
+                                ((ArrayType<?, ?>) dataType).getElementType(), Long.MAX_VALUE)
                         + ">";
             case DECIMAL:
                 DecimalType decimalType = (DecimalType) dataType;
