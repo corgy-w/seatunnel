@@ -37,46 +37,46 @@ import java.util.List;
 public class FieldRenamerConfig implements Serializable {
 
     public static final Option<String> TABLE_MATCH_REGEX =
-        Options.key("table_match_regex")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("The table name match regex");
+            Options.key("table_match_regex")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("The table name match regex");
 
     public static final Option<ConvertCase> CONVERT_CASE =
-        Options.key("convert_case")
-            .enumType(ConvertCase.class)
-            .noDefaultValue()
-            .withDescription("Convert to uppercase or lowercase");
+            Options.key("convert_case")
+                    .enumType(ConvertCase.class)
+                    .noDefaultValue()
+                    .withDescription("Convert to uppercase or lowercase");
 
     public static final Option<String> PREFIX =
-        Options.key("prefix")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Add prefix for field name");
+            Options.key("prefix")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Add prefix for field name");
 
     public static final Option<String> SUFFIX =
-        Options.key("suffix")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("Add suffix for field name");
+            Options.key("suffix")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Add suffix for field name");
 
     public static final Option<String> REPLACE_FROM =
-        Options.key("replace_from")
-            .stringType()
-            .noDefaultValue()
-            .withDescription("The regex of replace field name from");
+            Options.key("replace_from")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("The regex of replace field name from");
 
     public static final Option<String> REPLACE_TO =
-        Options.key("replace_to")
-            .stringType()
-            .defaultValue("")
-            .withDescription("The regex of replace field name to ");
+            Options.key("replace_to")
+                    .stringType()
+                    .defaultValue("")
+                    .withDescription("The regex of replace field name to ");
 
     public static final Option<List<SpecificModify>> SPECIFIC =
-        Options.key("specific")
-            .listType(SpecificModify.class)
-            .noDefaultValue()
-            .withDescription("The specific modify field name");
+            Options.key("specific")
+                    .listType(SpecificModify.class)
+                    .noDefaultValue()
+                    .withDescription("The specific modify field name");
 
     @JsonAlias("table_match_regex")
     private String tableMatchRegex;
