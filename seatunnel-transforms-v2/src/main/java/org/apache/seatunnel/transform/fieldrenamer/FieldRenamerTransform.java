@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -73,7 +72,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
     @Override
     public List<CatalogTable> getProducedCatalogTables() {
         List<CatalogTable> outputCatalogTable = new ArrayList<>();
-        Map<String, List<String>> tableWithDuplicateName = new LinkedHashMap<>();
+        Map<String, Map<String, String>> tableWithDuplicateName = new LinkedHashMap<>();
         preCheckForSpecificConfig(inputCatalogTable);
         for (CatalogTable table : inputCatalogTable) {
             CatalogTable newCatalogTable;
@@ -86,16 +85,16 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                     changedName.put(column.getName(), newName);
                     newColumns.add(column.rename(newName));
                 }
-                List<String> duplicated =
-                        changedName.values().stream()
+                Map<String, String> duplicated =
+                        changedName.entrySet().stream()
                                 .collect(
                                         Collectors.groupingBy(
-                                                Function.identity(), Collectors.toList()))
+                                                Map.Entry::getValue, Collectors.toList()))
                                 .values()
                                 .stream()
                                 .filter(l -> l.size() > 1)
-                                .map(l -> l.get(0))
-                                .collect(Collectors.toList());
+                                .flatMap(List::stream)
+                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                 if (!duplicated.isEmpty()) {
                     tableWithDuplicateName.put(tableName, duplicated);
                 }

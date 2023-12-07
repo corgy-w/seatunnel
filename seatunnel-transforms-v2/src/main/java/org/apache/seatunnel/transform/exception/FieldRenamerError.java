@@ -4,7 +4,6 @@ import org.apache.seatunnel.shade.com.fasterxml.jackson.core.JsonProcessingExcep
 import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.apache.seatunnel.transform.exception.FieldRenamerErrorCode.DUPLICATE_NAME;
@@ -13,7 +12,7 @@ public class FieldRenamerError {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public static TransformException tableDuplicateFieldNameError(
-            Map<String, List<String>> tableWithDuplicateName) {
+            Map<String, Map<String, String>> tableWithDuplicateName) {
         Map<String, String> params = new HashMap<>();
         try {
             params.put(

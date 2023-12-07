@@ -201,7 +201,7 @@ public class RenamerTest {
                                                 Collections.singletonList(DEFAULT_TABLE), config2)
                                         .getProducedCatalogTables());
         Assertions.assertEquals(
-                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":[\"f1_new\"]}']",
+                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":{\"f1\":\"f1_new\",\"f2\":\"f1_new\"}}']",
                 exception.getMessage());
 
         FieldRenamerConfig config3 = new FieldRenamerConfig();
@@ -217,7 +217,7 @@ public class RenamerTest {
                                                 Collections.singletonList(DEFAULT_TABLE), config3)
                                         .getProducedCatalogTables());
         Assertions.assertEquals(
-                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":[\"f2\"]}']",
+                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":{\"f1\":\"f2\",\"f2\":\"f2\"}}']",
                 exception2.getMessage());
     }
 
@@ -289,7 +289,7 @@ public class RenamerTest {
                         TransformException.class,
                         () -> transform.mapSchemaChangeEvent(alterTableAddColumnEvent));
         Assertions.assertEquals(
-                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":[\"f1_x\"]}']",
+                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":{\"f1_x\":\"f1_x\",\"f1\":\"f1_x\"}}']",
                 exception.getMessage());
 
         FieldRenamerTransform transform2 =
