@@ -403,7 +403,7 @@ public class SeaTunnelClientTest {
                     .untilAsserted(
                             () ->
                                     Assertions.assertEquals(
-                                            "FINISHED", jobClient.getJobStatus(jobId)));
+                                            "SAVEPOINT_DONE", jobClient.getJobStatus(jobId)));
 
             Thread.sleep(1000);
             seaTunnelClient
