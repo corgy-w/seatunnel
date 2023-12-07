@@ -382,7 +382,9 @@ public class S3RedshiftSQLGenerator implements Serializable {
     }
 
     private List<String> getTemporaryTableSortKey() {
-        if (temporaryTable != null) {
+        if (conf.getRedshiftTableSortKeys() != null && !conf.getRedshiftTableSortKeys().isEmpty()) {
+            return conf.getRedshiftTableSortKeys();
+        } else if (temporaryTable != null) {
             List<String> primaryKeys = getPrimaryKeys(temporaryTable);
             if (CollectionUtils.isNotEmpty(primaryKeys)) {
                 return primaryKeys;
@@ -397,7 +399,9 @@ public class S3RedshiftSQLGenerator implements Serializable {
     }
 
     private List<String> getTableSortKey() {
-        if (table != null) {
+        if (conf.getRedshiftTableSortKeys() != null && !conf.getRedshiftTableSortKeys().isEmpty()) {
+            return conf.getRedshiftTableSortKeys();
+        } else if (table != null) {
             return getPrimaryKeys(table);
         } else if (conf.getRedshiftTablePrimaryKeys() != null) {
             return conf.getRedshiftTablePrimaryKeys();
