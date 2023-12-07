@@ -77,7 +77,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
         preCheckForSpecificConfig(inputCatalogTable);
         for (CatalogTable table : inputCatalogTable) {
             CatalogTable newCatalogTable;
-            String tableName = table.getTablePath().getTableName();
+            String tableName = table.getTablePath().getFullName();
             if (shouldBeRenamed(tableName)) {
                 Map<String, String> changedName = new HashMap<>();
                 List<Column> newColumns = new ArrayList<>();
@@ -121,7 +121,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
         }
         Map<String, Set<String>> tableFields = new LinkedHashMap<>();
         for (CatalogTable table : inputCatalogTable) {
-            String tableName = table.getTablePath().getTableName();
+            String tableName = table.getTablePath().getFullName();
             Set<String> fields =
                     table.getTableSchema().getColumns().stream()
                             .map(Column::getName)
@@ -266,7 +266,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
 
     private boolean shouldBeRenamedByRegex(String tableName) {
         if (StringUtils.isNoneEmpty(config.getTableMatchRegex())) {
-            return tableName.matches(config.getTableMatchRegex());
+            return TablePath.of(tableName).getTableName().matches(config.getTableMatchRegex());
         } else {
             return true;
         }
@@ -306,7 +306,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                                         .removeIf(c -> c.getName().equals(oldColumnName));
                                 t.getTableSchema().getColumns().add(newColumn);
                             });
-            String tableName = alterTableChangeColumnEvent.getTablePath().getTableName();
+            String tableName = alterTableChangeColumnEvent.getTablePath().getFullName();
             boolean uselessEvent = false;
             if (shouldBeRenamedBySpecific(tableName)) {
                 Optional<FieldRenamerConfig.SpecificModify> specificValue =
@@ -357,7 +357,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                     .forEach(t -> t.getTableSchema().getColumns().add(newColumn));
             // Use getProducedCatalogTables() to check rules
             getProducedCatalogTables();
-            String tableName = alterTableAddColumnEvent.getTablePath().getTableName();
+            String tableName = alterTableAddColumnEvent.getTablePath().getFullName();
             if (shouldBeRenamed(tableName)) {
                 Column columnRenamed =
                         alterTableAddColumnEvent
@@ -387,7 +387,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                                             .removeIf(c -> c.getName().equals(oldColumnName)));
             // Use getProducedCatalogTables() to check rules
             getProducedCatalogTables();
-            String tableName = alterTableDropColumnEvent.getTablePath().getTableName();
+            String tableName = alterTableDropColumnEvent.getTablePath().getFullName();
             if (shouldBeRenamed(tableName)) {
                 String oldColumnRenamed =
                         convertName(tableName, alterTableDropColumnEvent.getColumn());
@@ -417,9 +417,9 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                         new ArrayList<>(config.getSpecific());
                 newSpecificList.replaceAll(
                         specific -> {
-                            if (specific.getTableName().equals(oldTableName.getTableName())) {
+                            if (specific.getTableName().equals(oldTableName.getFullName())) {
                                 return new FieldRenamerConfig.SpecificModify(
-                                        newTableName.getTableName(),
+                                        newTableName.getFullName(),
                                         specific.getFieldName(),
                                         specific.getTargetName());
                             } else {

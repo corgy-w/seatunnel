@@ -142,9 +142,12 @@ public class RenamerTest {
     void testProduceNewCatalogTable() {
         FieldRenamerConfig config = new FieldRenamerConfig();
         List<FieldRenamerConfig.SpecificModify> specificModifies = new ArrayList<>();
-        specificModifies.add(new FieldRenamerConfig.SpecificModify("table-x", "f1", "f1_new"));
-        specificModifies.add(new FieldRenamerConfig.SpecificModify("table-x", "f2", "f2_new"));
-        specificModifies.add(new FieldRenamerConfig.SpecificModify("table-x", "f3", "f3_new"));
+        specificModifies.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f1", "f1_new"));
+        specificModifies.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f2", "f2_new"));
+        specificModifies.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f3", "f3_new"));
         config.setSpecific(specificModifies);
         FieldRenamerTransform transform =
                 new FieldRenamerTransform(Collections.singletonList(DEFAULT_TABLE), config);
@@ -183,9 +186,12 @@ public class RenamerTest {
 
         FieldRenamerConfig config2 = new FieldRenamerConfig();
         List<FieldRenamerConfig.SpecificModify> specificModifies2 = new ArrayList<>();
-        specificModifies2.add(new FieldRenamerConfig.SpecificModify("table-x", "f1", "f1_new"));
-        specificModifies2.add(new FieldRenamerConfig.SpecificModify("table-x", "f2", "f1_new"));
-        specificModifies2.add(new FieldRenamerConfig.SpecificModify("table-x", "f3", "f2"));
+        specificModifies2.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f1", "f1_new"));
+        specificModifies2.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f2", "f1_new"));
+        specificModifies2.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f3", "f2"));
         config2.setSpecific(specificModifies2);
         TransformException exception =
                 Assertions.assertThrows(
@@ -195,12 +201,13 @@ public class RenamerTest {
                                                 Collections.singletonList(DEFAULT_TABLE), config2)
                                         .getProducedCatalogTables());
         Assertions.assertEquals(
-                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"table-x\":[\"f1_new\"]}']",
+                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":[\"f1_new\"]}']",
                 exception.getMessage());
 
         FieldRenamerConfig config3 = new FieldRenamerConfig();
         List<FieldRenamerConfig.SpecificModify> specificModifies3 = new ArrayList<>();
-        specificModifies3.add(new FieldRenamerConfig.SpecificModify("table-x", "f1", "f2"));
+        specificModifies3.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f1", "f2"));
         config3.setSpecific(specificModifies3);
         TransformException exception2 =
                 Assertions.assertThrows(
@@ -210,7 +217,7 @@ public class RenamerTest {
                                                 Collections.singletonList(DEFAULT_TABLE), config3)
                                         .getProducedCatalogTables());
         Assertions.assertEquals(
-                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"table-x\":[\"f2\"]}']",
+                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":[\"f2\"]}']",
                 exception2.getMessage());
     }
 
@@ -218,10 +225,14 @@ public class RenamerTest {
     void testThrowExpectedException() {
         FieldRenamerConfig config = new FieldRenamerConfig();
         List<FieldRenamerConfig.SpecificModify> specificModifies = new ArrayList<>();
-        specificModifies.add(new FieldRenamerConfig.SpecificModify("table-y", "f1", "f1_new"));
-        specificModifies.add(new FieldRenamerConfig.SpecificModify("table-z", "f1", "f1_new"));
-        specificModifies.add(new FieldRenamerConfig.SpecificModify("table-x", "f4", "f2_new"));
-        specificModifies.add(new FieldRenamerConfig.SpecificModify("table-x", "f5", "f3_new"));
+        specificModifies.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-y", "f1", "f1_new"));
+        specificModifies.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-z", "f1", "f1_new"));
+        specificModifies.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f4", "f2_new"));
+        specificModifies.add(
+                new FieldRenamerConfig.SpecificModify("database-x.table-x", "f5", "f3_new"));
         config.setSpecific(specificModifies);
         TransformException exception =
                 Assertions.assertThrows(
@@ -231,7 +242,7 @@ public class RenamerTest {
                                                 Collections.singletonList(DEFAULT_TABLE), config)
                                         .getProducedCatalogTables());
         Assertions.assertEquals(
-                "ErrorCode:[TRANSFORM_COMMON-07], ErrorDescription:[The 'FieldRenamer' upstream schema not exist table '[\"table-y\",\"table-z\"]'，upstream schema not exist fields: '{\"table-x\":[\"f4\",\"f5\"]}']",
+                "ErrorCode:[TRANSFORM_COMMON-07], ErrorDescription:[The 'FieldRenamer' upstream schema not exist table '[\"database-x.table-y\",\"database-x.table-z\"]'，upstream schema not exist fields: '{\"database-x.table-x\":[\"f4\",\"f5\"]}']",
                 exception.getMessage());
     }
 
@@ -246,7 +257,7 @@ public class RenamerTest {
         config.setSuffix("ee");
         config.setSpecific(
                 Collections.singletonList(
-                        new FieldRenamerConfig.SpecificModify("table-x", "f1", "f1_x")));
+                        new FieldRenamerConfig.SpecificModify("database-x.table-x", "f1", "f1_x")));
         FieldRenamerTransform transform =
                 new FieldRenamerTransform(
                         Arrays.asList(
@@ -278,7 +289,7 @@ public class RenamerTest {
                         TransformException.class,
                         () -> transform.mapSchemaChangeEvent(alterTableAddColumnEvent));
         Assertions.assertEquals(
-                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"table-x\":[\"f1_x\"]}']",
+                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":[\"f1_x\"]}']",
                 exception.getMessage());
 
         FieldRenamerTransform transform2 =
