@@ -61,6 +61,7 @@ public class S3RedshiftConf implements Serializable {
     private final int changelogBufferFlushInterval;
     @Setter private String redshiftTable;
     @Setter private List<String> redshiftTablePrimaryKeys;
+    private List<String> redshiftTableSortKeys;
     private final String redshiftTemporaryTableName;
     private final String redshiftS3IamRole;
     private final int redshiftS3FileCommitWorkerSize;
@@ -105,6 +106,8 @@ public class S3RedshiftConf implements Serializable {
         builder.redshiftTable(readonlyConfig.get(S3RedshiftConfig.REDSHIFT_TABLE));
         builder.redshiftTablePrimaryKeys(
                 readonlyConfig.get(S3RedshiftConfig.REDSHIFT_TABLE_PRIMARY_KEYS));
+        builder.redshiftTableSortKeys(
+                readonlyConfig.get(S3RedshiftConfig.REDSHIFT_TABLE_SORT_KEYS));
         builder.changelogBufferFlushSize(
                 readonlyConfig.get(S3RedshiftConfig.CHANGELOG_BUFFER_FLUSH_SIZE));
         builder.changelogBufferFlushInterval(

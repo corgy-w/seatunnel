@@ -83,6 +83,7 @@ public class S3RedshiftFactory implements TableSinkFactory {
                         S3RedshiftConfig.CHANGELOG_MODE,
                         S3RedshiftConfig.REDSHIFT_TABLE,
                         S3RedshiftConfig.REDSHIFT_TABLE_PRIMARY_KEYS,
+                        S3RedshiftConfig.REDSHIFT_TABLE_SORT_KEYS,
                         S3RedshiftConfig.REDSHIFT_S3_FILE_COMMIT_WORKER_SIZE)
                 .conditional(S3RedshiftConfig.CHANGELOG_MODE, S3RedshiftChangelogMode.APPEND_ONLY)
                 .conditional(
