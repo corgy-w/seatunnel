@@ -5,8 +5,10 @@ import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class TransformExceptionUtil {
@@ -14,7 +16,7 @@ public class TransformExceptionUtil {
     public static <T> void withErrorCheck(
             String transformName, Iterator<T> keys, Consumer<T> execute) {
         Map<String, List<String>> notExistedColumn = new LinkedHashMap<>();
-        List<String> notExistedTable = new ArrayList<>();
+        Set<String> notExistedTable = new LinkedHashSet<>();
         while (keys.hasNext()) {
             try {
                 execute.accept(keys.next());
@@ -37,13 +39,13 @@ public class TransformExceptionUtil {
         }
         if (!notExistedTable.isEmpty() && !notExistedColumn.isEmpty()) {
             throw TransformCommonError.getCatalogTableWithNotExistFieldsAndTables(
-                    transformName, notExistedTable, notExistedColumn);
+                    transformName, new ArrayList<>(notExistedTable), notExistedColumn);
         } else if (!notExistedColumn.isEmpty()) {
             throw TransformCommonError.getCatalogTableWithNotExistFields(
                     transformName, notExistedColumn);
         } else if (!notExistedTable.isEmpty()) {
             throw TransformCommonError.getCatalogTableWithNotExistTables(
-                    transformName, notExistedTable);
+                    transformName, new ArrayList<>(notExistedTable));
         }
     }
 }
