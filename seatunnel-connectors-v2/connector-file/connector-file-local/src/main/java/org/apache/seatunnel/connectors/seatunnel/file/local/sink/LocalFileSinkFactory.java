@@ -34,6 +34,8 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregated
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
 
+import com.google.auto.service.AutoService;
+
 import java.util.Map;
 
 @AutoService(Factory.class)
