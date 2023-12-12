@@ -50,7 +50,6 @@ import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftCo
 import com.google.auto.service.AutoService;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -109,12 +108,12 @@ public class S3RedshiftSink extends BaseHdfsFileSink
             createAggregatedCommitter() {
         return Optional.of(
                 new S3RedshiftSinkAggregatedCommitter(
-                        fileSystemUtils, s3RedshiftConf, seaTunnelRowType));
+                        hadoopConf, s3RedshiftConf, seaTunnelRowType));
     }
 
     @Override
     public SinkWriter<SeaTunnelRow, FileCommitInfo, FileSinkState> createWriter(
-            SinkWriter.Context context) throws IOException {
+            SinkWriter.Context context) {
         return new S3RedshiftChangelogWriter(
                 newWriteStrategy(),
                 hadoopConf,
@@ -127,7 +126,7 @@ public class S3RedshiftSink extends BaseHdfsFileSink
 
     @Override
     public SinkWriter<SeaTunnelRow, FileCommitInfo, FileSinkState> restoreWriter(
-            SinkWriter.Context context, List<FileSinkState> states) throws IOException {
+            SinkWriter.Context context, List<FileSinkState> states) {
         return new S3RedshiftChangelogWriter(
                 newWriteStrategy(),
                 hadoopConf,
@@ -139,7 +138,7 @@ public class S3RedshiftSink extends BaseHdfsFileSink
     }
 
     @Override
-    public Optional<SinkCommitter<FileCommitInfo>> createCommitter() throws IOException {
+    public Optional<SinkCommitter<FileCommitInfo>> createCommitter() {
         return Optional.empty();
     }
 
@@ -166,7 +165,6 @@ public class S3RedshiftSink extends BaseHdfsFileSink
         WriteStrategy writeStrategy =
                 WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
         writeStrategy.setSeaTunnelRowTypeInfo(seaTunnelRowType);
-        writeStrategy.setFileSystemUtils(fileSystemUtils);
         return writeStrategy;
     }
 }

@@ -20,10 +20,10 @@ package org.apache.seatunnel.connectors.seatunnel.redshift.commit;
 import org.apache.seatunnel.api.sink.MultiTableResourceManager;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkAggregatedCommitter;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggregatedCommitter;
-import org.apache.seatunnel.connectors.seatunnel.file.sink.util.FileSystemUtils;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConf;
 import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftConnectorException;
@@ -63,8 +63,8 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
     private transient CommitterResource resource;
 
     public S3RedshiftSinkAggregatedCommitter(
-            FileSystemUtils fileSystemUtils, S3RedshiftConf conf, SeaTunnelRowType rowType) {
-        super(fileSystemUtils);
+            HadoopConf hadoopConf, S3RedshiftConf conf, SeaTunnelRowType rowType) {
+        super(hadoopConf);
         this.conf = conf;
         this.sqlGenerator = new S3RedshiftSQLGenerator(conf, rowType);
     }
@@ -118,7 +118,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                         for (Map.Entry<String, LinkedHashMap<String, String>> entry :
                                 aggregatedCommitInfo.getTransactionMap().entrySet()) {
                             // delete the transaction dir
-                            fileSystemUtils.deleteFile(entry.getKey());
+                            hadoopFileSystemProxy.deleteFile(entry.getKey());
                             log.info("delete transaction directory {} on abort", entry.getKey());
                         }
                     } catch (Exception e) {
@@ -262,7 +262,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
         for (Map.Entry<String, LinkedHashMap<String, String>> transaction :
                 transactionGroup.entrySet()) {
             String transactionDir = transaction.getKey();
-            if (restore && !fileSystemUtils.fileExist(transactionDir)) {
+            if (restore && !hadoopFileSystemProxy.fileExist(transactionDir)) {
                 log.warn("skip not exist transaction directory {}", transactionDir);
                 return;
             }
@@ -273,7 +273,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
             }
 
             // second delete transaction directory
-            fileSystemUtils.deleteFile(transactionDir);
+            hadoopFileSystemProxy.deleteFile(transactionDir);
             log.info("delete transaction directory {} on merge commit", transaction.getKey());
         }
     }
@@ -295,7 +295,8 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                                         try {
                                             String transactionDir = transaction.getKey();
                                             if (restore
-                                                    && !fileSystemUtils.fileExist(transactionDir)) {
+                                                    && !hadoopFileSystemProxy.fileExist(
+                                                            transactionDir)) {
                                                 log.warn(
                                                         "skip not exist transaction directory {}",
                                                         transactionDir);
@@ -309,7 +310,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                                             }
 
                                             // second delete transaction directory
-                                            fileSystemUtils.deleteFile(transactionDir);
+                                            hadoopFileSystemProxy.deleteFile(transactionDir);
                                             log.info(
                                                     "delete transaction directory {} on merge commit",
                                                     transaction.getKey());
@@ -353,7 +354,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
         for (Map.Entry<String, String> mvFileEntry : files.entrySet()) {
             String tempFilePath = mvFileEntry.getKey();
 
-            if (restore && !fileSystemUtils.fileExist(tempFilePath)) {
+            if (restore && !hadoopFileSystemProxy.fileExist(tempFilePath)) {
                 log.warn("skip not exist file {}", tempFilePath);
                 continue;
             }
@@ -362,7 +363,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
             mergeS3FileToRedshiftWithTemporaryTable(filepath);
 
             if (filepath != null) {
-                fileSystemUtils.deleteFile(filepath);
+                hadoopFileSystemProxy.deleteFile(filepath);
             }
             log.info("delete file {} ", filepath);
         }

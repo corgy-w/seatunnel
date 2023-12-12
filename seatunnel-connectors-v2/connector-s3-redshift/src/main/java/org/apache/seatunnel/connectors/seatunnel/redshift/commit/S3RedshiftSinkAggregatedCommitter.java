@@ -63,8 +63,8 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
     private transient CommitterResource resource;
 
     public S3RedshiftSinkAggregatedCommitter(
-            FileSystemUtils fileSystemUtils, S3RedshiftConf conf, SeaTunnelRowType rowType) {
-        super(fileSystemUtils);
+        HadoopConf hadoopConf, S3RedshiftConf conf, SeaTunnelRowType rowType) {
+        super(hadoopConf);
         this.conf = conf;
         this.sqlGenerator = new S3RedshiftSQLGenerator(conf, rowType);
     }
@@ -118,7 +118,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                         for (Map.Entry<String, LinkedHashMap<String, String>> entry :
                                 aggregatedCommitInfo.getTransactionMap().entrySet()) {
                             // delete the transaction dir
-                            fileSystemUtils.deleteFile(entry.getKey());
+                            hadoopFileSystemProxy.deleteFile(entry.getKey());
                             log.info("delete transaction directory {} on abort", entry.getKey());
                         }
                     } catch (Exception e) {
