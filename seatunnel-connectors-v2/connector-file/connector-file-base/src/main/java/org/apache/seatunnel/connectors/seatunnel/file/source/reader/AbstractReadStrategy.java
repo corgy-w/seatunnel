@@ -27,7 +27,6 @@ import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 
@@ -169,10 +168,7 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
     }
 
     protected FSDataInputStream openFile(String path) throws IOException {
-        Configuration configuration = getConfiguration(hadoopConf);
-        FileSystem hdfs = FileSystem.get(configuration);
-        Path filePath = new Path(path);
-        return hdfs.open(filePath);
+        return hadoopFileSystemProxy.getInputStream(path);
     }
 
     protected Map<String, String> parsePartitionsByPath(String path) {
