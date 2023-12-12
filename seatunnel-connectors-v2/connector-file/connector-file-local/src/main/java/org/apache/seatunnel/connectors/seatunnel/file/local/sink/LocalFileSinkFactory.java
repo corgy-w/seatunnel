@@ -20,7 +20,6 @@ package org.apache.seatunnel.connectors.seatunnel.file.local.sink;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.sink.SinkReplaceNameConstant;
-import org.apache.seatunnel.api.sink.SupportMultiTableSink;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSink;
@@ -35,16 +34,12 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregated
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
 
-import com.google.auto.service.AutoService;
-
 import java.util.Map;
 
 @AutoService(Factory.class)
 public class LocalFileSinkFactory
         implements TableSinkFactory<
-                        SeaTunnelRow, FileSinkState, FileCommitInfo, FileAggregatedCommitInfo>,
-                SupportMultiTableSink {
-
+                SeaTunnelRow, FileSinkState, FileCommitInfo, FileAggregatedCommitInfo> {
     @Override
     public String factoryIdentifier() {
         return FileSystemType.LOCAL.getFileSystemPluginName();
@@ -122,7 +117,7 @@ public class LocalFileSinkFactory
                 .getOptional(BaseSinkConfig.FILE_PATH)
                 .ifPresent(
                         path -> {
-                            String replacedPath = replaceCatalotTableInPath(path, catalogTable);
+                            String replacedPath = replaceCatalogTableInPath(path, catalogTable);
                             configMap.put(BaseSinkConfig.FILE_PATH.key(), replacedPath);
                         });
 
@@ -130,14 +125,14 @@ public class LocalFileSinkFactory
                 .getOptional(BaseSinkConfig.TMP_PATH)
                 .ifPresent(
                         path -> {
-                            String replacedPath = replaceCatalotTableInPath(path, catalogTable);
+                            String replacedPath = replaceCatalogTableInPath(path, catalogTable);
                             configMap.put(BaseSinkConfig.TMP_PATH.key(), replacedPath);
                         });
 
         return ReadonlyConfig.fromMap(configMap);
     }
 
-    private String replaceCatalotTableInPath(String originString, CatalogTable catalogTable) {
+    private String replaceCatalogTableInPath(String originString, CatalogTable catalogTable) {
         String path = originString;
         TableIdentifier tableIdentifier = catalogTable.getTableId();
         if (tableIdentifier != null) {

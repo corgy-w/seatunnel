@@ -28,7 +28,6 @@ import org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.constants.PluginType;
-import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErrorCode;
@@ -132,7 +131,7 @@ public class LocalFileSourceConfig implements Serializable {
                                 localFileHadoopConf, filePaths.get(0)));
             default:
                 throw new FileConnectorException(
-                        CommonErrorCodeDeprecated.ILLEGAL_ARGUMENT,
+                        FileConnectorErrorCode.FORMAT_NOT_SUPPORT,
                         "SeaTunnel does not supported this file format: [" + fileFormat + "]");
         }
     }

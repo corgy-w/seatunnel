@@ -26,6 +26,8 @@ public enum FileConnectorErrorCode implements SeaTunnelErrorCode {
     FILE_LIST_EMPTY("FILE-04", "File list is empty"),
     AGGREGATE_COMMIT_ERROR("FILE-05", "Aggregate committer error"),
     FILE_READ_STRATEGY_NOT_SUPPORT("FILE-06", "File strategy not support"),
+    FORMAT_NOT_SUPPORT("FILE-07", "Format not support"),
+    FILE_READ_FAILED("FILE-08", "File read failed"),
     ;
 
     private final String code;
