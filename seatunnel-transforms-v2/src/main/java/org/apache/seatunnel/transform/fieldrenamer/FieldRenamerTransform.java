@@ -148,7 +148,8 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
             CatalogTable table, Map<String, String> changedName, List<Column> newColumns) {
         CatalogTable newCatalogTable;
         List<String> newPrimaryKey = null;
-        if (table.getTableSchema().getPrimaryKey() != null) {
+        if (table.getTableSchema().getPrimaryKey() != null
+                && table.getTableSchema().getPrimaryKey().getColumnNames() != null) {
             newPrimaryKey =
                     table.getTableSchema().getPrimaryKey().getColumnNames().stream()
                             .map(key -> changedName.getOrDefault(key, key))
