@@ -283,6 +283,44 @@ public class MysqlDialect implements JdbcDialect {
     }
 
     @Override
+    public Object[] sampleDataFromColumn(
+            Connection connection, JdbcSourceTable table, String columnName, int samplingRate)
+            throws SQLException {
+        String sampleQuery;
+        if (StringUtils.isNotBlank(table.getQuery())) {
+            sampleQuery =
+                    String.format(
+                            "SELECT %s FROM (%s) AS T",
+                            quoteIdentifier(columnName), table.getQuery());
+        } else {
+            sampleQuery =
+                    String.format(
+                            "SELECT %s FROM %s",
+                            quoteIdentifier(columnName), tableIdentifier(table.getTablePath()));
+        }
+
+        try (Statement stmt =
+                connection.createStatement(
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+            stmt.setFetchSize(Integer.MIN_VALUE);
+            try (ResultSet rs = stmt.executeQuery(sampleQuery)) {
+                int count = 0;
+                List<Object> results = new ArrayList<>();
+
+                while (rs.next()) {
+                    count++;
+                    if (count % samplingRate == 0) {
+                        results.add(rs.getObject(1));
+                    }
+                }
+                Object[] resultsArray = results.toArray();
+                Arrays.sort(resultsArray);
+                return resultsArray;
+            }
+        }
+    }
+
+    @Override
     public Long approximateRowCntStatement(Connection connection, JdbcSourceTable table)
             throws SQLException {
 
