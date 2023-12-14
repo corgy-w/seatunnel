@@ -79,7 +79,7 @@ public class StarRocksSaveModeUtil {
                                         column.getLongColumnLength() == null
                                                 ? 0
                                                 : column.getLongColumnLength())
-                                * 2),
+                                * 3),
                 column.isNullable() ? "NULL" : "NOT NULL");
     }
 
