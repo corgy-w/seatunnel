@@ -3,7 +3,6 @@ package io.debezium.connector.oracle;
 import org.apache.seatunnel.connectors.cdc.base.relational.JdbcSourceEventDispatcher;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.config.OracleAgentSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleAgentClientUtils;
-import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleConnectionUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -69,10 +68,7 @@ public class OracleAgentStreamingChangeEventSource
         tableNameToIdMap =
                 tableIds.stream().collect(Collectors.toMap(TableId::table, Function.identity()));
         this.tables = tableIds.stream().map(TableId::table).collect(Collectors.toList());
-        this.tableOwners =
-                tableNameToIdMap.keySet().stream()
-                        .map(table -> OracleConnectionUtils.getTableOwner(oracleConnection, table))
-                        .collect(Collectors.toList());
+        this.tableOwners = tableIds.stream().map(TableId::schema).collect(Collectors.toList());
     }
 
     @Override
