@@ -221,7 +221,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
             return name;
         }
         Map<Integer, Integer> replaceIndex = new LinkedHashMap<>();
-        if (StringUtils.isNoneEmpty(config.getReplaceFrom())) {
+        if (StringUtils.isNotBlank(config.getReplaceFrom())) {
             Matcher matcher = Pattern.compile(config.getReplaceFrom()).matcher(name);
             while (matcher.find()) {
                 replaceIndex.put(matcher.start(), matcher.end());
@@ -250,10 +250,10 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                             + name.substring(indexEnd + offset);
             offset += config.getReplaceTo().trim().length() - (indexEnd - indexStart);
         }
-        if (StringUtils.isNoneEmpty(config.getPrefix())) {
+        if (StringUtils.isNotBlank(config.getPrefix())) {
             name = config.getPrefix().trim() + name;
         }
-        if (StringUtils.isNoneEmpty(config.getSuffix())) {
+        if (StringUtils.isNotBlank(config.getSuffix())) {
             name = name + config.getSuffix().trim();
         }
         return name;
@@ -265,7 +265,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
     }
 
     private boolean shouldBeRenamedByRegex(String tableName) {
-        if (StringUtils.isNoneEmpty(config.getTableMatchRegex())) {
+        if (StringUtils.isNotBlank(config.getTableMatchRegex())) {
             return TablePath.of(tableName).getTableName().matches(config.getTableMatchRegex());
         } else {
             return true;
