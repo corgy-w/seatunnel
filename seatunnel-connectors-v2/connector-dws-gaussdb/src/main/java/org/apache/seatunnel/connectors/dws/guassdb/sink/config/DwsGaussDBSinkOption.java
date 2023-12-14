@@ -5,6 +5,7 @@ import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption;
 
 import static org.apache.seatunnel.api.sink.DataSaveMode.KEEP_SCHEMA_AND_DATA;
@@ -74,6 +75,7 @@ public class DwsGaussDBSinkOption implements BaseDwsGaussDBOption {
         return OptionRule.builder()
                 .required(URL, DRIVER, SCHEMA_SAVE_MODE, DATA_SAVE_MODE)
                 .optional(USER, PASSWORD, PROPERTIES, WRITE_MODE, BATCH_SIZE)
+                .optional(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
                 .conditional(WRITE_MODE, WriteMode.USING_TEMPORARY_TABLE, PRIMARY_KEY)
                 .conditional(DATA_SAVE_MODE, DataSaveMode.CUSTOM_PROCESSING, CUSTOM_SQL)
                 .build();

@@ -111,7 +111,7 @@ public class OracleAgentDialect implements JdbcDataSourceDialect {
     public TableChange queryTableSchema(JdbcConnection jdbc, TableId tableId) {
         long startTime = System.currentTimeMillis();
         if (oracleSchema == null) {
-            oracleSchema = new OracleSchema();
+            oracleSchema = new OracleSchema(sourceConfig.getDbzConnectorConfig());
         }
         TableChange tableSchema = oracleSchema.getTableSchema(jdbc, tableId);
         log.debug(
