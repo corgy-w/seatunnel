@@ -130,7 +130,7 @@ public class SelectDBSaveModeUtil {
         switch (dataType.getSqlType()) {
             case NULL:
             case TIME:
-                return "STRING";
+                return "VARCHAR(8)";
             case STRING:
                 if (length > 65533 || length <= 0) {
                     return "STRING";
