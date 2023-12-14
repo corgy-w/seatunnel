@@ -11,10 +11,12 @@
 ## Usage Dependency
 
 ### For Spark/Flink Engine
+
 1. You must ensure your spark/flink cluster already integrated hadoop. The tested hadoop version is 2.x.
 2. You must ensure `hadoop-aliyun-xx.jar`, `aliyun-sdk-oss-xx.jar` and `jdom-xx.jar` in `${SEATUNNEL_HOME}/plugins/` dir and the version of `hadoop-aliyun` jar need equals your hadoop version which used in spark/flink and `aliyun-sdk-oss-xx.jar` and `jdom-xx.jar` version needs to be the version corresponding to the `hadoop-aliyun` version. Eg: `hadoop-aliyun-3.1.4.jar` dependency `aliyun-sdk-oss-3.4.1.jar` and `jdom-1.1.jar`.
 
 ### For SeaTunnel Zeta Engine
+
 1. You must ensure `seatunnel-hadoop3-3.1.4-uber.jar`, `aliyun-sdk-oss-3.4.1.jar`, `hadoop-aliyun-3.1.4.jar` and `jdom-1.1.jar` in `${SEATUNNEL_HOME}/lib/` dir.
 
 ## Key features
@@ -35,7 +37,6 @@ Read all the data in a split in a pollNext call. What splits are read will be sa
   - [x] orc
   - [x] json
   - [x] excel
-
 
 ## Data Type Mapping
 
@@ -185,11 +186,9 @@ If you assign file type to `parquet` `orc`, schema option not required, connecto
 | Map<K,V>             | MapType, This type of K and V will transform to SeaTunnel type |
 | STRUCT               | SeaTunnelRowType                                               |
 
-
-
 ## Options
 
-| name                      | type    | required | default value       | Description                                                                                                                                                                                                                                                                                                                   |
+|           name            |  type   | required |    default value    |                                                                                                                                                          Description                                                                                                                                                          |
 |---------------------------|---------|----------|---------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | path                      | string  | yes      | -                   | The Oss path that needs to be read can have sub paths, but the sub paths need to meet certain format requirements. Specific requirements can be referred to "parse_partition_from_path" option                                                                                                                                |
 | file_format_type          | string  | yes      | -                   | File type, supported as the following file types: `text` `csv` `parquet` `orc` `json` `excel`                                                                                                                                                                                                                                 |
@@ -207,7 +206,7 @@ If you assign file type to `parquet` `orc`, schema option not required, connecto
 | schema                    | config  | no       | -                   | The schema of upstream data.                                                                                                                                                                                                                                                                                                  |
 | sheet_name                | string  | no       | -                   | Reader the sheet of the workbook,Only used when file_format is excel.                                                                                                                                                                                                                                                         |
 | compress_codec            | string  | no       | none                | Which compress codec the files used.                                                                                                                                                                                                                                                                                          |
-| file_filter_pattern       | string  | no       |                     | `*.txt` means you only need read the files end with `.txt`                                                                                                                                                                                                                                                                    |       
+| file_filter_pattern       | string  | no       |                     | `*.txt` means you only need read the files end with `.txt`                                                                                                                                                                                                                                                                    |
 | common-options            | config  | no       | -                   | Source plugin common parameters, please refer to [Source Common Options](common-options.md) for details.                                                                                                                                                                                                                      |
 
 ### compress_codec [string]
