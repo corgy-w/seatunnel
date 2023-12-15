@@ -107,6 +107,6 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
                 connectTimeoutMillis,
                 connectMaxRetries,
                 connectionPoolSize,
-                exactlyOnce);
+                false);
     }
 }
