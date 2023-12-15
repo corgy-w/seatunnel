@@ -86,7 +86,9 @@ public class DorisSinkFactory implements TableSinkFactory {
                         DorisConfig.SINK_ENABLE_DELETE,
                         MULTI_TABLE_SINK_REPLICA,
                         SAVE_MODE_CREATE_TEMPLATE,
-                        NEEDS_UNSUPPORTED_TYPE_CASTING)
+                        NEEDS_UNSUPPORTED_TYPE_CASTING,
+                        DorisConfig.SINK_BUFFER_SIZE,
+                        DorisConfig.SINK_BUFFER_COUNT)
                 .conditional(
                         DorisConfig.DATA_SAVE_MODE,
                         DataSaveMode.CUSTOM_PROCESSING,
