@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -45,6 +46,8 @@ import static java.lang.String.format;
  * and stateless.
  */
 public interface JdbcDialect extends Serializable {
+
+    Logger log = Logger.getLogger(JdbcDialect.class.getName());
 
     /**
      * Get the name of jdbc dialect.
@@ -301,6 +304,7 @@ public interface JdbcDialect extends Serializable {
 
         try (Statement stmt = connection.createStatement()) {
             stmt.setFetchSize(1024);
+            log.info(String.format("Split Chunk, approximateRowCntStatement: %s", sampleQuery));
             try (ResultSet rs = stmt.executeQuery(sampleQuery)) {
                 int count = 0;
                 List<Object> results = new ArrayList<>();
