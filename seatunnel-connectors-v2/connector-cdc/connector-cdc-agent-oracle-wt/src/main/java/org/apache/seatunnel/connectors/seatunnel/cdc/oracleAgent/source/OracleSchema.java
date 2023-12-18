@@ -17,6 +17,8 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 
 import io.debezium.connector.oracle.OracleConnection;
@@ -26,6 +28,7 @@ import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
 import io.debezium.relational.history.TableChanges;
 import io.debezium.relational.history.TableChanges.TableChange;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -34,12 +37,15 @@ import java.util.Map;
 import java.util.Set;
 
 /** A component used to get schema by table path. */
+@Slf4j
 public class OracleSchema {
 
     private final Map<TableId, TableChange> schemasByTableId;
+    private final Map<TableId, CatalogTable> tableMap;
 
-    public OracleSchema() {
+    public OracleSchema(Map<TableId, CatalogTable> tableMap) {
         this.schemasByTableId = new HashMap<>();
+        this.tableMap = tableMap;
     }
 
     /**
@@ -69,6 +75,17 @@ public class OracleSchema {
             oracleConnection.readSchemaForCapturedTables(
                     tables, tableId.catalog(), tableId.schema(), null, false, tableIdSet);
             Table table = tables.forTable(tableId);
+            if (table.primaryKeyColumnNames().isEmpty()) {
+                CatalogTable catalogTable = tableMap.get(tableId);
+                PrimaryKey pk = catalogTable.getTableSchema().getPrimaryKey();
+                if (pk != null) {
+                    table = table.edit().setPrimaryKeyNames(pk.getColumnNames()).create();
+                    log.info(
+                            "Override primary key({}) for catalog table {}",
+                            pk.getColumnNames(),
+                            tableId);
+                }
+            }
             TableChange tableChange = new TableChange(TableChanges.TableChangeType.CREATE, table);
             tableChangeMap.put(tableId, tableChange);
         } catch (SQLException e) {

@@ -135,7 +135,7 @@ public class OracleAgentIncrementalSource<T> extends IncrementalSource<T, JdbcSo
 
     @Override
     public DataSourceDialect<JdbcSourceConfig> createDataSourceDialect(ReadonlyConfig config) {
-        return new OracleAgentDialect(getSourceConfig());
+        return new OracleAgentDialect(getSourceConfig(), catalogTables);
     }
 
     @Override
@@ -155,7 +155,7 @@ public class OracleAgentIncrementalSource<T> extends IncrementalSource<T, JdbcSo
     private Map<TableId, Struct> tableChanges() {
         OracleAgentSourceConfig jdbcSourceConfig =
                 (OracleAgentSourceConfig) configFactory.create(0);
-        OracleAgentDialect dialect = new OracleAgentDialect(jdbcSourceConfig);
+        OracleAgentDialect dialect = new OracleAgentDialect(jdbcSourceConfig, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
                 new ConnectTableChangeSerializer();
