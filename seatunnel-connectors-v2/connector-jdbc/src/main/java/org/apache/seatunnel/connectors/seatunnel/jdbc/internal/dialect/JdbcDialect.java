@@ -28,6 +28,9 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.source.JdbcSourceTable;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -51,7 +54,7 @@ import static java.lang.String.format;
  */
 public interface JdbcDialect extends Serializable {
 
-    Logger log = Logger.getLogger(JdbcDialect.class.getName());
+    Logger log = LoggerFactory.getLogger(JdbcDialect.class.getName());
 
     /**
      * Get the name of jdbc dialect.

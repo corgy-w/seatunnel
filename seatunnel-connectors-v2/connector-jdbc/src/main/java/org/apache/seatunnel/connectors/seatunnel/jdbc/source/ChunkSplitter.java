@@ -314,6 +314,8 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
             case SMALLINT:
             case INT:
             case BIGINT:
+            case DOUBLE:
+            case FLOAT:
             case DECIMAL:
             case STRING:
             case DATE:

@@ -117,6 +117,8 @@ public class DynamicChunkSplitter extends ChunkSplitter {
             case INT:
             case BIGINT:
             case DECIMAL:
+            case DOUBLE:
+            case FLOAT:
             case STRING:
                 return evenlyColumnSplitChunks(table, splitColumnName, min, max, chunkSize);
             case DATE:
