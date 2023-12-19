@@ -49,8 +49,8 @@ public class HiveSourceFactory implements TableSourceFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(HiveSourceOptions.TABLE_NAME)
-                .required(HiveSourceOptions.METASTORE_URI)
+                .optional(HiveSourceOptions.TABLE_NAME)
+                .optional(HiveSourceOptions.METASTORE_URI)
                 .optional(HiveSourceOptions.TABLE_CONFIGS)
                 .optional(HiveSourceOptions.HIVE_SITE_PATH)
                 .optional(

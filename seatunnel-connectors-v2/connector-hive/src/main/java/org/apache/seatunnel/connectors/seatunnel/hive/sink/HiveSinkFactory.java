@@ -27,7 +27,6 @@ import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
@@ -80,7 +79,7 @@ public class HiveSinkFactory
                         tableName -> {
                             String replacedPath =
                                     replaceCatalogTableInPath(tableName, catalogTable);
-                            configMap.put(BaseSinkConfig.FILE_PATH.key(), replacedPath);
+                            configMap.put(HiveSinkOptions.TABLE_NAME.key(), replacedPath);
                         });
 
         return ReadonlyConfig.fromMap(new HashMap<>(configMap));

@@ -159,17 +159,9 @@ public class HiveMetaStoreProxy {
 
     private boolean enableKerberos(ReadonlyConfig readonlyConfig) {
         boolean kerberosPrincipalEmpty =
-                !readonlyConfig.getOptional(BaseSourceConfig.KERBEROS_PRINCIPAL).isPresent()
-                        || StringUtils.isBlank(
-                                readonlyConfig
-                                        .getOptional(BaseSourceConfig.KERBEROS_PRINCIPAL)
-                                        .get());
+                StringUtils.isBlank(readonlyConfig.get(BaseSourceConfig.KERBEROS_PRINCIPAL));
         boolean kerberosKeytabPathEmpty =
-                !readonlyConfig.getOptional(BaseSourceConfig.KERBEROS_KEYTAB_PATH).isPresent()
-                        || StringUtils.isBlank(
-                                readonlyConfig
-                                        .getOptional(BaseSourceConfig.KERBEROS_KEYTAB_PATH)
-                                        .get());
+                StringUtils.isBlank(readonlyConfig.get(BaseSourceConfig.KERBEROS_KEYTAB_PATH));
         if (kerberosKeytabPathEmpty && kerberosPrincipalEmpty) {
             return false;
         }
@@ -183,7 +175,6 @@ public class HiveMetaStoreProxy {
     }
 
     private boolean enableRemoteUser(ReadonlyConfig config) {
-        return config.getOptional(BaseSourceConfig.REMOTE_USER).isPresent()
-                && StringUtils.isNotBlank(config.getOptional(BaseSourceConfig.REMOTE_USER).get());
+        return StringUtils.isNotBlank(config.get(BaseSourceConfig.REMOTE_USER));
     }
 }

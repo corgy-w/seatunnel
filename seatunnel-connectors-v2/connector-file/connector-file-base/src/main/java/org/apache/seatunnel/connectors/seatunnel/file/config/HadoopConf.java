@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.file.config;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 
@@ -56,7 +57,7 @@ public class HadoopConf implements Serializable {
         if (!extraOptions.isEmpty()) {
             extraOptions.forEach(configuration::set);
         }
-        if (hdfsSitePath != null) {
+        if (StringUtils.isNotBlank(hdfsSitePath)) {
             configuration.addResource(new Path(hdfsSitePath));
         }
     }
