@@ -167,7 +167,18 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
         // the data in SeaTunnelRow
         this.sinkColumnsIndexInRow =
                 this.sinkColumnList.stream()
-                        .map(column -> columnsMap.get(column.toLowerCase()))
+                        .map(
+                                column -> {
+                                    Integer columnIndex = columnsMap.get(column.toLowerCase());
+                                    if (columnIndex == null) {
+                                        throw new IllegalArgumentException(
+                                                "The column: "
+                                                        + column
+                                                        + " is not exist in upstream catalogTable: "
+                                                        + columnsMap.keySet());
+                                    }
+                                    return columnsMap.get(column.toLowerCase());
+                                })
                         .collect(Collectors.toList());
 
         if (!CollectionUtils.isEmpty(this.partitionFieldList)) {
