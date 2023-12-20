@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.hive.source.config;
 
+import org.apache.seatunnel.shade.com.typesafe.config.Config;
+import org.apache.seatunnel.shade.com.typesafe.config.ConfigValueFactory;
+
 import org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -55,6 +58,10 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.FIELD_DELIMITER;
+import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.ROW_DELIMITER;
 
 @Getter
 public class HiveSourceConfig implements Serializable {
@@ -76,7 +83,7 @@ public class HiveSourceConfig implements Serializable {
         this.table = HiveTableUtils.getTableInfo(readonlyConfig);
         this.hiveHadoopConfig = parseHiveHadoopConfig(readonlyConfig, table);
         this.fileFormat = HiveTableUtils.parseFileFormat(table);
-        this.readStrategy = parseReadStrategy(readonlyConfig, fileFormat, hiveHadoopConfig);
+        this.readStrategy = parseReadStrategy(table, readonlyConfig, fileFormat, hiveHadoopConfig);
         this.filePaths = parseFilePaths(table, readStrategy);
         this.catalogTable =
                 parseCatalogTable(
@@ -108,11 +115,26 @@ public class HiveSourceConfig implements Serializable {
     }
 
     private ReadStrategy parseReadStrategy(
+            Table table,
             ReadonlyConfig readonlyConfig,
             FileFormat fileFormat,
             HiveHadoopConfig hiveHadoopConfig) {
+
         ReadStrategy readStrategy = ReadStrategyFactory.of(fileFormat.name());
-        readStrategy.setPluginConfig(readonlyConfig.toConfig());
+        Config config = readonlyConfig.toConfig();
+
+        if (fileFormat == FileFormat.TEXT) {
+            // if the file format is text, we set the delim.
+            Map<String, String> parameters = table.getSd().getSerdeInfo().getParameters();
+            config =
+                    config.withValue(
+                                    FIELD_DELIMITER.key(),
+                                    ConfigValueFactory.fromAnyRef(parameters.get("field.delim")))
+                            .withValue(
+                                    ROW_DELIMITER.key(),
+                                    ConfigValueFactory.fromAnyRef(parameters.get("line.delim")));
+        }
+        readStrategy.setPluginConfig(config);
         readStrategy.init(hiveHadoopConfig);
         return readStrategy;
     }
