@@ -61,6 +61,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.FIELD_DELIMITER;
+import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.FILE_FORMAT_TYPE;
 import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.ROW_DELIMITER;
 
 @Getter
@@ -123,16 +124,35 @@ public class HiveSourceConfig implements Serializable {
         ReadStrategy readStrategy = ReadStrategyFactory.of(fileFormat.name());
         Config config = readonlyConfig.toConfig();
 
-        if (fileFormat == FileFormat.TEXT) {
-            // if the file format is text, we set the delim.
-            Map<String, String> parameters = table.getSd().getSerdeInfo().getParameters();
-            config =
-                    config.withValue(
-                                    FIELD_DELIMITER.key(),
-                                    ConfigValueFactory.fromAnyRef(parameters.get("field.delim")))
-                            .withValue(
-                                    ROW_DELIMITER.key(),
-                                    ConfigValueFactory.fromAnyRef(parameters.get("line.delim")));
+        switch (fileFormat) {
+            case TEXT:
+                // if the file format is text, we set the delim.
+                Map<String, String> parameters = table.getSd().getSerdeInfo().getParameters();
+                config =
+                        config.withValue(
+                                        FIELD_DELIMITER.key(),
+                                        ConfigValueFactory.fromAnyRef(
+                                                parameters.get("field.delim")))
+                                .withValue(
+                                        ROW_DELIMITER.key(),
+                                        ConfigValueFactory.fromAnyRef(parameters.get("line.delim")))
+                                .withValue(
+                                        FILE_FORMAT_TYPE.key(),
+                                        ConfigValueFactory.fromAnyRef(FileFormat.TEXT.name()));
+                break;
+            case ORC:
+                config =
+                        config.withValue(
+                                FILE_FORMAT_TYPE.key(),
+                                ConfigValueFactory.fromAnyRef(FileFormat.ORC.name()));
+                break;
+            case PARQUET:
+                config =
+                        config.withValue(
+                                FILE_FORMAT_TYPE.key(),
+                                ConfigValueFactory.fromAnyRef(FileFormat.PARQUET.name()));
+                break;
+            default:
         }
         readStrategy.setPluginConfig(config);
         readStrategy.init(hiveHadoopConfig);
