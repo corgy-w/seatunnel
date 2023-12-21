@@ -31,7 +31,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -301,11 +300,9 @@ public interface JdbcDialect extends Serializable {
                             "SELECT %s FROM %s",
                             quoteIdentifier(columnName), tableIdentifier(table.getTablePath()));
         }
-
-        try (Statement stmt = connection.createStatement()) {
-            stmt.setFetchSize(1024);
+        try (PreparedStatement stmt = creatPreparedStatement(connection, sampleQuery, 102400)) {
             log.info(String.format("Split Chunk, approximateRowCntStatement: %s", sampleQuery));
-            try (ResultSet rs = stmt.executeQuery(sampleQuery)) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 int count = 0;
                 List<Object> results = new ArrayList<>();
 
