@@ -117,8 +117,10 @@ public class DamengConncetionUtils {
 
         List<Object> results = new ArrayList<>();
         try {
-            stmt = jdbc.connection().createStatement();
-
+            stmt =
+                    jdbc.connection()
+                            .createStatement(
+                                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             stmt.setFetchSize(1024);
             rs = stmt.executeQuery(sampleQuery);
 
