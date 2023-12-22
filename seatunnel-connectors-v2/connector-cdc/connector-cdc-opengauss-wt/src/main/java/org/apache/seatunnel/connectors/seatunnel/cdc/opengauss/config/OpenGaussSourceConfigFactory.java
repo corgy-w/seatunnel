@@ -71,6 +71,7 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
         props.setProperty("database.history.instance.name", UUID.randomUUID() + "_" + subtask);
         props.setProperty("database.history.skip.unparseable.ddl", String.valueOf(true));
         props.setProperty("database.history.refer.ddl", String.valueOf(true));
+        props.setProperty("tombstones.on.delete", String.valueOf(false));
 
         if (tableList != null) {
             // SqlServer identifier is of the form schemaName.tableName
