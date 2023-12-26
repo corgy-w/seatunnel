@@ -20,9 +20,6 @@
     },
     {
       "pattern": "^https://opencollective.com"
-    },
-    {
-      "pattern": "^https://twitter.com/ASFSeaTunnel"
     }
   ],
   "timeout": "10s",

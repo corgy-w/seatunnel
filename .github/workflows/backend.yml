@@ -16,9 +16,14 @@
 #
 
 name: Backend
-
 on:
-  workflow_call:
+  push:
+  pull_request:
+    branches:
+      - business-dev
+      - "v[0-9]+.[0-9]+.[0-9]+-release"
+    paths-ignore:
+      - 'seatunnel-ui/**'
 
 concurrency:
   group: backend-${{ github.event.pull_request.number || github.ref }}
@@ -86,7 +91,7 @@ jobs:
       - name: checkout apache seatunnel dev branch
         id: git_init
         run: |
-          /usr/bin/git remote add apache https://github.com/apache/seatunnel
+          /usr/bin/git remote add apache https://github.com/WhaleOps/whaletunnel.git
           /usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=2000 apache +refs/heads/dev*:refs/remotes/apache/dev* +refs/tags/dev*:refs/tags/dev*
           /usr/bin/git checkout apache/dev
           /usr/bin/git checkout '${{ github.ref }}'
