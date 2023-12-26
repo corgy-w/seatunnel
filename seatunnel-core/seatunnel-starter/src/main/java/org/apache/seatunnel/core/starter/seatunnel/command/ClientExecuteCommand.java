@@ -32,7 +32,8 @@ import org.apache.seatunnel.engine.common.Constant;
 import org.apache.seatunnel.engine.common.config.ConfigProvider;
 import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
-import org.apache.seatunnel.engine.common.exception.JobFailedException;
+import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
+import org.apache.seatunnel.engine.core.job.JobResult;
 import org.apache.seatunnel.engine.core.job.JobStatus;
 import org.apache.seatunnel.engine.server.SeaTunnelNodeContext;
 
@@ -183,9 +184,11 @@ public class ClientExecuteCommand implements Command<ClientCommandArgs> {
                         seaTunnelConfig.getEngineConfig().getPrintJobMetricsInfoInterval(),
                         TimeUnit.SECONDS);
                 // wait for job complete
-                jobStatus = clientJobProxy.waitForJobComplete();
-                if (jobStatus.equals(JobStatus.FAILED)) {
-                    throw new JobFailedException("Job Failed");
+                JobResult jobResult = clientJobProxy.waitForJobCompleteV2();
+                jobStatus = jobResult.getStatus();
+                if (StringUtils.isNotEmpty(jobResult.getError())
+                        || jobResult.getStatus().equals(JobStatus.FAILED)) {
+                    throw new SeaTunnelEngineException(jobResult.getError());
                 }
                 // get job end time
                 endTime = LocalDateTime.now();
