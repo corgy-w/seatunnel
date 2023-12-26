@@ -116,6 +116,5 @@ public class AssertRuleParser {
         TYPES.put("datetime", LocalTimeType.LOCAL_DATE_TIME_TYPE);
         TYPES.put("date", LocalTimeType.LOCAL_DATE_TYPE);
         TYPES.put("time", LocalTimeType.LOCAL_TIME_TYPE);
-        TYPES.put("decimal", new DecimalType(38, 18));
     }
 }

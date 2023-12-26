@@ -18,7 +18,6 @@
 package org.apache.seatunnel.connectors.seatunnel.hive.sink.writter;
 
 import org.apache.seatunnel.api.sink.SinkWriter;
-import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.BaseFileSinkWriter;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
@@ -27,8 +26,7 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.WriteStrategy;
 import java.util.Collections;
 import java.util.List;
 
-public class HiveSinkWriter extends BaseFileSinkWriter
-        implements SupportMultiTableSinkWriter<WriteStrategy> {
+public class HiveSinkWriter extends BaseFileSinkWriter<WriteStrategy> {
 
     public HiveSinkWriter(
             WriteStrategy writeStrategy,

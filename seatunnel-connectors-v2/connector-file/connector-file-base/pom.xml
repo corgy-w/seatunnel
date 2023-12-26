@@ -157,6 +157,13 @@
             <version>${hadoop-minikdc.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-minikdc</artifactId>
+            <version>${hadoop-minikdc.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

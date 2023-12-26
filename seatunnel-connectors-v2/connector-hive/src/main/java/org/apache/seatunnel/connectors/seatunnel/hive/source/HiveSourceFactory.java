@@ -24,8 +24,7 @@ import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig;
-import org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config.HdfsSourceConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config.HdfsSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.config.HiveSourceOptions;
 
@@ -54,11 +53,11 @@ public class HiveSourceFactory implements TableSourceFactory {
                 .optional(HiveSourceOptions.TABLE_CONFIGS)
                 .optional(HiveSourceOptions.HIVE_SITE_PATH)
                 .optional(
-                        HdfsSourceConfig.HDFS_SITE_PATH,
-                        HdfsSourceConfig.KERBEROS_PRINCIPAL,
-                        HdfsSourceConfig.KERBEROS_KEYTAB_PATH)
-                .optional(BaseSourceConfig.READ_PARTITIONS)
-                .optional(BaseSourceConfig.READ_COLUMNS)
+                        HdfsSourceConfigOptions.HDFS_SITE_PATH,
+                        HdfsSourceConfigOptions.KERBEROS_PRINCIPAL,
+                        HdfsSourceConfigOptions.KERBEROS_KEYTAB_PATH)
+                .optional(HdfsSourceConfigOptions.READ_PARTITIONS)
+                .optional(HdfsSourceConfigOptions.READ_COLUMNS)
                 .build();
     }
 

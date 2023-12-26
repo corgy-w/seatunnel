@@ -38,7 +38,7 @@ import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3Conf;
-import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3Config;
+import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3ConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.BaseFileSink;
 
 import com.google.auto.service.AutoService;
@@ -69,7 +69,9 @@ public class S3FileSink extends BaseFileSink implements SupportSaveMode {
         super.prepare(pluginConfig);
         CheckResult result =
                 CheckConfigUtil.checkAllExists(
-                        pluginConfig, S3Config.FILE_PATH.key(), S3Config.S3_BUCKET.key());
+                        pluginConfig,
+                        S3ConfigOptions.FILE_PATH.key(),
+                        S3ConfigOptions.S3_BUCKET.key());
         if (!result.isSuccess()) {
             throw new FileConnectorException(
                     SeaTunnelAPIErrorCode.CONFIG_VALIDATION_FAILED,
@@ -86,7 +88,9 @@ public class S3FileSink extends BaseFileSink implements SupportSaveMode {
         super.prepare(pluginConfig);
         CheckResult result =
                 CheckConfigUtil.checkAllExists(
-                        pluginConfig, S3Config.FILE_PATH.key(), S3Config.S3_BUCKET.key());
+                        pluginConfig,
+                        S3ConfigOptions.FILE_PATH.key(),
+                        S3ConfigOptions.S3_BUCKET.key());
         if (!result.isSuccess()) {
             throw new FileConnectorException(
                     SeaTunnelAPIErrorCode.CONFIG_VALIDATION_FAILED,
@@ -107,8 +111,8 @@ public class S3FileSink extends BaseFileSink implements SupportSaveMode {
             return Optional.empty();
         }
         final Catalog catalog = catalogFactory.createCatalog(S3, readonlyConfig);
-        SchemaSaveMode schemaSaveMode = readonlyConfig.get(S3Config.SCHEMA_SAVE_MODE);
-        DataSaveMode dataSaveMode = readonlyConfig.get(S3Config.DATA_SAVE_MODE);
+        SchemaSaveMode schemaSaveMode = readonlyConfig.get(S3ConfigOptions.SCHEMA_SAVE_MODE);
+        DataSaveMode dataSaveMode = readonlyConfig.get(S3ConfigOptions.DATA_SAVE_MODE);
         return Optional.of(
                 new DefaultSaveModeHandler(
                         schemaSaveMode, dataSaveMode, catalog, catalogTable, null));

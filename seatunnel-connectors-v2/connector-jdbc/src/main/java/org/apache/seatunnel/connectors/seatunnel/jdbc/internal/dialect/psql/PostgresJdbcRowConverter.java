@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql;
 
+import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -28,7 +29,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcUtils;
 
 import java.sql.Date;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -46,19 +46,18 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
     }
 
     @Override
-    public SeaTunnelRow toInternal(ResultSet rs, SeaTunnelRowType typeInfo) throws SQLException {
-        ResultSetMetaData metaData = rs.getMetaData();
-
+    public SeaTunnelRow toInternal(ResultSet rs, TableSchema tableSchema) throws SQLException {
+        SeaTunnelRowType typeInfo = tableSchema.toPhysicalRowDataType();
         Object[] fields = new Object[typeInfo.getTotalFields()];
         for (int fieldIndex = 0; fieldIndex < typeInfo.getTotalFields(); fieldIndex++) {
             SeaTunnelDataType<?> seaTunnelDataType = typeInfo.getFieldType(fieldIndex);
             int resultSetIndex = fieldIndex + 1;
-
+            String metaDataColumnType =
+                    rs.getMetaData().getColumnTypeName(resultSetIndex).toUpperCase(Locale.ROOT);
             switch (seaTunnelDataType.getSqlType()) {
                 case STRING:
-                    String columnTypeName =
-                            metaData.getColumnTypeName(resultSetIndex).toUpperCase(Locale.ROOT);
-                    if (columnTypeName.equals("GEOGRAPHY") || columnTypeName.equals("GEOMETRY")) {
+                    if (metaDataColumnType.equals(PG_GEOMETRY)
+                            || metaDataColumnType.equals(PG_GEOGRAPHY)) {
                         fields[fieldIndex] =
                                 rs.getObject(resultSetIndex) == null
                                         ? null
