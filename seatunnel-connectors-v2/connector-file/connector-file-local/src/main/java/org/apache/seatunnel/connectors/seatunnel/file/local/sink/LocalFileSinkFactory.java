@@ -34,8 +34,6 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
 
 import com.google.auto.service.AutoService;
 
-import java.util.Map;
-
 @AutoService(Factory.class)
 public class LocalFileSinkFactory extends BaseMultipleTableFinkSinkFactory {
     @Override

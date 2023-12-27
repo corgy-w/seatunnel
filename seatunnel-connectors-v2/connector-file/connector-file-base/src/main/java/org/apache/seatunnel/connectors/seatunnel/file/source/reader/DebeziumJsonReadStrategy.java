@@ -3,6 +3,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.source.reader;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.config.CompressFormat;
@@ -83,8 +84,7 @@ public class DebeziumJsonReadStrategy extends AbstractReadStrategy {
                                             String.format(
                                                     "Read data from this file [%s] failed", path);
                                     throw new FileConnectorException(
-                                            CommonErrorCodeDeprecated.FILE_OPERATION_FAILED,
-                                            errorMsg);
+                                            CommonErrorCode.FILE_OPERATION_FAILED, errorMsg);
                                 }
                             });
         }
