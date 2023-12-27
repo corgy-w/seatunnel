@@ -21,35 +21,30 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.factory.CatalogFactory;
-import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.connectors.doris.config.DorisConfig;
+import org.apache.seatunnel.connectors.doris.config.DorisOptions;
 
-import com.google.auto.service.AutoService;
-
-@AutoService(Factory.class)
 public class DorisCatalogFactory implements CatalogFactory {
-    public static final String IDENTIFIER = "Doris";
 
     @Override
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
         return new DorisCatalog(
                 catalogName,
-                options.get(DorisConfig.USERNAME),
-                options.get(DorisConfig.PASSWORD),
-                options.get(DorisConfig.BASE_URL));
+                options.get(DorisOptions.FENODES),
+                options.get(DorisOptions.QUERY_PORT),
+                options.get(DorisOptions.USERNAME),
+                options.get(DorisOptions.PASSWORD),
+                DorisConfig.of(options),
+                options.get(DorisOptions.DEFAULT_DATABASE));
     }
 
     @Override
     public String factoryIdentifier() {
-        return IDENTIFIER;
+        return "Doris";
     }
 
     @Override
     public OptionRule optionRule() {
-        return OptionRule.builder()
-                .required(DorisConfig.BASE_URL)
-                .required(DorisConfig.USERNAME)
-                .required(DorisConfig.PASSWORD)
-                .build();
+        return DorisOptions.CATALOG_RULE.build();
     }
 }

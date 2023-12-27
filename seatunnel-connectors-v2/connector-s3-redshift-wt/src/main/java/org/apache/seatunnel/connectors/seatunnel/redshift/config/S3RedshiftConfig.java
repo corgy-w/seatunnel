@@ -21,7 +21,7 @@ import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
-import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3Config;
+import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3ConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.redshift.sink.S3RedshiftChangelogMode;
 
 import lombok.Builder;
@@ -29,7 +29,7 @@ import lombok.Builder;
 import java.util.List;
 
 @Builder
-public class S3RedshiftConfig extends S3Config {
+public class S3RedshiftConfig extends S3ConfigOptions {
 
     public static final Option<String> JDBC_URL =
             Options.key("jdbc_url")

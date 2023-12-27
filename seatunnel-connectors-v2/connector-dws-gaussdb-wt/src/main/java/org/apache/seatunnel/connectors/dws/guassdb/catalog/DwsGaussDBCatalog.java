@@ -15,6 +15,9 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistExceptio
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.dws.guassdb.config.DwsGaussDBConfig;
 
@@ -38,6 +41,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -279,24 +283,7 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
                 TableSchema.Builder builder = TableSchema.builder();
 
                 // add column
-                buildColumnsWithErrorCheck(
-                        tablePath,
-                        builder,
-                        () -> {
-                            try {
-                                return resultSet.next();
-                            } catch (SQLException e) {
-                                throw new RuntimeException(e);
-                            }
-                        },
-                        () -> {
-                            try {
-                                return buildColumn(resultSet);
-                            } catch (SQLException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-
+                buildColumnsWithErrorCheck(tablePath, resultSet, builder);
                 // add primary key
                 primaryKey.ifPresent(builder::primaryKey);
                 // add constraint key
@@ -319,6 +306,28 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed getting table %s", tablePath.getFullName()), e);
+        }
+    }
+
+    protected void buildColumnsWithErrorCheck(
+            TablePath tablePath, ResultSet resultSet, TableSchema.Builder builder)
+            throws SQLException {
+        Map<String, String> unsupported = new LinkedHashMap<>();
+        while (resultSet.next()) {
+            try {
+                builder.column(buildColumn(resultSet));
+            } catch (SeaTunnelRuntimeException e) {
+                if (e.getSeaTunnelErrorCode()
+                        .equals(CommonErrorCode.CONVERT_TO_SEATUNNEL_TYPE_ERROR_SIMPLE)) {
+                    unsupported.put(e.getParams().get("field"), e.getParams().get("dataType"));
+                } else {
+                    throw e;
+                }
+            }
+        }
+        if (!unsupported.isEmpty()) {
+            throw CommonError.getCatalogTableWithUnsupportedType(
+                    catalogName, tablePath.getFullName(), unsupported);
         }
     }
 

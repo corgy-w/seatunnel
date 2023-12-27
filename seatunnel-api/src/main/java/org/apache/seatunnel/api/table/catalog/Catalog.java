@@ -32,14 +32,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -165,7 +163,7 @@ public interface Catalog extends AutoCloseable {
     }
 
     default List<CatalogTable> buildCatalogTablesWithErrorCheck(Iterator<TablePath> tablePaths) {
-        Map<String, Map<String, String>> unsupportedTable = new HashMap<>();
+        Map<String, Map<String, String>> unsupportedTable = new LinkedHashMap<>();
         List<CatalogTable> catalogTables = new ArrayList<>();
         while (tablePaths.hasNext()) {
             try {
@@ -209,26 +207,6 @@ public interface Catalog extends AutoCloseable {
             throw CommonError.getCatalogTableWithUnsupportedType(
                     name(), tablePath.getFullName(), unsupported);
         }
-    }
-
-    default void buildColumnsWithErrorCheck(
-            TablePath tablePath,
-            TableSchema.Builder builder,
-            Supplier<Boolean> hasNext,
-            Supplier<Column> getColumn) {
-        Iterator<Column> iterator =
-                new Iterator<Column>() {
-                    @Override
-                    public boolean hasNext() {
-                        return hasNext.get();
-                    }
-
-                    @Override
-                    public Column next() {
-                        return getColumn.get();
-                    }
-                };
-        buildColumnsWithErrorCheck(tablePath, builder, iterator, Function.identity());
     }
 
     /**

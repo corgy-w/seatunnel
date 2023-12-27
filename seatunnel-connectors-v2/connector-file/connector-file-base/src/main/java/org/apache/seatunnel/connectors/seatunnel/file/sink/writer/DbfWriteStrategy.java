@@ -4,7 +4,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.config.FileSinkConfig;
 
@@ -70,8 +70,7 @@ public class DbfWriteStrategy extends AbstractWriteStrategy {
             return dbfWriter;
         } catch (IOException e) {
             throw new FileConnectorException(
-                    CommonErrorCodeDeprecated.FILE_OPERATION_FAILED,
-                    "can not get output file stream");
+                    CommonErrorCode.FILE_OPERATION_FAILED, "can not get output file stream");
         }
     }
 

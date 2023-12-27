@@ -207,7 +207,7 @@ public class JdbcCatalogUtilsTest {
     }
 
     @Test
-    public void testColumnIncludeMerge1() {
+    public void testColumnNotIncludeMerge() {
         CatalogTable tableOfQuery =
                 CatalogTable.of(
                         TableIdentifier.of("default", null, null, "default"),

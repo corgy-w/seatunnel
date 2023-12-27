@@ -31,7 +31,7 @@ public class JobResult implements Serializable {
 
     private String error;
 
-    public JobResult(JobStatus status) {
+    public JobResult(@NonNull JobStatus status) {
         this.status = status;
     }
 }

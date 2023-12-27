@@ -25,5 +25,6 @@ public enum MessageFormat {
     COMPATIBLE_KAFKA_CONNECT_JSON,
     KINGBASE_JSON,
     DEBEZIUM_JSON,
-    OGG_JSON
+    OGG_JSON,
+    AVRO;
 }

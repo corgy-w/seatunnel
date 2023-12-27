@@ -30,7 +30,7 @@ import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
-import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3Config;
+import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3ConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConf;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConfig;
 
@@ -56,7 +56,7 @@ public class S3RedshiftFactory implements TableSinkFactory {
     public OptionRule optionRule() {
         return OptionRule.builder()
                 .required(
-                        S3Config.S3_BUCKET,
+                        S3ConfigOptions.S3_BUCKET,
                         S3RedshiftConfig.JDBC_URL,
                         S3RedshiftConfig.JDBC_USER,
                         S3RedshiftConfig.JDBC_PASSWORD,
@@ -65,22 +65,23 @@ public class S3RedshiftFactory implements TableSinkFactory {
                         S3RedshiftConfig.DATA_SAVE_MODE,
                         BaseSinkConfig.FILE_PATH,
                         BaseSinkConfig.TMP_PATH,
-                        S3Config.S3A_AWS_CREDENTIALS_PROVIDER,
+                        S3ConfigOptions.S3A_AWS_CREDENTIALS_PROVIDER,
                         MULTI_TABLE_SINK_REPLICA)
                 .conditional(
-                        S3Config.S3A_AWS_CREDENTIALS_PROVIDER,
-                        S3Config.S3aAwsCredentialsProvider.SimpleAWSCredentialsProvider,
-                        S3Config.S3_ACCESS_KEY,
-                        S3Config.S3_SECRET_KEY)
+                        S3ConfigOptions.S3A_AWS_CREDENTIALS_PROVIDER,
+                        S3ConfigOptions.S3aAwsCredentialsProvider.SimpleAWSCredentialsProvider,
+                        S3ConfigOptions.S3_ACCESS_KEY,
+                        S3ConfigOptions.S3_SECRET_KEY)
                 .conditional(
-                        S3Config.S3A_AWS_CREDENTIALS_PROVIDER,
-                        S3Config.S3aAwsCredentialsProvider.InstanceProfileCredentialsProvider,
+                        S3ConfigOptions.S3A_AWS_CREDENTIALS_PROVIDER,
+                        S3ConfigOptions.S3aAwsCredentialsProvider
+                                .InstanceProfileCredentialsProvider,
                         S3RedshiftConfig.REDSHIFT_S3_IAM_ROLE)
                 .conditional(
                         S3RedshiftConfig.DATA_SAVE_MODE,
                         DataSaveMode.CUSTOM_PROCESSING,
                         S3RedshiftConfig.CUSTOM_SQL)
-                .optional(S3Config.S3_PROPERTIES)
+                .optional(S3ConfigOptions.S3_PROPERTIES)
                 .optional(
                         S3RedshiftConfig.CHANGELOG_MODE,
                         S3RedshiftConfig.REDSHIFT_TABLE,

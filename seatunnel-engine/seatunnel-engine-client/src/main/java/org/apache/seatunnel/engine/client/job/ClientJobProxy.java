@@ -21,6 +21,7 @@ import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.RetryUtils;
 import org.apache.seatunnel.engine.client.SeaTunnelHazelcastClient;
 import org.apache.seatunnel.engine.common.Constant;
+import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
 import org.apache.seatunnel.engine.common.utils.ExceptionUtil;
 import org.apache.seatunnel.engine.common.utils.PassiveCompletableFuture;
 import org.apache.seatunnel.engine.core.job.Job;
@@ -31,8 +32,6 @@ import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelCancelJobCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobStatusCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelSubmitJobCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelWaitForJobCompleteCodec;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.hazelcast.client.impl.protocol.ClientMessage;
 import com.hazelcast.logging.ILogger;
@@ -106,9 +105,7 @@ public class ClientJobProxy implements Job {
                                             ExceptionUtil.isOperationNeedRetryException(exception),
                                     Constant.OPERATION_RETRY_SLEEP));
             if (jobResult == null) {
-                LOGGER.severe(
-                        "Unable to obtain the status of the job, it may have been running during the last cluster shutdown.");
-                return new JobResult(JobStatus.FAILED);
+                throw new SeaTunnelEngineException("failed to fetch job result");
             }
         } catch (Exception e) {
             LOGGER.info(
@@ -118,10 +115,6 @@ public class ClientJobProxy implements Job {
             throw new RuntimeException(e);
         }
         LOGGER.info(String.format("Job (%s) end with state %s", jobId, jobResult.getStatus()));
-        if (StringUtils.isNotEmpty(jobResult.getError())
-                || jobResult.getStatus().equals(JobStatus.FAILED)) {
-            LOGGER.severe(jobResult.getError());
-        }
         return jobResult;
     }
 

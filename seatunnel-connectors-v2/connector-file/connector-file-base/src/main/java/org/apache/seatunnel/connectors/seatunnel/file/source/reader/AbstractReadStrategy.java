@@ -22,7 +22,7 @@ import org.apache.seatunnel.shade.com.typesafe.config.Config;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
 
@@ -67,8 +67,8 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
     protected List<String> readPartitions = new ArrayList<>();
     protected List<String> readColumns = new ArrayList<>();
     protected boolean isMergePartition = true;
-    protected long skipHeaderNumber = BaseSourceConfig.SKIP_HEADER_ROW_NUMBER.defaultValue();
     protected HadoopFileSystemProxy hadoopFileSystemProxy;
+    protected long skipHeaderNumber = BaseSourceConfigOptions.SKIP_HEADER_ROW_NUMBER.defaultValue();
 
     protected Pattern pattern;
 
@@ -98,7 +98,7 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
                 fileNames.addAll(getFileNamesByPath(fileStatus.getPath().toString()));
                 continue;
             }
-            if (fileStatus.isFile() && filterFileByPattern(fileStatus)) {
+            if (fileStatus.isFile() && filterFileByPattern(fileStatus) && fileStatus.getLen() > 0) {
                 // filter '_SUCCESS' file
                 if (!fileStatus.getPath().getName().equals("_SUCCESS")
                         && !fileStatus.getPath().getName().startsWith(".")) {
@@ -125,21 +125,26 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
     @Override
     public void setPluginConfig(Config pluginConfig) {
         this.pluginConfig = pluginConfig;
-        if (pluginConfig.hasPath(BaseSourceConfig.PARSE_PARTITION_FROM_PATH.key())) {
+        if (pluginConfig.hasPath(BaseSourceConfigOptions.PARSE_PARTITION_FROM_PATH.key())) {
             isMergePartition =
-                    pluginConfig.getBoolean(BaseSourceConfig.PARSE_PARTITION_FROM_PATH.key());
+                    pluginConfig.getBoolean(
+                            BaseSourceConfigOptions.PARSE_PARTITION_FROM_PATH.key());
         }
-        if (pluginConfig.hasPath(BaseSourceConfig.SKIP_HEADER_ROW_NUMBER.key())
+        if (pluginConfig.hasPath(BaseSourceConfigOptions.SKIP_HEADER_ROW_NUMBER.key())
                 && StringUtils.isNotEmpty(
-                        pluginConfig.getString(BaseSourceConfig.SKIP_HEADER_ROW_NUMBER.key()))) {
-            skipHeaderNumber = pluginConfig.getLong(BaseSourceConfig.SKIP_HEADER_ROW_NUMBER.key());
+                        pluginConfig.getString(
+                                BaseSourceConfigOptions.SKIP_HEADER_ROW_NUMBER.key()))) {
+            skipHeaderNumber =
+                    pluginConfig.getLong(BaseSourceConfigOptions.SKIP_HEADER_ROW_NUMBER.key());
         }
-        if (pluginConfig.hasPath(BaseSourceConfig.READ_PARTITIONS.key())) {
+        if (pluginConfig.hasPath(BaseSourceConfigOptions.READ_PARTITIONS.key())) {
             List<String> partitionsList = new ArrayList<>();
             try {
-                partitionsList = pluginConfig.getStringList(BaseSourceConfig.READ_PARTITIONS.key());
+                partitionsList =
+                        pluginConfig.getStringList(BaseSourceConfigOptions.READ_PARTITIONS.key());
             } catch (Exception e) {
-                String input = pluginConfig.getString(BaseSourceConfig.READ_PARTITIONS.key());
+                String input =
+                        pluginConfig.getString(BaseSourceConfigOptions.READ_PARTITIONS.key());
 
                 if (input.startsWith("\"") && input.endsWith("\"")) {
                     input = input.substring(1, input.length() - 1);
@@ -152,12 +157,13 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
             }
             readPartitions.addAll(partitionsList);
         }
-        if (pluginConfig.hasPath(BaseSourceConfig.READ_COLUMNS.key())) {
-            readColumns.addAll(pluginConfig.getStringList(BaseSourceConfig.READ_COLUMNS.key()));
+        if (pluginConfig.hasPath(BaseSourceConfigOptions.READ_COLUMNS.key())) {
+            readColumns.addAll(
+                    pluginConfig.getStringList(BaseSourceConfigOptions.READ_COLUMNS.key()));
         }
-        if (pluginConfig.hasPath(BaseSourceConfig.FILE_FILTER_PATTERN.key())) {
+        if (pluginConfig.hasPath(BaseSourceConfigOptions.FILE_FILTER_PATTERN.key())) {
             String filterPattern =
-                    pluginConfig.getString(BaseSourceConfig.FILE_FILTER_PATTERN.key());
+                    pluginConfig.getString(BaseSourceConfigOptions.FILE_FILTER_PATTERN.key());
             this.pattern = Pattern.compile(Matcher.quoteReplacement(filterPattern));
         }
     }

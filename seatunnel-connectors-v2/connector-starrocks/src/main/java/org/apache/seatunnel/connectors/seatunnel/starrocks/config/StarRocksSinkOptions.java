@@ -155,4 +155,10 @@ public interface StarRocksSinkOptions {
 
     Option<String> CUSTOM_SQL =
             Options.key("custom_sql").stringType().noDefaultValue().withDescription("custom_sql");
+
+    Option<Integer> HTTP_SOCKET_TIMEOUT_MS =
+            Options.key("http_socket_timeout_ms")
+                    .intType()
+                    .defaultValue(3 * 60 * 1000)
+                    .withDescription("Set http socket timeout, default is 3 minutes.");
 }

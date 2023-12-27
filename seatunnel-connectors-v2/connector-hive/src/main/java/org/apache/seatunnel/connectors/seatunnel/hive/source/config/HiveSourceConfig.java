@@ -31,11 +31,11 @@ import org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
-import org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config.HdfsSourceConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config.HdfsSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategyFactory;
 import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
@@ -79,7 +79,7 @@ public class HiveSourceConfig implements Serializable {
     @SneakyThrows
     public HiveSourceConfig(ReadonlyConfig readonlyConfig) {
         readonlyConfig
-                .getOptional(BaseSourceConfig.READ_PARTITIONS)
+                .getOptional(BaseSourceConfigOptions.READ_PARTITIONS)
                 .ifPresent(this::validatePartitions);
         this.table = HiveTableUtils.getTableInfo(readonlyConfig);
         this.hiveHadoopConfig = parseHiveHadoopConfig(readonlyConfig, table);
@@ -167,13 +167,13 @@ public class HiveSourceConfig implements Serializable {
                         readonlyConfig.get(HiveSourceOptions.METASTORE_URI),
                         readonlyConfig.get(HiveSourceOptions.HIVE_SITE_PATH));
         readonlyConfig
-                .getOptional(HdfsSourceConfig.HDFS_SITE_PATH)
+                .getOptional(HdfsSourceConfigOptions.HDFS_SITE_PATH)
                 .ifPresent(hiveHadoopConfig::setHdfsSitePath);
         readonlyConfig
-                .getOptional(HdfsSourceConfig.KERBEROS_PRINCIPAL)
+                .getOptional(HdfsSourceConfigOptions.KERBEROS_PRINCIPAL)
                 .ifPresent(hiveHadoopConfig::setKerberosPrincipal);
         readonlyConfig
-                .getOptional(HdfsSourceConfig.KERBEROS_KEYTAB_PATH)
+                .getOptional(HdfsSourceConfigOptions.KERBEROS_KEYTAB_PATH)
                 .ifPresent(hiveHadoopConfig::setKerberosKeytabPath);
         return hiveHadoopConfig;
     }

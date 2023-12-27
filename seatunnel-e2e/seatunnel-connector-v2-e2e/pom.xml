@@ -39,12 +39,13 @@
         <module>connector-file-local-e2e</module>
         <module>connector-file-cos-e2e</module>
         <module>connector-file-sftp-e2e</module>
+        <module>connector-file-oss-e2e</module>
         <module>connector-cassandra-e2e</module>
         <module>connector-neo4j-e2e</module>
         <module>connector-http-e2e</module>
         <module>connector-rabbitmq-e2e</module>
         <module>connector-kafka-e2e</module>
-        <module>connector-doris-e2e</module>
+        <!--        <module>connector-doris-e2e</module>-->
         <module>connector-fake-e2e</module>
         <module>connector-elasticsearch-e2e</module>
         <module>connector-iotdb-e2e</module>

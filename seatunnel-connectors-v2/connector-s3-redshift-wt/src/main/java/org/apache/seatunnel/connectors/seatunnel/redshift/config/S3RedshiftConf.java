@@ -35,7 +35,7 @@ import lombok.ToString;
 import java.io.Serializable;
 import java.util.List;
 
-import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig.FILE_FORMAT_TYPE;
+import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions.FILE_FORMAT_TYPE;
 import static org.apache.seatunnel.connectors.seatunnel.redshift.sink.S3RedshiftChangelogMode.APPEND_ONLY;
 import static org.apache.seatunnel.connectors.seatunnel.redshift.sink.S3RedshiftChangelogMode.APPEND_ON_DUPLICATE_UPDATE_AUTOMATIC;
 

@@ -36,6 +36,7 @@ import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormatError
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.kingbase.KingbaseCatalogFactory;
 import org.apache.seatunnel.connectors.seatunnel.kafka.kingbase.KingbaseJsonDeserializationSchema;
+import org.apache.seatunnel.format.avro.AvroDeserializationSchema;
 import org.apache.seatunnel.format.compatible.kafka.connect.json.CompatibleKafkaConnectDeserializationSchema;
 import org.apache.seatunnel.format.compatible.kafka.connect.json.KafkaConnectJsonFormatOptions;
 import org.apache.seatunnel.format.json.JsonDeserializationSchema;
@@ -248,6 +249,8 @@ public class KafkaSourceConfig implements Serializable {
                 return new DebeziumJsonDeserializationSchema(seaTunnelRowType, true, includeSchema);
             case KINGBASE_JSON:
                 return new KingbaseJsonDeserializationSchema(catalogTables);
+            case AVRO:
+                return new AvroDeserializationSchema(seaTunnelRowType);
             default:
                 throw new SeaTunnelJsonFormatException(
                         CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,

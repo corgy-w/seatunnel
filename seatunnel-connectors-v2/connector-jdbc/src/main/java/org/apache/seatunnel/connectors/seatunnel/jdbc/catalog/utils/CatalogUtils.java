@@ -134,7 +134,7 @@ public class CatalogUtils {
 
     public static List<ConstraintKey> getConstraintKeys(
             DatabaseMetaData metadata, TablePath tablePath) throws SQLException {
-        // We set approximate=true here to get the index info faster.
+        // We set approximate to true to avoid querying the statistics table, which is slow.
         ResultSet resultSet =
                 metadata.getIndexInfo(
                         tablePath.getDatabaseName(),

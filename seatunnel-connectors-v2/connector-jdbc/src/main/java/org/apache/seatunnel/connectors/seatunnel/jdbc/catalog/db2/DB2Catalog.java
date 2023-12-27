@@ -165,7 +165,7 @@ public class DB2Catalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public String getCountSql(TablePath tablePath) {
+    public String getExistDataSql(TablePath tablePath) {
         return String.format(
                 "select count(*) from %s.%s;",
                 tablePath.getSchemaName(), "\"" + tablePath.getTableName() + "\"");

@@ -18,7 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.hive.utils;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopLoginFactory;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorException;
@@ -68,9 +68,9 @@ public class HiveMetaStoreProxy {
                 this.hiveMetaStoreClient =
                         HadoopLoginFactory.loginWithKerberos(
                                 new Configuration(),
-                                readonlyConfig.get(BaseSourceConfig.KRB5_PATH),
-                                readonlyConfig.get(BaseSourceConfig.KERBEROS_PRINCIPAL),
-                                readonlyConfig.get(BaseSourceConfig.KERBEROS_KEYTAB_PATH),
+                                readonlyConfig.get(BaseSourceConfigOptions.KRB5_PATH),
+                                readonlyConfig.get(BaseSourceConfigOptions.KERBEROS_PRINCIPAL),
+                                readonlyConfig.get(BaseSourceConfigOptions.KERBEROS_KEYTAB_PATH),
                                 (configuration, userGroupInformation) ->
                                         new HiveMetaStoreClient(hiveConf));
                 return;
@@ -79,7 +79,7 @@ public class HiveMetaStoreProxy {
                 this.hiveMetaStoreClient =
                         HadoopLoginFactory.loginWithRemoteUser(
                                 new Configuration(),
-                                readonlyConfig.get(BaseSourceConfig.REMOTE_USER),
+                                readonlyConfig.get(BaseSourceConfigOptions.REMOTE_USER),
                                 (configuration, userGroupInformation) ->
                                         new HiveMetaStoreClient(hiveConf));
                 return;
@@ -159,9 +159,10 @@ public class HiveMetaStoreProxy {
 
     private boolean enableKerberos(ReadonlyConfig readonlyConfig) {
         boolean kerberosPrincipalEmpty =
-                StringUtils.isBlank(readonlyConfig.get(BaseSourceConfig.KERBEROS_PRINCIPAL));
+                StringUtils.isBlank(readonlyConfig.get(BaseSourceConfigOptions.KERBEROS_PRINCIPAL));
         boolean kerberosKeytabPathEmpty =
-                StringUtils.isBlank(readonlyConfig.get(BaseSourceConfig.KERBEROS_KEYTAB_PATH));
+                StringUtils.isBlank(
+                        readonlyConfig.get(BaseSourceConfigOptions.KERBEROS_KEYTAB_PATH));
         if (kerberosKeytabPathEmpty && kerberosPrincipalEmpty) {
             return false;
         }
@@ -175,6 +176,6 @@ public class HiveMetaStoreProxy {
     }
 
     private boolean enableRemoteUser(ReadonlyConfig config) {
-        return StringUtils.isNotBlank(config.get(BaseSourceConfig.REMOTE_USER));
+        return StringUtils.isNotBlank(config.get(BaseSourceConfigOptions.REMOTE_USER));
     }
 }
