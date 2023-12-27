@@ -123,7 +123,12 @@ public class OracleAgentIncrementalSourceFactory implements TableSourceFactory {
                                                 catalogTable.getTableSchema().getConstraintKeys())
                                         .primaryKey(
                                                 PrimaryKey.of(
-                                                        null, catalogTableConfig.getPrimaryKeys()))
+                                                        "pk"
+                                                                + Math.abs(
+                                                                        catalogTableConfig
+                                                                                .getPrimaryKeys()
+                                                                                .hashCode()),
+                                                        catalogTableConfig.getPrimaryKeys()))
                                         .build(),
                                 catalogTable.getOptions(),
                                 catalogTable.getPartitionKeys(),
