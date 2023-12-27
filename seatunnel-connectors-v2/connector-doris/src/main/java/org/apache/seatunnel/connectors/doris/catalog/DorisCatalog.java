@@ -335,43 +335,25 @@ public class DorisCatalog implements Catalog {
         return options;
     }
 
-
     public void truncateTable(TablePath tablePath, boolean ignoreIfNotExists)
-        throws TableNotExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
+            throws TableNotExistException, CatalogException {
+        try {
             if (ignoreIfNotExists) {
                 conn.createStatement()
-                    .execute(String.format("TRUNCATE TABLE  %s", tablePath.getFullName()));
+                        .execute(String.format("TRUNCATE TABLE  %s", tablePath.getFullName()));
             }
         } catch (Exception e) {
             throw new CatalogException(
-                String.format("Failed TRUNCATE TABLE in catalog %s", tablePath.getFullName()),
-                e);
-        }
-    }
-
-    public void executeSql(String sql) {
-        try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                // Will there exist concurrent drop for one table?
-                ps.execute();
-            } catch (SQLException e) {
-                throw new CatalogException(String.format("Failed executeSql error %s", sql), e);
-            }
-        } catch (Exception e) {
-            throw new CatalogException(String.format("Failed EXECUTE SQL in catalog %s", sql), e);
+                    String.format("Failed TRUNCATE TABLE in catalog %s", tablePath.getFullName()),
+                    e);
         }
     }
 
     public boolean isExistsData(TablePath tablePath) {
         String tableName = tablePath.getFullName();
         String sql = String.format("select * from %s limit 1;", tableName);
-        try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd);
-             PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet resultSet = ps.executeQuery()) {
-            if (resultSet == null) {
-                return false;
-            }
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ResultSet resultSet = ps.executeQuery();
             return resultSet.next();
         } catch (SQLException e) {
             throw new CatalogException(String.format("Failed executeSql error %s", sql), e);

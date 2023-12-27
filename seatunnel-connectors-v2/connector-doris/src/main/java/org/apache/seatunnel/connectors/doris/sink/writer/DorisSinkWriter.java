@@ -58,7 +58,7 @@ import static com.google.common.base.Preconditions.checkState;
 @Slf4j
 public class DorisSinkWriter
         implements SinkWriter<SeaTunnelRow, DorisCommitInfo, DorisSinkState>,
-                SupportMultiTableSinkWriter {
+                SupportMultiTableSinkWriter<Void> {
     private static final int INITIAL_DELAY = 200;
     private static final int CONNECT_TIMEOUT = 1000;
     private static final List<String> DORIS_SUCCESS_STATUS =
@@ -71,6 +71,7 @@ public class DorisSinkWriter
     private final LabelGenerator labelGenerator;
     private final int intervalTime;
     private final DorisSerializer serializer;
+    private final CatalogTable catalogTable;
     private final transient ScheduledExecutorService scheduledExecutorService;
     private transient Thread executorThread;
     private transient volatile Exception loadException = null;
@@ -82,15 +83,17 @@ public class DorisSinkWriter
             List<DorisSinkState> state,
             CatalogTable catalogTable,
             DorisConfig dorisConfig,
-            String jobId) {
-        this.dorisConfig = DorisConfig.loadConfig(pluginConfig);
-        this.lastCheckpointId = state.size() != 0 ? state.get(0).getCheckpointId() : 0;
+            String jobId)
+            throws IOException {
+        this.dorisConfig = dorisConfig;
+        this.catalogTable = catalogTable;
+        this.lastCheckpointId = !state.isEmpty() ? state.get(0).getCheckpointId() : 0;
         log.info("restore checkpointId {}", lastCheckpointId);
         log.info("labelPrefix " + dorisConfig.getLabelPrefix());
         this.labelPrefix =
                 dorisConfig.getLabelPrefix()
                         + "_"
-                        + catalogTable.getTableId().toTablePath().getTableName()
+                        + catalogTable.getTablePath().getFullName().replaceAll("\\.", "_")
                         + "_"
                         + jobId
                         + "_"
@@ -111,7 +114,11 @@ public class DorisSinkWriter
         try {
             this.dorisStreamLoad =
                     new DorisStreamLoad(
-                            backend, dorisConfig, labelGenerator, new HttpUtil().getHttpClient());
+                            backend,
+                            catalogTable.getTablePath(),
+                            dorisConfig,
+                            labelGenerator,
+                            new HttpUtil().getHttpClient());
             if (dorisConfig.getEnable2PC()) {
                 dorisStreamLoad.abortPreCommit(labelPrefix, lastCheckpointId + 1);
             }
@@ -132,7 +139,7 @@ public class DorisSinkWriter
         checkLoadException();
         byte[] serialize =
                 serializer.serialize(
-                        dorisConfig.getNeedsUnsupportedTypeCasting()
+                        dorisConfig.isNeedsUnsupportedTypeCasting()
                                 ? UnsupportedTypeConverterUtils.convertRow(element)
                                 : element);
         if (Objects.isNull(serialize)) {

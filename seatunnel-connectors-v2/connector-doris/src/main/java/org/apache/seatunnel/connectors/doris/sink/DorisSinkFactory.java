@@ -20,6 +20,9 @@ package org.apache.seatunnel.connectors.doris.sink;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.Column;
+import org.apache.seatunnel.api.table.catalog.TableIdentifier;
+import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -28,16 +31,34 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.doris.config.DorisOptions;
 import org.apache.seatunnel.connectors.doris.sink.committer.DorisCommitInfo;
 import org.apache.seatunnel.connectors.doris.sink.writer.DorisSinkState;
+import org.apache.seatunnel.connectors.doris.util.UnsupportedTypeConverterUtils;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
+import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_PATTERN;
+import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_REPLACEMENT;
+import static org.apache.seatunnel.connectors.doris.config.DorisOptions.DATABASE;
+import static org.apache.seatunnel.connectors.doris.config.DorisOptions.NEEDS_UNSUPPORTED_TYPE_CASTING;
+import static org.apache.seatunnel.connectors.doris.config.DorisOptions.TABLE;
+
 @AutoService(Factory.class)
-public class DorisSinkFactory
-        implements TableSinkFactory<
-                SeaTunnelRow, DorisSinkState, DorisCommitInfo, DorisCommitInfo> {
+public class DorisSinkFactory implements TableSinkFactory {
+
+    public static final String IDENTIFIER = "Doris";
+
     @Override
     public String factoryIdentifier() {
-        return "Doris";
+        return IDENTIFIER;
     }
 
     @Override
@@ -49,7 +70,90 @@ public class DorisSinkFactory
     public TableSink<SeaTunnelRow, DorisSinkState, DorisCommitInfo, DorisCommitInfo> createSink(
             TableSinkFactoryContext context) {
         ReadonlyConfig config = context.getOptions();
-        CatalogTable catalogTable = context.getCatalogTable();
-        return () -> new DorisSink(config, catalogTable);
+        CatalogTable catalogTable =
+                config.get(NEEDS_UNSUPPORTED_TYPE_CASTING)
+                        ? UnsupportedTypeConverterUtils.convertCatalogTable(
+                                context.getCatalogTable())
+                        : context.getCatalogTable();
+        final CatalogTable finalCatalogTable = this.renameCatalogTable(config, catalogTable);
+        return () -> new DorisSink(config, finalCatalogTable);
+    }
+
+    private CatalogTable renameCatalogTable(ReadonlyConfig options, CatalogTable catalogTable) {
+
+        TableIdentifier tableId = catalogTable.getTableId();
+        String tableName;
+        String namespace;
+        if (StringUtils.isNotEmpty(options.get(TABLE))) {
+            tableName = replaceName(options.get(TABLE), tableId);
+        } else {
+            tableName = tableId.getTableName();
+        }
+
+        if (StringUtils.isNotEmpty(options.get(DATABASE))) {
+            namespace = replaceName(options.get(DATABASE), tableId);
+        } else {
+            namespace = tableId.getSchemaName();
+        }
+
+        TableIdentifier newTableId =
+                TableIdentifier.of(tableId.getCatalogName(), namespace, null, tableName);
+
+        if (options.get(COLUMN_PATTERN) != null && options.get(COLUMN_REPLACEMENT) != null) {
+            catalogTable =
+                    replaceColumnName(
+                            catalogTable,
+                            options.get(COLUMN_PATTERN),
+                            options.get(COLUMN_REPLACEMENT));
+        }
+
+        return CatalogTable.of(newTableId, catalogTable);
+    }
+
+    private String replaceName(String original, TableIdentifier tableId) {
+        if (tableId.getTableName() != null) {
+            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
+        }
+        if (tableId.getSchemaName() != null) {
+            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
+        }
+        if (tableId.getDatabaseName() != null) {
+            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
+        }
+        return original;
+    }
+
+    private CatalogTable replaceColumnName(
+            CatalogTable catalogTable, String original, String replacement) {
+        checkNotNull(original, "original can not be null");
+        checkNotNull(replacement, "replacement can not be null");
+        checkArgument(StringUtils.isNotEmpty(original), "original can not be empty");
+        TableSchema tableSchema = catalogTable.getTableSchema();
+        List<Column> columns = catalogTable.getTableSchema().getColumns();
+        List<Column> newColumns =
+                columns.stream()
+                        .map(
+                                column -> {
+                                    if (column.getName().contains(original)) {
+                                        return column.rename(
+                                                column.getName().replace(original, replacement));
+                                    }
+                                    return column;
+                                })
+                        .collect(Collectors.toList());
+
+        TableSchema newTableSchema =
+                TableSchema.builder()
+                        .primaryKey(tableSchema.getPrimaryKey())
+                        .constraintKey(tableSchema.getConstraintKeys())
+                        .columns(newColumns)
+                        .build();
+
+        return CatalogTable.of(
+                catalogTable.getTableId(),
+                newTableSchema,
+                catalogTable.getOptions(),
+                catalogTable.getPartitionKeys(),
+                catalogTable.getComment());
     }
 }

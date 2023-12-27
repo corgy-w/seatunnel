@@ -17,10 +17,20 @@
 
 package org.apache.seatunnel.connectors.doris.config;
 
+import org.apache.seatunnel.shade.com.typesafe.config.Config;
+
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+import java.io.Serializable;
+import java.util.Map;
+import java.util.Properties;
+
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_PATTERN;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_REPLACEMENT;
-import static org.apache.seatunnel.connectors.doris.config.DorisOptions.CUSTOM_SQL;
-import static org.apache.seatunnel.connectors.doris.config.DorisOptions.DATA_SAVE_MODE;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.DORIS_BATCH_SIZE;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.DORIS_DESERIALIZE_ARROW_ASYNC;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.DORIS_DESERIALIZE_QUEUE_SIZE;
@@ -37,7 +47,6 @@ import static org.apache.seatunnel.connectors.doris.config.DorisOptions.NEEDS_UN
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.PASSWORD;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.QUERY_PORT;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SAVE_MODE_CREATE_TEMPLATE;
-import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SCHEMA_SAVE_MODE;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SINK_BUFFER_COUNT;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SINK_BUFFER_SIZE;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SINK_CHECK_INTERVAL;
@@ -45,36 +54,19 @@ import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SINK_ENA
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SINK_ENABLE_DELETE;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SINK_LABEL_PREFIX;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.SINK_MAX_RETRIES;
-import static org.apache.seatunnel.connectors.doris.config.DorisOptions.TABLE_IDENTIFIER;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.USERNAME;
-
-import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.sink.DataSaveMode;
-import org.apache.seatunnel.api.sink.SchemaSaveMode;
-
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
-
-import java.io.Serializable;
-import java.sql.SQLException;
-import java.util.Map;
-import java.util.Properties;
 
 @Setter
 @Getter
 @ToString
 public class DorisConfig implements Serializable {
+
     // common option
     private String frontends;
     private String username;
     private String password;
     private Integer queryPort;
-    private String tableIdentifier;
     private int batchSize;
-    private String baseUrl;
 
     // source option
     private String readField;
@@ -98,13 +90,9 @@ public class DorisConfig implements Serializable {
     private Integer bufferSize;
     private Integer bufferCount;
     private Properties streamLoadProps;
-
     private String columnPattern;
     private String columnReplacement;
-    private DataSaveMode dataSaveMode;
-    private SchemaSaveMode schemaSaveMode;
-    private String customSql;
-    private Boolean needsUnsupportedTypeCasting;
+    private boolean needsUnsupportedTypeCasting;
 
     // create table option
     private String createTableTemplate;
@@ -121,7 +109,6 @@ public class DorisConfig implements Serializable {
         dorisConfig.setFrontends(config.get(FENODES));
         dorisConfig.setUsername(config.get(USERNAME));
         dorisConfig.setPassword(config.get(PASSWORD));
-        dorisConfig.setTableIdentifier(config.get(TABLE_IDENTIFIER));
         dorisConfig.setQueryPort(config.get(QUERY_PORT));
         dorisConfig.setStreamLoadProps(parseStreamLoadProperties(config));
 
@@ -149,15 +136,10 @@ public class DorisConfig implements Serializable {
         // create table option
         dorisConfig.setCreateTableTemplate(config.get(SAVE_MODE_CREATE_TEMPLATE));
 
-        dorisConfig.setSchemaSaveMode(config.get(SCHEMA_SAVE_MODE));
-        dorisConfig.setDataSaveMode(config.get(DATA_SAVE_MODE));
-        dorisConfig.setCustomSql(config.get(CUSTOM_SQL));
-
         // business start
         dorisConfig.setColumnPattern(config.get(COLUMN_PATTERN));
         dorisConfig.setColumnReplacement(config.get(COLUMN_REPLACEMENT));
-        dorisConfig.setNeedsUnsupportedTypeCasting(
-            config.get(NEEDS_UNSUPPORTED_TYPE_CASTING));
+        dorisConfig.setNeedsUnsupportedTypeCasting(config.get(NEEDS_UNSUPPORTED_TYPE_CASTING));
         // business end
 
         return dorisConfig;
@@ -168,9 +150,9 @@ public class DorisConfig implements Serializable {
         if (config.getOptional(DORIS_SINK_CONFIG_PREFIX).isPresent()) {
             Map<String, String> map = config.getOptional(DORIS_SINK_CONFIG_PREFIX).get();
             map.forEach(
-                (key, value) -> {
-                    streamLoadProps.put(key.toLowerCase(), value);
-                });
+                    (key, value) -> {
+                        streamLoadProps.put(key.toLowerCase(), value);
+                    });
         }
         return streamLoadProps;
     }
