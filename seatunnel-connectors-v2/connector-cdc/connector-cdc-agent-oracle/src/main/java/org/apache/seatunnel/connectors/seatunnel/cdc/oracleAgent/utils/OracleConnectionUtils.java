@@ -58,6 +58,8 @@ public class OracleConnectionUtils {
         }
     }
 
+    // we use the schema as owner which used at agent query
+    @Deprecated
     public static String getTableOwner(JdbcConnection jdbcConnection, String table) {
         String queryTableOwnerSql =
                 "SELECT OWNER FROM ALL_TABLES WHERE TABLE_NAME = '" + table.toUpperCase() + "'";

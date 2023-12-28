@@ -75,10 +75,13 @@ public class SelectDBSaveModeUtil {
                 dataTypeToSelectDBType(
                         column.getDataType(),
                         Math.max(
-                                column.getColumnLength() == null ? 0 : column.getColumnLength(),
-                                column.getLongColumnLength() == null
-                                        ? 0
-                                        : column.getLongColumnLength())),
+                                        column.getColumnLength() == null
+                                                ? 0
+                                                : column.getColumnLength(),
+                                        column.getLongColumnLength() == null
+                                                ? 0
+                                                : column.getLongColumnLength())
+                                * 3),
                 column.isNullable() ? "NULL" : "NOT NULL");
     }
 
@@ -127,8 +130,7 @@ public class SelectDBSaveModeUtil {
         switch (dataType.getSqlType()) {
             case NULL:
             case TIME:
-                throw new IllegalArgumentException(
-                        "Unsupported SeaTunnel's data type: " + dataType);
+                return "VARCHAR(8)";
             case STRING:
                 if (length > 65533 || length <= 0) {
                     return "STRING";

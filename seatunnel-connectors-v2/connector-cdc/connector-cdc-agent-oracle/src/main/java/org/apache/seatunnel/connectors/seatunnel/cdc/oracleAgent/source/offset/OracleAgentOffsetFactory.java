@@ -22,12 +22,10 @@ import org.apache.seatunnel.connectors.cdc.base.source.offset.OffsetFactory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.config.OracleAgentSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source.OracleAgentDialect;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleAgentClientUtils;
-import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleConnectionUtils;
 
 import org.whaleops.whaletunnel.oracleagent.sdk.OracleAgentClient;
 import org.whaleops.whaletunnel.oracleagent.sdk.OracleAgentClientFactory;
 
-import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,25 +56,16 @@ public class OracleAgentOffsetFactory extends OffsetFactory {
         OracleAgentClient oracle9BridgeClient =
                 OracleAgentClientFactory.getOrCreateStartedSocketClient(
                         sourceConfig.getOracleAgentHost(), sourceConfig.getOracleAgentPort());
-        List<String> tables =
-                dialect.discoverDataCollections(sourceConfig).stream()
-                        .map(TableId::table)
-                        .collect(Collectors.toList());
-
-        try (JdbcConnection jdbcConnection = dialect.openJdbcConnection(sourceConfig)) {
-            List<String> tableOwners =
-                    tables.stream()
-                            .map(
-                                    table ->
-                                            OracleConnectionUtils.getTableOwner(
-                                                    jdbcConnection, table))
-                            .collect(Collectors.toList());
+        List<TableId> tableIds = dialect.discoverDataCollections(sourceConfig);
+        List<String> tables = tableIds.stream().map(TableId::table).collect(Collectors.toList());
+        List<String> owners = tableIds.stream().map(TableId::schema).collect(Collectors.toList());
+        try {
             Integer minFzsFileNumber =
                     OracleAgentClientUtils.currentMinFzsFileNumber(
-                            oracle9BridgeClient, tableOwners, tables);
+                            oracle9BridgeClient, owners, tables);
             Long minScn =
                     OracleAgentClientUtils.currentMinScn(
-                            oracle9BridgeClient, tableOwners, tables, minFzsFileNumber);
+                            oracle9BridgeClient, owners, tables, minFzsFileNumber);
             log.info(
                     "Get the min fzs file number: {}, min scn: {} for tables: {}",
                     minFzsFileNumber,
@@ -99,26 +88,19 @@ public class OracleAgentOffsetFactory extends OffsetFactory {
         OracleAgentClient oracle9BridgeClient =
                 OracleAgentClientFactory.getOrCreateStartedSocketClient(
                         sourceConfig.getOracleAgentHost(), sourceConfig.getOracleAgentPort());
-        List<String> tables =
-                dialect.discoverDataCollections(sourceConfig).stream()
-                        .map(TableId::table)
-                        .collect(Collectors.toList());
 
-        try (JdbcConnection jdbcConnection = dialect.openJdbcConnection(sourceConfig)) {
+        List<TableId> tableIds = dialect.discoverDataCollections(sourceConfig);
+        List<String> tables = tableIds.stream().map(TableId::table).collect(Collectors.toList());
+        List<String> owners = tableIds.stream().map(TableId::schema).collect(Collectors.toList());
+
+        try {
             // todo: batch query the table owner
-            List<String> tableOwners =
-                    tables.stream()
-                            .map(
-                                    table ->
-                                            OracleConnectionUtils.getTableOwner(
-                                                    jdbcConnection, table))
-                            .collect(Collectors.toList());
             Integer maxFzsFileNumber =
                     OracleAgentClientUtils.currentMaxFzsFileNumber(
-                            oracle9BridgeClient, tableOwners, tables);
+                            oracle9BridgeClient, owners, tables);
             Long maxScn =
                     OracleAgentClientUtils.currentMaxScn(
-                            oracle9BridgeClient, tableOwners, tables, maxFzsFileNumber);
+                            oracle9BridgeClient, owners, tables, maxFzsFileNumber);
             log.info(
                     "Get the max fzs file number: {}, max scn: {} for tables: {}",
                     maxFzsFileNumber,

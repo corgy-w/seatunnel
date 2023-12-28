@@ -19,6 +19,9 @@
 -Xms2g
 -Xmx2g
 
+# AWT
+-Djava.awt.headless=true
+
 # JVM Dump
 -XX:+HeapDumpOnOutOfMemoryError
 -XX:HeapDumpPath=/tmp/seatunnel/dump/zeta-server

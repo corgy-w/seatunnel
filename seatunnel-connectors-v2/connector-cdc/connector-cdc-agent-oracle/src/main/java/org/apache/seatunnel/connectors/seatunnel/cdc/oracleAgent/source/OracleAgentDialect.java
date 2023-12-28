@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
@@ -42,7 +45,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class OracleAgentDialect implements JdbcDataSourceDialect {
@@ -50,9 +57,28 @@ public class OracleAgentDialect implements JdbcDataSourceDialect {
     private static final long serialVersionUID = 1L;
     private final OracleAgentSourceConfig sourceConfig;
     private transient OracleSchema oracleSchema;
+    private final Map<TableId, CatalogTable> tableMap;
 
-    public OracleAgentDialect(OracleAgentSourceConfig sourceConfig) {
+    public OracleAgentDialect(
+            OracleAgentSourceConfig sourceConfig, List<CatalogTable> catalogTables) {
         this.sourceConfig = sourceConfig;
+        this.tableMap = createTableMap(sourceConfig, catalogTables);
+    }
+
+    private static Map<TableId, CatalogTable> createTableMap(
+            OracleAgentSourceConfig sourceConfig, List<CatalogTable> catalogTables) {
+        String database = sourceConfig.getDbzConnectorConfig().getDatabaseName();
+        Map<TableId, CatalogTable> tableMap =
+                catalogTables.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        e ->
+                                                new TableId(
+                                                        database,
+                                                        e.getTableId().getSchemaName(),
+                                                        e.getTableId().getTableName()),
+                                        e -> e));
+        return Collections.unmodifiableMap(tableMap);
     }
 
     @Override
@@ -111,7 +137,7 @@ public class OracleAgentDialect implements JdbcDataSourceDialect {
     public TableChange queryTableSchema(JdbcConnection jdbc, TableId tableId) {
         long startTime = System.currentTimeMillis();
         if (oracleSchema == null) {
-            oracleSchema = new OracleSchema();
+            oracleSchema = new OracleSchema(sourceConfig.getDbzConnectorConfig(), tableMap);
         }
         TableChange tableSchema = oracleSchema.getTableSchema(jdbc, tableId);
         log.debug(
@@ -153,5 +179,15 @@ public class OracleAgentDialect implements JdbcDataSourceDialect {
             return new OracleAgentIncrementalFetchTask(
                     sourceConfig, sourceSplitBase.asIncrementalSplit());
         }
+    }
+
+    @Override
+    public Optional<PrimaryKey> getPrimaryKey(JdbcConnection jdbcConnection, TableId tableId) {
+        return Optional.ofNullable(tableMap.get(tableId).getTableSchema().getPrimaryKey());
+    }
+
+    @Override
+    public List<ConstraintKey> getConstraintKeys(JdbcConnection jdbcConnection, TableId tableId) {
+        return tableMap.get(tableId).getTableSchema().getConstraintKeys();
     }
 }

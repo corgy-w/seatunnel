@@ -2,20 +2,22 @@
 
 > Oss file sink connector
 
-## Description
+## Support Those Engines
 
-Output data to oss file system.
+> Spark<br/>
+> Flink<br/>
+> SeaTunnel Zeta<br/>
 
-:::tip
+## Usage Dependency
 
-If you use spark/flink, In order to use this connector, You must ensure your spark/flink cluster already integrated hadoop. The tested hadoop version is 2.x.
+### For Spark/Flink Engine
 
-If you use SeaTunnel Engine, It automatically integrated the hadoop jar when you download and install SeaTunnel Engine. You can check the jar package under ${SEATUNNEL_HOME}/lib to confirm this.
+1. You must ensure your spark/flink cluster already integrated hadoop. The tested hadoop version is 2.x.
+2. You must ensure `hadoop-aliyun-xx.jar`, `aliyun-sdk-oss-xx.jar` and `jdom-xx.jar` in `${SEATUNNEL_HOME}/plugins/` dir and the version of `hadoop-aliyun` jar need equals your hadoop version which used in spark/flink and `aliyun-sdk-oss-xx.jar` and `jdom-xx.jar` version needs to be the version corresponding to the `hadoop-aliyun` version. Eg: `hadoop-aliyun-3.1.4.jar` dependency `aliyun-sdk-oss-3.4.1.jar` and `jdom-1.1.jar`.
 
-We made some trade-offs in order to support more file types, so we used the HDFS protocol for internal access to OSS and this connector need some hadoop dependencies.
-It only supports hadoop version **2.9.X+**.
+### For SeaTunnel Zeta Engine
 
-:::
+1. You must ensure `seatunnel-hadoop3-3.1.4-uber.jar`, `aliyun-sdk-oss-3.4.1.jar`, `hadoop-aliyun-3.1.4.jar` and `jdom-1.1.jar` in `${SEATUNNEL_HOME}/lib/` dir.
 
 ## Key features
 
@@ -30,6 +32,54 @@ By default, we use 2PC commit to ensure `exactly-once`
   - [x] orc
   - [x] json
   - [x] excel
+
+## Data Type Mapping
+
+If write to `csv`, `text` file type, All column will be string.
+
+### Orc File Type
+
+| SeaTunnel Data type  |     Orc Data type     |
+|----------------------|-----------------------|
+| STRING               | STRING                |
+| BOOLEAN              | BOOLEAN               |
+| TINYINT              | BYTE                  |
+| SMALLINT             | SHORT                 |
+| INT                  | INT                   |
+| BIGINT               | LONG                  |
+| FLOAT                | FLOAT                 |
+| FLOAT                | FLOAT                 |
+| DOUBLE               | DOUBLE                |
+| DECIMAL              | DECIMAL               |
+| BYTES                | BINARY                |
+| DATE                 | DATE                  |
+| TIME <br/> TIMESTAMP | TIMESTAMP             |
+| ROW                  | STRUCT                |
+| NULL                 | UNSUPPORTED DATA TYPE |
+| ARRAY                | LIST                  |
+| Map                  | Map                   |
+
+### Parquet File Type
+
+| SeaTunnel Data type  |   Parquet Data type   |
+|----------------------|-----------------------|
+| STRING               | STRING                |
+| BOOLEAN              | BOOLEAN               |
+| TINYINT              | INT_8                 |
+| SMALLINT             | INT_16                |
+| INT                  | INT32                 |
+| BIGINT               | INT64                 |
+| FLOAT                | FLOAT                 |
+| FLOAT                | FLOAT                 |
+| DOUBLE               | DOUBLE                |
+| DECIMAL              | DECIMAL               |
+| BYTES                | BINARY                |
+| DATE                 | DATE                  |
+| TIME <br/> TIMESTAMP | TIMESTAMP_MILLIS      |
+| ROW                  | GroupType             |
+| NULL                 | UNSUPPORTED DATA TYPE |
+| ARRAY                | LIST                  |
+| Map                  | Map                   |
 
 ## Options
 
