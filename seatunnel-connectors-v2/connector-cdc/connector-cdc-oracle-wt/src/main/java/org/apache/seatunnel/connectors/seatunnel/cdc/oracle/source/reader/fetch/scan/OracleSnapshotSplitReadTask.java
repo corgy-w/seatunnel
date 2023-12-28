@@ -201,7 +201,7 @@ public class OracleSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
                                 snapshotSplit.getSplitEnd() == null,
                                 snapshotSplit.getSplitStart(),
                                 snapshotSplit.getSplitEnd(),
-                                snapshotSplit.getSplitKeyType().getTotalFields(),
+                                snapshotSplit.getSplitKeyType(),
                                 connectorConfig.getSnapshotFetchSize());
                 ResultSet rs = selectStatement.executeQuery()) {
 
