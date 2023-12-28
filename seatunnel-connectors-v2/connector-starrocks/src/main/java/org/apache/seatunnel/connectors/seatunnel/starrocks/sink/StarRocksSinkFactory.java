@@ -65,7 +65,6 @@ public class StarRocksSinkFactory implements TableSinkFactory {
                         StarRocksSinkOptions.RETRY_BACKOFF_MULTIPLIER_MS,
                         StarRocksSinkOptions.STARROCKS_CONFIG,
                         StarRocksSinkOptions.ENABLE_UPSERT_DELETE,
-                        StarRocksSinkOptions.SAVE_MODE_CREATE_TEMPLATE,
                         StarRocksSinkOptions.HTTP_SOCKET_TIMEOUT_MS,
                         StarRocksSinkOptions.SAVE_MODE_CREATE_TEMPLATE)
                 .conditional(
