@@ -226,6 +226,13 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                                         new BlockingWorker(
                                                 new TaskTracker(t, taskGroupExecutionTracker),
                                                 startedLatch))
+                        .map(
+                                r ->
+                                        new NamedTaskWrapper(
+                                                r,
+                                                "BlockingWorker-"
+                                                        + taskGroupExecutionTracker.taskGroup
+                                                                .getTaskGroupLocation()))
                         .map(executorService::submit)
                         .collect(toList());
 
@@ -886,6 +893,28 @@ public class TaskExecutionService implements DynamicMetricsProvider {
 
         boolean executionCompletedExceptionally() {
             return executionException.get() != null;
+        }
+    }
+
+    public static class NamedTaskWrapper implements Runnable {
+        private final Runnable task;
+        private final String threadName;
+
+        public NamedTaskWrapper(Runnable task, String threadName) {
+            this.task = task;
+            this.threadName = threadName;
+        }
+
+        @Override
+        public void run() {
+            Thread currentThread = Thread.currentThread();
+            String originalName = currentThread.getName();
+            try {
+                currentThread.setName(threadName);
+                task.run();
+            } finally {
+                currentThread.setName(originalName);
+            }
         }
     }
 }
