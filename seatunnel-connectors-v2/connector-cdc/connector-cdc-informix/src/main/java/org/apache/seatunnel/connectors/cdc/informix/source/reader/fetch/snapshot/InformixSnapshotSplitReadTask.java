@@ -199,7 +199,7 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
                                 snapshotSplit.getSplitEnd() == null,
                                 snapshotSplit.getSplitStart(),
                                 snapshotSplit.getSplitEnd(),
-                                snapshotSplit.getSplitKeyType().getTotalFields(),
+                                snapshotSplit.getSplitKeyType(),
                                 connectorConfig.getQueryFetchSize());
                 ResultSet rs = selectStatement.executeQuery()) {
             rs.setFetchSize(connectorConfig.getQueryFetchSize());

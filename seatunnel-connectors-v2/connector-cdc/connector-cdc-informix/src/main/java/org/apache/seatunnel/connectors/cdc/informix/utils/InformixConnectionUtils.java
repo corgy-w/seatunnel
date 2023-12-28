@@ -182,7 +182,7 @@ public class InformixConnectionUtils {
             boolean isLastSplit,
             Object[] splitStart,
             Object[] splitEnd,
-            int primaryKeyNum,
+            SeaTunnelRowType splitKeyType,
             int fetchSize) {
         try {
             IfxSqliConnect connection = (IfxSqliConnect) jdbc.connection();
@@ -195,6 +195,7 @@ public class InformixConnectionUtils {
             if (isFirstSplit && isLastSplit) {
                 return statement;
             }
+            int primaryKeyNum = splitKeyType.getTotalFields();
             if (isFirstSplit) {
                 for (int i = 0; i < primaryKeyNum; i++) {
                     statement.setObject(i + 1, splitEnd[i]);
