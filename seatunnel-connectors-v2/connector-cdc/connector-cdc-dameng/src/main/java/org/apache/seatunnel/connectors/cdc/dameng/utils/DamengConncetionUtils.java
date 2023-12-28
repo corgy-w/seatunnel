@@ -347,7 +347,7 @@ public class DamengConncetionUtils {
             boolean isLastSplit,
             Object[] splitStart,
             Object[] splitEnd,
-            int primaryKeyNum,
+            SeaTunnelRowType splitKeyType,
             int fetchSize) {
         try {
             Connection connection = jdbc.connection();
@@ -356,6 +356,7 @@ public class DamengConncetionUtils {
             if (isFirstSplit && isLastSplit) {
                 return statement;
             }
+            int primaryKeyNum = splitKeyType.getTotalFields();
             if (isFirstSplit) {
                 for (int i = 0; i < primaryKeyNum; i++) {
                     statement.setObject(i + 1, splitEnd[i]);
