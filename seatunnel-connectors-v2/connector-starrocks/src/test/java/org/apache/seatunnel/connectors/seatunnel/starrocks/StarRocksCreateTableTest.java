@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.BasicType;
+import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.sink.StarRocksSaveModeUtil;
 
 import org.junit.jupiter.api.Test;
@@ -42,6 +43,9 @@ public class StarRocksCreateTableTest {
         columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, null, true, null, ""));
         columns.add(PhysicalColumn.of("gender", BasicType.BYTE_TYPE, null, true, null, ""));
         columns.add(PhysicalColumn.of("create_time", BasicType.LONG_TYPE, null, true, null, ""));
+        columns.add(
+                PhysicalColumn.of(
+                        "update_time", LocalTimeType.LOCAL_TIME_TYPE, null, true, null, ""));
 
         String result =
                 StarRocksSaveModeUtil.fillingCreateSql(

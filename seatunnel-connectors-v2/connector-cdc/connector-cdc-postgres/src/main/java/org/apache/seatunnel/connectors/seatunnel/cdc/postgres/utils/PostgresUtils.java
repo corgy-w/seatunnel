@@ -149,12 +149,12 @@ public class PostgresUtils {
 
         List<Object> results = new ArrayList<>();
         try {
+            jdbc.connection().setAutoCommit(false);
             stmt =
                     jdbc.connection()
                             .createStatement(
                                     ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-
-            stmt.setFetchSize(Integer.MIN_VALUE);
+            stmt.setFetchSize(102400);
             rs = stmt.executeQuery(sampleQuery);
 
             int count = 0;

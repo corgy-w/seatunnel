@@ -31,11 +31,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -45,6 +45,8 @@ import static java.lang.String.format;
  * and stateless.
  */
 public interface JdbcDialect extends Serializable {
+
+    Logger log = Logger.getLogger(JdbcDialect.class.getName());
 
     /**
      * Get the name of jdbc dialect.
@@ -298,12 +300,9 @@ public interface JdbcDialect extends Serializable {
                             "SELECT %s FROM %s",
                             quoteIdentifier(columnName), tableIdentifier(table.getTablePath()));
         }
-
-        try (Statement stmt =
-                connection.createStatement(
-                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            stmt.setFetchSize(Integer.MIN_VALUE);
-            try (ResultSet rs = stmt.executeQuery(sampleQuery)) {
+        try (PreparedStatement stmt = creatPreparedStatement(connection, sampleQuery, 102400)) {
+            log.info(String.format("Split Chunk, approximateRowCntStatement: %s", sampleQuery));
+            try (ResultSet rs = stmt.executeQuery()) {
                 int count = 0;
                 List<Object> results = new ArrayList<>();
 

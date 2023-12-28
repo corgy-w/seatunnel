@@ -160,12 +160,9 @@ public class SqlServerUtils {
 
         List<Object> results = new ArrayList<>();
         try {
-            stmt =
-                    jdbc.connection()
-                            .createStatement(
-                                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            stmt = jdbc.connection().createStatement();
 
-            stmt.setFetchSize(Integer.MIN_VALUE);
+            stmt.setFetchSize(1024);
             rs = stmt.executeQuery(sampleQuery);
 
             int count = 0;

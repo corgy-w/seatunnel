@@ -17,29 +17,37 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 
 import io.debezium.connector.oracle.OracleConnection;
+import io.debezium.connector.oracle.OracleConnectorConfig;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
 import io.debezium.relational.history.TableChanges;
 import io.debezium.relational.history.TableChanges.TableChange;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 /** A component used to get schema by table path. */
+@Slf4j
 public class OracleSchema {
 
+    private final OracleConnectorConfig connectorConfig;
     private final Map<TableId, TableChange> schemasByTableId;
+    private final Map<TableId, CatalogTable> tableMap;
 
-    public OracleSchema() {
+    public OracleSchema(
+            OracleConnectorConfig connectorConfig, Map<TableId, CatalogTable> tableMap) {
+        this.connectorConfig = connectorConfig;
         this.schemasByTableId = new HashMap<>();
+        this.tableMap = tableMap;
     }
 
     /**
@@ -58,17 +66,33 @@ public class OracleSchema {
 
     private TableChange readTableSchema(JdbcConnection jdbc, TableId tableId) {
         OracleConnection oracleConnection = (OracleConnection) jdbc;
-        Set<TableId> tableIdSet = new HashSet<>();
-        tableIdSet.add(tableId);
-
         final Map<TableId, TableChange> tableChangeMap = new HashMap<>();
         Tables tables = new Tables();
-        tables.overwriteTable(tables.editOrCreateTable(tableId).create());
 
         try {
-            oracleConnection.readSchemaForCapturedTables(
-                    tables, tableId.catalog(), tableId.schema(), null, false, tableIdSet);
+            if (connectorConfig.getPdbName() != null) {
+                oracleConnection.setSessionToPdb(connectorConfig.getPdbName());
+            }
+            oracleConnection.readSchema(
+                    tables,
+                    tableId.catalog(),
+                    tableId.schema(),
+                    connectorConfig.getTableFilters().dataCollectionFilter(),
+                    null,
+                    false);
+
             Table table = tables.forTable(tableId);
+            if (table.primaryKeyColumnNames().isEmpty()) {
+                CatalogTable catalogTable = tableMap.get(tableId);
+                PrimaryKey pk = catalogTable.getTableSchema().getPrimaryKey();
+                if (pk != null) {
+                    table = table.edit().setPrimaryKeyNames(pk.getColumnNames()).create();
+                    log.info(
+                            "Override primary key({}) for catalog table {}",
+                            pk.getColumnNames(),
+                            tableId);
+                }
+            }
             TableChange tableChange = new TableChange(TableChanges.TableChangeType.CREATE, table);
             tableChangeMap.put(tableId, tableChange);
         } catch (SQLException e) {

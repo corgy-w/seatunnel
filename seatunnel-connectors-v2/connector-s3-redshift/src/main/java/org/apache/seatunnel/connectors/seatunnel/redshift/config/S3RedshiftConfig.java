@@ -85,6 +85,12 @@ public class S3RedshiftConfig extends S3Config {
                     .noDefaultValue()
                     .withDescription("Redshift table primary key fields");
 
+    public static final Option<List<String>> REDSHIFT_TABLE_SORT_KEYS =
+            Options.key("redshift_table_sort_keys")
+                    .listType(String.class)
+                    .noDefaultValue()
+                    .withDescription("Redshift table sort key fields");
+
     public static final Option<String> REDSHIFT_TABLE =
             Options.key("redshift_table")
                     .stringType()

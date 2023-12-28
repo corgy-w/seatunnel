@@ -5,7 +5,6 @@ import org.apache.seatunnel.connectors.cdc.base.source.split.SnapshotSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.WatermarkKind;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source.offset.OracleAgentOffset;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleAgentClientUtils;
-import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleConnectionUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleUtils;
 
 import org.apache.kafka.connect.data.Field;
@@ -95,7 +94,7 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
         ctx.offset = offsetContext;
 
         String table = snapshotSplit.getTableId().table();
-        String tableOwner = OracleConnectionUtils.getTableOwner(jdbcConnection, table);
+        String tableOwner = snapshotSplit.getTableId().schema();
         Integer maxFzsFileNumber =
                 OracleAgentClientUtils.currentMaxFzsFileNumber(
                         oracle9BridgeClient, tableOwner, table);
