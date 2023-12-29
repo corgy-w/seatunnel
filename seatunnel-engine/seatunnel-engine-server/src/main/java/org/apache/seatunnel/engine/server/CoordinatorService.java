@@ -512,7 +512,7 @@ public class CoordinatorService {
             if (jobDetailState == null) {
                 // If the Job doesn't exist, return a CANCELED JobResult
                 // Since the CancelJob cannot be recovered
-                future.complete(new JobResult(JobStatus.CANCELED, null));
+                future.complete(new JobResult(JobStatus.FAILED, null));
                 return new PassiveCompletableFuture<>(future);
             }
             JobStatus jobStatus = jobDetailState.getJobStatus();
