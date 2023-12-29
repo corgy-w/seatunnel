@@ -113,8 +113,10 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
                 case NULL:
                     fields[fieldIndex] = null;
                     break;
-                case MAP:
                 case ARRAY:
+                    fields[fieldIndex] = convertToArray(rs, resultSetIndex, seaTunnelDataType);
+                    break;
+                case MAP:
                 case ROW:
                 default:
                     throw new JdbcConnectorException(
