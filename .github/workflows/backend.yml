@@ -22,10 +22,7 @@ on:
     branches:
       - business-dev
       - "v[0-9]+.[0-9]+.[0-9]+-release"
-  pull_request:
-    branches:
-      - business-dev
-      - "v[0-9]+.[0-9]+.[0-9]+-release"
+      - "v[0-9]+.[0-9]+.[0-9]+-test"
     paths-ignore:
       - 'seatunnel-ui/**'
 
@@ -36,7 +33,7 @@ concurrency:
 jobs:
 
   code-style:
-    if: github.repository == 'WhaleOps/SeaTunnel'
+    if: github.repository == 'WhaleOps/whaletunnel'
     name: Code style
     runs-on: self-hosted
     timeout-minutes: 10
@@ -54,7 +51,7 @@ jobs:
         run: ./mvnw --batch-mode --quiet --no-snapshot-updates clean spotless:check
 
   sanity-check:
-    if: github.repository == 'WhaleOps/SeaTunnel'
+    if: github.repository == 'WhaleOps/whaletunnel'
     name: Sanity check results
     needs: [ code-style ]
     runs-on: self-hosted
@@ -67,7 +64,7 @@ jobs:
   changes:
     runs-on: self-hosted
     # To prevent error when there's no base branch
-    if: github.repository == 'WhaleOps/SeaTunnel'
+    if: github.repository == 'WhaleOps/whaletunnel'
     timeout-minutes: 10
     outputs:
       api: ${{ steps.filter.outputs.api }}
