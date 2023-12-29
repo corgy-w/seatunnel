@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter;
 
+import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -25,6 +26,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErr
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -34,10 +36,24 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 /** Base class for all converters that convert between JDBC object and SeaTunnel internal object. */
 public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
+
+    protected static final String[] TYPE_ARRAY_STRING = new String[0];
+    protected static final Boolean[] TYPE_ARRAY_BOOLEAN = new Boolean[0];
+    protected static final Byte[] TYPE_ARRAY_BYTE = new Byte[0];
+    protected static final Short[] TYPE_ARRAY_SHORT = new Short[0];
+    protected static final Integer[] TYPE_ARRAY_INTEGER = new Integer[0];
+    protected static final Long[] TYPE_ARRAY_LONG = new Long[0];
+    protected static final Float[] TYPE_ARRAY_FLOAT = new Float[0];
+    protected static final Double[] TYPE_ARRAY_DOUBLE = new Double[0];
+    protected static final BigDecimal[] TYPE_ARRAY_BIG_DECIMAL = new BigDecimal[0];
+    protected static final LocalDate[] TYPE_ARRAY_LOCAL_DATE = new LocalDate[0];
+    protected static final LocalDateTime[] TYPE_ARRAY_LOCAL_DATETIME = new LocalDateTime[0];
 
     public abstract String converterName();
 
@@ -101,8 +117,10 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                 case NULL:
                     fields[fieldIndex] = null;
                     break;
-                case MAP:
                 case ARRAY:
+                    fields[fieldIndex] = convertToArray(rs, resultSetIndex, seaTunnelDataType);
+                    break;
+                case MAP:
                 case ROW:
                 default:
                     throw new JdbcConnectorException(
@@ -111,6 +129,45 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
             }
         }
         return new SeaTunnelRow(fields);
+    }
+
+    public Object[] convertToArray(ResultSet rs, int resultSetIndex, SeaTunnelDataType<?> seaTunnelDataType) throws SQLException {
+        Array array = rs.getArray(resultSetIndex);
+        if (array != null) {
+            Object[] elementArr = (Object[]) array.getArray();
+            List<Object> origArray = Arrays.asList(elementArr);
+            SeaTunnelDataType<?> elementType =
+                    ((ArrayType<?, ?>) seaTunnelDataType).getElementType();
+            switch (elementType.getSqlType()) {
+                case STRING:
+                    return origArray.toArray(TYPE_ARRAY_STRING);
+                case BOOLEAN:
+                    return origArray.toArray(TYPE_ARRAY_BOOLEAN);
+                case TINYINT:
+                    return origArray.toArray(TYPE_ARRAY_BYTE);
+                case SMALLINT:
+                    return origArray.toArray(TYPE_ARRAY_SHORT);
+                case INT:
+                    return origArray.toArray(TYPE_ARRAY_INTEGER);
+                case BIGINT:
+                    return origArray.toArray(TYPE_ARRAY_LONG);
+                case FLOAT:
+                    return origArray.toArray(TYPE_ARRAY_FLOAT);
+                case DOUBLE:
+                    return origArray.toArray(TYPE_ARRAY_DOUBLE);
+                case DECIMAL:
+                    return origArray.toArray(TYPE_ARRAY_BIG_DECIMAL);
+                default:
+                    String errorMsg =
+                            String.format(
+                                    "SeaTunnel array type not support this type [%s] now",
+                                    seaTunnelDataType.getSqlType());
+                    throw new JdbcConnectorException(
+                            CommonErrorCode.UNSUPPORTED_DATA_TYPE, errorMsg);
+            }
+        } else {
+            return null;
+        }
     }
 
     @Override
