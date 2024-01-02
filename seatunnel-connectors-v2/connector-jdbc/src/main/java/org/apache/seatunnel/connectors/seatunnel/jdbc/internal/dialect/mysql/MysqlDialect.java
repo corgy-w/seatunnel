@@ -59,8 +59,7 @@ import java.util.stream.Collectors;
 public class MysqlDialect implements JdbcDialect {
     public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
 
-    public MysqlDialect() {
-    }
+    public MysqlDialect() {}
 
     public MysqlDialect(String fieldIde) {
         this.fieldIde = fieldIde;
@@ -155,8 +154,8 @@ public class MysqlDialect implements JdbcDialect {
         }
 
         try (Statement stmt =
-                     connection.createStatement(
-                             ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                connection.createStatement(
+                        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
             stmt.setFetchSize(Integer.MIN_VALUE);
             try (ResultSet rs = stmt.executeQuery(sampleQuery)) {
                 int count = 0;
@@ -188,7 +187,7 @@ public class MysqlDialect implements JdbcDialect {
         boolean useTableStats =
                 StringUtils.isBlank(table.getQuery())
                         || (!table.getQuery().toLowerCase().contains("where")
-                        && table.getTablePath() != null);
+                                && table.getTablePath() != null);
         if (useTableStats) {
             // The statement used to get approximate row count which is less
             // accurate than COUNT(*), but is more efficient for large table.

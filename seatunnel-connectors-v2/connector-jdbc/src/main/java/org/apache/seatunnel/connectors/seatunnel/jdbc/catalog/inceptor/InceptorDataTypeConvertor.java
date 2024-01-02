@@ -18,7 +18,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.inceptor;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.DecimalType;
@@ -26,13 +25,15 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 
@@ -80,14 +81,13 @@ public class InceptorDataTypeConvertor implements DataTypeConvertor<String> {
     public static final String HIVE_CUSTOM_TYPE = "custom_type";
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
-        return toSeaTunnelType(connectorDataType, new HashMap<>(0));
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String dataType) {
+        return toSeaTunnelType(field, dataType, Collections.emptyMap());
     }
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            String connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
         checkNotNull(connectorDataType, "Postgres Type cannot be null");
 
         switch (connectorDataType.toLowerCase(Locale.ROOT)) {
@@ -126,15 +126,16 @@ public class InceptorDataTypeConvertor implements DataTypeConvertor<String> {
             case HIVE_DECIMAL:
                 return new DecimalType(DEFAULT_PRECISION, DEFAULT_SCALE);
             default:
-                throw new UnsupportedOperationException(
-                        String.format("Doesn't support HIVE type '%s''  yet.", connectorDataType));
+                throw CommonError.convertToSeaTunnelTypeError(
+                        DatabaseIdentifier.INCEPTOR, connectorDataType, field);
         }
     }
 
     @Override
     public String toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         checkNotNull(seaTunnelDataType, "seaTunnelDataType cannot be null");
         SqlType sqlType = seaTunnelDataType.getSqlType();
         // todo: verify
@@ -170,8 +171,8 @@ public class InceptorDataTypeConvertor implements DataTypeConvertor<String> {
             case TIMESTAMP:
                 return HIVE_TIMESTAMP;
             default:
-                throw new UnsupportedOperationException(
-                        String.format("Doesn't support HIVE type '%s''  yet.", sqlType));
+                throw CommonError.convertToConnectorTypeError(
+                        DatabaseIdentifier.INCEPTOR, seaTunnelDataType.toString(), field);
         }
     }
 

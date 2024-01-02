@@ -17,11 +17,12 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter;
 
-import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
@@ -136,7 +137,9 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
         return new SeaTunnelRow(fields);
     }
 
-    public Object[] convertToArray(ResultSet rs, int resultSetIndex, SeaTunnelDataType<?> seaTunnelDataType) throws SQLException {
+    public Object[] convertToArray(
+            ResultSet rs, int resultSetIndex, SeaTunnelDataType<?> seaTunnelDataType)
+            throws SQLException {
         Array array = rs.getArray(resultSetIndex);
         if (array != null) {
             Object[] elementArr = (Object[]) array.getArray();

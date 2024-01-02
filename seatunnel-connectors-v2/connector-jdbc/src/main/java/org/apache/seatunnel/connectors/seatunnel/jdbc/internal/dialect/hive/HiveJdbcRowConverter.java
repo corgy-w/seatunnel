@@ -24,6 +24,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorExc
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.AbstractJdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
+import java.sql.PreparedStatement;
+
 public class HiveJdbcRowConverter extends AbstractJdbcRowConverter {
 
     @Override
