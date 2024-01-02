@@ -245,13 +245,13 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-cdc-informix</artifactId>
+                    <artifactId>connector-cdc-informix-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-s3-redshift</artifactId>
+                    <artifactId>connector-s3-redshift-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -281,19 +281,25 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-cdc-oracle</artifactId>
+                    <artifactId>connector-cdc-opengauss-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-cdc-agent-oracle</artifactId>
+                    <artifactId>connector-cdc-oracle-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-cdc-dameng</artifactId>
+                    <artifactId>connector-cdc-agent-oracle-wt</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-cdc-dameng-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -305,21 +311,21 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-dws-gaussdb</artifactId>
+                    <artifactId>connector-dws-gaussdb-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
 
-                <dependency>
-                    <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-doris</artifactId>
-                    <version>${project.version}</version>
-                    <scope>provided</scope>
-                </dependency>
+                <!--                <dependency>-->
+                <!--                    <groupId>org.apache.seatunnel</groupId>-->
+                <!--                    <artifactId>connector-doris</artifactId>-->
+                <!--                    <version>${project.version}</version>-->
+                <!--                    <scope>provided</scope>-->
+                <!--                </dependency>-->
 
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-dolphindb</artifactId>
+                    <artifactId>connector-dolphindb-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -327,6 +333,13 @@
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-paimon</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-amazonsqs</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -375,6 +388,18 @@
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
+                    <groupId>com.oracle.database.xml</groupId>
+                    <artifactId>xdb6</artifactId>
+                    <version>${oracle.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.oracle.database.xml</groupId>
+                    <artifactId>xmlparserv2</artifactId>
+                    <version>${oracle.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
                     <groupId>com.oracle.database.nls</groupId>
                     <artifactId>orai18n</artifactId>
                     <version>${oracle.version}</version>
@@ -419,22 +444,12 @@
                     <version>${snowflake.version}</version>
                     <scope>provided</scope>
                 </dependency>
-                <!-- jdbc driver end -->
-
-                <dependency>
-                    <groupId>io.netty</groupId>
-                    <artifactId>netty-buffer</artifactId>
-                    <version>${netty-buffer.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-
                 <dependency>
                     <groupId>com.ibm.informix</groupId>
                     <artifactId>ifx-changestream-client</artifactId>
                     <version>${informix-client.version}</version>
                     <scope>provided</scope>
                 </dependency>
-
                 <dependency>
                     <groupId>com.kingbase8</groupId>
                     <artifactId>kingbase8</artifactId>
@@ -449,20 +464,44 @@
                     <version>${dws-gaussdb.version}</version>
                     <scope>provided</scope>
                 </dependency>
-
                 <!-- jdbc driver end -->
+
+                <dependency>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-buffer</artifactId>
+                    <version>${netty-buffer.version}</version>
+                    <scope>provided</scope>
+                </dependency>
 
                 <!-- hadoop jar -->
                 <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-aws</artifactId>
-                    <version>3.1.4</version>
+                    <version>${hadoop-aws.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>com.amazonaws</groupId>
                     <artifactId>aws-java-sdk-bundle</artifactId>
                     <version>1.11.271</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.aliyun.oss</groupId>
+                    <artifactId>aliyun-sdk-oss</artifactId>
+                    <version>${aliyun.sdk.oss.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.jdom</groupId>
+                    <artifactId>jdom</artifactId>
+                    <version>${jdom.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-aliyun</artifactId>
+                    <version>${hadoop-aliyun.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
@@ -491,104 +530,6 @@
                     <scope>provided</scope>
                 </dependency>
                 <!-- hadoop jar end -->
-
-                <!-- hive jar start -->
-                <dependency>
-                    <groupId>org.apache.hive</groupId>
-                    <artifactId>hive-exec</artifactId>
-                    <version>${hive.exec.version}</version>
-                    <scope>provided</scope>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>log4j</groupId>
-                            <artifactId>log4j</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.logging.log4j</groupId>
-                            <artifactId>log4j-1.2-api</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.logging.log4j</groupId>
-                            <artifactId>log4j-slf4j-impl</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.logging.log4j</groupId>
-                            <artifactId>log4j-web</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.slf4j</groupId>
-                            <artifactId>slf4j-log4j12</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.parquet</groupId>
-                            <artifactId>parquet-hadoop-bundle</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>jdk.tools</groupId>
-                            <artifactId>jdk.tools</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.pentaho</groupId>
-                            <artifactId>pentaho-aggdesigner-algorithm</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.avro</groupId>
-                            <artifactId>avro</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-                <!-- hive jdbc jar -->
-                <dependency>
-                    <groupId>org.apache.hive</groupId>
-                    <artifactId>hive-jdbc</artifactId>
-                    <version>${hive.jdbc.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.hive</groupId>
-                    <artifactId>hive-service</artifactId>
-                    <version>${hive.jdbc.version}</version>
-                    <scope>provided</scope>
-                    <exclusions>
-                        <exclusion>
-                            <groupId>log4j</groupId>
-                            <artifactId>log4j</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.logging.log4j</groupId>
-                            <artifactId>log4j-1.2-api</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.logging.log4j</groupId>
-                            <artifactId>log4j-slf4j-impl</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.logging.log4j</groupId>
-                            <artifactId>log4j-web</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.slf4j</groupId>
-                            <artifactId>slf4j-log4j12</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.parquet</groupId>
-                            <artifactId>parquet-hadoop-bundle</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>jdk.tools</groupId>
-                            <artifactId>jdk.tools</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.pentaho</groupId>
-                            <artifactId>pentaho-aggdesigner-algorithm</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.avro</groupId>
-                            <artifactId>avro</artifactId>
-                        </exclusion>
-                    </exclusions>
-                </dependency>
-                <!-- hive jar end -->
             </dependencies>
             <repositories>
                 <repository>

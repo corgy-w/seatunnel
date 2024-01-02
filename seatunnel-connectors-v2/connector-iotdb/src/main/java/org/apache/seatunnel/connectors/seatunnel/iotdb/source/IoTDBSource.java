@@ -44,9 +44,7 @@ import com.google.auto.service.AutoService;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.seatunnel.connectors.seatunnel.iotdb.config.SourceConfig.HOST;
 import static org.apache.seatunnel.connectors.seatunnel.iotdb.config.SourceConfig.NODE_URLS;
-import static org.apache.seatunnel.connectors.seatunnel.iotdb.config.SourceConfig.PORT;
 
 @AutoService(SeaTunnelSource.class)
 public class IoTDBSource
@@ -67,11 +65,7 @@ public class IoTDBSource
 
     @Override
     public void prepare(Config pluginConfig) throws PrepareFailException {
-        CheckResult urlCheckResult =
-                CheckConfigUtil.checkAllExists(pluginConfig, HOST.key(), PORT.key());
-        if (!urlCheckResult.isSuccess()) {
-            urlCheckResult = CheckConfigUtil.checkAllExists(pluginConfig, NODE_URLS.key());
-        }
+        CheckResult urlCheckResult = CheckConfigUtil.checkAllExists(pluginConfig, NODE_URLS.key());
         CheckResult schemaCheckResult =
                 CheckConfigUtil.checkAllExists(pluginConfig, TableSchemaOptions.SCHEMA.key());
         CheckResult mergedConfigCheck =

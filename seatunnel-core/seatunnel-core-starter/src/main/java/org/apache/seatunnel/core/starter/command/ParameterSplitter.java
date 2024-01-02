@@ -14,40 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.seatunnel.core.starter.command;
 
 import com.beust.jcommander.converters.IParameterSplitter;
 
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class ParameterSplitter implements IParameterSplitter {
 
-    Pattern pattern = Pattern.compile("\\[.*?]|,");
-
     @Override
     public List<String> split(String value) {
-        if (!value.contains(",")) {
-            return Collections.singletonList(value);
-        }
-        Matcher matcher = pattern.matcher(value);
-        StringBuilder stringBuilder = new StringBuilder();
-        int start = 0;
-        while (matcher.find()) {
-            stringBuilder.append(value, start, matcher.start());
-            if (matcher.group().equals(",")) {
-                stringBuilder.append(";");
-            } else {
-                stringBuilder.append(matcher.group());
-            }
-            start = matcher.end();
-        }
-        stringBuilder.append(value.substring(start));
 
-        return Arrays.asList(stringBuilder.toString().split(";"));
+        List<String> result = new ArrayList<>();
+        StringBuilder currentToken = new StringBuilder();
+        boolean insideBrackets = false;
+        boolean insideQuotes = false;
+
+        for (char c : value.toCharArray()) {
+
+            if (c == '[') {
+                insideBrackets = true;
+            } else if (c == ']') {
+                insideBrackets = false;
+            } else if (c == '"') {
+                insideQuotes = !insideQuotes;
+            }
+
+            if (c == ',' && !insideQuotes && !insideBrackets) {
+                result.add(currentToken.toString().trim());
+                currentToken = new StringBuilder();
+            } else {
+                currentToken.append(c);
+            }
+        }
+
+        if (currentToken.length() > 0) {
+            result.add(currentToken.toString().trim());
+        }
+
+        return result;
     }
 }

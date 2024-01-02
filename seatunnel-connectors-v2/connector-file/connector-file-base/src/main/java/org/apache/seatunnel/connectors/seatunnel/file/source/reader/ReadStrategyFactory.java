@@ -18,8 +18,8 @@
 package org.apache.seatunnel.connectors.seatunnel.file.source.reader;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
+import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
@@ -33,7 +33,7 @@ public class ReadStrategyFactory {
 
     public static ReadStrategy of(ReadonlyConfig readonlyConfig, HadoopConf hadoopConf) {
         ReadStrategy readStrategy =
-                of(readonlyConfig.get(BaseSourceConfig.FILE_FORMAT_TYPE).name());
+                of(readonlyConfig.get(BaseSourceConfigOptions.FILE_FORMAT_TYPE).name());
         readStrategy.setPluginConfig(readonlyConfig.toConfig());
         readStrategy.init(hadoopConf);
         return readStrategy;
@@ -48,7 +48,7 @@ public class ReadStrategyFactory {
                     String.format(
                             "File source connector not support this file type [%s], please check your config",
                             fileType);
-            throw new FileConnectorException(CommonErrorCode.ILLEGAL_ARGUMENT, errorMsg);
+            throw new FileConnectorException(CommonErrorCodeDeprecated.ILLEGAL_ARGUMENT, errorMsg);
         }
     }
 }

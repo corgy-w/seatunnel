@@ -44,6 +44,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /** Utils contains some common methods for construct CatalogTable. */
 @Slf4j
@@ -79,47 +81,6 @@ public class CatalogTableUtil implements Serializable {
                 "It is converted from RowType and only has column information.");
     }
 
-    // TODO remove this method after https://github.com/apache/seatunnel/issues/5483 done.
-    @Deprecated
-    public static List<CatalogTable> getCatalogTables(Config config, ClassLoader classLoader) {
-        // Highest priority: specified schema
-        if (config.hasPath(TableSchemaOptions.SCHEMA.key())) {
-            CatalogTable catalogTable = CatalogTableUtil.buildWithConfig(config);
-            return Collections.singletonList(catalogTable);
-        }
-
-        ReadonlyConfig readonlyConfig = ReadonlyConfig.fromConfig(config);
-        Map<String, String> catalogOptions =
-                readonlyConfig.getOptional(CatalogOptions.CATALOG_OPTIONS).orElse(new HashMap<>());
-
-        Map<String, Object> catalogAllOptions = new HashMap<>();
-        catalogAllOptions.putAll(readonlyConfig.toMap());
-        catalogAllOptions.putAll(catalogOptions);
-        ReadonlyConfig catalogConfig = ReadonlyConfig.fromMap(catalogAllOptions);
-
-        Optional<Catalog> optionalCatalog =
-                FactoryUtil.createOptionalCatalog(
-                        catalogConfig.get(CatalogOptions.NAME),
-                        catalogConfig,
-                        classLoader,
-                        catalogConfig.get(CommonOptions.FACTORY_ID));
-        return optionalCatalog
-                .map(
-                        c -> {
-                            try (Catalog catalog = c) {
-                                long startTime = System.currentTimeMillis();
-                                catalog.open();
-                                List<CatalogTable> catalogTables = catalog.getTables(catalogConfig);
-                                log.info(
-                                        String.format(
-                                                "Get catalog tables, cost time: %d/ms",
-                                                System.currentTimeMillis() - startTime));
-                                return catalogTables;
-                            }
-                        })
-                .orElse(Collections.emptyList());
-    }
-
     /**
      * Get catalog table from config, if schema is specified, return a catalog table with specified
      * schema, otherwise, return a catalog table with schema from catalog.
@@ -131,15 +92,16 @@ public class CatalogTableUtil implements Serializable {
      *     </a>
      */
     @Deprecated
-    public static List<CatalogTable> getCatalogTablesFromConfig(
+    public static List<CatalogTable> getCatalogTables(
             ReadonlyConfig readonlyConfig, ClassLoader classLoader) {
+
         // We use plugin_name as factoryId, so MySQL-CDC should be MySQL
         String factoryId = readonlyConfig.get(CommonOptions.PLUGIN_NAME).replace("-CDC", "");
-        return getCatalogTablesFromConfig(factoryId, readonlyConfig, classLoader);
+        return getCatalogTables(factoryId, readonlyConfig, classLoader);
     }
 
     @Deprecated
-    public static List<CatalogTable> getCatalogTablesFromConfig(
+    public static List<CatalogTable> getCatalogTables(
             String factoryId, ReadonlyConfig readonlyConfig, ClassLoader classLoader) {
         // Highest priority: specified schema
         Map<String, Object> schemaMap = readonlyConfig.get(TableSchemaOptions.SCHEMA);
@@ -157,14 +119,14 @@ public class CatalogTableUtil implements Serializable {
         return optionalCatalog
                 .map(
                         c -> {
-                            long startTime = System.currentTimeMillis();
                             try (Catalog catalog = c) {
+                                long startTime = System.currentTimeMillis();
                                 catalog.open();
                                 List<CatalogTable> catalogTables =
                                         catalog.getTables(readonlyConfig);
                                 log.info(
                                         String.format(
-                                                "Get catalog tables, cost time: %d",
+                                                "Get catalog tables, cost time: %d/ms",
                                                 System.currentTimeMillis() - startTime));
                                 if (catalogTables.isEmpty()) {
                                     throw new SeaTunnelException(
@@ -255,7 +217,9 @@ public class CatalogTableUtil implements Serializable {
                             schemaConfig.get(
                                     TableSchemaOptions.TableIdentifierOptions.SCHEMA_FIRST));
         } else {
-            tablePath = TablePath.EMPTY;
+            Optional<String> resultTableNameOptional =
+                    readonlyConfig.getOptional(CommonOptions.RESULT_TABLE_NAME);
+            tablePath = resultTableNameOptional.map(TablePath::of).orElse(TablePath.EMPTY);
         }
 
         return CatalogTable.of(
@@ -298,5 +262,42 @@ public class CatalogTableUtil implements Serializable {
                 new HashMap<>(),
                 new ArrayList<>(),
                 null);
+    }
+
+    public static CatalogTable newCatalogTable(
+            CatalogTable catalogTable, SeaTunnelRowType seaTunnelRowType) {
+        TableSchema tableSchema = catalogTable.getTableSchema();
+
+        Map<String, Column> columnMap =
+                tableSchema.getColumns().stream()
+                        .collect(Collectors.toMap(Column::getName, Function.identity()));
+        String[] fieldNames = seaTunnelRowType.getFieldNames();
+        SeaTunnelDataType<?>[] fieldTypes = seaTunnelRowType.getFieldTypes();
+
+        List<Column> finalColumns = new ArrayList<>();
+        for (int i = 0; i < fieldNames.length; i++) {
+            Column column = columnMap.get(fieldNames[i]);
+            if (column != null) {
+                finalColumns.add(column);
+            } else {
+                finalColumns.add(
+                        PhysicalColumn.of(fieldNames[i], fieldTypes[i], 0, false, null, null));
+            }
+        }
+
+        TableSchema finalSchema =
+                TableSchema.builder()
+                        .columns(finalColumns)
+                        .primaryKey(tableSchema.getPrimaryKey())
+                        .constraintKey(tableSchema.getConstraintKeys())
+                        .build();
+
+        return CatalogTable.of(
+                catalogTable.getTableId(),
+                finalSchema,
+                catalogTable.getOptions(),
+                catalogTable.getPartitionKeys(),
+                catalogTable.getComment(),
+                catalogTable.getCatalogName());
     }
 }

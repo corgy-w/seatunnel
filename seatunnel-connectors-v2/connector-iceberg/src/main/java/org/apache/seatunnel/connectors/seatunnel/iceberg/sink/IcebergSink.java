@@ -278,7 +278,7 @@ public class IcebergSink
     }
 
     @Override
-    public SaveModeHandler getSaveModeHandler() {
+    public Optional<SaveModeHandler> getSaveModeHandler() {
 
         IcebergCatalogFactory catalogFactory =
                 new IcebergCatalogFactory(
@@ -295,11 +295,12 @@ public class IcebergSink
         IcebergCatalog icebergCatalog = new IcebergCatalog(catalogFactory, "iceberg");
         icebergCatalog.open();
 
-        return new DefaultSaveModeHandler(
-                sinkConfig.getSchemaSaveMode(),
-                sinkConfig.getDataSaveMode(),
-                icebergCatalog,
-                catalogTable,
-                null);
+        return Optional.of(
+                new DefaultSaveModeHandler(
+                        sinkConfig.getSchemaSaveMode(),
+                        sinkConfig.getDataSaveMode(),
+                        icebergCatalog,
+                        catalogTable,
+                        null));
     }
 }

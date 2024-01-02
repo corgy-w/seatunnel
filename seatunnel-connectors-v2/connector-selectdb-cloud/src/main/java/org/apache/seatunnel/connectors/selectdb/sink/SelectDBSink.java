@@ -178,7 +178,7 @@ public class SelectDBSink
     }
 
     @Override
-    public SaveModeHandler getSaveModeHandler() {
+    public Optional<SaveModeHandler> getSaveModeHandler() {
 
         CatalogFactory catalogFactory =
                 discoverFactory(
@@ -199,6 +199,6 @@ public class SelectDBSink
                 catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), readonlyConfig);
         catalog.open();
 
-        return new SelectDBSaveModeHandler(selectDBConfig, catalog, catalogTable);
+        return Optional.of(new SelectDBSaveModeHandler(selectDBConfig, catalog, catalogTable));
     }
 }

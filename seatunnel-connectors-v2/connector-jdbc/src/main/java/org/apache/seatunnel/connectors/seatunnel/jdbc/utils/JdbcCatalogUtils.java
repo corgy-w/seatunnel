@@ -27,14 +27,15 @@ import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.factory.FactoryUtil;
+import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceTableConfig;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionProvider;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectLoader;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.source.JdbcSourceTable;
@@ -63,7 +64,7 @@ public class JdbcCatalogUtils {
 
     public static Map<TablePath, JdbcSourceTable> getTables(
             JdbcConnectionConfig jdbcConnectionConfig, List<JdbcSourceTableConfig> tablesConfig)
-            throws SQLException {
+            throws SQLException, ClassNotFoundException {
         Map<TablePath, JdbcSourceTable> tables = new LinkedHashMap<>();
 
         JdbcDialect jdbcDialect =
@@ -72,30 +73,48 @@ public class JdbcCatalogUtils {
         Optional<Catalog> catalog = findCatalog(jdbcConnectionConfig, jdbcDialect);
         if (catalog.isPresent()) {
             try (AbstractJdbcCatalog jdbcCatalog = (AbstractJdbcCatalog) catalog.get()) {
-                log.info("Loading catalog tables for catalog : {}", jdbcCatalog.getBaseUrl());
+                log.info("Loading catalog tables for catalog : {}", jdbcCatalog.getClass());
 
                 jdbcCatalog.open();
+                Map<String, Map<String, String>> unsupportedTable = new LinkedHashMap<>();
                 for (JdbcSourceTableConfig tableConfig : tablesConfig) {
-                    CatalogTable catalogTable =
-                            getCatalogTable(tableConfig, jdbcCatalog, jdbcDialect);
-                    TablePath tablePath = catalogTable.getTableId().toTablePath();
-                    JdbcSourceTable jdbcSourceTable =
-                            JdbcSourceTable.builder()
-                                    .tablePath(tablePath)
-                                    .query(tableConfig.getQuery())
-                                    .partitionColumn(tableConfig.getPartitionColumn())
-                                    .partitionNumber(tableConfig.getPartitionNumber())
-                                    .partitionStart(tableConfig.getPartitionStart())
-                                    .partitionEnd(tableConfig.getPartitionEnd())
-                                    .catalogTable(catalogTable)
-                                    .build();
-                    tables.put(tablePath, jdbcSourceTable);
-                    log.info("Loaded catalog table : {}", tablePath);
+                    try {
+                        CatalogTable catalogTable =
+                                getCatalogTable(tableConfig, jdbcCatalog, jdbcDialect);
+                        TablePath tablePath = catalogTable.getTableId().toTablePath();
+                        JdbcSourceTable jdbcSourceTable =
+                                JdbcSourceTable.builder()
+                                        .tablePath(tablePath)
+                                        .query(tableConfig.getQuery())
+                                        .partitionColumn(tableConfig.getPartitionColumn())
+                                        .partitionNumber(tableConfig.getPartitionNumber())
+                                        .partitionStart(tableConfig.getPartitionStart())
+                                        .partitionEnd(tableConfig.getPartitionEnd())
+                                        .catalogTable(catalogTable)
+                                        .build();
+                        tables.put(tablePath, jdbcSourceTable);
+                        log.info("Loaded catalog table : {}, {}", tablePath, jdbcSourceTable);
+                    } catch (SeaTunnelRuntimeException e) {
+                        if (e.getSeaTunnelErrorCode()
+                                .equals(
+                                        CommonErrorCode
+                                                .GET_CATALOG_TABLE_WITH_UNSUPPORTED_TYPE_ERROR)) {
+                            unsupportedTable.put(
+                                    e.getParams().get("tableName"),
+                                    e.getParamsValueAsMap("fieldWithDataTypes"));
+                        } else {
+                            throw e;
+                        }
+                    }
+                }
+                if (!unsupportedTable.isEmpty()) {
+                    throw CommonError.getCatalogTablesWithUnsupportedType(
+                            jdbcDialect.dialectName(), unsupportedTable);
                 }
                 log.info(
                         "Loaded {} catalog tables for catalog : {}",
                         tables.size(),
-                        jdbcCatalog.getBaseUrl());
+                        jdbcCatalog.getClass());
             }
             return tables;
         }
@@ -103,7 +122,7 @@ public class JdbcCatalogUtils {
         log.warn(
                 "Catalog not found, loading tables from jdbc directly. url : {}",
                 jdbcConnectionConfig.getUrl());
-        try (Connection connection = getConnection(jdbcConnectionConfig)) {
+        try (Connection connection = getConnection(jdbcConnectionConfig, jdbcDialect)) {
             log.info("Loading catalog tables for jdbc : {}", jdbcConnectionConfig.getUrl());
             for (JdbcSourceTableConfig tableConfig : tablesConfig) {
                 CatalogTable catalogTable = getCatalogTable(tableConfig, connection, jdbcDialect);
@@ -120,7 +139,7 @@ public class JdbcCatalogUtils {
                                 .build();
 
                 tables.put(tablePath, jdbcSourceTable);
-                log.info("Loaded catalog table : {}", tablePath);
+                log.info("Loaded catalog table : {}, {}", tablePath, jdbcSourceTable);
             }
             log.info(
                     "Loaded {} catalog tables for jdbc : {}",
@@ -329,18 +348,14 @@ public class JdbcCatalogUtils {
             Connection connection, String sqlQuery, JdbcDialect jdbcDialect) throws SQLException {
         ResultSetMetaData resultSetMetaData =
                 jdbcDialect.getResultSetMetaData(connection, sqlQuery);
-        return CatalogUtils.getCatalogTable(resultSetMetaData);
+        return CatalogUtils.getCatalogTable(
+                resultSetMetaData, jdbcDialect.getJdbcDialectTypeMapper(), sqlQuery);
     }
 
-    private static Connection getConnection(JdbcConnectionConfig config) throws SQLException {
-        try {
-            return new SimpleJdbcConnectionProvider(config).getOrEstablishConnection();
-        } catch (ClassNotFoundException e) {
-            throw new JdbcConnectorException(
-                    JdbcConnectorErrorCode.CONNECT_DATABASE_FAILED,
-                    "Fail to getConnection of class " + config,
-                    e);
-        }
+    private static Connection getConnection(JdbcConnectionConfig config, JdbcDialect jdbcDialect)
+            throws SQLException, ClassNotFoundException {
+        JdbcConnectionProvider connectionProvider = jdbcDialect.getJdbcConnectionProvider(config);
+        return connectionProvider.getOrEstablishConnection();
     }
 
     public static Optional<Catalog> findCatalog(JdbcConnectionConfig config, JdbcDialect dialect) {

@@ -212,7 +212,9 @@ public class MysqlCreateTableSqlBuilder {
 
     private void getColumnNameNonBytes(Column column, List<String> columnSqls, Long columnLength) {
         final String name =
-                mysqlDataTypeConvertor.toConnectorType(column.getDataType(), null).getName();
+                mysqlDataTypeConvertor
+                        .toConnectorType(column.getName(), column.getDataType(), null)
+                        .getName();
         if (MysqlType.VARCHAR.getName().equalsIgnoreCase(name)) {
             columnLength = columnLength == null ? Integer.MAX_VALUE : columnLength;
             if (columnLength >= 16383 && columnLength <= 65535) {
@@ -230,7 +232,9 @@ public class MysqlCreateTableSqlBuilder {
         // Column type
 
         columnSqls.add(
-                mysqlDataTypeConvertor.toConnectorType(column.getDataType(), null).getName());
+                mysqlDataTypeConvertor
+                        .toConnectorType(column.getName(), column.getDataType(), null)
+                        .getName());
 
         String fieSql = "";
         List<String> list = new ArrayList<>();

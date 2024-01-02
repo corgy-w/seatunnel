@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -7,6 +24,9 @@ import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 
@@ -23,6 +43,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -113,7 +134,7 @@ public class CatalogUtils {
 
     public static List<ConstraintKey> getConstraintKeys(
             DatabaseMetaData metadata, TablePath tablePath) throws SQLException {
-        // We set approximate=true here to get the index info faster.
+        // We set approximate to true to avoid querying the statistics table, which is slow.
         ResultSet resultSet =
                 metadata.getIndexInfo(
                         tablePath.getDatabaseName(),
@@ -171,7 +192,7 @@ public class CatalogUtils {
             throws SQLException {
         DatabaseMetaData metadata = connection.getMetaData();
         TableSchema tableSchema = getTableSchema(metadata, tablePath);
-        String catalogName = "default";
+        String catalogName = "jdbc_catalog";
         return CatalogTable.of(
                 TableIdentifier.of(
                         catalogName,
@@ -185,7 +206,7 @@ public class CatalogUtils {
                 catalogName);
     }
 
-    public static CatalogTable getCatalogTable(ResultSetMetaData resultSetMetaData)
+    public static CatalogTable getCatalogTable(ResultSetMetaData resultSetMetaData, String sqlQuery)
             throws SQLException {
         return getCatalogTable(
                 resultSetMetaData,
@@ -196,11 +217,13 @@ public class CatalogUtils {
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
                             }
-                        });
+                        },
+                sqlQuery);
     }
 
     public static CatalogTable getCatalogTable(
-            ResultSetMetaData metadata, JdbcDialectTypeMapper typeMapper) throws SQLException {
+            ResultSetMetaData metadata, JdbcDialectTypeMapper typeMapper, String sqlQuery)
+            throws SQLException {
         return getCatalogTable(
                 metadata,
                 (BiFunction<ResultSetMetaData, Integer, Column>)
@@ -210,19 +233,34 @@ public class CatalogUtils {
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
                             }
-                        });
+                        },
+                sqlQuery);
     }
 
     public static CatalogTable getCatalogTable(
             ResultSetMetaData metadata,
-            BiFunction<ResultSetMetaData, Integer, Column> columnConverter)
+            BiFunction<ResultSetMetaData, Integer, Column> columnConverter,
+            String sqlQuery)
             throws SQLException {
         TableSchema.Builder schemaBuilder = TableSchema.builder();
+        Map<String, String> unsupported = new LinkedHashMap<>();
         for (int index = 1; index <= metadata.getColumnCount(); index++) {
-            Column column = columnConverter.apply(metadata, index);
-            schemaBuilder.column(column);
+            try {
+                Column column = columnConverter.apply(metadata, index);
+                schemaBuilder.column(column);
+            } catch (SeaTunnelRuntimeException e) {
+                if (e.getSeaTunnelErrorCode()
+                        .equals(CommonErrorCode.CONVERT_TO_SEATUNNEL_TYPE_ERROR_SIMPLE)) {
+                    unsupported.put(e.getParams().get("field"), e.getParams().get("dataType"));
+                } else {
+                    throw e;
+                }
+            }
         }
-        String catalogName = "default";
+        if (!unsupported.isEmpty()) {
+            throw CommonError.getCatalogTableWithUnsupportedType("UNKNOWN", sqlQuery, unsupported);
+        }
+        String catalogName = "jdbc_catalog";
         return CatalogTable.of(
                 TableIdentifier.of(catalogName, "default", "default", "default"),
                 schemaBuilder.build(),
@@ -236,7 +274,7 @@ public class CatalogUtils {
             Connection connection, String sqlQuery, JdbcDialectTypeMapper typeMapper)
             throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(sqlQuery)) {
-            return getCatalogTable(ps.getMetaData(), typeMapper);
+            return getCatalogTable(ps.getMetaData(), typeMapper, sqlQuery);
         }
     }
 
@@ -245,7 +283,7 @@ public class CatalogUtils {
         ResultSetMetaData resultSetMetaData;
         try (PreparedStatement ps = connection.prepareStatement(sqlQuery)) {
             resultSetMetaData = ps.getMetaData();
-            return getCatalogTable(resultSetMetaData);
+            return getCatalogTable(resultSetMetaData, sqlQuery);
         }
     }
 }

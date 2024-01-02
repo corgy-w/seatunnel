@@ -20,15 +20,10 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dm;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
-import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
-import org.apache.seatunnel.api.table.catalog.PrimaryKey;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
-import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -40,7 +35,6 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -50,7 +44,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 public class DamengCatalog extends AbstractJdbcCatalog {
@@ -78,37 +71,23 @@ public class DamengCatalog extends AbstractJdbcCatalog {
                     + "ORDER BY COLUMNS.COLUMN_ID ASC";
 
     public DamengCatalog(
-            String catalogName, String username, String pwd, JdbcUrlUtil.UrlInfo urlInfo) {
-        super(catalogName, username, pwd, urlInfo, null);
+            String catalogName,
+            String username,
+            String pwd,
+            JdbcUrlUtil.UrlInfo urlInfo,
+            String defaultSchema) {
+        super(catalogName, username, pwd, urlInfo, defaultSchema);
     }
 
     @Override
-    public List<String> listDatabases() throws CatalogException {
-        try (PreparedStatement ps =
-                defaultConnection.prepareStatement("SELECT NAME FROM v$database")) {
-
-            List<String> databases = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                String databaseName = rs.getString(1);
-                databases.add(databaseName);
-            }
-            return databases;
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", this.catalogName), e);
-        }
-    }
-
-    @Override
-    protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
+    protected void createTableInternal(TablePath tablePath, CatalogTable table)
             throws CatalogException {
         String createTableSql = new DamengCreateTableSqlBuilder(table).build(tablePath);
         String[] createTableSqls = createTableSql.split(";");
+        Connection connection = getConnection(baseUrl);
         for (String sql : createTableSqls) {
             log.info("create table sql: {}", sql);
-            try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
+            try (PreparedStatement ps = connection.prepareStatement(sql)) {
                 ps.execute();
             } catch (Exception e) {
                 throw new CatalogException(
@@ -118,48 +97,15 @@ public class DamengCatalog extends AbstractJdbcCatalog {
                         e);
             }
         }
-        return true;
     }
 
     @Override
-    protected boolean dropTableInternal(TablePath tablePath) throws CatalogException {
-        Connection connection = defaultConnection;
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format(
-                                "DROP TABLE \"%s\".\"%s\"",
-                                tablePath.getSchemaName(), tablePath.getTableName()))) {
-            // Will there exist concurrent truncate for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
-    }
-
-    @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        Connection connection = defaultConnection;
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format(
-                                "TRUNCATE TABLE \"%s\".\"%s\"",
-                                tablePath.getSchemaName(), tablePath.getTableName()))) {
-            // Will there exist concurrent truncate for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
-    }
-
-    @Override
-    protected boolean createDatabaseInternal(String databaseName) {
+    protected void createDatabaseInternal(String databaseName) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    protected boolean dropDatabaseInternal(String databaseName) throws CatalogException {
+    protected void dropDatabaseInternal(String databaseName) throws CatalogException {
         throw new UnsupportedOperationException();
     }
 
@@ -167,6 +113,91 @@ public class DamengCatalog extends AbstractJdbcCatalog {
         return String.format(
                 "select count(*) from \"%s\".\"%s\"",
                 tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected String getListDatabaseSql() {
+        return "SELECT name FROM v$database";
+    }
+
+    @Override
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected String getDropTableSql(TablePath tablePath) {
+        return String.format("DROP TABLE %s", getTableName(tablePath));
+    }
+
+    @Override
+    protected String getTableName(TablePath tablePath) {
+        return tablePath.getSchemaAndTableName().toUpperCase();
+    }
+
+    @Override
+    protected String getListTableSql(String databaseName) {
+        return "SELECT OWNER, TABLE_NAME FROM ALL_TABLES";
+    }
+
+    @Override
+    protected String getTableName(ResultSet rs) throws SQLException {
+        if (EXCLUDED_SCHEMAS.contains(rs.getString(1))) {
+            return null;
+        }
+        return rs.getString(1) + "." + rs.getString(2);
+    }
+
+    @Override
+    protected String getSelectColumnsSql(TablePath tablePath) {
+        return String.format(
+                SELECT_COLUMNS_SQL, tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected String getTruncateTableSql(TablePath tablePath) {
+        return String.format(
+                "TRUNCATE TABLE \"%s\".\"%s\"",
+                tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
+        String columnName = resultSet.getString("COLUMN_NAME");
+        String typeName = resultSet.getString("DATA_TYPE");
+        long columnLength = resultSet.getLong("DATA_LENGTH");
+        long columnPrecision = resultSet.getLong("DATA_PRECISION");
+        long columnScale = resultSet.getLong("DATA_SCALE");
+        String columnComment = resultSet.getString("COMMENTS");
+        Object defaultValue = resultSet.getObject("DATA_DEFAULT");
+        boolean isNullable = resultSet.getString("NULLABLE").equals("Y");
+
+        SeaTunnelDataType<?> type =
+                fromJdbcType(columnName, typeName, columnPrecision, columnScale);
+
+        return PhysicalColumn.of(
+                columnName,
+                type,
+                0,
+                isNullable,
+                defaultValue,
+                columnComment,
+                typeName,
+                false,
+                false,
+                0L,
+                null,
+                columnLength);
+    }
+
+    @Override
+    protected String getUrlFromDatabaseName(String databaseName) {
+        return defaultUrl;
+    }
+
+    @Override
+    protected String getOptionTableName(TablePath tablePath) {
+        return tablePath.getSchemaAndTableName();
     }
 
     @Override
@@ -196,8 +227,8 @@ public class DamengCatalog extends AbstractJdbcCatalog {
         }
 
         try (PreparedStatement ps =
-                        defaultConnection.prepareStatement(
-                                "SELECT OWNER, TABLE_NAME FROM ALL_TABLES");
+                        getConnection(defaultUrl)
+                                .prepareStatement("SELECT OWNER, TABLE_NAME FROM ALL_TABLES");
                 ResultSet rs = ps.executeQuery()) {
 
             List<String> tables = new ArrayList<>();
@@ -215,145 +246,17 @@ public class DamengCatalog extends AbstractJdbcCatalog {
         }
     }
 
-    @Override
-    public CatalogTable getTable(TablePath tablePath)
-            throws CatalogException, TableNotExistException {
-        if (!tableExists(tablePath)) {
-            throw new TableNotExistException(catalogName, tablePath);
-        }
-
-        try {
-            DatabaseMetaData metaData = defaultConnection.getMetaData();
-            Optional<PrimaryKey> primaryKey =
-                    getPrimaryKey(
-                            metaData,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-            List<ConstraintKey> constraintKeys =
-                    getConstraintKeys(
-                            metaData,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-
-            TableSchema.Builder builder = TableSchema.builder();
-            primaryKey.ifPresent(builder::primaryKey);
-            constraintKeys.forEach(builder::constraintKey);
-            builder.columns(getColumns(tablePath));
-            TableIdentifier tableIdentifier =
-                    TableIdentifier.of(
-                            catalogName,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-            return CatalogTable.of(
-                    tableIdentifier,
-                    builder.build(),
-                    buildConnectorOptions(tablePath),
-                    Collections.emptyList(),
-                    "",
-                    catalogName);
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed getting table %s", tablePath.getFullName()), e);
-        }
-    }
-
-    private List<Column> getColumns(TablePath tablePath) throws SQLException {
-        List<Column> columns = new ArrayList<>();
-
-        try (PreparedStatement ps = defaultConnection.prepareStatement(SELECT_COLUMNS_SQL)) {
-            ps.setString(1, tablePath.getSchemaName());
-            ps.setString(2, tablePath.getTableName());
-            try (ResultSet resultSet = ps.executeQuery()) {
-                while (resultSet.next()) {
-                    String columnName = resultSet.getString("COLUMN_NAME");
-                    String typeName = resultSet.getString("DATA_TYPE");
-                    String sourceTypeName = resultSet.getString("SOURCE_TYPE");
-                    long columnLength = resultSet.getLong("DATA_LENGTH");
-                    long columnPrecision = resultSet.getLong("DATA_PRECISION");
-                    long columnScale = resultSet.getLong("DATA_SCALE");
-                    String columnComment = resultSet.getString("COMMENTS");
-                    Object defaultValue = resultSet.getObject("DATA_DEFAULT");
-                    boolean isNullable = resultSet.getString("NULLABLE").equals("Y");
-
-                    SeaTunnelDataType<?> type =
-                            fromJdbcType(typeName, columnPrecision, columnScale);
-                    long bitLen = 0;
-                    long longColumnLength = 0;
-                    switch (typeName) {
-                        case DamengDataTypeConvertor.DM_BIT:
-                            bitLen = columnLength;
-                            break;
-                        case DamengDataTypeConvertor.DM_DECIMAL:
-                        case DamengDataTypeConvertor.DM_TIMESTAMP:
-                        case DamengDataTypeConvertor.DM_DATETIME:
-                        case DamengDataTypeConvertor.DM_TIME:
-                            columnLength = columnScale;
-                            break;
-                        case DamengDataTypeConvertor.DM_CHAR:
-                        case DamengDataTypeConvertor.DM_CHARACTER:
-                        case DamengDataTypeConvertor.DM_VARCHAR:
-                        case DamengDataTypeConvertor.DM_VARCHAR2:
-                        case DamengDataTypeConvertor.DM_LONGVARCHAR:
-                        case DamengDataTypeConvertor.DM_CLOB:
-                        case DamengDataTypeConvertor.DM_TEXT:
-                        case DamengDataTypeConvertor.DM_LONG:
-                        case DamengDataTypeConvertor.DM_BFILE:
-                            longColumnLength = columnLength;
-                            break;
-                        case DamengDataTypeConvertor.DM_BINARY:
-                        case DamengDataTypeConvertor.DM_VARBINARY:
-                        case DamengDataTypeConvertor.DM_BLOB:
-                        case DamengDataTypeConvertor.DM_IMAGE:
-                        case DamengDataTypeConvertor.DM_LONGVARBINARY:
-                            bitLen = columnLength * 8;
-                            break;
-                        default:
-                            break;
-                    }
-                    PhysicalColumn physicalColumn =
-                            PhysicalColumn.of(
-                                    columnName,
-                                    type,
-                                    ((int) columnLength),
-                                    isNullable,
-                                    defaultValue,
-                                    columnComment,
-                                    sourceTypeName,
-                                    false,
-                                    false,
-                                    bitLen,
-                                    null,
-                                    longColumnLength);
-                    columns.add(physicalColumn);
-                }
-            }
-        }
-        return columns;
-    }
-
-    private SeaTunnelDataType<?> fromJdbcType(String typeName, long precision, long scale) {
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
         Map<String, Object> dataTypeProperties = new HashMap<>();
         dataTypeProperties.put(DamengDataTypeConvertor.PRECISION, precision);
         dataTypeProperties.put(DamengDataTypeConvertor.SCALE, scale);
-        return DATA_TYPE_CONVERTOR.toSeaTunnelType(typeName, dataTypeProperties);
-    }
-
-    @SuppressWarnings("MagicNumber")
-    private Map<String, String> buildConnectorOptions(TablePath tablePath) {
-        Map<String, String> options = new HashMap<>(8);
-        options.put("connector", "jdbc");
-        options.put("url", baseUrl);
-        options.put("table-name", tablePath.getSchemaAndTableName());
-        options.put("username", username);
-        options.put("password", pwd);
-        return options;
+        return DATA_TYPE_CONVERTOR.toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
+        Connection defaultConnection = getConnection(defaultUrl);
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new DmdbTypeMapper());
     }
 }

@@ -6,8 +6,8 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfig;
-import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
+import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.format.json.exception.SeaTunnelJsonFormatException;
 
@@ -31,8 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@NoArgsConstructor
 @Slf4j
+@NoArgsConstructor
 public class DbfReadStrategy extends AbstractReadStrategy {
     @SneakyThrows
     @Override
@@ -45,7 +45,7 @@ public class DbfReadStrategy extends AbstractReadStrategy {
                     || skipHeaderNumber < Integer.MIN_VALUE
                     || skipHeaderNumber > reader.getRecordCount()) {
                 throw new FileConnectorException(
-                        CommonErrorCode.UNSUPPORTED_OPERATION,
+                        CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
                         "Skip the number of rows exceeds the maximum or minimum limit of Sheet");
             }
             reader.skipRecords((int) skipHeaderNumber);
@@ -71,13 +71,13 @@ public class DbfReadStrategy extends AbstractReadStrategy {
         if (ArrayUtils.isEmpty(seaTunnelRowType.getFieldNames())
                 || ArrayUtils.isEmpty(seaTunnelRowType.getFieldTypes())) {
             throw new FileConnectorException(
-                    CommonErrorCode.UNSUPPORTED_OPERATION,
+                    CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
                     "Schmea information is not set or incorrect schema settings");
         }
         SeaTunnelRowType userDefinedRowTypeWithPartition =
                 mergePartitionTypes(fileNames.get(0), seaTunnelRowType);
         // column projection
-        if (pluginConfig.hasPath(BaseSourceConfig.READ_COLUMNS.key())) {
+        if (pluginConfig.hasPath(BaseSourceConfigOptions.READ_COLUMNS.key())) {
             // get the read column index from user-defined row type
             int[] indexes = new int[readColumns.size()];
             String[] fields = new String[readColumns.size()];
@@ -97,10 +97,9 @@ public class DbfReadStrategy extends AbstractReadStrategy {
     }
 
     @Override
-    public SeaTunnelRowType getSeaTunnelRowTypeInfo(HadoopConf hadoopConf, String path)
-            throws FileConnectorException {
+    public SeaTunnelRowType getSeaTunnelRowTypeInfo(String path) throws FileConnectorException {
         throw new FileConnectorException(
-                CommonErrorCode.UNSUPPORTED_OPERATION,
+                CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
                 "User must defined schema for json file type");
     }
 
@@ -123,6 +122,7 @@ public class DbfReadStrategy extends AbstractReadStrategy {
             this.totalFieldCount = seaTunnelRowType.getTotalFields() + partitionsMap.size();
 
             log.info("The current dbf schema is \n{}", dbfFields);
+
             this.seaTunnelRowFieldIndexInDbfIndexMapping = new HashMap<>();
             for (int i = 0; i < seaTunnelRowType.getTotalFields(); i++) {
                 String fieldName = seaTunnelRowType.getFieldName(i);
@@ -135,7 +135,7 @@ public class DbfReadStrategy extends AbstractReadStrategy {
                 }
                 if (!seaTunnelRowFieldIndexInDbfIndexMapping.containsKey(i)) {
                     throw new IllegalArgumentException(
-                            "can't find field [" + fieldName + "] in dbf file");
+                            "can't find field [" + fieldName + "] in dbf file: " + dbfFields);
                 }
             }
 
