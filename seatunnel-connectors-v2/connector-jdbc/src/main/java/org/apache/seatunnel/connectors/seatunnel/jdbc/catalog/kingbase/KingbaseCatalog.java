@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.kingbase;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
@@ -30,7 +31,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase.KingBaseTypeMapper;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase.KingbaseTypeMapper;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -86,90 +87,40 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public String getCountSql(TablePath tablePath) {
+    public String getExistDataSql(TablePath tablePath) {
         return String.format("select count(*) from %s;", tablePath.getFullName());
     }
 
     @Override
-    protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
-            throws CatalogException {
-        String createTableSql =
-                new KingbaseCreateTableSqlBuilder(table)
-                        .build(tablePath, table.getOptions().get("fieldIde"));
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        Connection conn = getConnection(dbUrl);
-        LOG.info("create table sql: {}", createTableSql);
-        try (PreparedStatement ps = conn.prepareStatement(createTableSql)) {
-            ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed creating table %s", tablePath.getFullName()), e);
-        }
-        return true;
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return new KingbaseCreateTableSqlBuilder(table)
+                .build(tablePath, table.getOptions().get("fieldIde"));
     }
 
     @Override
-    protected boolean dropTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-
+    protected String getDropTableSql(TablePath tablePath) {
         String schemaName = tablePath.getSchemaName();
         String tableName = tablePath.getTableName();
 
-        String sql = "DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"";
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            // Will there exist concurrent drop for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed dropping table %s", tablePath.getFullName()), e);
-        }
+        return "DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"";
     }
 
     @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-
+    protected String getTruncateTableSql(TablePath tablePath) {
         String schemaName = tablePath.getSchemaName();
         String tableName = tablePath.getTableName();
 
-        String sql = "TRUNCATE TABLE  \"" + schemaName + "\".\"" + tableName + "\"";
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            // Will there exist concurrent drop for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
+        return "TRUNCATE TABLE  \"" + schemaName + "\".\"" + tableName + "\"";
     }
 
     @Override
-    protected boolean createDatabaseInternal(String databaseName) throws CatalogException {
-        String sql = "CREATE DATABASE \"" + databaseName + "\"";
-        try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format(
-                            "Failed creating database %s in catalog %s",
-                            databaseName, this.catalogName),
-                    e);
-        }
+    protected String getCreateDatabaseSql(String databaseName) {
+        return "CREATE DATABASE \"" + databaseName + "\"";
     }
 
     @Override
-    protected boolean dropDatabaseInternal(String databaseName) throws CatalogException {
-        String sql = "DROP DATABASE IF EXISTS \"" + databaseName + "\"";
-        try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format(
-                            "Failed dropping database %s in catalog %s",
-                            databaseName, this.catalogName),
-                    e);
-        }
+    protected String getDropDatabaseSql(String databaseName) {
+        return "DROP DATABASE IF EXISTS \"" + databaseName + "\"";
     }
 
     @Override
@@ -257,32 +208,7 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
                             tablePath.getSchemaName(),
                             tablePath.getTableName(),
                             null)) {
-                while (resultSet.next()) {
-                    String pgType = resultSet.getString("TYPE_NAME").toUpperCase();
-                    String columnName = resultSet.getString("COLUMN_NAME");
-                    int columnDisplaySize = resultSet.getInt("COLUMN_SIZE");
-                    String defaultValue = resultSet.getString("COLUMN_DEF");
-                    int columnSize = resultSet.getInt("COLUMN_SIZE");
-                    int decimalDigits = resultSet.getInt("DECIMAL_DIGITS");
-                    int nullable = resultSet.getInt("NULLABLE");
-                    String remarks = resultSet.getString("REMARKS");
-
-                    PhysicalColumn physicalColumn =
-                            PhysicalColumn.of(
-                                    columnName,
-                                    fromJdbcType(pgType, columnSize, decimalDigits),
-                                    columnDisplaySize,
-                                    nullable != ResultSetMetaData.columnNoNulls,
-                                    defaultValue,
-                                    remarks,
-                                    pgType,
-                                    false,
-                                    false,
-                                    (long) columnSize << 2,
-                                    new HashMap<>(),
-                                    (long) columnSize);
-                    builder.column(physicalColumn);
-                }
+                buildColumnsWithErrorCheck(tablePath, resultSet, builder);
             }
             primaryKey.ifPresent(builder::primaryKey);
             TableIdentifier tableIdentifier =
@@ -298,6 +224,32 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
         }
     }
 
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
+        String pgType = resultSet.getString("TYPE_NAME").toUpperCase();
+        String columnName = resultSet.getString("COLUMN_NAME");
+        int columnDisplaySize = resultSet.getInt("COLUMN_SIZE");
+        String defaultValue = resultSet.getString("COLUMN_DEF");
+        int columnSize = resultSet.getInt("COLUMN_SIZE");
+        int decimalDigits = resultSet.getInt("DECIMAL_DIGITS");
+        int nullable = resultSet.getInt("NULLABLE");
+        String remarks = resultSet.getString("REMARKS");
+
+        return PhysicalColumn.of(
+                columnName,
+                fromJdbcType(columnName, pgType, columnSize, decimalDigits),
+                columnDisplaySize,
+                nullable != ResultSetMetaData.columnNoNulls,
+                defaultValue,
+                remarks,
+                pgType,
+                false,
+                false,
+                (long) columnSize << 2,
+                new HashMap<>(),
+                (long) columnSize);
+    }
+
     public Connection getConnection(String url) {
         if (connectionMap.containsKey(url)) {
             return connectionMap.get(url);
@@ -311,20 +263,20 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
         }
     }
 
-    private String getUrlFromDatabaseName(String databaseName) {
-        String url = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
-        return url + databaseName + suffix;
-    }
-
-    private SeaTunnelDataType<?> fromJdbcType(String typeName, long precision, long scale) {
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
         Map<String, Object> dataTypeProperties = new HashMap<>();
         dataTypeProperties.put(KingBaseDataTypeConvertor.PRECISION, precision);
         dataTypeProperties.put(KingBaseDataTypeConvertor.SCALE, scale);
-        return new KingBaseDataTypeConvertor().toSeaTunnelType(typeName, dataTypeProperties);
+        return new KingBaseDataTypeConvertor()
+                .toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new KingBaseTypeMapper());
+        return CatalogUtils.getCatalogTable(
+                getConnection(getUrlFromDatabaseName(defaultDatabase)),
+                sqlQuery,
+                new KingbaseTypeMapper());
     }
 }

@@ -49,7 +49,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -123,160 +125,10 @@ public class MysqlDialect implements JdbcDialect {
     }
 
     @Override
-    public List<String> getSQLFromSchemaChangeEvent(TablePath tablePath, SchemaChangeEvent event) {
-        List<String> sqlList = new ArrayList<>();
-        if (event instanceof AlterTableColumnsEvent) {
-            ((AlterTableColumnsEvent) event)
-                    .getEvents()
-                    .forEach(
-                            column -> {
-                                if (column instanceof AlterTableChangeColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s CHANGE %s %s",
-                                                    tablePath.getFullName(),
-                                                    ((AlterTableChangeColumnEvent) column)
-                                                            .getOldColumn(),
-                                                    this.buildColumnIdentifySql(
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn(),
-                                                            fieldIde));
-                                    sqlList.add(sql);
-                                } else if (column instanceof AlterTableModifyColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s MODIFY COLUMN %s",
-                                                    tablePath.getFullName(),
-                                                    this.buildColumnIdentifySql(
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn(),
-                                                            fieldIde));
-                                    sqlList.add(sql);
-                                } else if (column instanceof AlterTableAddColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s add column %s ",
-                                                    tablePath.getFullName(),
-                                                    this.buildColumnIdentifySql(
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn(),
-                                                            fieldIde));
-                                    sqlList.add(sql);
-                                } else if (column instanceof AlterTableDropColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s drop column %s",
-                                                    tablePath.getFullName(),
-                                                    ((AlterTableDropColumnEvent) column)
-                                                            .getColumn());
-                                    sqlList.add(sql);
-                                } else {
-                                    throw new UnsupportedOperationException(
-                                            "Unsupported event: " + event);
-                                }
-                            });
-        }
-        return sqlList;
-    }
-
-    private String buildColumnIdentifySql(Column column, String fieldIde) {
-        final MysqlDataTypeConvertor mysqlDataTypeConvertor = new MysqlDataTypeConvertor();
-        final List<String> columnSqls = new ArrayList<>();
-        columnSqls.add(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "`"));
-        boolean isSupportDef = true;
-        // Column name
-        SqlType dataType = column.getDataType().getSqlType();
-        boolean isBytes = StringUtils.equals(dataType.name(), SqlType.BYTES.name());
-        Long columnLength = column.getLongColumnLength();
-        if (isBytes) {
-            Long bitLen = column.getBitLen() == null ? columnLength : column.getBitLen();
-            if (bitLen >= 0 && bitLen <= 64) {
-                columnSqls.add(MysqlType.BIT.getName());
-                columnSqls.add("(" + (bitLen == 0 ? 1 : bitLen) + ")");
-            } else {
-                bitLen = bitLen == -1 ? bitLen : bitLen >> 3;
-                if (bitLen >= 0 && bitLen <= 255) {
-                    columnSqls.add(MysqlType.TINYBLOB.getName());
-                } else if (bitLen <= 16383) {
-                    columnSqls.add(MysqlType.BLOB.getName());
-                } else if (bitLen <= 16777215) {
-                    columnSqls.add(MysqlType.MEDIUMBLOB.getName());
-                } else {
-                    columnSqls.add(MysqlType.LONGBLOB.getName());
-                }
-                isSupportDef = false;
-            }
-        } else {
-            if (columnLength >= 16383 && columnLength <= 65535) {
-                columnSqls.add(MysqlType.TEXT.getName());
-                isSupportDef = false;
-            } else if (columnLength >= 65535 && columnLength <= 16777215) {
-                columnSqls.add(MysqlType.MEDIUMTEXT.getName());
-                isSupportDef = false;
-            } else if (columnLength > 16777215) {
-                columnSqls.add(MysqlType.LONGTEXT.getName());
-                isSupportDef = false;
-            } else {
-                // Column type
-                columnSqls.add(
-                        mysqlDataTypeConvertor
-                                .toConnectorType(column.getDataType(), null)
-                                .getName());
-                // Column length
-                // add judge is need column legth
-                if (column.getColumnLength() != null) {
-                    final String name =
-                            mysqlDataTypeConvertor
-                                    .toConnectorType(column.getDataType(), null)
-                                    .getName();
-                    String fieSql = "";
-                    List<String> list = new ArrayList<>();
-                    list.add(MysqlType.VARCHAR.getName());
-                    list.add(MysqlType.CHAR.getName());
-                    list.add(MysqlType.BIGINT.getName());
-                    list.add(MysqlType.INT.getName());
-                    list.add(MysqlType.SMALLINT.getName());
-                    if (StringUtils.equals(name, MysqlType.DECIMAL.getName())) {
-                        DecimalType decimalType = (DecimalType) column.getDataType();
-                        fieSql =
-                                String.format(
-                                        "(%d, %d)",
-                                        decimalType.getPrecision(), decimalType.getScale());
-                        columnSqls.add(fieSql);
-                    } else if (list.contains(name)) {
-                        if (MysqlType.VARCHAR.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "16367" + ")";
-                        } else if (MysqlType.CHAR.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "255" + ")";
-                        } else if (MysqlType.SMALLINT.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "6" + ")";
-                        } else if (MysqlType.BIGINT.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "20" + ")";
-                        } else if (MysqlType.INT.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "11" + ")";
-                        } else {
-                            fieSql = "(" + column.getColumnLength() + ")";
-                        }
-                        columnSqls.add(fieSql);
-                    }
-                }
-            }
-        }
-        // nullable
-        if (column.isNullable()) {
-            columnSqls.add("NULL");
-        } else {
-            columnSqls.add("NOT NULL");
-        }
-        if (column.getComment() != null) {
-            columnSqls.add("COMMENT '" + column.getComment() + "'");
-        }
-        return String.join(" ", columnSqls);
+    public Map<String, String> defaultParameter() {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("rewriteBatchedStatements", "true");
+        return map;
     }
 
     @Override
@@ -362,5 +214,157 @@ public class MysqlDialect implements JdbcDialect {
         }
 
         return SQLUtils.countForSubquery(connection, table.getQuery());
+    }
+
+    @Override
+    public List<String> getSQLFromSchemaChangeEvent(TablePath tablePath, SchemaChangeEvent event) {
+        List<String> sqlList = new ArrayList<>();
+        if (event instanceof AlterTableColumnsEvent) {
+            ((AlterTableColumnsEvent) event)
+                    .getEvents()
+                    .forEach(
+                            column -> {
+                                if (column instanceof AlterTableChangeColumnEvent) {
+                                    String sql =
+                                            String.format(
+                                                    "alter table %s CHANGE %s %s",
+                                                    tablePath.getFullName(),
+                                                    ((AlterTableChangeColumnEvent) column)
+                                                            .getOldColumn(),
+                                                    this.buildColumnIdentifySql(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn(),
+                                                            fieldIde));
+                                    sqlList.add(sql);
+                                } else if (column instanceof AlterTableModifyColumnEvent) {
+                                    String sql =
+                                            String.format(
+                                                    "alter table %s MODIFY COLUMN %s",
+                                                    tablePath.getFullName(),
+                                                    this.buildColumnIdentifySql(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn(),
+                                                            fieldIde));
+                                    sqlList.add(sql);
+                                } else if (column instanceof AlterTableAddColumnEvent) {
+                                    String sql =
+                                            String.format(
+                                                    "alter table %s add column %s ",
+                                                    tablePath.getFullName(),
+                                                    this.buildColumnIdentifySql(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn(),
+                                                            fieldIde));
+                                    sqlList.add(sql);
+                                } else if (column instanceof AlterTableDropColumnEvent) {
+                                    String sql =
+                                            String.format(
+                                                    "alter table %s drop column %s",
+                                                    tablePath.getFullName(),
+                                                    ((AlterTableDropColumnEvent) column)
+                                                            .getColumn());
+                                    sqlList.add(sql);
+                                } else {
+                                    throw new UnsupportedOperationException(
+                                            "Unsupported event: " + event);
+                                }
+                            });
+        }
+        return sqlList;
+    }
+
+    private String buildColumnIdentifySql(Column column, String fieldIde) {
+        final MysqlDataTypeConvertor mysqlDataTypeConvertor = new MysqlDataTypeConvertor();
+        final List<String> columnSqls = new ArrayList<>();
+        columnSqls.add(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "`"));
+        // Column name
+        SqlType dataType = column.getDataType().getSqlType();
+        boolean isBytes = StringUtils.equals(dataType.name(), SqlType.BYTES.name());
+        Long columnLength = column.getLongColumnLength();
+        if (isBytes) {
+            Long bitLen = column.getBitLen() == null ? columnLength : column.getBitLen();
+            if (bitLen >= 0 && bitLen <= 64) {
+                columnSqls.add(MysqlType.BIT.getName());
+                columnSqls.add("(" + (bitLen == 0 ? 1 : bitLen) + ")");
+            } else {
+                bitLen = bitLen == -1 ? bitLen : bitLen >> 3;
+                if (bitLen >= 0 && bitLen <= 255) {
+                    columnSqls.add(MysqlType.TINYBLOB.getName());
+                } else if (bitLen <= 16383) {
+                    columnSqls.add(MysqlType.BLOB.getName());
+                } else if (bitLen <= 16777215) {
+                    columnSqls.add(MysqlType.MEDIUMBLOB.getName());
+                } else {
+                    columnSqls.add(MysqlType.LONGBLOB.getName());
+                }
+            }
+        } else {
+            if (columnLength >= 16383 && columnLength <= 65535) {
+                columnSqls.add(MysqlType.TEXT.getName());
+            } else if (columnLength >= 65535 && columnLength <= 16777215) {
+                columnSqls.add(MysqlType.MEDIUMTEXT.getName());
+            } else if (columnLength > 16777215) {
+                columnSqls.add(MysqlType.LONGTEXT.getName());
+            } else {
+                // Column type
+                columnSqls.add(
+                        mysqlDataTypeConvertor
+                                .toConnectorType(column.getName(), column.getDataType(), null)
+                                .getName());
+                // Column length
+                // add judge is need column legth
+                if (column.getColumnLength() != null) {
+                    final String name =
+                            mysqlDataTypeConvertor
+                                    .toConnectorType(column.getName(), column.getDataType(), null)
+                                    .getName();
+                    String fieSql = "";
+                    List<String> list = new ArrayList<>();
+                    list.add(MysqlType.VARCHAR.getName());
+                    list.add(MysqlType.CHAR.getName());
+                    list.add(MysqlType.BIGINT.getName());
+                    list.add(MysqlType.INT.getName());
+                    list.add(MysqlType.SMALLINT.getName());
+                    if (StringUtils.equals(name, MysqlType.DECIMAL.getName())) {
+                        DecimalType decimalType = (DecimalType) column.getDataType();
+                        fieSql =
+                                String.format(
+                                        "(%d, %d)",
+                                        decimalType.getPrecision(), decimalType.getScale());
+                        columnSqls.add(fieSql);
+                    } else if (list.contains(name)) {
+                        if (MysqlType.VARCHAR.getName().equals(name)
+                                && column.getColumnLength() <= 0) {
+                            fieSql = "(" + "16367" + ")";
+                        } else if (MysqlType.CHAR.getName().equals(name)
+                                && column.getColumnLength() <= 0) {
+                            fieSql = "(" + "255" + ")";
+                        } else if (MysqlType.SMALLINT.getName().equals(name)
+                                && column.getColumnLength() <= 0) {
+                            fieSql = "(" + "6" + ")";
+                        } else if (MysqlType.BIGINT.getName().equals(name)
+                                && column.getColumnLength() <= 0) {
+                            fieSql = "(" + "20" + ")";
+                        } else if (MysqlType.INT.getName().equals(name)
+                                && column.getColumnLength() <= 0) {
+                            fieSql = "(" + "11" + ")";
+                        } else {
+                            fieSql = "(" + column.getColumnLength() + ")";
+                        }
+                        columnSqls.add(fieSql);
+                    }
+                }
+            }
+        }
+        // nullable
+        if (column.isNullable()) {
+            columnSqls.add("NULL");
+        } else {
+            columnSqls.add("NOT NULL");
+        }
+        if (column.getComment() != null) {
+            columnSqls.add("COMMENT '" + column.getComment() + "'");
+        }
+        return String.join(" ", columnSqls);
     }
 }

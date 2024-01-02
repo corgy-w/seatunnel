@@ -105,13 +105,13 @@ If you do not assign data schema connector will treat the upstream data as the f
 |-----------------------|
 | tyrantlucifer#26#male |
 
-If you assign data schema, you should also assign the option `delimiter` too except CSV file type
+If you assign data schema, you should also assign the option `field_delimiter` too except CSV file type
 
 you should assign schema and delimiter as the following:
 
 ```hocon
 
-delimiter = "#"
+field_delimiter = "#"
 schema {
     fields {
         name = string
@@ -219,10 +219,31 @@ The compress codec of files and the details that supported as the following show
 - orc/parquet:  
   automatically recognizes the compression type, no additional settings required.
 
-## Example
+### file_filter_pattern [string]
 
-```hocon
+Filter pattern, which used for filtering files.
 
+### schema [config]
+
+Only need to be configured when the file_format_type are text, json, excel or csv ( Or other format we can't read the schema from metadata).
+
+#### fields [Config]
+
+The schema of upstream data.
+
+## How to Create a Oss Data Synchronization Jobs
+
+The following example demonstrates how to create a data synchronization job that reads data from Oss and prints it on the local client:
+
+```bash
+# Set the basic configuration of the task to be performed
+env {
+  parallelism = 1
+  job.mode = "BATCH"
+}
+
+# Create a source to connect to Oss
+source {
   OssFile {
     path = "/seatunnel/orc"
     bucket = "oss://tyrantlucifer-image-bed"
@@ -231,11 +252,24 @@ The compress codec of files and the details that supported as the following show
     endpoint = "oss-cn-beijing.aliyuncs.com"
     file_format_type = "orc"
   }
+}
 
+# Console printing of the read Oss data
+sink {
+  Console {
+  }
+}
 ```
 
-```hocon
+```bash
+# Set the basic configuration of the task to be performed
+env {
+  parallelism = 1
+  job.mode = "BATCH"
+}
 
+# Create a source to connect to Oss
+source {
   OssFile {
     path = "/seatunnel/json"
     bucket = "oss://tyrantlucifer-image-bed"
@@ -250,12 +284,185 @@ The compress codec of files and the details that supported as the following show
       }
     }
   }
+}
+
+# Console printing of the read Oss data
+sink {
+  Console {
+  }
+}
+```
+
+### Multiple Table
+
+No need to config schema file type, eg: `orc`.
+
+```
+env {
+  parallelism = 1
+  spark.app.name = "SeaTunnel"
+  spark.executor.instances = 2
+  spark.executor.cores = 1
+  spark.executor.memory = "1g"
+  spark.master = local
+  job.mode = "BATCH"
+}
+
+source {
+  OssFile {
+    tables_configs = [
+      {
+          schema = {
+              table = "fake01"
+          }
+          bucket = "oss://whale-ops"
+          access_key = "xxxxxxxxxxxxxxxxxxx"
+          access_secret = "xxxxxxxxxxxxxxxxxxx"
+          endpoint = "https://oss-accelerate.aliyuncs.com"
+          path = "/test/seatunnel/read/orc"
+          file_format_type = "orc"
+      },
+      {
+          schema = {
+              table = "fake02"
+          }
+          bucket = "oss://whale-ops"
+          access_key = "xxxxxxxxxxxxxxxxxxx"
+          access_secret = "xxxxxxxxxxxxxxxxxxx"
+          endpoint = "https://oss-accelerate.aliyuncs.com"
+          path = "/test/seatunnel/read/orc"
+          file_format_type = "orc"
+      }
+    ]
+    result_table_name = "fake"
+  }
+}
+
+sink {
+  Assert {
+    rules {
+        table-names = ["fake01", "fake02"]
+    }
+  }
+}
+```
+
+Need config schema file type, eg: `json`
 
 ```
 
-### file_filter_pattern [string]
+env {
+  execution.parallelism = 1
+  spark.app.name = "SeaTunnel"
+  spark.executor.instances = 2
+  spark.executor.cores = 1
+  spark.executor.memory = "1g"
+  spark.master = local
+  job.mode = "BATCH"
+}
 
-Filter pattern, which used for filtering files.
+source {
+  OssFile {
+    tables_configs = [
+      {
+          bucket = "oss://whale-ops"
+          access_key = "xxxxxxxxxxxxxxxxxxx"
+          access_secret = "xxxxxxxxxxxxxxxxxxx"
+          endpoint = "https://oss-accelerate.aliyuncs.com"
+          path = "/test/seatunnel/read/json"
+          file_format_type = "json"
+          schema = {
+            table = "fake01"
+            fields {
+              c_map = "map<string, string>"
+              c_array = "array<int>"
+              c_string = string
+              c_boolean = boolean
+              c_tinyint = tinyint
+              c_smallint = smallint
+              c_int = int
+              c_bigint = bigint
+              c_float = float
+              c_double = double
+              c_bytes = bytes
+              c_date = date
+              c_decimal = "decimal(38, 18)"
+              c_timestamp = timestamp
+              c_row = {
+                C_MAP = "map<string, string>"
+                C_ARRAY = "array<int>"
+                C_STRING = string
+                C_BOOLEAN = boolean
+                C_TINYINT = tinyint
+                C_SMALLINT = smallint
+                C_INT = int
+                C_BIGINT = bigint
+                C_FLOAT = float
+                C_DOUBLE = double
+                C_BYTES = bytes
+                C_DATE = date
+                C_DECIMAL = "decimal(38, 18)"
+                C_TIMESTAMP = timestamp
+              }
+            }
+          }
+      },
+      {
+          bucket = "oss://whale-ops"
+          access_key = "xxxxxxxxxxxxxxxxxxx"
+          access_secret = "xxxxxxxxxxxxxxxxxxx"
+          endpoint = "https://oss-accelerate.aliyuncs.com"
+          path = "/test/seatunnel/read/json"
+          file_format_type = "json"
+          schema = {
+            table = "fake02"
+            fields {
+              c_map = "map<string, string>"
+              c_array = "array<int>"
+              c_string = string
+              c_boolean = boolean
+              c_tinyint = tinyint
+              c_smallint = smallint
+              c_int = int
+              c_bigint = bigint
+              c_float = float
+              c_double = double
+              c_bytes = bytes
+              c_date = date
+              c_decimal = "decimal(38, 18)"
+              c_timestamp = timestamp
+              c_row = {
+                C_MAP = "map<string, string>"
+                C_ARRAY = "array<int>"
+                C_STRING = string
+                C_BOOLEAN = boolean
+                C_TINYINT = tinyint
+                C_SMALLINT = smallint
+                C_INT = int
+                C_BIGINT = bigint
+                C_FLOAT = float
+                C_DOUBLE = double
+                C_BYTES = bytes
+                C_DATE = date
+                C_DECIMAL = "decimal(38, 18)"
+                C_TIMESTAMP = timestamp
+              }
+            }
+          }
+      }
+    ]
+    result_table_name = "fake"
+  }
+}
+
+sink {
+  Assert {
+    rules {
+      table-names = ["fake01", "fake02"]
+    }
+  }
+}
+```
 
 ## Changelog
 
@@ -268,4 +475,8 @@ Filter pattern, which used for filtering files.
 - [BugFix] Fix the bug of incorrect path in windows environment ([2980](https://github.com/apache/seatunnel/pull/2980))
 - [Improve] Support extract partition from SeaTunnelRow fields ([3085](https://github.com/apache/seatunnel/pull/3085))
 - [Improve] Support parse field from file path ([2985](https://github.com/apache/seatunnel/pull/2985))
+
+### Tips
+
+> 1.[SeaTunnel Deployment Document](../../start-v2/locally/deployment.md).
 

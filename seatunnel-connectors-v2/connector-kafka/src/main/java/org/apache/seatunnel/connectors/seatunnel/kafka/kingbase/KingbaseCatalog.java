@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.kafka.kingbase;
 
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
@@ -29,6 +30,10 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseAlreadyExistExce
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 
 import org.apache.commons.lang3.StringUtils;
@@ -43,12 +48,15 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -103,6 +111,11 @@ public class KingbaseCatalog implements Catalog {
 
     @Override
     public void close() throws CatalogException {}
+
+    @Override
+    public String name() {
+        return catalogName;
+    }
 
     @Override
     public String getDefaultDatabase() throws CatalogException {
@@ -184,23 +197,10 @@ public class KingbaseCatalog implements Catalog {
                             tablePath.getSchemaName(),
                             tablePath.getTableName(),
                             null)) {
-                while (resultSet.next()) {
-                    String columnName = resultSet.getString("COLUMN_NAME");
-                    int columnDisplaySize = resultSet.getInt("COLUMN_SIZE");
-                    String defaultValue = resultSet.getString("COLUMN_DEF");
-                    PhysicalColumn physicalColumn =
-                            PhysicalColumn.of(
-                                    columnName,
-                                    KingbaseTypeConvertor.mapping(resultSet),
-                                    columnDisplaySize,
-                                    Boolean.parseBoolean(
-                                            resultSet.getObject("IS_NULLABLE").toString()),
-                                    defaultValue,
-                                    resultSet.getString("REMARKS"));
-                    builder.column(physicalColumn);
-                }
+
+                buildColumnsWithErrorCheck(tablePath, resultSet, builder);
+                primaryKey.ifPresent(builder::primaryKey);
             }
-            primaryKey.ifPresent(builder::primaryKey);
             TableIdentifier tableIdentifier =
                     TableIdentifier.of(
                             catalogName,
@@ -212,6 +212,62 @@ public class KingbaseCatalog implements Catalog {
         } catch (Exception e) {
             throw new CatalogException("get table fields failed", e);
         }
+    }
+
+    protected void buildColumnsWithErrorCheck(
+            TablePath tablePath, ResultSet resultSet, TableSchema.Builder builder)
+            throws SQLException {
+        Map<String, String> unsupported = new LinkedHashMap<>();
+        while (resultSet.next()) {
+            try {
+                builder.column(buildColumn(resultSet));
+            } catch (SeaTunnelRuntimeException e) {
+                if (e.getSeaTunnelErrorCode()
+                        .equals(CommonErrorCode.CONVERT_TO_SEATUNNEL_TYPE_ERROR_SIMPLE)) {
+                    unsupported.put(e.getParams().get("field"), e.getParams().get("dataType"));
+                } else {
+                    throw e;
+                }
+            }
+        }
+        if (!unsupported.isEmpty()) {
+            throw CommonError.getCatalogTableWithUnsupportedType(
+                    catalogName, tablePath.getFullName(), unsupported);
+        }
+    }
+
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
+        String pgType = resultSet.getString("TYPE_NAME").toUpperCase();
+        String columnName = resultSet.getString("COLUMN_NAME");
+        int columnDisplaySize = resultSet.getInt("COLUMN_SIZE");
+        String defaultValue = resultSet.getString("COLUMN_DEF");
+        int columnSize = resultSet.getInt("COLUMN_SIZE");
+        int decimalDigits = resultSet.getInt("DECIMAL_DIGITS");
+        int nullable = resultSet.getInt("NULLABLE");
+        String remarks = resultSet.getString("REMARKS");
+
+        return PhysicalColumn.of(
+                columnName,
+                fromJdbcType(columnName, pgType, columnSize, decimalDigits),
+                columnDisplaySize,
+                nullable != ResultSetMetaData.columnNoNulls,
+                defaultValue,
+                remarks,
+                pgType,
+                false,
+                false,
+                (long) columnSize << 2,
+                new HashMap<>(),
+                (long) columnSize);
+    }
+
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
+        Map<String, Object> dataTypeProperties = new HashMap<>();
+        dataTypeProperties.put(KingbaseTypeConvertor.PRECISION, precision);
+        dataTypeProperties.put(KingbaseTypeConvertor.SCALE, scale);
+        return new KingbaseTypeConvertor()
+                .toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     private Optional<PrimaryKey> getPrimaryKey(

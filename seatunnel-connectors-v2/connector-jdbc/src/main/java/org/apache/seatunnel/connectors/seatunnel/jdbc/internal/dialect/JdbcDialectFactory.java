@@ -42,17 +42,13 @@ public interface JdbcDialectFactory {
         return create();
     }
 
-    default JdbcDialect createWithCompatible(String compatibleMode) {
-        return create();
-    }
-
     /**
      * Create a {@link JdbcDialect} instance based on the driver type and compatible mode.
      *
      * @param compatibleMode The compatible mode
      * @return a new instance of {@link JdbcDialect}
      */
-    default JdbcDialect create(String compatibleMode, String fieldIde) {
+    default JdbcDialect create(String compatibleMode, String fieldId) {
         return create();
     }
 }

@@ -20,8 +20,6 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 
-import org.apache.commons.lang3.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,15 +97,8 @@ public final class JdbcDialectLoader {
                                     .sorted()
                                     .collect(Collectors.joining("\n"))));
         }
-        if (StringUtils.isNotEmpty(fieldIde) && StringUtils.isNotEmpty(compatibleMode)) {
-            return matchingFactories.get(0).create(compatibleMode, fieldIde);
-        } else if (StringUtils.isNotEmpty(fieldIde)) {
-            return matchingFactories.get(0).createWithFieldIde(fieldIde);
-        } else if (StringUtils.isNotEmpty(compatibleMode)) {
-            return matchingFactories.get(0).createWithCompatible(compatibleMode);
-        } else {
-            return matchingFactories.get(0).create();
-        }
+
+        return matchingFactories.get(0).create(compatibleMode, fieldIde);
     }
 
     private static List<JdbcDialectFactory> discoverFactories(ClassLoader classLoader) {

@@ -69,6 +69,10 @@ public class MySqlIncrementalSourceFactory implements TableSourceFactory {
                 .optional(MySqlSourceOptions.STARTUP_MODE, MySqlSourceOptions.STOP_MODE)
                 .conditional(
                         MySqlSourceOptions.STARTUP_MODE,
+                        StartupMode.INITIAL,
+                        SourceOptions.EXACTLY_ONCE)
+                .conditional(
+                        MySqlSourceOptions.STARTUP_MODE,
                         StartupMode.SPECIFIC,
                         SourceOptions.STARTUP_SPECIFIC_OFFSET_FILE,
                         SourceOptions.STARTUP_SPECIFIC_OFFSET_POS)
@@ -77,18 +81,6 @@ public class MySqlIncrementalSourceFactory implements TableSourceFactory {
                         StopMode.SPECIFIC,
                         SourceOptions.STOP_SPECIFIC_OFFSET_FILE,
                         SourceOptions.STOP_SPECIFIC_OFFSET_POS)
-                .conditional(
-                        MySqlSourceOptions.STARTUP_MODE,
-                        StartupMode.TIMESTAMP,
-                        SourceOptions.STARTUP_TIMESTAMP)
-                .conditional(
-                        MySqlSourceOptions.STOP_MODE,
-                        StopMode.TIMESTAMP,
-                        SourceOptions.STOP_TIMESTAMP)
-                .conditional(
-                        MySqlSourceOptions.STARTUP_MODE,
-                        StartupMode.INITIAL,
-                        SourceOptions.EXACTLY_ONCE)
                 .build();
     }
 
@@ -102,7 +94,7 @@ public class MySqlIncrementalSourceFactory implements TableSourceFactory {
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
         return () -> {
             List<CatalogTable> catalogTables =
-                    CatalogTableUtil.getCatalogTablesFromConfig(
+                    CatalogTableUtil.getCatalogTables(
                             context.getOptions(), context.getClassLoader());
             SeaTunnelDataType<SeaTunnelRow> dataType =
                     CatalogTableUtil.convertToMultipleRowType(catalogTables);

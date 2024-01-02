@@ -19,10 +19,13 @@ package org.apache.seatunnel.connectors.seatunnel.starrocks.config;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
+import org.apache.seatunnel.api.configuration.SingleChoiceOption;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
+import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.config.SinkConfig.StreamLoadFormat;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -58,6 +61,7 @@ public interface StarRocksSinkOptions {
                     .stringType()
                     .defaultValue(
                             "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (\n"
+                                    + "${rowtype_primary_key},\n"
                                     + "${rowtype_fields}\n"
                                     + ") ENGINE=OLAP\n"
                                     + " PRIMARY KEY (${rowtype_primary_key})\n"
@@ -73,21 +77,14 @@ public interface StarRocksSinkOptions {
                     .intType()
                     .defaultValue(1024)
                     .withDescription(
-                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches batch_interval_ms, the data will be flushed into the StarRocks");
+                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches checkpoint.interval, the data will be flushed into the StarRocks");
 
     Option<Long> BATCH_MAX_BYTES =
             Options.key("batch_max_bytes")
                     .longType()
                     .defaultValue((long) (5 * 1024 * 1024))
                     .withDescription(
-                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches batch_interval_ms, the data will be flushed into the StarRocks");
-
-    Option<Integer> BATCH_INTERVAL_MS =
-            Options.key("batch_interval_ms")
-                    .intType()
-                    .noDefaultValue()
-                    .withDescription(
-                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches batch_interval_ms, the data will be flushed into the StarRocks");
+                            "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches checkpoint.interval, the data will be flushed into the StarRocks");
 
     Option<Integer> MAX_RETRIES =
             Options.key("max_retries")
@@ -147,13 +144,21 @@ public interface StarRocksSinkOptions {
                     .enumType(SchemaSaveMode.class)
                     .defaultValue(SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST)
                     .withDescription("schema_save_mode");
-    Option<DataSaveMode> DATA_SAVE_MODE =
-            Options.key("data_save_mode")
-                    .enumType(DataSaveMode.class)
+
+    SingleChoiceOption<DataSaveMode> DATA_SAVE_MODE =
+            Options.key(SupportSaveMode.DATA_SAVE_MODE_KEY)
+                    .singleChoice(
+                            DataSaveMode.class, Arrays.asList(DataSaveMode.KEEP_SCHEMA_AND_DATA))
                     .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
                     .withDescription(
                             "Table structure and data processing methods that already exist on the target end");
 
     Option<String> CUSTOM_SQL =
             Options.key("custom_sql").stringType().noDefaultValue().withDescription("custom_sql");
+
+    Option<Integer> HTTP_SOCKET_TIMEOUT_MS =
+            Options.key("http_socket_timeout_ms")
+                    .intType()
+                    .defaultValue(3 * 60 * 1000)
+                    .withDescription("Set http socket timeout, default is 3 minutes.");
 }

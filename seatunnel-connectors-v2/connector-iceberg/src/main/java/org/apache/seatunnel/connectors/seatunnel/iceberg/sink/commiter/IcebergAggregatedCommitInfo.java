@@ -25,7 +25,6 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.List;
 
-/** @Author: Liuli @Date: 2023/7/12 18:31 */
 @Data
 @AllArgsConstructor
 public class IcebergAggregatedCommitInfo implements Serializable {

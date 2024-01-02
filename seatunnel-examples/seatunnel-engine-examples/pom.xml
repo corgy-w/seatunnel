@@ -38,12 +38,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client</artifactId>
-            <version>${hadoop3.version}</version>
-        </dependency>
-
         <!--   seatunnel-transforms-v2   -->
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
@@ -76,18 +70,18 @@
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-jdbc</artifactId>
+            <artifactId>connector-fake</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-dolphindb</artifactId>
+            <artifactId>connector-dolphindb-wt</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-dws-gaussdb</artifactId>
+            <artifactId>connector-dws-gaussdb-wt</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -99,7 +93,7 @@
 
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-cdc-agent-oracle</artifactId>
+            <artifactId>connector-cdc-agent-oracle-wt</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -30,10 +30,9 @@ import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
+import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSource;
-import org.apache.seatunnel.api.table.type.MultipleRowType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 
 import org.slf4j.Logger;
@@ -44,7 +43,6 @@ import scala.Tuple2;
 
 import java.io.Serializable;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -62,7 +60,7 @@ public final class FactoryUtil {
 
     private static final Logger LOG = LoggerFactory.getLogger(FactoryUtil.class);
 
-    static final String DEFAULT_ID = "default-identifier";
+    public static final String DEFAULT_ID = "default-identifier";
 
     public static <T, SplitT extends SourceSplit, StateT extends Serializable>
             Tuple2<SeaTunnelSource<T, SplitT, StateT>, List<CatalogTable>> createAndPrepareSource(
@@ -81,20 +79,16 @@ public final class FactoryUtil {
                 SeaTunnelDataType<T> seaTunnelDataType = source.getProducedType();
                 final String tableId =
                         options.getOptional(CommonOptions.RESULT_TABLE_NAME).orElse(DEFAULT_ID);
-                if (seaTunnelDataType instanceof MultipleRowType) {
-                    catalogTables = new ArrayList<>();
-                    for (String id : ((MultipleRowType) seaTunnelDataType).getTableIds()) {
-                        catalogTables.add(
-                                CatalogTableUtil.getCatalogTable(
-                                        id, ((MultipleRowType) seaTunnelDataType).getRowType(id)));
-                    }
-                } else {
-                    catalogTables =
-                            Collections.singletonList(
-                                    CatalogTableUtil.getCatalogTable(
-                                            tableId, (SeaTunnelRowType) seaTunnelDataType));
-                }
+                catalogTables =
+                        CatalogTableUtil.convertDataTypeToCatalogTables(seaTunnelDataType, tableId);
             }
+            LOG.info(
+                    "get the CatalogTable from source {}: {}",
+                    source.getPluginName(),
+                    catalogTables.stream()
+                            .map(CatalogTable::getTableId)
+                            .map(TableIdentifier::toString)
+                            .collect(Collectors.joining(",")));
             if (options.get(SourceOptions.DAG_PARSING_MODE) == ParsingMode.SHARDING) {
                 CatalogTable catalogTable = catalogTables.get(0);
                 catalogTables.clear();

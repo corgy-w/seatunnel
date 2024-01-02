@@ -63,7 +63,7 @@ public class DbfWriteStrategy extends AbstractWriteStrategy {
             return dbfWriter;
         }
         try {
-            FSDataOutputStream outputStream = fileSystemUtils.getOutputStream(filePath);
+            FSDataOutputStream outputStream = hadoopFileSystemProxy.getOutputStream(filePath);
             DBFWriter newWriter = new DBFWriter(outputStream, StandardCharsets.UTF_8);
             newWriter.setFields(dbfSerializer.getDbfFields());
             beingWrittenWriter.put(filePath, newWriter);

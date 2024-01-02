@@ -26,7 +26,6 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
-import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -36,6 +35,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectLoader;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -83,100 +83,142 @@ public class JdbcSinkFactory implements TableSinkFactory {
         return "Jdbc";
     }
 
+    private ReadonlyConfig getCatalogOptions(TableSinkFactoryContext context) {
+        ReadonlyConfig config = context.getOptions();
+        // TODO Remove obsolete code
+        Optional<Map<String, String>> catalogOptions =
+                config.getOptional(CatalogOptions.CATALOG_OPTIONS);
+        if (catalogOptions.isPresent()) {
+            return ReadonlyConfig.fromMap(new HashMap<>(catalogOptions.get()));
+        }
+        return config;
+    }
+
     @Override
     public TableSink createSink(TableSinkFactoryContext context) {
         ReadonlyConfig config = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
-        Map<String, String> catalogOptions = config.get(CatalogOptions.CATALOG_OPTIONS);
-        if (catalogOptions != null && !catalogOptions.isEmpty()) {
-
-            String fullTableName = String.format("%s.%s", config.get(DATABASE), config.get(TABLE));
-
-            // to replace databaseName, schemaName, tableName
-            fullTableName = replaceFullTableName(fullTableName, catalogTable.getTableId());
-
-            TablePath tablePath = TablePath.of(fullTableName);
-
-            // to replace schemaName
-            if (StringUtils.isNotBlank(catalogOptions.get(JdbcCatalogOptions.SCHEMA.key()))) {
-                tablePath =
-                        TablePath.of(
-                                tablePath.getDatabaseName(),
-                                catalogOptions.get(JdbcCatalogOptions.SCHEMA.key()),
-                                tablePath.getTableName());
-            }
-            // to add tablePrefix and tableSuffix
-            String prefix = catalogOptions.get(JdbcCatalogOptions.TABLE_PREFIX.key());
-            String suffix = catalogOptions.get(JdbcCatalogOptions.TABLE_SUFFIX.key());
-            if (StringUtils.isNotEmpty(prefix) || StringUtils.isNotEmpty(suffix)) {
-                String tempTableName;
-                String sinkTableName = tablePath.getTableName();
-                tempTableName =
-                        StringUtils.isNotEmpty(prefix) ? prefix + sinkTableName : sinkTableName;
-                tempTableName =
-                        StringUtils.isNotEmpty(suffix) ? tempTableName + suffix : tempTableName;
-                tablePath =
-                        TablePath.of(
-                                tablePath.getDatabaseName(),
-                                tablePath.getSchemaName(),
-                                tempTableName);
-            }
-            // rebuild TableIdentifier and catalogTable
-            TableIdentifier newTableId =
-                    TableIdentifier.of(catalogTable.getTableId().getCatalogName(), tablePath);
-            catalogTable =
-                    CatalogTable.of(
-                            newTableId,
-                            catalogTable.getTableSchema(),
-                            catalogTable.getOptions(),
-                            catalogTable.getPartitionKeys(),
-                            catalogTable.getComment(),
-                            catalogTable.getCatalogName());
-            Map<String, String> map = config.toMap();
-            if (catalogTable.getTableId().getSchemaName() != null) {
-                map.put(
-                        TABLE.key(),
-                        catalogTable.getTableId().getSchemaName()
-                                + "."
-                                + catalogTable.getTableId().getTableName());
-            } else {
-                map.put(TABLE.key(), catalogTable.getTableId().getTableName());
-            }
-            map.put(DATABASE.key(), catalogTable.getTableId().getDatabaseName());
-            PrimaryKey primaryKey = catalogTable.getTableSchema().getPrimaryKey();
-            if (primaryKey != null && !CollectionUtils.isEmpty(primaryKey.getColumnNames())) {
-                map.put(PRIMARY_KEYS.key(), String.join(",", primaryKey.getColumnNames()));
-            } else {
-                Optional<ConstraintKey> keyOptional =
-                        catalogTable.getTableSchema().getConstraintKeys().stream()
-                                .filter(
-                                        key ->
-                                                ConstraintKey.ConstraintType.UNIQUE_KEY.equals(
-                                                        key.getConstraintType()))
-                                .findFirst();
-                if (keyOptional.isPresent()) {
-                    map.put(
-                            PRIMARY_KEYS.key(),
-                            keyOptional.get().getColumnNames().stream()
-                                    .map(key -> key.getColumnName())
-                                    .collect(Collectors.joining(",")));
-                }
-            }
-            config = ReadonlyConfig.fromMap(new HashMap<>(map));
+        ReadonlyConfig catalogOptions = getCatalogOptions(context);
+        Optional<String> optionalTable = config.getOptional(TABLE);
+        Optional<String> optionalDatabase = config.getOptional(DATABASE);
+        Optional<String> queryOptional = config.getOptional(QUERY);
+        if (!optionalTable.isPresent() && !queryOptional.isPresent()) {
+            optionalTable = Optional.of(REPLACE_TABLE_NAME_KEY);
         }
+        // get source table relevant information
+        TableIdentifier tableId = catalogTable.getTableId();
+        String sourceDatabaseName = tableId.getDatabaseName();
+        String sourceSchemaName = tableId.getSchemaName();
+        String sourceTableName = tableId.getTableName();
+        // get sink table relevant information
+        String sinkDatabaseName = optionalDatabase.orElse(REPLACE_DATABASE_NAME_KEY);
+        String sinkTableNameBefore = optionalTable.get();
+        String[] sinkTableSplitArray = sinkTableNameBefore.split("\\.");
+        String sinkTableName = sinkTableSplitArray[sinkTableSplitArray.length - 1];
+        String sinkSchemaName;
+        if (sinkTableSplitArray.length > 1) {
+            sinkSchemaName = sinkTableSplitArray[sinkTableSplitArray.length - 2];
+        } else {
+            sinkSchemaName = null;
+        }
+        if (StringUtils.isNotBlank(catalogOptions.get(JdbcCatalogOptions.SCHEMA))) {
+            sinkSchemaName = catalogOptions.get(JdbcCatalogOptions.SCHEMA);
+        }
+        // to add tablePrefix and tableSuffix
+        String tempTableName;
+        String prefix = catalogOptions.get(JdbcCatalogOptions.TABLE_PREFIX);
+        String suffix = catalogOptions.get(JdbcCatalogOptions.TABLE_SUFFIX);
+        if (StringUtils.isNotEmpty(prefix) || StringUtils.isNotEmpty(suffix)) {
+            tempTableName = StringUtils.isNotEmpty(prefix) ? prefix + sinkTableName : sinkTableName;
+            tempTableName = StringUtils.isNotEmpty(suffix) ? tempTableName + suffix : tempTableName;
+
+        } else {
+            tempTableName = sinkTableName;
+        }
+        // to replace
+        String finalDatabaseName = sinkDatabaseName;
+        if (StringUtils.isNotEmpty(sourceDatabaseName)) {
+            finalDatabaseName =
+                    sinkDatabaseName.replace(REPLACE_DATABASE_NAME_KEY, sourceDatabaseName);
+        }
+
+        String finalSchemaName;
+        if (sinkSchemaName != null) {
+            if (sourceSchemaName == null) {
+                finalSchemaName = sinkSchemaName;
+            } else {
+                finalSchemaName = sinkSchemaName.replace(REPLACE_SCHEMA_NAME_KEY, sourceSchemaName);
+            }
+        } else {
+            finalSchemaName = null;
+        }
+        String finalTableName = sinkTableName;
+        if (StringUtils.isNotEmpty(sourceTableName)) {
+            finalTableName = tempTableName.replace(REPLACE_TABLE_NAME_KEY, sourceTableName);
+        }
+
+        // rebuild TableIdentifier and catalogTable
+        TableIdentifier newTableId =
+                TableIdentifier.of(
+                        tableId.getCatalogName(),
+                        finalDatabaseName,
+                        finalSchemaName,
+                        finalTableName);
+        catalogTable =
+                CatalogTable.of(
+                        newTableId,
+                        catalogTable.getTableSchema(),
+                        catalogTable.getOptions(),
+                        catalogTable.getPartitionKeys(),
+                        catalogTable.getComment(),
+                        catalogTable.getCatalogName());
+        Map<String, String> map = config.toMap();
+        if (catalogTable.getTableId().getSchemaName() != null) {
+            map.put(
+                    TABLE.key(),
+                    catalogTable.getTableId().getSchemaName()
+                            + "."
+                            + catalogTable.getTableId().getTableName());
+        } else {
+            map.put(TABLE.key(), catalogTable.getTableId().getTableName());
+        }
+        map.put(DATABASE.key(), catalogTable.getTableId().getDatabaseName());
+        PrimaryKey primaryKey = catalogTable.getTableSchema().getPrimaryKey();
+        if (primaryKey != null && !CollectionUtils.isEmpty(primaryKey.getColumnNames())) {
+            map.put(PRIMARY_KEYS.key(), String.join(",", primaryKey.getColumnNames()));
+        } else {
+            Optional<ConstraintKey> keyOptional =
+                    catalogTable.getTableSchema().getConstraintKeys().stream()
+                            .filter(
+                                    key ->
+                                            ConstraintKey.ConstraintType.UNIQUE_KEY.equals(
+                                                    key.getConstraintType()))
+                            .findFirst();
+            if (keyOptional.isPresent()) {
+                map.put(
+                        PRIMARY_KEYS.key(),
+                        keyOptional.get().getColumnNames().stream()
+                                .map(key -> key.getColumnName())
+                                .collect(Collectors.joining(",")));
+            }
+        }
+        config = ReadonlyConfig.fromMap(new HashMap<>(map));
         // always execute
         final ReadonlyConfig options = config;
         JdbcSinkConfig sinkConfig = JdbcSinkConfig.of(config);
-        String fieldIde =
-                config.get(JdbcOptions.FIELD_IDE) == null
-                        ? null
-                        : config.get(JdbcOptions.FIELD_IDE).getValue();
-        catalogTable.getOptions().put("fieldIde", fieldIde);
+        FieldIdeEnum fieldIdeEnum = config.get(JdbcOptions.FIELD_IDE);
+        catalogTable
+                .getOptions()
+                .put("fieldIde", fieldIdeEnum == null ? null : fieldIdeEnum.getValue());
         JdbcDialect dialect =
                 JdbcDialectLoader.load(
                         sinkConfig.getJdbcConnectionConfig().getUrl(),
                         sinkConfig.getJdbcConnectionConfig().getCompatibleMode(),
-                        fieldIde);
+                        fieldIdeEnum == null ? null : fieldIdeEnum.getValue());
+        dialect.connectionUrlParse(
+                sinkConfig.getJdbcConnectionConfig().getUrl(),
+                sinkConfig.getJdbcConnectionConfig().getProperties(),
+                dialect.defaultParameter());
         CatalogTable finalCatalogTable = catalogTable;
         // get saveMode
         DataSaveMode dataSaveMode = config.get(DATA_SAVE_MODE);

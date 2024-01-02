@@ -60,12 +60,12 @@ public class StarRocksSinkFactory implements TableSinkFactory {
                         StarRocksSinkOptions.LABEL_PREFIX,
                         StarRocksSinkOptions.BATCH_MAX_SIZE,
                         StarRocksSinkOptions.BATCH_MAX_BYTES,
-                        StarRocksSinkOptions.BATCH_INTERVAL_MS,
                         StarRocksSinkOptions.MAX_RETRIES,
                         StarRocksSinkOptions.MAX_RETRY_BACKOFF_MS,
                         StarRocksSinkOptions.RETRY_BACKOFF_MULTIPLIER_MS,
                         StarRocksSinkOptions.STARROCKS_CONFIG,
                         StarRocksSinkOptions.ENABLE_UPSERT_DELETE,
+                        StarRocksSinkOptions.HTTP_SOCKET_TIMEOUT_MS,
                         StarRocksSinkOptions.SAVE_MODE_CREATE_TEMPLATE)
                 .conditional(
                         DATA_SAVE_MODE,
