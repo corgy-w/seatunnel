@@ -131,7 +131,9 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
         return new SeaTunnelRow(fields);
     }
 
-    public Object[] convertToArray(ResultSet rs, int resultSetIndex, SeaTunnelDataType<?> seaTunnelDataType) throws SQLException {
+    public Object[] convertToArray(
+            ResultSet rs, int resultSetIndex, SeaTunnelDataType<?> seaTunnelDataType)
+            throws SQLException {
         Array array = rs.getArray(resultSetIndex);
         if (array != null) {
             Object[] elementArr = (Object[]) array.getArray();
