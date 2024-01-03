@@ -139,7 +139,7 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
 
     @Override
     public DataSourceDialect<JdbcSourceConfig> createDataSourceDialect(ReadonlyConfig config) {
-        return new MySqlDialect((MySqlSourceConfigFactory) configFactory);
+        return new MySqlDialect((MySqlSourceConfigFactory) configFactory, catalogTables);
     }
 
     @Override
@@ -151,7 +151,8 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
 
     private Map<TableId, Struct> tableChanges() {
         JdbcSourceConfig jdbcSourceConfig = configFactory.create(0);
-        MySqlDialect mySqlDialect = new MySqlDialect((MySqlSourceConfigFactory) configFactory);
+        MySqlDialect mySqlDialect =
+                new MySqlDialect((MySqlSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = mySqlDialect.discoverDataCollections(jdbcSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
                 new ConnectTableChangeSerializer();

@@ -126,7 +126,7 @@ public class SqlServerIncrementalSource<T> extends IncrementalSource<T, JdbcSour
 
     @Override
     public DataSourceDialect<JdbcSourceConfig> createDataSourceDialect(ReadonlyConfig config) {
-        return new SqlServerDialect((SqlServerSourceConfigFactory) configFactory);
+        return new SqlServerDialect((SqlServerSourceConfigFactory) configFactory, catalogTables);
     }
 
     @Override
@@ -138,7 +138,7 @@ public class SqlServerIncrementalSource<T> extends IncrementalSource<T, JdbcSour
     private Map<TableId, Struct> tableChanges() {
         JdbcSourceConfig jdbcSourceConfig = configFactory.create(0);
         SqlServerDialect dialect =
-                new SqlServerDialect((SqlServerSourceConfigFactory) configFactory);
+                new SqlServerDialect((SqlServerSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
                 new ConnectTableChangeSerializer();

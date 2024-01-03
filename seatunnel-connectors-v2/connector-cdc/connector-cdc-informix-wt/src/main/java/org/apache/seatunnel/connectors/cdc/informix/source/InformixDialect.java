@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.connectors.cdc.informix.source;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
@@ -26,6 +29,7 @@ import org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter.Chunk
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.JdbcSourceFetchTaskContext;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
+import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.cdc.informix.config.InformixSourceConfig;
 import org.apache.seatunnel.connectors.cdc.informix.config.InformixSourceConfigFactory;
 import org.apache.seatunnel.connectors.cdc.informix.source.eumerator.InformixChunkSplitter;
@@ -43,19 +47,24 @@ import io.debezium.relational.history.TableChanges;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class InformixDialect implements JdbcDataSourceDialect {
     private final InformixSourceConfig sourceConfig;
     private transient InformixSchema informixSchema;
 
     private transient volatile Lsn globalLsn;
+    private final Map<TableId, CatalogTable> tableMap;
 
-    public InformixDialect(InformixSourceConfigFactory configFactory) {
-        this(configFactory.create(0));
+    public InformixDialect(
+            InformixSourceConfigFactory configFactory, List<CatalogTable> catalogTables) {
+        this(configFactory.create(0), catalogTables);
     }
 
-    public InformixDialect(InformixSourceConfig sourceConfig) {
+    public InformixDialect(InformixSourceConfig sourceConfig, List<CatalogTable> catalogTables) {
         this.sourceConfig = sourceConfig;
+        this.tableMap = CatalogTableUtils.convertTables(catalogTables);
     }
 
     @Override
@@ -111,7 +120,7 @@ public class InformixDialect implements JdbcDataSourceDialect {
         if (informixSchema == null) {
             synchronized (this) {
                 if (informixSchema == null) {
-                    informixSchema = new InformixSchema();
+                    informixSchema = new InformixSchema(tableMap);
                 }
             }
         }
@@ -139,5 +148,15 @@ public class InformixDialect implements JdbcDataSourceDialect {
         } else {
             return new InformixCDCLogFetchTask(sourceSplitBase.asIncrementalSplit());
         }
+    }
+
+    @Override
+    public Optional<PrimaryKey> getPrimaryKey(JdbcConnection jdbcConnection, TableId tableId) {
+        return Optional.ofNullable(tableMap.get(tableId).getTableSchema().getPrimaryKey());
+    }
+
+    @Override
+    public List<ConstraintKey> getConstraintKeys(JdbcConnection jdbcConnection, TableId tableId) {
+        return tableMap.get(tableId).getTableSchema().getConstraintKeys();
     }
 }

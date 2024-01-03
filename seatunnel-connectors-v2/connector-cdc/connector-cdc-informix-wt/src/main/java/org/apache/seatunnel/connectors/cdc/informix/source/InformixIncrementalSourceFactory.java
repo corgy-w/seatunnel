@@ -23,15 +23,18 @@ import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.seatunnel.api.table.catalog.CatalogOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceTableConfig;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
 import org.apache.seatunnel.connectors.cdc.base.option.SourceOptions;
 import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
+import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.cdc.informix.config.InformixSourceOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
 
@@ -39,6 +42,7 @@ import com.google.auto.service.AutoService;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 @AutoService(Factory.class)
 public class InformixIncrementalSourceFactory implements TableSourceFactory {
@@ -62,7 +66,8 @@ public class InformixIncrementalSourceFactory implements TableSourceFactory {
                         JdbcSourceOptions.CONNECT_TIMEOUT_MS,
                         JdbcSourceOptions.CONNECT_MAX_RETRIES,
                         JdbcSourceOptions.CONNECTION_POOL_SIZE,
-                        InformixSourceOptions.STARTUP_MODE)
+                        InformixSourceOptions.STARTUP_MODE,
+                        JdbcSourceOptions.TABLE_NAMES_CONFIG)
                 .conditional(
                         InformixSourceOptions.STARTUP_MODE,
                         StartupMode.INITIAL,
@@ -77,6 +82,13 @@ public class InformixIncrementalSourceFactory implements TableSourceFactory {
             List<CatalogTable> catalogTables =
                     CatalogTableUtil.getCatalogTables(
                             context.getOptions(), context.getClassLoader());
+            Optional<List<JdbcSourceTableConfig>> tableConfigs =
+                    context.getOptions().getOptional(JdbcSourceOptions.TABLE_NAMES_CONFIG);
+            if (tableConfigs.isPresent()) {
+                catalogTables =
+                        CatalogTableUtils.mergeCatalogTableConfig(
+                                catalogTables, tableConfigs.get(), s -> TablePath.of(s, true));
+            }
             SeaTunnelDataType<SeaTunnelRow> dataType =
                     CatalogTableUtil.convertToMultipleRowType(catalogTables);
             return (SeaTunnelSource<T, SplitT, StateT>)

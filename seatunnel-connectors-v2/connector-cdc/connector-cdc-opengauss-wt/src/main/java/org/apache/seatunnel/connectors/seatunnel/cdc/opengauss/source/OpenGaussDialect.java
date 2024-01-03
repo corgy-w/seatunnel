@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
@@ -26,6 +29,7 @@ import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask
 import org.apache.seatunnel.connectors.cdc.base.source.split.IncrementalSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SnapshotSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
+import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.config.OpenGaussSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.config.OpenGaussSourceConfigFactory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.enumerator.OpenGaussChunkSplitter;
@@ -48,6 +52,8 @@ import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class OpenGaussDialect implements JdbcDataSourceDialect {
 
@@ -55,9 +61,12 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
     private final OpenGaussSourceConfig sourceConfig;
 
     private transient OpenGaussSchema postgresSchema;
+    private final Map<TableId, CatalogTable> tableMap;
 
-    public OpenGaussDialect(OpenGaussSourceConfigFactory configFactory) {
+    public OpenGaussDialect(
+            OpenGaussSourceConfigFactory configFactory, List<CatalogTable> catalogTables) {
         this.sourceConfig = configFactory.create(0);
+        this.tableMap = CatalogTableUtils.convertTables(catalogTables);
     }
 
     @Override
@@ -114,7 +123,7 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
     @Override
     public TableChanges.TableChange queryTableSchema(JdbcConnection jdbc, TableId tableId) {
         if (postgresSchema == null) {
-            postgresSchema = new OpenGaussSchema(sourceConfig.getDbzConnectorConfig());
+            postgresSchema = new OpenGaussSchema(sourceConfig.getDbzConnectorConfig(), tableMap);
         }
         return postgresSchema.getTableSchema(jdbc, tableId);
     }
@@ -163,5 +172,15 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
         } else {
             return new OpenGaussWalFetchTask(sourceSplitBase.asIncrementalSplit());
         }
+    }
+
+    @Override
+    public Optional<PrimaryKey> getPrimaryKey(JdbcConnection jdbcConnection, TableId tableId) {
+        return Optional.ofNullable(tableMap.get(tableId).getTableSchema().getPrimaryKey());
+    }
+
+    @Override
+    public List<ConstraintKey> getConstraintKeys(JdbcConnection jdbcConnection, TableId tableId) {
+        return tableMap.get(tableId).getTableSchema().getConstraintKeys();
     }
 }

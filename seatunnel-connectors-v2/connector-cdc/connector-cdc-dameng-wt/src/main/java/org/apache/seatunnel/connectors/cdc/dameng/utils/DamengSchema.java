@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.cdc.dameng.utils;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
+import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 
 import io.debezium.connector.dameng.DamengConnection;
 import io.debezium.connector.dameng.DamengConnectorConfig;
@@ -34,10 +36,13 @@ import java.util.Map;
 public class DamengSchema {
     private final DamengConnectorConfig connectorConfig;
     private final Map<TableId, TableChanges.TableChange> schemasByTableId;
+    private final Map<TableId, CatalogTable> tableMap;
 
-    public DamengSchema(DamengConnectorConfig connectorConfig) {
+    public DamengSchema(
+            DamengConnectorConfig connectorConfig, Map<TableId, CatalogTable> tableMap) {
         this.connectorConfig = connectorConfig;
         this.schemasByTableId = new HashMap<>();
+        this.tableMap = tableMap;
     }
 
     public TableChanges.TableChange getTableSchema(JdbcConnection jdbc, TableId tableId) {
@@ -65,7 +70,9 @@ public class DamengSchema {
                     null,
                     false);
 
-            Table table = tables.forTable(tableId);
+            Table table =
+                    CatalogTableUtils.mergeCatalogTableConfig(
+                            tables.forTable(tableId), tableMap.get(tableId));
             TableChanges.TableChange tableChange =
                     new TableChanges.TableChange(TableChanges.TableChangeType.CREATE, table);
             tableChangeMap.put(tableId, tableChange);

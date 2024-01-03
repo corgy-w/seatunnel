@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.connectors.cdc.dameng.source;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
@@ -26,6 +29,7 @@ import org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter.Chunk
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.JdbcSourceFetchTaskContext;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
+import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.cdc.dameng.config.DamengSourceConfig;
 import org.apache.seatunnel.connectors.cdc.dameng.config.DamengSourceConfigFactory;
 import org.apache.seatunnel.connectors.cdc.dameng.source.eumerator.DamengChunkSplitter;
@@ -42,17 +46,22 @@ import io.debezium.relational.history.TableChanges;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class DamengDialect implements JdbcDataSourceDialect {
     private final DamengSourceConfig sourceConfig;
     private transient DamengSchema damengSchema;
+    private final Map<TableId, CatalogTable> tableMap;
 
-    public DamengDialect(DamengSourceConfigFactory configFactory) {
-        this(configFactory.create(0));
+    public DamengDialect(
+            DamengSourceConfigFactory configFactory, List<CatalogTable> catalogTables) {
+        this(configFactory.create(0), catalogTables);
     }
 
-    public DamengDialect(DamengSourceConfig sourceConfig) {
+    public DamengDialect(DamengSourceConfig sourceConfig, List<CatalogTable> catalogTables) {
         this.sourceConfig = sourceConfig;
+        this.tableMap = CatalogTableUtils.convertTables(catalogTables);
     }
 
     @Override
@@ -109,7 +118,7 @@ public class DamengDialect implements JdbcDataSourceDialect {
         if (damengSchema == null) {
             synchronized (this) {
                 if (damengSchema == null) {
-                    damengSchema = new DamengSchema(sourceConfig.getDbzConnectorConfig());
+                    damengSchema = new DamengSchema(sourceConfig.getDbzConnectorConfig(), tableMap);
                 }
             }
         }
@@ -130,5 +139,15 @@ public class DamengDialect implements JdbcDataSourceDialect {
         } else {
             return new DamengLogMinerFetchTask(sourceSplitBase.asIncrementalSplit());
         }
+    }
+
+    @Override
+    public Optional<PrimaryKey> getPrimaryKey(JdbcConnection jdbcConnection, TableId tableId) {
+        return Optional.ofNullable(tableMap.get(tableId).getTableSchema().getPrimaryKey());
+    }
+
+    @Override
+    public List<ConstraintKey> getConstraintKeys(JdbcConnection jdbcConnection, TableId tableId) {
+        return tableMap.get(tableId).getTableSchema().getConstraintKeys();
     }
 }

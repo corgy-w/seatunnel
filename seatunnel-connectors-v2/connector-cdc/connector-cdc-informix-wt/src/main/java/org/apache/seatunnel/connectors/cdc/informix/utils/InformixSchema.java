@@ -17,8 +17,10 @@
 
 package org.apache.seatunnel.connectors.cdc.informix.utils;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
+import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
@@ -33,6 +35,11 @@ import java.util.Map;
 
 public class InformixSchema {
     private final Map<TableId, TableChanges.TableChange> schemasByTableId = new HashMap<>();
+    private final Map<TableId, CatalogTable> tableMap;
+
+    public InformixSchema(Map<TableId, CatalogTable> tableMap) {
+        this.tableMap = tableMap;
+    }
 
     public TableChanges.TableChange getTableSchema(JdbcConnection jdbc, TableId tableId) {
         // read schema from cache first
@@ -48,6 +55,7 @@ public class InformixSchema {
                                 .setColumns(columns)
                                 .setPrimaryKeyNames(primaryKeyNames)
                                 .create();
+                table = CatalogTableUtils.mergeCatalogTableConfig(table, tableMap.get(tableId));
                 schema = new TableChanges.TableChange(TableChanges.TableChangeType.CREATE, table);
                 schemasByTableId.put(tableId, schema);
             } catch (SQLException e) {

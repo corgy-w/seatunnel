@@ -8,7 +8,6 @@ import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
 
 import java.util.Arrays;
-import java.util.List;
 
 public class OracleAgentSourceOptions {
 
@@ -44,17 +43,4 @@ public class OracleAgentSourceOptions {
                             .singleChoice(StopMode.class, Arrays.asList(StopMode.NEVER))
                             .defaultValue(StopMode.NEVER)
                             .withDescription("Optional stop mode for CDC source");
-
-    public static final Option<List<OracleTableConfig>> TABLE_NAMES_CONFIG =
-            Options.key("table_names_config")
-                    .listType(OracleTableConfig.class)
-                    .noDefaultValue()
-                    .withDescription(
-                            "Config table configs. example: "
-                                    + "["
-                                    + "   {"
-                                    + "       \"table\": \"db1.schema1.table1\","
-                                    + "       \"primaryKeys\": [\"key1\",\"key2\"]"
-                                    + "   }"
-                                    + "]");
 }

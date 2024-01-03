@@ -27,6 +27,7 @@ import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnec
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter.ChunkSplitter;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
+import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.config.OracleSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.config.OracleSourceConfigFactory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.eumerator.OracleChunkSplitter;
@@ -42,11 +43,9 @@ import io.debezium.relational.TableId;
 import io.debezium.relational.history.TableChanges.TableChange;
 
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static org.apache.seatunnel.connectors.seatunnel.cdc.oracle.utils.OracleConnectionUtils.createOracleConnection;
 
@@ -62,23 +61,7 @@ public class OracleDialect implements JdbcDataSourceDialect {
             OracleSourceConfigFactory configFactory, List<CatalogTable> catalogTables) {
         this.configFactory = configFactory;
         this.sourceConfig = configFactory.create(0);
-        this.tableMap = createTableMap(sourceConfig, catalogTables);
-    }
-
-    private static Map<TableId, CatalogTable> createTableMap(
-            OracleSourceConfig sourceConfig, List<CatalogTable> catalogTables) {
-        String database = sourceConfig.getDbzConnectorConfig().getDatabaseName();
-        Map<TableId, CatalogTable> tableMap =
-                catalogTables.stream()
-                        .collect(
-                                Collectors.toMap(
-                                        e ->
-                                                new TableId(
-                                                        database,
-                                                        e.getTableId().getSchemaName(),
-                                                        e.getTableId().getTableName()),
-                                        e -> e));
-        return Collections.unmodifiableMap(tableMap);
+        this.tableMap = CatalogTableUtils.convertTables(catalogTables);
     }
 
     @Override

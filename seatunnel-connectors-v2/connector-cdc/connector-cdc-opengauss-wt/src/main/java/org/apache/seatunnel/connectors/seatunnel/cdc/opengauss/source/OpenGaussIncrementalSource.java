@@ -142,7 +142,7 @@ public class OpenGaussIncrementalSource<T> extends IncrementalSource<T, JdbcSour
 
     @Override
     public DataSourceDialect<JdbcSourceConfig> createDataSourceDialect(ReadonlyConfig config) {
-        return new OpenGaussDialect((OpenGaussSourceConfigFactory) configFactory);
+        return new OpenGaussDialect((OpenGaussSourceConfigFactory) configFactory, catalogTables);
     }
 
     @Override
@@ -154,7 +154,7 @@ public class OpenGaussIncrementalSource<T> extends IncrementalSource<T, JdbcSour
     private Map<TableId, Struct> tableChanges() {
         JdbcSourceConfig jdbcSourceConfig = configFactory.create(0);
         OpenGaussDialect dialect =
-                new OpenGaussDialect((OpenGaussSourceConfigFactory) configFactory);
+                new OpenGaussDialect((OpenGaussSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
                 new ConnectTableChangeSerializer();

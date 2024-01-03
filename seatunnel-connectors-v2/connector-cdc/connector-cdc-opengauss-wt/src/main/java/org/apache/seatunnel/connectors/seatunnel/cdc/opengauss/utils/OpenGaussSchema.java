@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.utils;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
+import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
@@ -36,10 +38,13 @@ public class OpenGaussSchema {
 
     private final OpengaussConnectorConfig connectorConfig;
     private final Map<TableId, TableChanges.TableChange> schemasByTableId;
+    private final Map<TableId, CatalogTable> tableMap;
 
-    public OpenGaussSchema(final OpengaussConnectorConfig connectorConfig) {
+    public OpenGaussSchema(
+            final OpengaussConnectorConfig connectorConfig, Map<TableId, CatalogTable> tableMap) {
         this.schemasByTableId = new ConcurrentHashMap<>();
         this.connectorConfig = connectorConfig;
+        this.tableMap = tableMap;
     }
 
     public TableChanges.TableChange getTableSchema(JdbcConnection jdbc, TableId tableId) {
@@ -53,9 +58,8 @@ public class OpenGaussSchema {
     }
 
     private TableChanges.TableChange readTableSchema(JdbcConnection jdbc, TableId tableId) {
-
         // Because the catalog is null in the postgresConnection.readSchema method
-        tableId = new TableId(null, tableId.schema(), tableId.table());
+        TableId tableIdNotContainCatalog = new TableId(null, tableId.schema(), tableId.table());
 
         OpengaussConnection opengaussConnection = (OpengaussConnection) jdbc;
         final Map<TableId, TableChanges.TableChange> tableChangeMap = new HashMap<>();
@@ -63,12 +67,13 @@ public class OpenGaussSchema {
         try {
             opengaussConnection.readSchema(
                     tables,
-                    tableId.catalog(),
-                    tableId.schema(),
+                    tableIdNotContainCatalog.catalog(),
+                    tableIdNotContainCatalog.schema(),
                     connectorConfig.getTableFilters().dataCollectionFilter(),
                     null,
                     false);
-            Table table = tables.forTable(tableId);
+            Table table = tables.forTable(tableIdNotContainCatalog);
+            table = CatalogTableUtils.mergeCatalogTableConfig(table, tableMap.get(tableId));
             TableChanges.TableChange tableChange =
                     new TableChanges.TableChange(TableChanges.TableChangeType.CREATE, table);
             tableChangeMap.put(tableId, tableChange);

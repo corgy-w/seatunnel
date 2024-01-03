@@ -144,7 +144,7 @@ public class DamengIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
 
     @Override
     public DamengDialect createDataSourceDialect(ReadonlyConfig config) {
-        return new DamengDialect((DamengSourceConfigFactory) configFactory);
+        return new DamengDialect((DamengSourceConfigFactory) configFactory, catalogTables);
     }
 
     @Override
@@ -155,7 +155,8 @@ public class DamengIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
 
     private Map<TableId, Struct> tableChanges() {
         JdbcSourceConfig jdbcSourceConfig = configFactory.create(0);
-        DamengDialect dialect = new DamengDialect((DamengSourceConfigFactory) configFactory);
+        DamengDialect dialect =
+                new DamengDialect((DamengSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
                 new ConnectTableChangeSerializer();

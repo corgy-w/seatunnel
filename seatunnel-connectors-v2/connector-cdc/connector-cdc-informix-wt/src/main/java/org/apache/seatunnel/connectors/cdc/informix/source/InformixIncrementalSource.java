@@ -146,7 +146,8 @@ public class InformixIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
 
     private Map<TableId, Struct> tableChanges() {
         JdbcSourceConfig jdbcSourceConfig = configFactory.create(0);
-        InformixDialect dialect = new InformixDialect((InformixSourceConfigFactory) configFactory);
+        InformixDialect dialect =
+                new InformixDialect((InformixSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
                 new ConnectTableChangeSerializer();
@@ -171,7 +172,7 @@ public class InformixIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
 
     @Override
     public InformixDialect createDataSourceDialect(ReadonlyConfig config) {
-        return new InformixDialect(sourceConfig);
+        return new InformixDialect(sourceConfig, catalogTables);
     }
 
     @Override
