@@ -89,7 +89,7 @@ public class OracleAgentStreamingChangeEventSource
                 currentFzsFileNumber =
                         OracleAgentClientUtils.currentMinFzsFileNumber(
                                 oracle9BridgeClient,
-                                new OracleTransactionFileNumberFetchRequest(tables, tableOwners));
+                                new OracleTransactionFileNumberFetchRequest(tableOwners, tables));
             }
 
             while (context.isRunning()) {
