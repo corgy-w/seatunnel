@@ -250,7 +250,7 @@ public class HadoopFileSystemProxy implements Serializable, Closeable {
             return;
         }
         this.fileSystem = FileSystem.get(configuration);
-        fileSystem.setWriteChecksum(false);
+        this.fileSystem.setWriteChecksum(false);
     }
 
     private Configuration createConfiguration() {
@@ -288,17 +288,22 @@ public class HadoopFileSystemProxy implements Serializable, Closeable {
     }
 
     private void initializeWithKerberosLogin() throws IOException, InterruptedException {
-        HadoopLoginFactory.loginWithKerberos(
-                configuration,
-                hadoopConf.getKrb5Path(),
-                hadoopConf.getKerberosPrincipal(),
-                hadoopConf.getKerberosKeytabPath(),
-                (configuration, userGroupInformation) -> {
-                    this.userGroupInformation = userGroupInformation;
-                    this.fileSystem = FileSystem.get(configuration);
-                    return null;
-                });
+        Pair<UserGroupInformation, FileSystem> pair =
+                HadoopLoginFactory.loginWithKerberos(
+                        configuration,
+                        hadoopConf.getKrb5Path(),
+                        hadoopConf.getKerberosPrincipal(),
+                        hadoopConf.getKerberosKeytabPath(),
+                        (configuration, userGroupInformation) -> {
+                            this.userGroupInformation = userGroupInformation;
+                            this.fileSystem = FileSystem.get(configuration);
+                            return Pair.of(userGroupInformation, fileSystem);
+                        });
         // todo: Use a daemon thread to reloginFromTicketCache
+        this.userGroupInformation = pair.getKey();
+        this.fileSystem = pair.getValue();
+        this.fileSystem.setWriteChecksum(false);
+        log.info("Create FileSystem success with Kerberos: {}.", hadoopConf.getKerberosPrincipal());
     }
 
     private boolean enableRemoteUser() {
@@ -314,7 +319,9 @@ public class HadoopFileSystemProxy implements Serializable, Closeable {
                             final FileSystem fileSystem = FileSystem.get(configuration);
                             return Pair.of(userGroupInformation, fileSystem);
                         });
+        log.info("Create FileSystem success with RemoteUser: {}.", hadoopConf.getRemoteUser());
         this.userGroupInformation = pair.getKey();
         this.fileSystem = pair.getValue();
+        this.fileSystem.setWriteChecksum(false);
     }
 }

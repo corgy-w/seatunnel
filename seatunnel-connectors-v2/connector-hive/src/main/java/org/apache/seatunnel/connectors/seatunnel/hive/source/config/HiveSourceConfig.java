@@ -175,6 +175,9 @@ public class HiveSourceConfig implements Serializable {
         readonlyConfig
                 .getOptional(HdfsSourceConfigOptions.KERBEROS_KEYTAB_PATH)
                 .ifPresent(hiveHadoopConfig::setKerberosKeytabPath);
+        readonlyConfig
+                .getOptional(HdfsSourceConfigOptions.REMOTE_USER)
+                .ifPresent(hiveHadoopConfig::setRemoteUser);
         return hiveHadoopConfig;
     }
 

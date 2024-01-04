@@ -73,6 +73,9 @@ public class HiveMetaStoreProxy {
                                 readonlyConfig.get(BaseSourceConfigOptions.KERBEROS_KEYTAB_PATH),
                                 (configuration, userGroupInformation) ->
                                         new HiveMetaStoreClient(hiveConf));
+                log.info(
+                        "Create HiveMetaStoreClient success with Kerberos: {}",
+                        readonlyConfig.get(BaseSourceConfigOptions.REMOTE_USER));
                 return;
             }
             if (enableRemoteUser(readonlyConfig)) {
@@ -82,6 +85,9 @@ public class HiveMetaStoreProxy {
                                 readonlyConfig.get(BaseSourceConfigOptions.REMOTE_USER),
                                 (configuration, userGroupInformation) ->
                                         new HiveMetaStoreClient(hiveConf));
+                log.info(
+                        "Create HiveMetaStoreClient success with RemoteUser: {}",
+                        readonlyConfig.get(BaseSourceConfigOptions.REMOTE_USER));
                 return;
             }
             this.hiveMetaStoreClient = new HiveMetaStoreClient(hiveConf);

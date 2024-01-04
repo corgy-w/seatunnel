@@ -21,9 +21,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
+@Slf4j
 public class HadoopLoginFactory {
 
     /** Login with kerberos, and do the given action after login successfully. */
@@ -47,9 +50,11 @@ public class HadoopLoginFactory {
             UserGroupInformation userGroupInformation =
                     UserGroupInformation.loginUserFromKeytabAndReturnUGI(
                             kerberosPrincipal, kerberosKeytabPath);
-            return userGroupInformation.doAs(
-                    (PrivilegedExceptionAction<T>)
-                            () -> action.run(configuration, userGroupInformation));
+            T result =
+                    userGroupInformation.doAs(
+                            (PrivilegedExceptionAction<T>)
+                                    () -> action.run(configuration, userGroupInformation));
+            return result;
         }
     }
 
@@ -63,9 +68,11 @@ public class HadoopLoginFactory {
             // init configuration
             UserGroupInformation userGroupInformation =
                     UserGroupInformation.createRemoteUser(remoteUser);
-            return userGroupInformation.doAs(
-                    (PrivilegedExceptionAction<T>)
-                            () -> action.run(configuration, userGroupInformation));
+            T result =
+                    userGroupInformation.doAs(
+                            (PrivilegedExceptionAction<T>)
+                                    () -> action.run(configuration, userGroupInformation));
+            return result;
         }
     }
 

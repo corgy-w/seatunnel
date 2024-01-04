@@ -232,6 +232,9 @@ public class HiveSink
         readonlyConfig
                 .getOptional(HiveSourceOptions.KERBEROS_KEYTAB_PATH)
                 .ifPresent(hiveHadoopConfig::setKerberosKeytabPath);
+        readonlyConfig
+                .getOptional(HiveSourceOptions.REMOTE_USER)
+                .ifPresent(hiveHadoopConfig::setRemoteUser);
         return hiveHadoopConfig;
     }
 }
