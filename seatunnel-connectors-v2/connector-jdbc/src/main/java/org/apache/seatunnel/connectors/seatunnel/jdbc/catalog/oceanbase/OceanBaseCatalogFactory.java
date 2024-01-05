@@ -47,7 +47,7 @@ public class OceanBaseCatalogFactory implements CatalogFactory {
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
         String urlWithDatabase = options.get(JdbcCatalogOptions.BASE_URL);
         Preconditions.checkArgument(
-                StringUtils.isNoneBlank(urlWithDatabase),
+                StringUtils.isNotBlank(urlWithDatabase),
                 "Miss config <base-url>! Please check your config.");
         JdbcUrlUtil.UrlInfo urlInfo = JdbcUrlUtil.getUrlInfo(urlWithDatabase);
         Optional<String> defaultDatabase = urlInfo.getDefaultDatabase();
@@ -57,7 +57,7 @@ public class OceanBaseCatalogFactory implements CatalogFactory {
 
         String compatibleMode = options.get(JdbcCatalogOptions.COMPATIBLE_MODE);
         Preconditions.checkArgument(
-                StringUtils.isNoneBlank(compatibleMode),
+                StringUtils.isNotBlank(compatibleMode),
                 "Miss config <compatibleMode>! Please check your config.");
 
         if ("oracle".equalsIgnoreCase(compatibleMode.trim())) {
