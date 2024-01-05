@@ -77,7 +77,6 @@ public class DorisSinkWriter
     private transient Thread executorThread;
     private transient volatile Exception loadException = null;
     private List<BackendV2.BackendRowV2> backends;
-    private long pos;
 
     public DorisSinkWriter(
             SinkWriter.Context context,
@@ -145,24 +144,29 @@ public class DorisSinkWriter
 
     @Override
     public Optional<DorisCommitInfo> prepareCommit() throws IOException {
-        // disable exception checker before stop load.
-        loading = false;
-        checkState(dorisStreamLoad != null);
-        RespContent respContent = dorisStreamLoad.stopLoad();
-        if (!DORIS_SUCCESS_STATUS.contains(respContent.getStatus())) {
-            String errMsg =
-                    String.format(
-                            "stream load error: %s, see more in %s",
-                            respContent.getMessage(), respContent.getErrorURL());
-            throw new DorisConnectorException(DorisConnectorErrorCode.STREAM_LOAD_FAILED, errMsg);
-        }
-        if (!dorisConfig.getEnable2PC()) {
+        RespContent respContent = flush();
+        if (!dorisConfig.getEnable2PC() || respContent == null) {
             return Optional.empty();
         }
         long txnId = respContent.getTxnId();
 
         return Optional.of(
                 new DorisCommitInfo(dorisStreamLoad.getHostPort(), dorisStreamLoad.getDb(), txnId));
+    }
+
+    private RespContent flush() throws IOException {
+        // disable exception checker before stop load.
+        loading = false;
+        checkState(dorisStreamLoad != null);
+        RespContent respContent = dorisStreamLoad.stopLoad();
+        if (respContent != null && !DORIS_SUCCESS_STATUS.contains(respContent.getStatus())) {
+            String errMsg =
+                    String.format(
+                            "stream load error: %s, see more in %s",
+                            respContent.getMessage(), respContent.getErrorURL());
+            throw new DorisConnectorException(DorisConnectorErrorCode.STREAM_LOAD_FAILED, errMsg);
+        }
+        return respContent;
     }
 
     @Override
@@ -248,12 +252,10 @@ public class DorisSinkWriter
 
     @VisibleForTesting
     public String getAvailableBackend() {
-        long tmp = pos + backends.size();
-        while (pos < tmp) {
-            BackendV2.BackendRowV2 backend = backends.get((int) (pos % backends.size()));
+        Collections.shuffle(backends);
+        for (BackendV2.BackendRowV2 backend : backends) {
             String res = backend.toBackendString();
             if (tryHttpConnection(res)) {
-                pos++;
                 return res;
             }
         }
@@ -272,7 +274,6 @@ public class DorisSinkWriter
             return true;
         } catch (Exception ex) {
             log.warn("Failed to connect to backend:{}", backend, ex);
-            pos++;
             return false;
         }
     }
