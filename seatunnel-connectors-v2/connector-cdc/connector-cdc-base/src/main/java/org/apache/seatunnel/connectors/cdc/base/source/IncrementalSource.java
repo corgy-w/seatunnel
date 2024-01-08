@@ -188,6 +188,7 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                                 sourceConfig,
                                 schemaChangeResolver);
         return new IncrementalSourceReader<>(
+                dataSourceDialect,
                 elementsQueue,
                 splitReaderSupplier,
                 createRecordEmitter(sourceConfig, readerContext.getMetricsContext()),
