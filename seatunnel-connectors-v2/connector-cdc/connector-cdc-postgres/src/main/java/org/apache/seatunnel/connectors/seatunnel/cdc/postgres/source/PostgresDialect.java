@@ -62,6 +62,7 @@ public class PostgresDialect implements JdbcDataSourceDialect {
 
     private transient PostgresSchema postgresSchema;
     private final Map<TableId, CatalogTable> tableMap;
+    private PostgresWalFetchTask postgresWalFetchTask;
 
     public PostgresDialect(
             PostgresSourceConfigFactory configFactory, List<CatalogTable> catalogTables) {
@@ -170,7 +171,15 @@ public class PostgresDialect implements JdbcDataSourceDialect {
         if (sourceSplitBase.isSnapshotSplit()) {
             return new PostgresSnapshotFetchTask(sourceSplitBase.asSnapshotSplit());
         } else {
-            return new PostgresWalFetchTask(sourceSplitBase.asIncrementalSplit());
+            postgresWalFetchTask = new PostgresWalFetchTask(sourceSplitBase.asIncrementalSplit());
+            return postgresWalFetchTask;
+        }
+    }
+
+    @Override
+    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+        if (postgresWalFetchTask != null) {
+            postgresWalFetchTask.commitCurrentOffset();
         }
     }
 
