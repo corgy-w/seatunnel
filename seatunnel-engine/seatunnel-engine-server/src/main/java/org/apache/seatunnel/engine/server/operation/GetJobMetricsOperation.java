@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.engine.server.operation;
 
+import org.apache.seatunnel.api.common.metrics.JobMetrics;
 import org.apache.seatunnel.engine.server.SeaTunnelServer;
 import org.apache.seatunnel.engine.server.serializable.ClientToServerOperationDataSerializerHook;
 
@@ -72,10 +73,12 @@ public class GetJobMetricsOperation extends Operation
         CompletableFuture<String> future =
                 CompletableFuture.supplyAsync(
                         () -> {
-                            return toJsonString(
-                                    service.getCoordinatorService()
-                                            .getJobMetrics(jobId)
-                                            .getMetrics());
+                            final JobMetrics jobMetrics =
+                                    service.getCoordinatorService().getJobMetrics(jobId);
+                            if (jobMetrics != null) {
+                                return toJsonString(jobMetrics.getMetrics());
+                            }
+                            return "{}";
                         },
                         getNodeEngine()
                                 .getExecutionService()
