@@ -20,7 +20,6 @@ package org.apache.seatunnel.connectors.seatunnel.redshift.commit;
 import org.apache.seatunnel.api.sink.MultiTableResourceManager;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkAggregatedCommitter;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggregatedCommitter;
@@ -96,6 +95,11 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
             log.info("Start to restore commit info");
             this.appendOnly = conf.isAppendOnlyMode();
             return commitAggregatedCommitInfo(aggregatedCommitInfo, true);
+        } catch (Exception e) {
+            throw new S3RedshiftConnectorException(
+                    S3RedshiftConnectorErrorCode.AGGREGATE_COMMIT_ERROR,
+                    "Restore commit error.",
+                    e);
         } finally {
             log.info("Finish to restore commit info");
         }
@@ -104,7 +108,12 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
     @Override
     public List<FileAggregatedCommitInfo> commit(
             List<FileAggregatedCommitInfo> aggregatedCommitInfos) {
-        return commitAggregatedCommitInfo(aggregatedCommitInfos, false);
+        try {
+            return commitAggregatedCommitInfo(aggregatedCommitInfos, false);
+        } catch (Exception e) {
+            throw new S3RedshiftConnectorException(
+                    S3RedshiftConnectorErrorCode.AGGREGATE_COMMIT_ERROR, e);
+        }
     }
 
     @Override
@@ -211,7 +220,8 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
     }
 
     private List<FileAggregatedCommitInfo> commitAggregatedCommitInfo(
-            List<FileAggregatedCommitInfo> aggregatedCommitInfos, boolean restore) {
+            List<FileAggregatedCommitInfo> aggregatedCommitInfos, boolean restore)
+            throws Exception {
         if (!aggregatedCommitInfos.isEmpty()) {
             SeaTunnelRowType rowType =
                     aggregatedCommitInfos.stream()
@@ -220,6 +230,13 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                             .findFirst()
                             .get();
             this.sqlGenerator = new S3RedshiftSQLGenerator(conf, rowType);
+        }
+        if (restore) {
+            log.info("Start to restore commit info");
+
+            mergeRedshiftTemporaryTableToTargetTable();
+
+            log.info("Finish to restore commit info");
         }
         return commitS3FilesToRedshiftTable(aggregatedCommitInfos, restore);
     }
@@ -381,14 +398,6 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
 
     private void mergeS3FileToRedshiftWithTemporaryTable(String filepath) throws Exception {
         Stopwatch stopwatch = Stopwatch.createStarted();
-        String truncateTemporaryTableSql = sqlGenerator.getCleanTemporaryTableSql();
-        resource.getRedshiftJdbcClient().execute(truncateTemporaryTableSql);
-        log.info(
-                "Merge mode, truncate temporary table sql: {}, cost: {}ms",
-                truncateTemporaryTableSql,
-                stopwatch.elapsed(TimeUnit.MILLISECONDS));
-
-        stopwatch.reset().start();
         String copySql =
                 formatCopyS3FileSql(sqlGenerator.getCopyS3FileToTemporaryTableSql(), filepath);
         resource.getRedshiftJdbcClient().execute(copySql);
@@ -397,7 +406,12 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                 copySql,
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
 
-        stopwatch.reset().start();
+        mergeRedshiftTemporaryTableToTargetTable();
+    }
+
+    private void mergeRedshiftTemporaryTableToTargetTable() throws Exception {
+        Stopwatch stopwatch = Stopwatch.createStarted();
+
         String queryDeleteRowCountSql = sqlGenerator.getQueryDeleteRowCountSql();
         int deletableRowCount =
                 resource.getRedshiftJdbcClient().executeQueryCount(queryDeleteRowCountSql);
@@ -452,6 +466,14 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                 "Merge mode, analyse table sql: {}, sort key range: {}, cost: {}ms",
                 analyseSql,
                 realSortValues,
+                stopwatch.elapsed(TimeUnit.MILLISECONDS));
+
+        stopwatch.reset().start();
+        String truncateTemporaryTableSql = sqlGenerator.getCleanTemporaryTableSql();
+        resource.getRedshiftJdbcClient().execute(truncateTemporaryTableSql);
+        log.info(
+                "Merge mode, truncate temporary table sql: {}, cost: {}ms",
+                truncateTemporaryTableSql,
                 stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
