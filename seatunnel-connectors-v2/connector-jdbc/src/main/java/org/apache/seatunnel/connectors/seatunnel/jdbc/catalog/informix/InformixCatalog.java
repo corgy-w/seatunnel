@@ -111,7 +111,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getListDatabaseSql() {
-        return "select name from sysmaster:sysdatabases";
+        return "select TRIM(name) from sysmaster:sysdatabases";
     }
 
     @Override
