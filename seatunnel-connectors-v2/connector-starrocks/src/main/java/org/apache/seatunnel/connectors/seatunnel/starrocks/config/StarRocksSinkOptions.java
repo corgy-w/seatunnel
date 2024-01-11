@@ -19,13 +19,11 @@ package org.apache.seatunnel.connectors.seatunnel.starrocks.config;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
-import org.apache.seatunnel.api.configuration.SingleChoiceOption;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.config.SinkConfig.StreamLoadFormat;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -145,10 +143,9 @@ public interface StarRocksSinkOptions {
                     .defaultValue(SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST)
                     .withDescription("schema_save_mode");
 
-    SingleChoiceOption<DataSaveMode> DATA_SAVE_MODE =
+    Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key(SupportSaveMode.DATA_SAVE_MODE_KEY)
-                    .singleChoice(
-                            DataSaveMode.class, Arrays.asList(DataSaveMode.KEEP_SCHEMA_AND_DATA))
+                    .enumType(DataSaveMode.class)
                     .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
                     .withDescription(
                             "Table structure and data processing methods that already exist on the target end");
