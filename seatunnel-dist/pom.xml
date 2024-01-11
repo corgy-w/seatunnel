@@ -530,6 +530,103 @@
                     <scope>provided</scope>
                 </dependency>
                 <!-- hadoop jar end -->
+                <!-- hive jar start -->
+                <dependency>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-exec</artifactId>
+                    <version>${hive.exec.version}</version>
+                    <scope>provided</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>log4j</groupId>
+                            <artifactId>log4j</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-1.2-api</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-slf4j-impl</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-web</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-log4j12</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.parquet</groupId>
+                            <artifactId>parquet-hadoop-bundle</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>jdk.tools</groupId>
+                            <artifactId>jdk.tools</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.pentaho</groupId>
+                            <artifactId>pentaho-aggdesigner-algorithm</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.avro</groupId>
+                            <artifactId>avro</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <!-- hive jdbc jar -->
+                <dependency>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-jdbc</artifactId>
+                    <version>${hive.jdbc.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-service</artifactId>
+                    <version>${hive.jdbc.version}</version>
+                    <scope>provided</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>log4j</groupId>
+                            <artifactId>log4j</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-1.2-api</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-slf4j-impl</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.logging.log4j</groupId>
+                            <artifactId>log4j-web</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-log4j12</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.parquet</groupId>
+                            <artifactId>parquet-hadoop-bundle</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>jdk.tools</groupId>
+                            <artifactId>jdk.tools</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.pentaho</groupId>
+                            <artifactId>pentaho-aggdesigner-algorithm</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>org.apache.avro</groupId>
+                            <artifactId>avro</artifactId>
+                        </exclusion>
+                    </exclusions>
+                </dependency>
+                <!-- hive jar end -->
             </dependencies>
             <repositories>
                 <repository>
