@@ -40,7 +40,6 @@ import io.debezium.connector.postgresql.PostgresOffsetContext;
 import io.debezium.connector.postgresql.PostgresSchema;
 import io.debezium.connector.postgresql.PostgresTaskContext;
 import io.debezium.connector.postgresql.PostgresTopicSelector;
-import io.debezium.connector.postgresql.PostgresValueConverter;
 import io.debezium.connector.postgresql.TypeRegistry;
 import io.debezium.connector.postgresql.connection.PostgresConnection;
 import io.debezium.connector.postgresql.connection.ReplicationConnection;
@@ -66,6 +65,8 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Collection;
 
+import static org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils.PostgresConnectionUtils.newPostgresValueConverterBuilder;
+
 @Slf4j
 public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
 
@@ -89,6 +90,8 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
 
     private SnapshotChangeEventSourceMetrics snapshotChangeEventSourceMetrics;
 
+    private PostgresConnection.PostgresValueConverterBuilder postgresValueConverterBuilder;
+
     private Collection<TableChanges.TableChange> engineHistory;
 
     public PostgresSourceFetchTaskContext(
@@ -100,6 +103,8 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.dataConnection = dataConnection;
         this.metadataProvider = new PostgresEventMetadataProvider();
         this.engineHistory = engineHistory;
+        this.postgresValueConverterBuilder =
+                newPostgresValueConverterBuilder(getDbzConnectorConfig());
     }
 
     @Override
@@ -111,11 +116,6 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.snapshotter = connectorConfig.getSnapshotter();
 
         this.topicSelector = PostgresTopicSelector.create(connectorConfig);
-
-        final PostgresConnection.PostgresValueConverterBuilder valueConverterBuilder =
-                typeRegistry ->
-                        PostgresValueConverter.of(
-                                connectorConfig, dataConnection.getDatabaseCharset(), typeRegistry);
         final TypeRegistry typeRegistry = dataConnection.getTypeRegistry();
 
         this.databaseSchema =
@@ -123,7 +123,8 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                         connectorConfig,
                         typeRegistry,
                         topicSelector,
-                        valueConverterBuilder.build(typeRegistry));
+                        postgresValueConverterBuilder.build(typeRegistry));
+
         this.taskContext = new PostgresTaskContext(connectorConfig, databaseSchema, topicSelector);
         try {
             taskContext.refreshSchema(dataConnection, false);
@@ -169,13 +170,8 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
             SlotCreationResult slotCreatedInfo = null;
             if (snapshotter.shouldStream()) {
                 final boolean doSnapshot = snapshotter.shouldSnapshot();
-                this.replicationConnection =
-                        createReplicationConnection(
-                                this.taskContext,
-                                doSnapshot,
-                                connectorConfig.maxRetries(),
-                                connectorConfig.retryDelay());
-
+                createReplicationConnection(
+                        doSnapshot, connectorConfig.maxRetries(), connectorConfig.retryDelay());
                 // we need to create the slot before we start streaming if it doesn't exist
                 // otherwise we can't stream back changes happening while the snapshot is taking
                 // place
@@ -232,6 +228,20 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
             this.errorHandler = new PostgresErrorHandler(connectorConfig.getLogicalName(), queue);
         } finally {
             previousContext.restore();
+        }
+    }
+
+    public void createReplicationConnection(
+            boolean doSnapshot, int maxRetries, Duration retryDelay) {
+        if (this.replicationConnection != null) {
+            return;
+        }
+        synchronized (this) {
+            if (this.replicationConnection == null) {
+                this.replicationConnection =
+                        createReplicationConnection(
+                                this.taskContext, doSnapshot, maxRetries, retryDelay);
+            }
         }
     }
 
