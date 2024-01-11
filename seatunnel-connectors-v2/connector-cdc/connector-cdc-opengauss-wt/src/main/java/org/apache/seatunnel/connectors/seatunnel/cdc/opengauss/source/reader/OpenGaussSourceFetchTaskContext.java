@@ -41,7 +41,6 @@ import io.debezium.connector.opengauss.OpengaussOffsetContext;
 import io.debezium.connector.opengauss.OpengaussSchema;
 import io.debezium.connector.opengauss.OpengaussTaskContext;
 import io.debezium.connector.opengauss.OpengaussTopicSelector;
-import io.debezium.connector.opengauss.OpengaussValueConverter;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.connection.ReplicationConnection;
@@ -67,6 +66,8 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Collection;
 
+import static org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.utils.OpenGaussConnectionUtils.newOpenGaussValueConverterBuilder;
+
 @Slf4j
 public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
 
@@ -91,6 +92,8 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
 
     private SnapshotChangeEventSourceMetrics snapshotChangeEventSourceMetrics;
 
+    private OpengaussConnection.OpenGaussValueConverterBuilder openGaussValueConverterBuilder;
+
     private Collection<TableChanges.TableChange> engineHistory;
 
     public OpenGaussSourceFetchTaskContext(
@@ -102,6 +105,8 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
         this.dataConnection = dataConnection;
         this.metadataProvider = new OpengaussEventMetadataProvider();
         this.engineHistory = engineHistory;
+        this.openGaussValueConverterBuilder =
+                newOpenGaussValueConverterBuilder(getDbzConnectorConfig());
     }
 
     @Override
@@ -114,10 +119,6 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
 
         this.topicSelector = OpengaussTopicSelector.create(connectorConfig);
 
-        final OpengaussConnection.OpenGaussValueConverterBuilder valueConverterBuilder =
-                typeRegistry ->
-                        OpengaussValueConverter.of(
-                                connectorConfig, dataConnection.getDatabaseCharset(), typeRegistry);
         final TypeRegistry typeRegistry = dataConnection.getTypeRegistry();
 
         this.databaseSchema =
@@ -125,7 +126,7 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
                         connectorConfig,
                         typeRegistry,
                         topicSelector,
-                        valueConverterBuilder.build(typeRegistry));
+                        openGaussValueConverterBuilder.build(typeRegistry));
         this.taskContext = new OpengaussTaskContext(connectorConfig, databaseSchema, topicSelector);
         try {
             taskContext.refreshSchema(dataConnection, false);
@@ -171,12 +172,8 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
             SlotCreationResult slotCreatedInfo = null;
             if (snapshotter.shouldStream()) {
                 final boolean doSnapshot = snapshotter.shouldSnapshot();
-                this.replicationConnection =
-                        createReplicationConnection(
-                                this.taskContext,
-                                doSnapshot,
-                                connectorConfig.maxRetries(),
-                                connectorConfig.retryDelay());
+                createOnceReplicationConnection(
+                        doSnapshot, connectorConfig.maxRetries(), connectorConfig.retryDelay());
 
                 // we need to create the slot before we start streaming if it doesn't exist
                 // otherwise we can't stream back changes happening while the snapshot is taking
@@ -328,6 +325,20 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
                         ? LsnOffset.INITIAL_OFFSET
                         : split.asIncrementalSplit().getStartupOffset();
         return loader.load(offset.getOffset());
+    }
+
+    public void createOnceReplicationConnection(
+            boolean doSnapshot, int maxRetries, Duration retryDelay) {
+        if (this.replicationConnection != null) {
+            return;
+        }
+        synchronized (this) {
+            if (this.replicationConnection == null) {
+                this.replicationConnection =
+                        createReplicationConnection(
+                                this.taskContext, doSnapshot, maxRetries, retryDelay);
+            }
+        }
     }
 
     public ReplicationConnection createReplicationConnection(

@@ -41,19 +41,18 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.utils.TableDiscov
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
-import io.debezium.connector.opengauss.OpengaussValueConverter;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.jdbc.JdbcConnection;
-import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.TableChanges;
 
-import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.utils.OpenGaussConnectionUtils.newOpenGaussValueConverterBuilder;
 
 public class OpenGaussDialect implements JdbcDataSourceDialect {
 
@@ -62,6 +61,7 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
 
     private transient OpenGaussSchema postgresSchema;
     private final Map<TableId, CatalogTable> tableMap;
+    private OpenGaussWalFetchTask openGaussWalFetchTask;
 
     public OpenGaussDialect(
             OpenGaussSourceConfigFactory configFactory, List<CatalogTable> catalogTables) {
@@ -83,20 +83,12 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
     @Override
     public JdbcConnection openJdbcConnection(JdbcSourceConfig sourceConfig) {
 
-        RelationalDatabaseConnectorConfig dbzConnectorConfig = sourceConfig.getDbzConnectorConfig();
+        OpengaussConnectorConfig opengaussConnectorConfig =
+                (OpengaussConnectorConfig) sourceConfig.getDbzConnectorConfig();
 
-        OpengaussConnection heartbeatConnection =
-                new OpengaussConnection(dbzConnectorConfig.getJdbcConfig());
-        final Charset databaseCharset = heartbeatConnection.getDatabaseCharset();
-
-        final OpengaussConnection.OpenGaussValueConverterBuilder valueConverterBuilder =
-                (typeRegistry) ->
-                        OpengaussValueConverter.of(
-                                (OpengaussConnectorConfig) dbzConnectorConfig,
-                                databaseCharset,
-                                typeRegistry);
-
-        return new OpengaussConnection(dbzConnectorConfig.getJdbcConfig(), valueConverterBuilder);
+        return new OpengaussConnection(
+                opengaussConnectorConfig.getJdbcConfig(),
+                newOpenGaussValueConverterBuilder(opengaussConnectorConfig));
     }
 
     @Override
@@ -132,22 +124,13 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
     public OpenGaussSourceFetchTaskContext createFetchTaskContext(
             SourceSplitBase sourceSplitBase, JdbcSourceConfig taskSourceConfig) {
 
-        RelationalDatabaseConnectorConfig dbzConnectorConfig =
-                taskSourceConfig.getDbzConnectorConfig();
-
-        OpengaussConnection heartbeatConnection =
-                new OpengaussConnection(dbzConnectorConfig.getJdbcConfig());
-        final Charset databaseCharset = heartbeatConnection.getDatabaseCharset();
-
-        final OpengaussConnection.OpenGaussValueConverterBuilder valueConverterBuilder =
-                (typeRegistry) ->
-                        OpengaussValueConverter.of(
-                                (OpengaussConnectorConfig) dbzConnectorConfig,
-                                databaseCharset,
-                                typeRegistry);
+        OpengaussConnectorConfig opengaussConnectorConfig =
+                (OpengaussConnectorConfig) taskSourceConfig.getDbzConnectorConfig();
 
         final OpengaussConnection jdbcConnection =
-                new OpengaussConnection(dbzConnectorConfig.getJdbcConfig(), valueConverterBuilder);
+                new OpengaussConnection(
+                        opengaussConnectorConfig.getJdbcConfig(),
+                        newOpenGaussValueConverterBuilder(opengaussConnectorConfig));
 
         List<TableChanges.TableChange> tableChangeList = new ArrayList<>();
         // TODO: support save table schema
@@ -170,7 +153,15 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
         if (sourceSplitBase.isSnapshotSplit()) {
             return new OpenGaussSnapshotFetchTask(sourceSplitBase.asSnapshotSplit());
         } else {
-            return new OpenGaussWalFetchTask(sourceSplitBase.asIncrementalSplit());
+            openGaussWalFetchTask = new OpenGaussWalFetchTask(sourceSplitBase.asIncrementalSplit());
+            return openGaussWalFetchTask;
+        }
+    }
+
+    @Override
+    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+        if (openGaussWalFetchTask != null) {
+            openGaussWalFetchTask.commitCurrentOffset();
         }
     }
 
