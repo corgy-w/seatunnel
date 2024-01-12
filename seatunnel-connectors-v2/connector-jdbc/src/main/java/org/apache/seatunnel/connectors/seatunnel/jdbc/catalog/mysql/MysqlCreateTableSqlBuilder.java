@@ -201,7 +201,13 @@ public class MysqlCreateTableSqlBuilder {
     private void getColumnName(Column column, List<String> columnSqls) {
         SqlType dataType = column.getDataType().getSqlType();
         boolean isBytes = StringUtils.equals(dataType.name(), SqlType.BYTES.name());
-        Long columnLength = column.getLongColumnLength();
+        Long columnLength;
+        if (column.getLongColumnLength() == null
+                || (column.getLongColumnLength() == 0 && column.getColumnLength() != null)) {
+            columnLength = Long.valueOf(column.getColumnLength());
+        } else {
+            columnLength = column.getLongColumnLength();
+        }
         Long bitLen = column.getBitLen();
         if (isBytes) {
             getColumnNameBytes(columnSqls, bitLen);
@@ -250,18 +256,12 @@ public class MysqlCreateTableSqlBuilder {
         }
         if (list.contains(name)) {
             if (MysqlType.VARCHAR.getName().equals(name)) {
-                fieSql = "(" + column.getLongColumnLength() + ")";
+                fieSql = "(" + columnLength + ")";
             } else if (MysqlType.CHAR.getName().equals(name)) {
-                fieSql = "(" + column.getLongColumnLength() + ")";
+                fieSql = "(" + columnLength + ")";
             } else {
                 // int and bigint
-                fieSql =
-                        "("
-                                + ((column.getLongColumnLength() <= 0
-                                                || column.getLongColumnLength() > 11)
-                                        ? 11
-                                        : column.getLongColumnLength())
-                                + ")";
+                fieSql = "(" + ((columnLength <= 0 || columnLength > 11) ? 11 : columnLength) + ")";
             }
             columnSqls.add(fieSql);
         }
