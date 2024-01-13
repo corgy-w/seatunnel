@@ -22,13 +22,24 @@ import org.apache.seatunnel.connectors.cdc.base.source.split.IncrementalSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.OpenGaussSourceFetchTaskContext;
 
+import io.debezium.connector.opengauss.OpengaussOffsetContext;
 import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
+import io.debezium.connector.postgresql.PostgresOffsetContext;
+import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.util.Clock;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
+import java.util.Map;
+
+@Slf4j
 public class OpenGaussWalFetchTask implements FetchTask<SourceSplitBase> {
     private final IncrementalSplit split;
     private volatile boolean taskRunning = false;
+    private Long lastCommitLsn;
+    private OpengaussStreamingChangeEventSource streamingChangeEventSource;
+    private OpengaussOffsetContext offsetContext;
 
     public OpenGaussWalFetchTask(IncrementalSplit split) {
         this.split = split;
@@ -40,7 +51,7 @@ public class OpenGaussWalFetchTask implements FetchTask<SourceSplitBase> {
                 (OpenGaussSourceFetchTaskContext) context;
         taskRunning = true;
 
-        OpengaussStreamingChangeEventSource streamingChangeEventSource =
+        streamingChangeEventSource =
                 new OpengaussStreamingChangeEventSource(
                         sourceFetchContext.getDbzConnectorConfig(),
                         sourceFetchContext.getSnapshotter(),
@@ -52,11 +63,35 @@ public class OpenGaussWalFetchTask implements FetchTask<SourceSplitBase> {
                         sourceFetchContext.getTaskContext(),
                         sourceFetchContext.getReplicationConnection());
 
+        offsetContext = sourceFetchContext.getOffsetContext();
+
         TransactionLogSplitChangeEventSourceContext changeEventSourceContext =
                 new TransactionLogSplitChangeEventSourceContext();
 
-        streamingChangeEventSource.execute(
-                changeEventSourceContext, sourceFetchContext.getOffsetContext());
+        log.info(
+                "Start streaming change event source for postgres wal split: {}",
+                split.getStartupOffset().toString());
+
+        streamingChangeEventSource.execute(changeEventSourceContext, offsetContext);
+    }
+
+    public void commitCurrentOffset() {
+        if (streamingChangeEventSource != null && offsetContext != null) {
+
+            // only extracting and storing the lsn of the last commit
+            Long commitLsn =
+                    (Long) offsetContext.getOffset().get(PostgresOffsetContext.LAST_COMMIT_LSN_KEY);
+            if (commitLsn != null
+                    && (lastCommitLsn == null
+                            || Lsn.valueOf(commitLsn).compareTo(Lsn.valueOf(lastCommitLsn)) > 0)) {
+                lastCommitLsn = commitLsn;
+
+                Map<String, Object> offsets = new HashMap<>();
+                offsets.put(PostgresOffsetContext.LAST_COMMIT_LSN_KEY, lastCommitLsn);
+                log.info("Committing offset {} for {}", Lsn.valueOf(lastCommitLsn), split);
+                streamingChangeEventSource.commitOffset(offsets);
+            }
+        }
     }
 
     @Override
