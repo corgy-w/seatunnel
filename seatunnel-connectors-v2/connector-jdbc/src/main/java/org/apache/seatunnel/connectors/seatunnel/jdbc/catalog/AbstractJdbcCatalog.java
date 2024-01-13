@@ -555,7 +555,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
         throw new UnsupportedOperationException();
     }
 
-    protected String getExistDataSql(TablePath tablePath) {
+    protected String getCountSql(TablePath tablePath) {
         throw new UnsupportedOperationException();
     }
 
@@ -573,10 +573,11 @@ public abstract class AbstractJdbcCatalog implements Catalog {
     public boolean isExistsData(TablePath tablePath) {
         String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
         Connection connection = getConnection(dbUrl);
-        String sql = getExistDataSql(tablePath);
+        String sql = getCountSql(tablePath);
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ResultSet resultSet = ps.executeQuery();
-            return resultSet.next();
+            int rowCount = resultSet.getInt(1);
+            return rowCount > 0;
         } catch (SQLException e) {
             throw new CatalogException(String.format("Failed executeSql error %s", sql), e);
         }

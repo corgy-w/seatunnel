@@ -103,7 +103,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public String getExistDataSql(TablePath tablePath) {
+    public String getCountSql(TablePath tablePath) {
         return String.format(
                 "select count(*) from %s:%s.%s",
                 tablePath.getDatabaseName(), tablePath.getSchemaName(), tablePath.getTableName());
