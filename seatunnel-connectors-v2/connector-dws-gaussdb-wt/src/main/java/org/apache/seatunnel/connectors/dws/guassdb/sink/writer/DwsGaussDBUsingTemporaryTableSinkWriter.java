@@ -101,7 +101,7 @@ public class DwsGaussDBUsingTemporaryTableSinkWriter
                     new DwsGaussDBSinkCommitInfo(
                             sqlGenerator.getTemporaryTableName(),
                             sqlGenerator.getTargetTableName(),
-                            snapshotIds,
+                            new ArrayList<>(snapshotIds),
                             seaTunnelRowType);
 
             snapshotIds.clear();
@@ -154,7 +154,10 @@ public class DwsGaussDBUsingTemporaryTableSinkWriter
     @Override
     public void abortPrepare() {
         // clear the template table and memory table
-        deleteRowsInTemplateTable(snapshotIds);
+        if (CollectionUtils.isNotEmpty(snapshotIds)) {
+            log.info("The snapshotIds is empty, will not delete the rows in temporary table");
+            deleteRowsInTemplateTable(snapshotIds);
+        }
         dwsGaussDBMemoryTable.truncate();
         snapshotIdManager.increaseSnapshotId();
     }
@@ -203,11 +206,13 @@ public class DwsGaussDBUsingTemporaryTableSinkWriter
         Long currentSnapshotId = snapshotIdManager.getCurrentSnapshotId();
         String temporaryRows = sqlGenerator.getTemporaryRows(upsertRows, false, currentSnapshotId);
         try (StringReader stringReader = new StringReader(temporaryRows)) {
-            copyManager.copyIn(sqlGenerator.getCopyInTemporaryTableSql(), stringReader);
+            long result =
+                    copyManager.copyIn(sqlGenerator.getCopyInTemporaryTableSql(), stringReader);
             log.debug(
-                    "Success write upsert rows of snapshot: {} in temporary table: {}",
+                    "Success write upsert rows of snapshot: {} in temporary table: {}, result: {}",
                     currentSnapshotId,
-                    sqlGenerator.getTemporaryTableName());
+                    sqlGenerator.getTemporaryTableName(),
+                    result);
         }
     }
 
