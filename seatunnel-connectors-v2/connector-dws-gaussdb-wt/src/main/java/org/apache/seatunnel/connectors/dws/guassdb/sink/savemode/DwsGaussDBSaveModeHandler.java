@@ -3,6 +3,7 @@ package org.apache.seatunnel.connectors.dws.guassdb.sink.savemode;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.DefaultSaveModeHandler;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBCatalog;
 import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBCatalogFactory;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption;
@@ -44,7 +45,20 @@ public class DwsGaussDBSaveModeHandler extends DefaultSaveModeHandler {
 
     @Override
     protected boolean tableExists() {
-        return dwsGaussDBCatalog.tableExists(catalogTable.getTableId().toTablePath());
+
+        boolean targetTableExist =
+                dwsGaussDBCatalog.tableExists(catalogTable.getTableId().toTablePath());
+        if (readonlyConfig.get(DwsGaussDBSinkOption.WRITE_MODE)
+                == DwsGaussDBSinkOption.WriteMode.APPEND_ONLY) {
+            return targetTableExist;
+        }
+        boolean temporaryTableExist =
+                dwsGaussDBCatalog.tableExists(
+                        TablePath.of(
+                                catalogTable.getTableId().getDatabaseName(),
+                                catalogTable.getTableId().getSchemaName(),
+                                dwsGaussSqlGenerator.getTemporaryTableName()));
+        return targetTableExist && temporaryTableExist;
     }
 
     @Override
@@ -60,7 +74,7 @@ public class DwsGaussDBSaveModeHandler extends DefaultSaveModeHandler {
 
     @Override
     protected void createTable() {
-        // We use IF NOT EXISTS
+        // We use IF NOT EXISTS to create table, so we don't need to check table exists
         dwsGaussDBCatalog.executeUpdateSql(dwsGaussSqlGenerator.getCreateTargetTableSql());
         log.info(
                 "Create table: {} success using: {}",
