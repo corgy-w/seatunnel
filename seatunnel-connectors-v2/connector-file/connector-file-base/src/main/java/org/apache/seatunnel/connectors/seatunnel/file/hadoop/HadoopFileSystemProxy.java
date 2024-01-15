@@ -271,20 +271,16 @@ public class HadoopFileSystemProxy implements Serializable, Closeable {
     private boolean enableKerberos() {
         boolean kerberosPrincipalEmpty = StringUtils.isBlank(hadoopConf.getKerberosPrincipal());
         boolean kerberosKeytabPathEmpty = StringUtils.isBlank(hadoopConf.getKerberosKeytabPath());
-        boolean krb5FilePathEmpty = StringUtils.isBlank(hadoopConf.getKrb5Path());
-        if (kerberosKeytabPathEmpty && kerberosPrincipalEmpty && krb5FilePathEmpty) {
+        if (kerberosKeytabPathEmpty && kerberosPrincipalEmpty) {
             return false;
         }
-        if (!kerberosPrincipalEmpty && !kerberosKeytabPathEmpty && !krb5FilePathEmpty) {
+        if (!kerberosPrincipalEmpty && !kerberosKeytabPathEmpty) {
             return true;
         }
         if (kerberosPrincipalEmpty) {
             throw new IllegalArgumentException("Please set kerberosPrincipal");
         }
-        if (kerberosKeytabPathEmpty) {
-            throw new IllegalArgumentException("Please set kerberosKeytabPath");
-        }
-        throw new IllegalArgumentException("Please set krb5FilePath");
+        throw new IllegalArgumentException("Please set kerberosKeytabPath");
     }
 
     private void initializeWithKerberosLogin() throws IOException, InterruptedException {
