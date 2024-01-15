@@ -207,7 +207,7 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public String getCountSql(TablePath tablePath) {
+    public String getExistDataSql(TablePath tablePath) {
         return String.format(
                 "SELECT * FROM `%s`.`%s` LIMIT 1;",
                 tablePath.getDatabaseName(), tablePath.getTableName());

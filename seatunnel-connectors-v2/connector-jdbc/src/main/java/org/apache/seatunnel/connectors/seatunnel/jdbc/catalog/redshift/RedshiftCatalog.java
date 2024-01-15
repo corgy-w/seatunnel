@@ -220,8 +220,9 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
                 columnLength);
     }
 
-    public String getCountSql(TablePath tablePath) {
-        return String.format("select count(*) from %s;", tablePath.getFullName());
+    @Override
+    public String getExistDataSql(TablePath tablePath) {
+        return String.format("select * from %s LIMIT 1;", tablePath.getFullName());
     }
 
     private SeaTunnelDataType<?> fromJdbcType(

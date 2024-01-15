@@ -87,8 +87,8 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public String getCountSql(TablePath tablePath) {
-        return String.format("select count(*) from %s;", tablePath.getFullName());
+    public String getExistDataSql(TablePath tablePath) {
+        return String.format("select * from %s LIMIT 1;", tablePath.getFullName());
     }
 
     @Override
