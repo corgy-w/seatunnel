@@ -220,8 +220,9 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
     @Override
     protected void dropDatabaseInternal(String databaseName) throws CatalogException {}
 
-    public String getCountSql(TablePath tablePath) {
-        return String.format("select count(*) from `%s`;", tablePath.getTableName());
+    @Override
+    public String getExistDataSql(TablePath tablePath) {
+        return String.format("select * from `%s` LIMIT 1;", tablePath.getTableName());
     }
 
     private SeaTunnelDataType<?> fromJdbcType(

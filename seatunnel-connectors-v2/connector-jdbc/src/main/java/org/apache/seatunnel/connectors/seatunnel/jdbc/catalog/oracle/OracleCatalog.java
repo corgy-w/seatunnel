@@ -147,9 +147,11 @@ public class OracleCatalog extends AbstractJdbcCatalog {
                 tablePath.getSchemaName(), tablePath.getTableName());
     }
 
-    public String getCountSql(TablePath tablePath) {
+    @Override
+    protected String getExistDataSql(TablePath tablePath) {
         return String.format(
-                "select count(*) from %s.%s", tablePath.getSchemaName(), tablePath.getTableName());
+                "select * from \"%s\".\"%s\" WHERE rownum = 1",
+                tablePath.getSchemaName(), tablePath.getTableName());
     }
 
     @Override

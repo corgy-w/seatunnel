@@ -197,8 +197,9 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
         return String.format("DROP TABLE %s", tablePath.getFullName());
     }
 
-    public String getCountSql(TablePath tablePath) {
-        return String.format("select count(*) from %s;", tablePath.getFullName());
+    @Override
+    public String getExistDataSql(TablePath tablePath) {
+        return String.format("select TOP 1 * from %s ;", tablePath.getFullNameWithQuoted("[", "]"));
     }
 
     @Override

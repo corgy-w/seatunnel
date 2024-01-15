@@ -237,8 +237,11 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
         return "CREATE DATABASE \"" + databaseName + "\"";
     }
 
-    public String getCountSql(TablePath tablePath) {
-        return String.format("select count(*) from %s;", tablePath.getFullName());
+    @Override
+    public String getExistDataSql(TablePath tablePath) {
+        String schemaName = tablePath.getSchemaName();
+        String tableName = tablePath.getTableName();
+        return String.format("select * from \"%s\".\"%s\" limit 1", schemaName, tableName);
     }
 
     @Override

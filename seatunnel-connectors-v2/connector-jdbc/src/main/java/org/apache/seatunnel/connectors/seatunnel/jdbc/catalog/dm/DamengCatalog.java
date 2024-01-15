@@ -109,9 +109,10 @@ public class DamengCatalog extends AbstractJdbcCatalog {
         throw new UnsupportedOperationException();
     }
 
-    public String getCountSql(TablePath tablePath) {
+    @Override
+    public String getExistDataSql(TablePath tablePath) {
         return String.format(
-                "select count(*) from \"%s\".\"%s\"",
+                "select * from \"%s\".\"%s\" LIMIT 1",
                 tablePath.getSchemaName(), tablePath.getTableName());
     }
 
