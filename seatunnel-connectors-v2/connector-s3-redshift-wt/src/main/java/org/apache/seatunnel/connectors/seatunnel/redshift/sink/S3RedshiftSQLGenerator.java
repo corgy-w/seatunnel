@@ -64,6 +64,8 @@ public class S3RedshiftSQLGenerator implements Serializable {
     private Pair<String[], String> sortKeyValueQuerySql;
     private String copyS3FileToTableSql;
     private String createTemporaryTableSQL;
+    private String isExistTemporaryTableSql;
+    private String isExistTemporaryDataSql;
     private String copyS3FileToTemporaryTableSql;
     private String cleanTemporaryTableSql;
     private String dropTemporaryTableSql;
@@ -107,6 +109,8 @@ public class S3RedshiftSQLGenerator implements Serializable {
         if (conf.notAppendOnlyMode()) {
             this.sortKeyValueQuerySql = generateTemporaryTableSortKeyValueQuerySql();
             this.createTemporaryTableSQL = generateCreateTemporaryTableSQL();
+            this.isExistTemporaryTableSql = generateIsExistTemporaryTableSql();
+            this.isExistTemporaryDataSql = generateIsExistTemporaryDataSql();
             this.copyS3FileToTemporaryTableSql = generateCopyS3FileToTemporaryTableSql();
             this.cleanTemporaryTableSql = generateCleanTemporaryTableSql();
             this.dropTemporaryTableSql = generateDropTemporaryTableSql();
@@ -208,9 +212,20 @@ public class S3RedshiftSQLGenerator implements Serializable {
                 conf.getSchema(), conf.getRedshiftTable().toLowerCase());
     }
 
+    private String generateIsExistTemporaryTableSql() {
+        return String.format(
+                "SELECT * FROM information_schema.tables where table_schema = '%s' and  table_name = '%s';",
+                conf.getSchema(), conf.getTemporaryTableName().toLowerCase());
+    }
+
     private String generateIsExistDataSql() {
         return String.format(
                 "select 1 from %s.%s limit 1;", conf.getSchema(), conf.getRedshiftTable());
+    }
+
+    private String generateIsExistTemporaryDataSql() {
+        return String.format(
+                "select 1 from %s.%s limit 1;", conf.getSchema(), conf.getTemporaryTableName());
     }
 
     private String generateDropTemporaryTableSql() {
