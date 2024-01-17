@@ -55,8 +55,6 @@ import java.util.Optional;
 
 import static org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils.PostgresConnectionUtils.newPostgresValueConverterBuilder;
 
-import static org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils.PostgresConnectionUtils.newPostgresValueConverterBuilder;
-
 public class PostgresDialect implements JdbcDataSourceDialect {
 
     private static final long serialVersionUID = 1L;
