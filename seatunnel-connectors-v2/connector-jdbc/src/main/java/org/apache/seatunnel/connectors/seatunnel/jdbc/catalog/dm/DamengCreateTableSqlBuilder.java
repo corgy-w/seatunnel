@@ -133,7 +133,9 @@ public class DamengCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
                     return "CLOB";
                 }
             default:
-                String type = damengDataTypeConvertor.toConnectorType(column.getDataType(), null);
+                String type =
+                        damengDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
                 if (type.equals("NUMBER")) {
                     if (column.getDataType() instanceof DecimalType) {
                         DecimalType decimalType = (DecimalType) column.getDataType();

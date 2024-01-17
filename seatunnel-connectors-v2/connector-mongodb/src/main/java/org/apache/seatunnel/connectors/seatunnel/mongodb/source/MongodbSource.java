@@ -17,9 +17,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.mongodb.source;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
@@ -65,12 +62,6 @@ public class MongodbSource
     @Override
     public String getPluginName() {
         return CONNECTOR_IDENTITY;
-    }
-
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        // TODO this method is deprecated, remove it in the future
-        throw new UnsupportedOperationException("prepare method is deprecated");
     }
 
     @Override

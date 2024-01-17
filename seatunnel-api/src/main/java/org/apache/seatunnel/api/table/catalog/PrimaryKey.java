@@ -39,6 +39,6 @@ public class PrimaryKey implements Serializable {
     }
 
     public PrimaryKey copy() {
-        return PrimaryKey.of(primaryKey, new ArrayList<>(columnNames));
+        return PrimaryKey.of(primaryKey, columnNames == null ? null : new ArrayList<>(columnNames));
     }
 }

@@ -37,6 +37,7 @@
         <poi.version>4.1.2</poi.version>
         <poi-ooxml.version>4.1.2</poi-ooxml.version>
         <dbf.version>1.13.1</dbf.version>
+        <hadoop-minikdc.version>3.1.4</hadoop-minikdc.version>
     </properties>
 
     <dependencyManagement>
@@ -148,6 +149,20 @@
             <groupId>com.github.albfernandez</groupId>
             <artifactId>javadbf</artifactId>
             <version>${dbf.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-minikdc</artifactId>
+            <version>${hadoop-minikdc.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-minikdc</artifactId>
+            <version>${hadoop-minikdc.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

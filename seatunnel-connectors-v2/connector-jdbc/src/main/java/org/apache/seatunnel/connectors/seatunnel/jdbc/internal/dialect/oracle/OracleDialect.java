@@ -85,7 +85,6 @@ public class OracleDialect implements JdbcDialect {
                     .append("\"")
                     .toString();
         }
-
         return "\"" + getFieldIde(identifier, fieldIde) + "\"";
     }
 

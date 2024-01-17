@@ -33,12 +33,13 @@
         <module>connector-cdc-base</module>
         <module>connector-cdc-mysql</module>
         <module>connector-cdc-sqlserver</module>
-        <module>connector-cdc-dameng</module>
-        <module>connector-cdc-informix</module>
-        <module>connector-cdc-oracle</module>
-        <module>connector-cdc-agent-oracle</module>
+        <module>connector-cdc-dameng-wt</module>
+        <module>connector-cdc-informix-wt</module>
+        <module>connector-cdc-oracle-wt</module>
+        <module>connector-cdc-agent-oracle-wt</module>
         <module>connector-cdc-postgres</module>
         <module>connector-cdc-mongodb</module>
+        <module>connector-cdc-opengauss-wt</module>
     </modules>
 
     <properties>

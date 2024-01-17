@@ -18,12 +18,14 @@
 package org.apache.seatunnel.connectors.seatunnel.file.ftp.sink;
 
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
+import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
-import org.apache.seatunnel.connectors.seatunnel.file.ftp.config.FtpConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.ftp.config.FtpConfigOptions;
 
 import com.google.auto.service.AutoService;
 
@@ -37,11 +39,11 @@ public class FtpFileSinkFactory implements TableSinkFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(FtpConfig.FILE_PATH)
-                .required(FtpConfig.FTP_HOST)
-                .required(FtpConfig.FTP_PORT)
-                .required(FtpConfig.FTP_USERNAME)
-                .required(FtpConfig.FTP_PASSWORD)
+                .required(FtpConfigOptions.FILE_PATH)
+                .required(FtpConfigOptions.FTP_HOST)
+                .required(FtpConfigOptions.FTP_PORT)
+                .required(FtpConfigOptions.FTP_USERNAME)
+                .required(FtpConfigOptions.FTP_PASSWORD)
                 .optional(BaseSinkConfig.TMP_PATH)
                 .optional(BaseSinkConfig.FILE_FORMAT_TYPE)
                 .conditional(
@@ -87,5 +89,10 @@ public class FtpFileSinkFactory implements TableSinkFactory {
                 .optional(BaseSinkConfig.DATETIME_FORMAT)
                 .optional(BaseSinkConfig.TIME_FORMAT)
                 .build();
+    }
+
+    @Override
+    public TableSink createSink(TableSinkFactoryContext context) {
+        return () -> new FtpFileSink(context.getOptions(), context.getCatalogTable());
     }
 }

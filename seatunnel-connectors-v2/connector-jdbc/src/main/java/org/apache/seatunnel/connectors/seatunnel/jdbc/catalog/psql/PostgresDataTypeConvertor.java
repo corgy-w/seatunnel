@@ -18,7 +18,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.BasicType;
@@ -27,6 +26,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
 
@@ -108,16 +108,17 @@ public class PostgresDataTypeConvertor implements DataTypeConvertor<String> {
     public static final String PG_GEOGRAPHY = "geography";
     public static final String PG_JSON = "json";
     public static final String PG_JSONB = "jsonb";
+    public static final String PG_XML = "xml";
+    public static final String PG_UUID = "uuid";
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
-        return toSeaTunnelType(connectorDataType, new HashMap<>(0));
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
+        return toSeaTunnelType(field, connectorDataType, new HashMap<>(0));
     }
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            String connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
         checkNotNull(connectorDataType, "Postgres Type cannot be null");
         switch (connectorDataType) {
             case PG_BOOLEAN:
@@ -153,7 +154,6 @@ public class PostgresDataTypeConvertor implements DataTypeConvertor<String> {
             case PG_NUMERIC:
                 int precision =
                         MapUtils.getInteger(dataTypeProperties, PRECISION, DEFAULT_PRECISION);
-                ;
                 int scale = MapUtils.getInteger(dataTypeProperties, SCALE, DEFAULT_SCALE);
                 return new DecimalType(precision, scale);
             case PG_CHAR:
@@ -165,6 +165,8 @@ public class PostgresDataTypeConvertor implements DataTypeConvertor<String> {
             case PG_GEOGRAPHY:
             case PG_JSON:
             case PG_JSONB:
+            case PG_XML:
+            case PG_UUID:
                 return BasicType.STRING_TYPE;
             case PG_CHAR_ARRAY:
             case PG_CHARACTER_ARRAY:
@@ -185,16 +187,16 @@ public class PostgresDataTypeConvertor implements DataTypeConvertor<String> {
             case PG_TIME_ARRAY:
             case PG_DATE_ARRAY:
             default:
-                throw new UnsupportedOperationException(
-                        String.format(
-                                "Doesn't support POSTGRES type '%s''  yet.", connectorDataType));
+                throw CommonError.convertToSeaTunnelTypeError(
+                        DatabaseIdentifier.POSTGRESQL, connectorDataType, field);
         }
     }
 
     @Override
     public String toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         checkNotNull(seaTunnelDataType, "seaTunnelDataType cannot be null");
         SqlType sqlType = seaTunnelDataType.getSqlType();
         switch (sqlType) {
@@ -224,9 +226,10 @@ public class PostgresDataTypeConvertor implements DataTypeConvertor<String> {
             case TIMESTAMP:
                 return PG_TIMESTAMP;
             default:
-                throw new UnsupportedOperationException(
-                        String.format(
-                                "Doesn't support SeaTunnel type '%s''  yet.", seaTunnelDataType));
+                throw CommonError.convertToConnectorTypeError(
+                        DatabaseIdentifier.POSTGRESQL,
+                        seaTunnelDataType.getSqlType().toString(),
+                        field);
         }
     }
 

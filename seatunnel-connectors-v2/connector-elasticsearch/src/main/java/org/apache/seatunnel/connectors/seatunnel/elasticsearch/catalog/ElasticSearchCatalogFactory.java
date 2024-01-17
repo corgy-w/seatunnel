@@ -17,9 +17,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.elasticsearch.catalog;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-import org.apache.seatunnel.shade.com.typesafe.config.ConfigFactory;
-
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.table.catalog.Catalog;
@@ -28,16 +25,12 @@ import org.apache.seatunnel.api.table.factory.Factory;
 
 import com.google.auto.service.AutoService;
 
-import java.util.Map;
-
 @AutoService(Factory.class)
 public class ElasticSearchCatalogFactory implements CatalogFactory {
 
     @Override
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
-        final Map<String, Object> map = options.getConfData();
-        Config config = ConfigFactory.parseMap(map);
-        return new ElasticSearchCatalog(catalogName, "", config);
+        return new ElasticSearchCatalog(catalogName, "", options);
     }
 
     @Override

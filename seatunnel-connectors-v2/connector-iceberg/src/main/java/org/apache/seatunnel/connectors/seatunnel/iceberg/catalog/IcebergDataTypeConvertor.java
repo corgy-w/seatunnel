@@ -17,14 +17,12 @@
 
 package org.apache.seatunnel.connectors.seatunnel.iceberg.catalog;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorException;
+import org.apache.seatunnel.common.exception.CommonError;
 
 import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
@@ -51,31 +49,34 @@ public class IcebergDataTypeConvertor implements DataTypeConvertor<String> {
     public static final String SCALE = "scale";
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
         if (connectorDataType == null) {
             return null;
         }
         Type.TypeID typeID = Type.TypeID.valueOf(connectorDataType.toUpperCase(Locale.ROOT));
-        return toSeaTunnelType(typeID);
+        return toSeaTunnelType(field, typeID);
     }
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            String connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
-        return toSeaTunnelType(connectorDataType);
+            String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
+        return toSeaTunnelType(field, connectorDataType);
     }
 
     @Override
     public String toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
-        return toConnectorTypeType(seaTunnelDataType, dataTypeProperties).typeId().toString();
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
+        return toConnectorTypeType(field, seaTunnelDataType, dataTypeProperties)
+                .typeId()
+                .toString();
     }
 
     public Type toConnectorTypeType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         SqlType sqlType = seaTunnelDataType.getSqlType();
         switch (sqlType) {
             case STRING:
@@ -105,12 +106,11 @@ public class IcebergDataTypeConvertor implements DataTypeConvertor<String> {
             case TIMESTAMP:
                 return Types.TimestampType.withoutZone();
             default:
-                throw new UnsupportedOperationException(
-                        String.format("Doesn't support Iceberg type '%s''  yet.", sqlType));
+                throw CommonError.convertToConnectorTypeError("Iceberg", sqlType.toString(), field);
         }
     }
 
-    public SeaTunnelDataType<?> toSeaTunnelType(Type.TypeID typeId) {
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, Type.TypeID typeId) {
         if (typeId == null) {
             return null;
         }
@@ -142,9 +142,7 @@ public class IcebergDataTypeConvertor implements DataTypeConvertor<String> {
             case LIST:
             case MAP:
             default:
-                throw new IcebergConnectorException(
-                        CommonErrorCode.UNSUPPORTED_DATA_TYPE,
-                        String.format("Unsupported iceberg type: %s", typeId));
+                throw CommonError.convertToSeaTunnelTypeError("Iceberg", typeId.toString(), field);
         }
     }
 

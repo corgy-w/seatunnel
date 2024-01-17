@@ -17,7 +17,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kafka.catalog;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.catalog.SeaTunnelDataTypeConvertorUtil;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -46,22 +45,25 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class KafkaDataTypeConvertor implements DataTypeConvertor<SeaTunnelDataType<?>> {
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
         checkNotNull(connectorDataType, "connectorDataType can not be null");
-        return SeaTunnelDataTypeConvertorUtil.deserializeSeaTunnelDataType(connectorDataType);
+        return SeaTunnelDataTypeConvertorUtil.deserializeSeaTunnelDataType(
+                field, connectorDataType);
     }
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            SeaTunnelDataType<?> connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> connectorDataType,
+            Map<String, Object> dataTypeProperties) {
         return connectorDataType;
     }
 
     @Override
     public SeaTunnelDataType<?> toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         return seaTunnelDataType;
     }
 

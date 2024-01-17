@@ -31,6 +31,6 @@ public enum DataSaveMode {
     // User defined processing
     CUSTOM_PROCESSING,
 
-    // When there is data, an error is reported
+    // When there exist data, an error will be reported
     ERROR_WHEN_DATA_EXISTS
 }

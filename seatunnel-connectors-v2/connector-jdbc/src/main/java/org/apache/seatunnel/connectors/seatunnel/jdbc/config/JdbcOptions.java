@@ -25,6 +25,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialecten
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
@@ -202,10 +203,16 @@ public interface JdbcOptions {
                     .withDescription(
                             "When use kerberos, we should set kerberos principal file path such as '/home/test/test_user.keytab'. ");
 
-    Option<String> KERBEROS_KRB5_CONF_PATH =
-            Options.key("kerberos_krb5_conf_path")
+    Option<String> KRB5_PATH =
+            Options.key("krb5_path")
                     .stringType()
                     .defaultValue("/etc/krb5.conf")
                     .withDescription(
-                            "When use kerberos, we should set krb5 path file path such as '/etc/krb5.conf'. ");
+                            "When use kerberos, we should set krb5 path file path such as '/seatunnel/krb5.conf' or use the default path '/etc/krb5.conf");
+
+    Option<Map<String, String>> PROPERTIES =
+            Options.key("properties")
+                    .mapType()
+                    .noDefaultValue()
+                    .withDescription("additional connection configuration parameters");
 }

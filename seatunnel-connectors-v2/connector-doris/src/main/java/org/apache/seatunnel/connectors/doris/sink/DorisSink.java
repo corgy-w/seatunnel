@@ -17,19 +17,13 @@
 
 package org.apache.seatunnel.connectors.doris.sink;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-import org.apache.seatunnel.shade.com.typesafe.config.ConfigFactory;
-
 import org.apache.seatunnel.api.common.JobContext;
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.Serializer;
-import org.apache.seatunnel.api.sink.DataSaveMode;
+import org.apache.seatunnel.api.sink.DefaultSaveModeHandler;
 import org.apache.seatunnel.api.sink.SaveModeHandler;
-import org.apache.seatunnel.api.sink.SchemaSaveMode;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
-import org.apache.seatunnel.api.sink.SinkAggregatedCommitter;
 import org.apache.seatunnel.api.sink.SinkCommitter;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSink;
@@ -37,13 +31,10 @@ import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.factory.CatalogFactory;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.config.CheckConfigUtil;
-import org.apache.seatunnel.common.config.CheckResult;
 import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.connectors.doris.config.DorisConfig;
+import org.apache.seatunnel.connectors.doris.config.DorisOptions;
 import org.apache.seatunnel.connectors.doris.exception.DorisConnectorException;
 import org.apache.seatunnel.connectors.doris.sink.committer.DorisCommitInfo;
 import org.apache.seatunnel.connectors.doris.sink.committer.DorisCommitInfoSerializer;
@@ -52,8 +43,6 @@ import org.apache.seatunnel.connectors.doris.sink.writer.DorisSinkState;
 import org.apache.seatunnel.connectors.doris.sink.writer.DorisSinkStateSerializer;
 import org.apache.seatunnel.connectors.doris.sink.writer.DorisSinkWriter;
 
-import com.google.auto.service.AutoService;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -61,50 +50,25 @@ import java.util.Optional;
 
 import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
 
-@AutoService(SeaTunnelSink.class)
 public class DorisSink
         implements SeaTunnelSink<SeaTunnelRow, DorisSinkState, DorisCommitInfo, DorisCommitInfo>,
                 SupportSaveMode,
                 SupportMultiTableSink {
 
-    private Config pluginConfig;
-    private SeaTunnelRowType seaTunnelRowType;
-    private String jobId;
+    private final DorisConfig dorisConfig;
+    private final ReadonlyConfig config;
     private final CatalogTable catalogTable;
-    private final ReadonlyConfig readonlyConfig;
-    private final DataSaveMode dataSaveMode;
-    private final SchemaSaveMode schemaSaveMode;
+    private String jobId;
+
+    public DorisSink(ReadonlyConfig config, CatalogTable catalogTable) {
+        this.config = config;
+        this.catalogTable = catalogTable;
+        this.dorisConfig = DorisConfig.of(config);
+    }
 
     @Override
     public String getPluginName() {
         return "Doris";
-    }
-
-    public DorisSink(CatalogTable catalogTable, ReadonlyConfig readonlyConfig) {
-        this.catalogTable = catalogTable;
-        this.readonlyConfig = readonlyConfig;
-        this.schemaSaveMode = readonlyConfig.get(DorisConfig.SCHEMA_SAVE_MODE);
-        this.dataSaveMode = readonlyConfig.get(DorisConfig.DATA_SAVE_MODE);
-        this.setTypeInfo(catalogTable.getSeaTunnelRowType());
-        this.pluginConfig = ConfigFactory.parseMap(readonlyConfig.getConfData());
-    }
-
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        this.pluginConfig = pluginConfig;
-        CheckResult result =
-                CheckConfigUtil.checkAllExists(
-                        pluginConfig,
-                        DorisConfig.FENODES.key(),
-                        DorisConfig.USERNAME.key(),
-                        DorisConfig.TABLE_IDENTIFIER.key());
-        if (!result.isSuccess()) {
-            throw new DorisConnectorException(
-                    SeaTunnelAPIErrorCode.CONFIG_VALIDATION_FAILED,
-                    String.format(
-                            "PluginName: %s, PluginType: %s, Message: %s",
-                            getPluginName(), PluginType.SINK, result.getMsg()));
-        }
     }
 
     @Override
@@ -113,32 +77,16 @@ public class DorisSink
     }
 
     @Override
-    public void setTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        this.seaTunnelRowType = seaTunnelRowType;
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getConsumedType() {
-        return this.seaTunnelRowType;
-    }
-
-    @Override
     public SinkWriter<SeaTunnelRow, DorisCommitInfo, DorisSinkState> createWriter(
             SinkWriter.Context context) throws IOException {
-        DorisSinkWriter dorisSinkWriter =
-                new DorisSinkWriter(
-                        context, Collections.emptyList(), catalogTable, pluginConfig, jobId);
-        dorisSinkWriter.initializeLoad(Collections.emptyList());
-        return dorisSinkWriter;
+        return new DorisSinkWriter(
+                context, Collections.emptyList(), catalogTable, dorisConfig, jobId);
     }
 
     @Override
     public SinkWriter<SeaTunnelRow, DorisCommitInfo, DorisSinkState> restoreWriter(
             SinkWriter.Context context, List<DorisSinkState> states) throws IOException {
-        DorisSinkWriter dorisWriter =
-                new DorisSinkWriter(context, states, catalogTable, pluginConfig, jobId);
-        dorisWriter.initializeLoad(states);
-        return dorisWriter;
+        return new DorisSinkWriter(context, states, catalogTable, dorisConfig, jobId);
     }
 
     @Override
@@ -148,7 +96,7 @@ public class DorisSink
 
     @Override
     public Optional<SinkCommitter<DorisCommitInfo>> createCommitter() throws IOException {
-        return Optional.of(new DorisCommitter(pluginConfig));
+        return Optional.of(new DorisCommitter(dorisConfig));
     }
 
     @Override
@@ -157,18 +105,7 @@ public class DorisSink
     }
 
     @Override
-    public Optional<SinkAggregatedCommitter<DorisCommitInfo, DorisCommitInfo>>
-            createAggregatedCommitter() throws IOException {
-        return Optional.empty();
-    }
-
-    @Override
-    public Optional<Serializer<DorisCommitInfo>> getAggregatedCommitInfoSerializer() {
-        return Optional.empty();
-    }
-
-    @Override
-    public SaveModeHandler getSaveModeHandler() {
+    public Optional<SaveModeHandler> getSaveModeHandler() {
         CatalogFactory catalogFactory =
                 discoverFactory(
                         Thread.currentThread().getContextClassLoader(),
@@ -182,10 +119,14 @@ public class DorisSink
                             getPluginName(), PluginType.SINK, "Cannot find Doris catalog factory"));
         }
 
-        Catalog catalog =
-                catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), readonlyConfig);
+        Catalog catalog = catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
         catalog.open();
-
-        return new DorisSaveModeHandler(readonlyConfig, catalog, catalogTable);
+        return Optional.of(
+                new DefaultSaveModeHandler(
+                        config.get(DorisOptions.SCHEMA_SAVE_MODE),
+                        config.get(DorisOptions.DATA_SAVE_MODE),
+                        catalog,
+                        catalogTable,
+                        config.get(DorisOptions.CUSTOM_SQL)));
     }
 }

@@ -19,15 +19,12 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.redshift;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
-import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
-import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -36,24 +33,14 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.redshift.RedshiftTypeMapper;
 
 import com.mysql.cj.MysqlType;
-import com.mysql.cj.jdbc.result.ResultSetImpl;
-import com.mysql.cj.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -61,8 +48,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RedshiftCatalog extends AbstractJdbcCatalog {
 
     protected static final Set<String> EXCLUDED_SCHEMAS = new HashSet<>(4);
-
-    protected static final Set<String> SYS_DATABASES = new HashSet<>(4);
 
     private final String SELECT_COLUMNS =
             "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME ='%s'";
@@ -92,19 +77,6 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
         this.connectionMap = new ConcurrentHashMap<>();
     }
 
-    public Connection getConnection(String url) {
-        if (connectionMap.containsKey(url)) {
-            return connectionMap.get(url);
-        }
-        try {
-            Connection connection = DriverManager.getConnection(url, username, pwd);
-            connectionMap.put(url, connection);
-            return connection;
-        } catch (SQLException e) {
-            throw new CatalogException(String.format("Failed connecting to %s via JDBC.", url), e);
-        }
-    }
-
     @Override
     public void close() throws CatalogException {
         for (Map.Entry<String, Connection> entry : connectionMap.entrySet()) {
@@ -119,60 +91,54 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public List<String> listDatabases() throws CatalogException {
-        try (PreparedStatement ps =
-                defaultConnection.prepareStatement("select datname from pg_database;")) {
-
-            List<String> databases = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                String databaseName = rs.getString(1);
-                if (!SYS_DATABASES.contains(databaseName)) {
-                    databases.add(rs.getString(1));
-                }
-            }
-
-            return databases;
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", this.catalogName), e);
-        }
+    protected String getListDatabaseSql() {
+        return "select datname from pg_database;";
     }
 
     @Override
-    public List<String> listTables(String databaseName)
-            throws CatalogException, DatabaseNotExistException {
-        if (!databaseExists(databaseName)) {
-            throw new DatabaseNotExistException(this.catalogName, databaseName);
-        }
+    protected String getListTableSql(String databaseName) {
+        return "SELECT table_schema, table_name FROM information_schema.tables;";
+    }
 
-        String dbUrl = getUrlFromDatabaseName(databaseName);
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        "SELECT table_schema, table_name FROM information_schema.tables;")) {
+    @Override
+    protected String getTableName(ResultSet rs) throws SQLException {
+        StringBuilder stringBuilder = new StringBuilder();
+        return stringBuilder
+                .append(rs.getString(1))
+                .append(".")
+                .append(rs.getString(2))
+                .toString()
+                .toLowerCase();
+    }
 
-            ResultSet rs = ps.executeQuery();
+    @Override
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        String createTableSql =
+                new RedshiftCreateTableSqlBuilder(table)
+                        .build(tablePath, table.getOptions().get("fieldIde"));
+        return CatalogUtils.getFieldIde(createTableSql, table.getOptions().get("fieldIde"));
+    }
 
-            List<String> tables = new ArrayList<>();
+    @Override
+    protected String getDropTableSql(TablePath tablePath) {
+        return String.format(
+                "DROP TABLE %s;", tablePath.getSchemaName() + "." + tablePath.getTableName());
+    }
 
-            while (rs.next()) {
-                StringBuilder stringBuilder = new StringBuilder();
-                tables.add(
-                        stringBuilder
-                                .append(rs.getString(1))
-                                .append(".")
-                                .append(rs.getString(2))
-                                .toString()
-                                .toLowerCase());
-            }
+    @Override
+    protected String getTruncateTableSql(TablePath tablePath) {
+        return String.format(
+                "TRUNCATE TABLE %s;", tablePath.getSchemaName() + "." + tablePath.getTableName());
+    }
 
-            return tables;
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", catalogName), e);
-        }
+    @Override
+    protected String getCreateDatabaseSql(String databaseName) {
+        return String.format("CREATE DATABASE `%s`;", databaseName);
+    }
+
+    @Override
+    protected String getDropDatabaseSql(String databaseName) {
+        return String.format("DROP DATABASE `%s`;", databaseName);
     }
 
     @Override
@@ -187,55 +153,18 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public CatalogTable getTable(TablePath tablePath)
-            throws CatalogException, TableNotExistException {
-        if (!tableExists(tablePath)) {
-            throw new TableNotExistException(catalogName, tablePath);
-        }
-
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        Connection conn = getConnection(dbUrl);
-        try {
-            DatabaseMetaData metaData = conn.getMetaData();
-
-            Optional<PrimaryKey> primaryKey =
-                    getPrimaryKey(metaData, tablePath.getSchemaName(), tablePath.getTableName());
-            List<ConstraintKey> constraintKeys =
-                    getConstraintKeys(
-                            metaData, tablePath.getSchemaName(), tablePath.getTableName());
-            String sql =
-                    String.format(
-                            SELECT_COLUMNS, tablePath.getSchemaName(), tablePath.getTableName());
-            try (PreparedStatement ps = conn.prepareStatement(sql);
-                    ResultSet resultSet = ps.executeQuery(); ) {
-
-                TableSchema.Builder builder = TableSchema.builder();
-                while (resultSet.next()) {
-                    buildTable(resultSet, builder);
-                }
-                // add primary key
-                primaryKey.ifPresent(builder::primaryKey);
-                // add constraint key
-                constraintKeys.forEach(builder::constraintKey);
-                TableIdentifier tableIdentifier =
-                        TableIdentifier.of(
-                                catalogName, tablePath.getDatabaseName(), tablePath.getTableName());
-                return CatalogTable.of(
-                        tableIdentifier,
-                        builder.build(),
-                        buildConnectorOptions(tablePath),
-                        Collections.emptyList(),
-                        "",
-                        catalogName);
-            }
-
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed getting table %s", tablePath.getFullName()), e);
-        }
+    protected String getSelectColumnsSql(TablePath tablePath) {
+        return String.format(SELECT_COLUMNS, tablePath.getSchemaName(), tablePath.getTableName());
     }
 
-    private void buildTable(ResultSet resultSet, TableSchema.Builder builder) throws SQLException {
+    @Override
+    protected TableIdentifier getTableIdentifier(TablePath tablePath) {
+        return TableIdentifier.of(
+                catalogName, tablePath.getDatabaseName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
         String sourceType = resultSet.getString("COLUMN_TYPE");
         String typeName = resultSet.getString("DATA_TYPE").toUpperCase();
@@ -243,7 +172,7 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
         int scale = resultSet.getInt("NUMERIC_SCALE");
         long columnLength = resultSet.getLong("CHARACTER_MAXIMUM_LENGTH");
         long octetLength = resultSet.getLong("CHARACTER_OCTET_LENGTH");
-        SeaTunnelDataType<?> type = fromJdbcType(typeName, precision, scale);
+        SeaTunnelDataType<?> type = fromJdbcType(columnName, typeName, precision, scale);
         String comment = resultSet.getString("COLUMN_COMMENT");
         Object defaultValue = resultSet.getObject("COLUMN_DEFAULT");
         String isNullableStr = resultSet.getString("IS_NULLABLE");
@@ -276,173 +205,41 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
                 break;
         }
 
-        PhysicalColumn physicalColumn =
-                PhysicalColumn.of(
-                        columnName,
-                        type,
-                        0,
-                        isNullable,
-                        defaultValue,
-                        comment,
-                        sourceType,
-                        sourceType.contains("unsigned"),
-                        sourceType.contains("zerofill"),
-                        bitLen,
-                        null,
-                        columnLength);
-        builder.column(physicalColumn);
-    }
-
-    public static Map<String, Object> getColumnsDefaultValue(TablePath tablePath, Connection conn) {
-        StringBuilder queryBuf = new StringBuilder("SHOW FULL COLUMNS FROM ");
-        queryBuf.append(StringUtils.quoteIdentifier(tablePath.getTableName(), "`", false));
-        queryBuf.append(" FROM ");
-        queryBuf.append(StringUtils.quoteIdentifier(tablePath.getDatabaseName(), "`", false));
-        try (PreparedStatement ps2 = conn.prepareStatement(queryBuf.toString())) {
-            ResultSet rs = ps2.executeQuery();
-            Map<String, Object> result = new HashMap<>();
-            while (rs.next()) {
-                String field = rs.getString("Field");
-                Object defaultValue = rs.getObject("Default");
-                result.put(field, defaultValue);
-            }
-            return result;
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format(
-                            "Failed getting table(%s) columns default value",
-                            tablePath.getFullName()),
-                    e);
-        }
-    }
-
-    // todo: If the origin source is mysql, we can directly use create table like to create the
-    @Override
-    protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
-            throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-
-        String createTableSql =
-                new RedshiftCreateTableSqlBuilder(table)
-                        .build(tablePath, table.getOptions().get("fieldIde"));
-        createTableSql =
-                CatalogUtils.getFieldIde(createTableSql, table.getOptions().get("fieldIde"));
-        Connection connection = getConnection(dbUrl);
-        log.info("create table sql: {}", createTableSql);
-        try (PreparedStatement ps = connection.prepareStatement(createTableSql)) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed creating table %s", tablePath.getFullName()), e);
-        }
+        return PhysicalColumn.of(
+                columnName,
+                type,
+                0,
+                isNullable,
+                defaultValue,
+                comment,
+                sourceType,
+                sourceType.contains("unsigned"),
+                sourceType.contains("zerofill"),
+                bitLen,
+                null,
+                columnLength);
     }
 
     @Override
-    protected boolean dropTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format(
-                                "DROP TABLE %s;",
-                                tablePath.getSchemaName() + "." + tablePath.getTableName()))) {
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed dropping table %s", tablePath.getFullName()), e);
-        }
+    public String getExistDataSql(TablePath tablePath) {
+        return String.format("select * from %s LIMIT 1;", tablePath.getFullName());
     }
 
-    public String getCountSql(TablePath tablePath) {
-        return String.format("select count(*) from %s;", tablePath.getFullName());
-    }
-
-    @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        Connection connection = getConnection(dbUrl);
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format(
-                                "TRUNCATE TABLE %s;",
-                                tablePath.getSchemaName() + "." + tablePath.getTableName()))) {
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
-    }
-
-    @Override
-    protected boolean createDatabaseInternal(String databaseName) throws CatalogException {
-        try (PreparedStatement ps =
-                defaultConnection.prepareStatement(
-                        String.format("CREATE DATABASE `%s`;", databaseName))) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format(
-                            "Failed creating database %s in catalog %s",
-                            databaseName, this.catalogName),
-                    e);
-        }
-    }
-
-    @Override
-    protected boolean dropDatabaseInternal(String databaseName) throws CatalogException {
-        try (PreparedStatement ps =
-                defaultConnection.prepareStatement(
-                        String.format("DROP DATABASE `%s`;", databaseName))) {
-            return ps.execute();
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format(
-                            "Failed dropping database %s in catalog %s",
-                            databaseName, this.catalogName),
-                    e);
-        }
-    }
-
-    /**
-     * @see MysqlType
-     * @see ResultSetImpl#getObjectStoredProc(int, int)
-     */
-    @SuppressWarnings("unchecked")
-    private SeaTunnelDataType<?> fromJdbcType(ResultSetMetaData metadata, int colIndex)
-            throws SQLException {
-        MysqlType mysqlType = MysqlType.getByName(metadata.getColumnTypeName(colIndex));
-        Map<String, Object> dataTypeProperties = new HashMap<>();
-        dataTypeProperties.put(MysqlDataTypeConvertor.PRECISION, metadata.getPrecision(colIndex));
-        dataTypeProperties.put(MysqlDataTypeConvertor.SCALE, metadata.getScale(colIndex));
-        return new MysqlDataTypeConvertor().toSeaTunnelType(mysqlType, dataTypeProperties);
-    }
-
-    private SeaTunnelDataType<?> fromJdbcType(String typeName, int precision, int scale) {
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, int precision, int scale) {
         MysqlType mysqlType = MysqlType.getByName(typeName);
         Map<String, Object> dataTypeProperties = new HashMap<>();
         dataTypeProperties.put(MysqlDataTypeConvertor.PRECISION, precision);
         dataTypeProperties.put(MysqlDataTypeConvertor.SCALE, scale);
-        return new MysqlDataTypeConvertor().toSeaTunnelType(mysqlType, dataTypeProperties);
-    }
-
-    @SuppressWarnings("MagicNumber")
-    private Map<String, String> buildConnectorOptions(TablePath tablePath) {
-        Map<String, String> options = new HashMap<>(8);
-        options.put("connector", "jdbc");
-        options.put("url", baseUrl + tablePath.getDatabaseName());
-        options.put("table-name", tablePath.getFullName());
-        options.put("username", username);
-        options.put("password", pwd);
-        return options;
-    }
-
-    private String getUrlFromDatabaseName(String databaseName) {
-        String url = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
-        return url + databaseName + suffix;
+        return new MysqlDataTypeConvertor()
+                .toSeaTunnelType(columnName, mysqlType, dataTypeProperties);
     }
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new RedshiftTypeMapper());
+        return CatalogUtils.getCatalogTable(
+                getConnection(getUrlFromDatabaseName(defaultDatabase)),
+                sqlQuery,
+                new RedshiftTypeMapper());
     }
 }

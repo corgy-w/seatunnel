@@ -25,15 +25,16 @@ import org.apache.seatunnel.api.table.type.RowKind;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
-import org.apache.seatunnel.format.json.exception.SeaTunnelJsonFormatException;
+import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.format.json.JsonDeserializationSchema;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+
+import static java.lang.String.format;
 
 public class DebeziumJsonDeserializationSchema implements DeserializationSchema<SeaTunnelRow> {
     private static final long serialVersionUID = 1L;
@@ -44,9 +45,11 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
     private static final String OP_DELETE = "d"; // delete
 
     private static final String REPLICA_IDENTITY_EXCEPTION =
-            "The \"before\" field of %s message is null, "
+            "The \"before\" field of %s operation is null, "
                     + "if you are using Debezium Postgres Connector, "
                     + "please check the Postgres table has been set REPLICA IDENTITY to FULL level.";
+
+    public static final String FORMAT = "Debezium";
 
     private final SeaTunnelRowType rowType;
 
@@ -101,8 +104,7 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
             } else if (OP_UPDATE.equals(op)) {
                 SeaTunnelRow before = convertJsonNode(payload.get("before"));
                 if (before == null) {
-                    throw new SeaTunnelJsonFormatException(
-                            CommonErrorCode.UNSUPPORTED_DATA_TYPE,
+                    throw new IllegalStateException(
                             String.format(REPLICA_IDENTITY_EXCEPTION, "UPDATE"));
                 }
                 before.setRowKind(RowKind.UPDATE_BEFORE);
@@ -114,29 +116,19 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
             } else if (OP_DELETE.equals(op)) {
                 SeaTunnelRow delete = convertJsonNode(payload.get("before"));
                 if (delete == null) {
-                    throw new SeaTunnelJsonFormatException(
-                            CommonErrorCode.UNSUPPORTED_DATA_TYPE,
+                    throw new IllegalStateException(
                             String.format(REPLICA_IDENTITY_EXCEPTION, "UPDATE"));
                 }
                 delete.setRowKind(RowKind.DELETE);
 
                 return Collections.singletonList(delete);
             } else {
-                if (!ignoreParseErrors) {
-                    throw new SeaTunnelJsonFormatException(
-                            CommonErrorCode.UNSUPPORTED_DATA_TYPE,
-                            String.format(
-                                    "Unknown \"op\" value \"%s\". The Debezium JSON message is '%s'",
-                                    op, new String(message)));
-                }
+                throw new IllegalStateException(format("Unknown operation type '%s'.", op));
             }
-        } catch (Throwable t) {
+        } catch (RuntimeException e) {
             // a big try catch to protect the processing.
             if (!ignoreParseErrors) {
-                throw new SeaTunnelJsonFormatException(
-                        CommonErrorCode.UNSUPPORTED_DATA_TYPE,
-                        String.format("Corrupt Debezium JSON message '%s'.", new String(message)),
-                        t);
+                throw CommonError.jsonOperationError(FORMAT, new String(message), e);
             }
         }
         return Collections.emptyList();
@@ -157,19 +149,13 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
     private JsonNode convertBytes(byte[] message) {
         try {
             return jsonDeserializer.deserializeToJsonNode(message);
-        } catch (Exception t) {
-            if (ignoreParseErrors) {
-                return null;
-            }
-            throw new SeaTunnelJsonFormatException(
-                    CommonErrorCode.JSON_OPERATION_FAILED,
-                    String.format("Failed to deserialize JSON '%s'.", new String(message)),
-                    t);
+        } catch (IOException t) {
+            throw CommonError.jsonOperationError(FORMAT, new String(message), t);
         }
     }
 
-    private SeaTunnelRow convertJsonNode(JsonNode root) throws JsonProcessingException {
-        return debeziumRowConverter.serializeValue(root.toString());
+    private SeaTunnelRow convertJsonNode(JsonNode root) {
+        return debeziumRowConverter.serializeValue(root);
     }
 
     @Override

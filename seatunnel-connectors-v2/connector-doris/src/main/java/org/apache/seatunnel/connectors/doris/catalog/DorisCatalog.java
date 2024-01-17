@@ -29,193 +29,315 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseAlreadyExistExce
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
-import org.apache.seatunnel.api.table.type.BasicType;
-import org.apache.seatunnel.api.table.type.DecimalType;
-import org.apache.seatunnel.api.table.type.LocalTimeType;
-import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
-import org.apache.seatunnel.common.utils.JdbcUrlUtil;
-import org.apache.seatunnel.connectors.doris.exception.DorisConnectorException;
+import org.apache.seatunnel.connectors.doris.config.DorisConfig;
+import org.apache.seatunnel.connectors.doris.config.DorisOptions;
+import org.apache.seatunnel.connectors.doris.util.DorisCatalogUtil;
 
 import org.apache.commons.lang3.StringUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mysql.cj.MysqlType;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public class DorisCatalog implements Catalog {
 
-    protected final String catalogName;
-    protected String defaultDatabase = "information_schema";
-    protected final String username;
-    protected final String pwd;
-    protected final String baseUrl;
-    protected String defaultUrl;
-    private final JdbcUrlUtil.UrlInfo urlInfo;
-
-    private static final Set<String> SYS_DATABASES = new HashSet<>();
     private static final Logger LOG = LoggerFactory.getLogger(DorisCatalog.class);
 
-    static {
-        SYS_DATABASES.add("information_schema");
-        SYS_DATABASES.add("_statistics_");
+    private final String catalogName;
+
+    private final String[] frontEndNodes;
+
+    private final Integer queryPort;
+
+    private final String username;
+
+    private final String password;
+
+    private String defaultDatabase = "information_schema";
+
+    private Connection conn;
+
+    private DorisConfig dorisConfig;
+
+    public DorisCatalog(
+            String catalogName,
+            String frontEndNodes,
+            Integer queryPort,
+            String username,
+            String password) {
+        this.catalogName = catalogName;
+        this.frontEndNodes = frontEndNodes.split(",");
+        this.queryPort = queryPort;
+        this.username = username;
+        this.password = password;
     }
 
-    public DorisCatalog(String catalogName, String username, String pwd, String defaultUrl) {
+    public DorisCatalog(
+            String catalogName,
+            String frontEndNodes,
+            Integer queryPort,
+            String username,
+            String password,
+            DorisConfig config) {
+        this(catalogName, frontEndNodes, queryPort, username, password);
+        this.dorisConfig = config;
+    }
 
-        checkArgument(StringUtils.isNotBlank(username));
-        checkArgument(StringUtils.isNotBlank(pwd));
-        checkArgument(StringUtils.isNotBlank(defaultUrl));
-        urlInfo = JdbcUrlUtil.getUrlInfo(defaultUrl);
-        this.baseUrl = urlInfo.getUrlWithoutDatabase();
-        if (urlInfo.getDefaultDatabase().isPresent()) {
-            this.defaultDatabase = urlInfo.getDefaultDatabase().get();
+    public DorisCatalog(
+            String catalogName,
+            String frontEndNodes,
+            Integer queryPort,
+            String username,
+            String password,
+            DorisConfig config,
+            String defaultDatabase) {
+        this(catalogName, frontEndNodes, queryPort, username, password, config);
+        this.defaultDatabase = defaultDatabase;
+    }
+
+    @Override
+    public void open() throws CatalogException {
+        String jdbcUrl =
+                DorisCatalogUtil.getJdbcUrl(
+                        DorisCatalogUtil.randomFrontEndHost(frontEndNodes),
+                        queryPort,
+                        defaultDatabase);
+        try {
+            conn = DriverManager.getConnection(jdbcUrl, username, password);
+            conn.getCatalog();
+        } catch (SQLException e) {
+            throw new CatalogException(String.format("Failed to connect url %s", jdbcUrl), e);
         }
-        this.defaultUrl = defaultUrl;
-        this.catalogName = catalogName;
-        this.username = username;
-        this.pwd = pwd;
+        LOG.info("Catalog {} established connection to {} success", catalogName, jdbcUrl);
+    }
+
+    @Override
+    public void close() throws CatalogException {
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            throw new CatalogException("close doris catalog failed", e);
+        }
+    }
+
+    @Override
+    public String name() {
+        return catalogName;
+    }
+
+    @Override
+    public String getDefaultDatabase() throws CatalogException {
+        return defaultDatabase;
+    }
+
+    @Override
+    public boolean databaseExists(String databaseName) throws CatalogException {
+        try (PreparedStatement ps = conn.prepareStatement(DorisCatalogUtil.DATABASE_QUERY)) {
+            ps.setString(1, databaseName);
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            throw new CatalogException("check database exists failed", e);
+        }
     }
 
     @Override
     public List<String> listDatabases() throws CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-
-            PreparedStatement ps = conn.prepareStatement("SHOW DATABASES;");
-
-            List<String> databases = new ArrayList<>();
+        List<String> databases = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(DorisCatalogUtil.ALL_DATABASES_QUERY)) {
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
-                String databaseName = rs.getString(1);
-                if (!SYS_DATABASES.contains(databaseName)) {
-                    databases.add(rs.getString(1));
-                }
+                String database = rs.getString(1);
+                databases.add(database);
             }
-
-            return databases;
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", this.catalogName), e);
+        } catch (SQLException e) {
+            throw new CatalogException("list databases failed", e);
         }
+        Collections.sort(databases);
+        return databases;
     }
 
     @Override
     public List<String> listTables(String databaseName)
             throws CatalogException, DatabaseNotExistException {
-        if (!databaseExists(databaseName)) {
-            throw new DatabaseNotExistException(this.catalogName, databaseName);
-        }
-
-        try (Connection conn =
-                DriverManager.getConnection(
-                        urlInfo.getUrlWithDatabase(databaseName), username, pwd)) {
-            PreparedStatement ps = conn.prepareStatement("SHOW TABLES;");
-
+        List<String> tables = new ArrayList<>();
+        try (PreparedStatement ps =
+                conn.prepareStatement(DorisCatalogUtil.TABLES_QUERY_WITH_DATABASE_QUERY)) {
+            ps.setString(1, databaseName);
             ResultSet rs = ps.executeQuery();
-
-            List<String> tables = new ArrayList<>();
-
             while (rs.next()) {
-                tables.add(rs.getString(1));
+                String table = rs.getString(1);
+                tables.add(table);
             }
-
-            return tables;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", catalogName), e);
+                    String.format("list tables of database [%s] failed", databaseName), e);
+        }
+        Collections.sort(tables);
+        return tables;
+    }
+
+    @Override
+    public boolean tableExists(TablePath tablePath) throws CatalogException {
+        try (PreparedStatement ps =
+                conn.prepareStatement(DorisCatalogUtil.TABLES_QUERY_WITH_IDENTIFIER_QUERY)) {
+            ps.setString(1, tablePath.getDatabaseName());
+            ps.setString(2, tablePath.getTableName());
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            throw new CatalogException(
+                    String.format("check table [%s] exists failed", tablePath.getFullName()), e);
         }
     }
 
     @Override
     public CatalogTable getTable(TablePath tablePath)
             throws CatalogException, TableNotExistException {
+
         if (!tableExists(tablePath)) {
             throw new TableNotExistException(catalogName, tablePath);
         }
+        TableSchema.Builder builder = TableSchema.builder();
+        try (PreparedStatement ps = conn.prepareStatement(DorisCatalogUtil.TABLE_SCHEMA_QUERY)) {
 
-        String dbUrl = urlInfo.getUrlWithDatabase(tablePath.getDatabaseName());
-        try (Connection conn = DriverManager.getConnection(dbUrl, username, pwd)) {
-            Optional<PrimaryKey> primaryKey =
-                    getPrimaryKey(tablePath.getDatabaseName(), tablePath.getTableName());
-
-            PreparedStatement ps =
-                    conn.prepareStatement(
-                            String.format(
-                                    "SELECT * FROM %s WHERE 1 = 0;",
-                                    tablePath.getFullNameWithQuoted()));
-
-            ResultSetMetaData tableMetaData = ps.getMetaData();
-
-            TableSchema.Builder builder = TableSchema.builder();
-            for (int i = 1; i <= tableMetaData.getColumnCount(); i++) {
-                SeaTunnelDataType<?> type = fromJdbcType(tableMetaData, i);
-                // TODO add default value and test it
+            List<String> keyList = new ArrayList<>();
+            ps.setString(1, tablePath.getDatabaseName());
+            ps.setString(2, tablePath.getTableName());
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                String name = rs.getString(1);
+                int size = rs.getInt(6);
+                boolean nullable = rs.getBoolean(4);
+                String defaultVal = rs.getString(3);
+                String comment = rs.getString(10);
                 builder.column(
                         PhysicalColumn.of(
-                                tableMetaData.getColumnName(i),
-                                type,
-                                tableMetaData.getColumnDisplaySize(i),
-                                tableMetaData.isNullable(i) == ResultSetMetaData.columnNullable,
-                                null,
-                                tableMetaData.getColumnLabel(i)));
+                                name,
+                                DorisCatalogUtil.fromDorisType(rs),
+                                size,
+                                nullable,
+                                defaultVal,
+                                comment));
+                if ("UNI".equalsIgnoreCase(rs.getString(7))) {
+                    keyList.add(name);
+                }
+            }
+            if (!keyList.isEmpty()) {
+                builder.primaryKey(
+                        PrimaryKey.of(
+                                "uk_"
+                                        + tablePath.getDatabaseName()
+                                        + "_"
+                                        + tablePath.getTableName(),
+                                keyList));
             }
 
-            primaryKey.ifPresent(builder::primaryKey);
-
-            TableIdentifier tableIdentifier =
-                    TableIdentifier.of(
-                            catalogName, tablePath.getDatabaseName(), tablePath.getTableName());
-            return CatalogTable.of(
-                    tableIdentifier,
-                    builder.build(),
-                    buildConnectorOptions(tablePath),
-                    Collections.emptyList(),
-                    "");
-        } catch (Exception e) {
+        } catch (SQLException e) {
             throw new CatalogException(
-                    String.format("Failed getting table %s", tablePath.getFullName()), e);
+                    String.format("get table [%s] failed", tablePath.getFullName()), e);
         }
+
+        return CatalogTable.of(
+                TableIdentifier.of(
+                        catalogName, tablePath.getDatabaseName(), tablePath.getTableName()),
+                builder.build(),
+                connectorOptions(),
+                Collections.emptyList(),
+                StringUtils.EMPTY);
     }
 
     @Override
     public void createTable(TablePath tablePath, CatalogTable table, boolean ignoreIfExists)
-            throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {}
+            throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
+
+        if (!databaseExists(tablePath.getDatabaseName())) {
+            throw new DatabaseNotExistException(catalogName, tablePath.getDatabaseName());
+        }
+
+        boolean tableExists = tableExists(tablePath);
+        if (ignoreIfExists && tableExists) {
+            LOG.info("table {} is exists, skip create", tablePath.getFullName());
+            return;
+        }
+
+        if (tableExists) {
+            throw new TableAlreadyExistException(catalogName, tablePath);
+        }
+
+        String stmt =
+                DorisCatalogUtil.getCreateTableStatement(
+                        dorisConfig.getCreateTableTemplate(), tablePath, table);
+
+        try (Statement statement = conn.createStatement()) {
+            statement.execute(stmt);
+        } catch (SQLException e) {
+            throw new CatalogException("create table statement execute failed", e);
+        }
+    }
 
     @Override
     public void dropTable(TablePath tablePath, boolean ignoreIfNotExists)
             throws TableNotExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            conn.createStatement()
-                    .execute(String.format("DROP TABLE IF EXISTS %s", tablePath.getFullName()));
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed DROP TABLE in catalog %s", tablePath.getFullName()), e);
+        String query = DorisCatalogUtil.getDropTableQuery(tablePath, ignoreIfNotExists);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(query);
+        } catch (SQLException e) {
+            throw new CatalogException(e);
         }
+    }
+
+    @Override
+    public void createDatabase(TablePath tablePath, boolean ignoreIfExists)
+            throws DatabaseAlreadyExistException, CatalogException {
+        String query =
+                DorisCatalogUtil.getCreateDatabaseQuery(
+                        tablePath.getDatabaseName(), ignoreIfExists);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(query);
+        } catch (SQLException e) {
+            throw new CatalogException(
+                    String.format("create database [%s] failed", tablePath.getDatabaseName()), e);
+        }
+    }
+
+    @Override
+    public void dropDatabase(TablePath tablePath, boolean ignoreIfNotExists)
+            throws DatabaseNotExistException, CatalogException {
+        String query =
+                DorisCatalogUtil.getDropDatabaseQuery(
+                        tablePath.getDatabaseName(), ignoreIfNotExists);
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(query);
+        } catch (SQLException e) {
+            throw new CatalogException(
+                    String.format("drop database [%s] failed", tablePath.getDatabaseName()), e);
+        }
+    }
+
+    private Map<String, String> connectorOptions() {
+        Map<String, String> options = new HashMap<>();
+        options.put("connector", "doris");
+        options.put(DorisOptions.FENODES.key(), String.join(",", frontEndNodes));
+        options.put(DorisOptions.USERNAME.key(), username);
+        options.put(DorisOptions.PASSWORD.key(), password);
+        return options;
     }
 
     public void truncateTable(TablePath tablePath, boolean ignoreIfNotExists)
             throws TableNotExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
+        try {
             if (ignoreIfNotExists) {
                 conn.createStatement()
                         .execute(String.format("TRUNCATE TABLE  %s", tablePath.getFullName()));
@@ -227,253 +349,14 @@ public class DorisCatalog implements Catalog {
         }
     }
 
-    public void executeSql(String sql) {
-        try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                // Will there exist concurrent drop for one table?
-                ps.execute();
-            } catch (SQLException e) {
-                throw new CatalogException(String.format("Failed executeSql error %s", sql), e);
-            }
-        } catch (Exception e) {
-            throw new CatalogException(String.format("Failed EXECUTE SQL in catalog %s", sql), e);
-        }
-    }
-
     public boolean isExistsData(TablePath tablePath) {
         String tableName = tablePath.getFullName();
         String sql = String.format("select * from %s limit 1;", tableName);
-        try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd);
-                PreparedStatement ps = connection.prepareStatement(sql);
-                ResultSet resultSet = ps.executeQuery()) {
-            if (resultSet == null) {
-                return false;
-            }
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ResultSet resultSet = ps.executeQuery();
             return resultSet.next();
         } catch (SQLException e) {
             throw new CatalogException(String.format("Failed executeSql error %s", sql), e);
-        }
-    }
-
-    @Override
-    public void createDatabase(TablePath tablePath, boolean ignoreIfExists)
-            throws DatabaseAlreadyExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            if (ignoreIfExists) {
-                conn.createStatement()
-                        .execute(
-                                "CREATE DATABASE IF NOT EXISTS `"
-                                        + tablePath.getDatabaseName()
-                                        + "`");
-            } else {
-                conn.createStatement()
-                        .execute("CREATE DATABASE `" + tablePath.getDatabaseName() + "`");
-            }
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", catalogName), e);
-        }
-    }
-
-    @Override
-    public void dropDatabase(TablePath tablePath, boolean ignoreIfNotExists)
-            throws DatabaseNotExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            if (ignoreIfNotExists) {
-                conn.createStatement()
-                        .execute("DROP DATABASE IF EXISTS `" + tablePath.getDatabaseName() + "`");
-            } else {
-                conn.createStatement()
-                        .execute(String.format("DROP DATABASE `%s`", tablePath.getDatabaseName()));
-            }
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", catalogName), e);
-        }
-    }
-
-    /** @see com.mysql.cj.MysqlType */
-    private SeaTunnelDataType<?> fromJdbcType(ResultSetMetaData metadata, int colIndex)
-            throws SQLException {
-        MysqlType starrocksType = MysqlType.getByName(metadata.getColumnTypeName(colIndex));
-        switch (starrocksType) {
-            case NULL:
-                return BasicType.VOID_TYPE;
-            case BOOLEAN:
-                return BasicType.BOOLEAN_TYPE;
-            case BIT:
-            case TINYINT:
-                return BasicType.BYTE_TYPE;
-            case TINYINT_UNSIGNED:
-            case SMALLINT:
-                return BasicType.SHORT_TYPE;
-            case SMALLINT_UNSIGNED:
-            case INT:
-            case MEDIUMINT:
-            case MEDIUMINT_UNSIGNED:
-                return BasicType.INT_TYPE;
-            case INT_UNSIGNED:
-            case BIGINT:
-                return BasicType.LONG_TYPE;
-            case FLOAT:
-            case FLOAT_UNSIGNED:
-                return BasicType.FLOAT_TYPE;
-            case DOUBLE:
-            case DOUBLE_UNSIGNED:
-                return BasicType.DOUBLE_TYPE;
-            case TIME:
-                return LocalTimeType.LOCAL_TIME_TYPE;
-            case DATE:
-                return LocalTimeType.LOCAL_DATE_TYPE;
-            case TIMESTAMP:
-            case DATETIME:
-                return LocalTimeType.LOCAL_DATE_TIME_TYPE;
-            case CHAR:
-            case VARCHAR:
-            case TINYTEXT:
-            case TEXT:
-            case MEDIUMTEXT:
-            case LONGTEXT:
-            case JSON:
-            case ENUM:
-                return BasicType.STRING_TYPE;
-            case BINARY:
-            case VARBINARY:
-            case TINYBLOB:
-            case BLOB:
-            case MEDIUMBLOB:
-            case LONGBLOB:
-            case GEOMETRY:
-                return PrimitiveByteArrayType.INSTANCE;
-            case BIGINT_UNSIGNED:
-            case DECIMAL:
-            case DECIMAL_UNSIGNED:
-                int precision = metadata.getPrecision(colIndex);
-                int scale = metadata.getScale(colIndex);
-                return new DecimalType(precision, scale);
-            default:
-                throw new DorisConnectorException(
-                        CommonErrorCode.UNSUPPORTED_DATA_TYPE,
-                        String.format(
-                                "Doesn't support doris type '%s' yet", starrocksType.getName()));
-        }
-    }
-
-    @SuppressWarnings("MagicNumber")
-    private Map<String, String> buildConnectorOptions(TablePath tablePath) {
-        Map<String, String> options = new HashMap<>(8);
-        options.put("connector", "starrocks");
-        options.put("url", baseUrl + tablePath.getDatabaseName());
-        options.put("table-name", tablePath.getFullName());
-        options.put("username", username);
-        options.put("password", pwd);
-        return options;
-    }
-
-    public void createTable(String sql)
-            throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            conn.createStatement().execute(sql);
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed create table in catalog %s, sql :[%s]", catalogName, sql),
-                    e);
-        }
-    }
-
-    /**
-     * URL has to be without database, like "jdbc:mysql://localhost:5432/" or
-     * "jdbc:mysql://localhost:5432" rather than "jdbc:mysql://localhost:5432/db".
-     */
-    public static boolean validateJdbcUrlWithoutDatabase(String url) {
-        String[] parts = url.trim().split("\\/+");
-
-        return parts.length == 2;
-    }
-
-    /**
-     * URL has to be with database, like "jdbc:mysql://localhost:5432/db" rather than
-     * "jdbc:mysql://localhost:5432/".
-     */
-    @SuppressWarnings("MagicNumber")
-    public static boolean validateJdbcUrlWithDatabase(String url) {
-        String[] parts = url.trim().split("\\/+");
-        return parts.length == 3;
-    }
-
-    /**
-     * Ensure that the url was validated {@link #validateJdbcUrlWithDatabase}.
-     *
-     * @return The array size is fixed at 2, index 0 is base url, and index 1 is default database.
-     */
-    public static String[] splitDefaultUrl(String defaultUrl) {
-        String[] res = new String[2];
-        int index = defaultUrl.lastIndexOf("/") + 1;
-        res[0] = defaultUrl.substring(0, index);
-        res[1] = defaultUrl.substring(index);
-        return res;
-    }
-
-    @Override
-    public String getDefaultDatabase() {
-        return defaultDatabase;
-    }
-
-    @Override
-    public void open() throws CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            // test connection, fail early if we cannot connect to database
-            conn.getCatalog();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed connecting to %s via JDBC.", defaultUrl), e);
-        }
-
-        LOG.info("Catalog {} established connection to {}", catalogName, defaultUrl);
-    }
-
-    @Override
-    public void close() throws CatalogException {
-        LOG.info("Catalog {} closing", catalogName);
-    }
-
-    protected Optional<PrimaryKey> getPrimaryKey(String schema, String table) throws SQLException {
-
-        List<String> pkFields = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            ResultSet rs =
-                    conn.createStatement()
-                            .executeQuery(
-                                    String.format(
-                                            "SELECT COLUMN_NAME FROM information_schema.columns where TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s' AND COLUMN_KEY = 'PRI' ORDER BY ORDINAL_POSITION",
-                                            schema, table));
-            while (rs.next()) {
-                String columnName = rs.getString("COLUMN_NAME");
-                pkFields.add(columnName);
-            }
-        }
-        if (!pkFields.isEmpty()) {
-            // PK_NAME maybe null according to the javadoc, generate a unique name in that case
-            String pkName = "pk_" + String.join("_", pkFields);
-            return Optional.of(PrimaryKey.of(pkName, pkFields));
-        }
-        return Optional.empty();
-    }
-
-    @Override
-    public boolean databaseExists(String databaseName) throws CatalogException {
-        checkArgument(StringUtils.isNotBlank(databaseName));
-
-        return listDatabases().contains(databaseName);
-    }
-
-    @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName()).contains(tablePath.getTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
         }
     }
 }
