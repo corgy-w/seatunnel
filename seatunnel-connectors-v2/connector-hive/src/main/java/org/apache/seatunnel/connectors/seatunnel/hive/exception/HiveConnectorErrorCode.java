@@ -24,7 +24,8 @@ public enum HiveConnectorErrorCode implements SeaTunnelErrorCode {
     INITIALIZE_HIVE_METASTORE_CLIENT_FAILED("HIVE-02", "Initialize hive metastore client failed"),
     GET_HIVE_TABLE_INFORMATION_FAILED(
             "HIVE-03", "Get hive table information from hive metastore service failed"),
-    AGGREGATE_COMMIT_ERROR("HIVE-04", "Aggregate committer error");
+    AGGREGATE_COMMIT_ERROR("HIVE-04", "Aggregate committer error"),
+    HIVE_TABLE_NAME_ERROR("HIVE-05", "Hive table name is invalid");
 
     private final String code;
     private final String description;

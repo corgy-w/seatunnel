@@ -33,6 +33,7 @@ import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Getter
 @Setter
@@ -73,12 +74,12 @@ public class FieldMapperTransformConfig implements Serializable {
         return fieldMapperTransformConfig;
     }
 
-    public static FieldMapperTransformConfig of(ReadonlyConfig config, CatalogTable catalogTable) {
+    public static Optional<FieldMapperTransformConfig> of(
+            ReadonlyConfig config, CatalogTable catalogTable) {
         String tablePath = catalogTable.getTableId().toTablePath().getFullName();
         if (null != config.get(MULTI_TABLES)) {
             return config.get(MULTI_TABLES).stream()
                     .filter(tableTransforms -> tableTransforms.getTablePath().equals(tablePath))
-                    .findFirst()
                     .map(
                             tableTransforms -> {
                                 FieldMapperTransformConfig fieldMapperTransformConfig =
@@ -87,8 +88,8 @@ public class FieldMapperTransformConfig implements Serializable {
                                         tableTransforms.getFieldMapper());
                                 return fieldMapperTransformConfig;
                             })
-                    .orElseGet(() -> of(config));
+                    .findFirst();
         }
-        return of(config);
+        return Optional.of(of(config));
     }
 }

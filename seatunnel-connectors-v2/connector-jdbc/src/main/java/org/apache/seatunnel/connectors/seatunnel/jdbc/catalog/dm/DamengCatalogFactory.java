@@ -51,7 +51,8 @@ public class DamengCatalogFactory implements CatalogFactory {
                 catalogName,
                 options.get(JdbcCatalogOptions.USERNAME),
                 options.get(JdbcCatalogOptions.PASSWORD),
-                urlInfo);
+                urlInfo,
+                options.get(JdbcCatalogOptions.SCHEMA));
     }
 
     @Override

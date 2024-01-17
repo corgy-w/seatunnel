@@ -19,11 +19,17 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect;
 
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.source.JdbcSourceTable;
 
 import org.apache.commons.lang3.StringUtils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.sql.Connection;
@@ -33,9 +39,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static java.lang.String.format;
@@ -46,7 +53,7 @@ import static java.lang.String.format;
  */
 public interface JdbcDialect extends Serializable {
 
-    Logger log = Logger.getLogger(JdbcDialect.class.getName());
+    Logger log = LoggerFactory.getLogger(JdbcDialect.class.getName());
 
     /**
      * Get the name of jdbc dialect.
@@ -250,6 +257,20 @@ public interface JdbcDialect extends Serializable {
         return null;
     }
 
+    default Map<String, String> defaultParameter() {
+        return new HashMap<>();
+    }
+
+    default void connectionUrlParse(
+            String url, Map<String, String> info, Map<String, String> defaultParameter) {
+        defaultParameter.forEach(
+                (key, value) -> {
+                    if (!url.contains(key) && !info.containsKey(key)) {
+                        info.put(key, value);
+                    }
+                });
+    }
+
     default TablePath parse(String tablePath) {
         return TablePath.of(tablePath);
     }
@@ -377,5 +398,10 @@ public interface JdbcDialect extends Serializable {
                 }
             }
         }
+    }
+
+    default JdbcConnectionProvider getJdbcConnectionProvider(
+            JdbcConnectionConfig jdbcConnectionConfig) {
+        return new SimpleJdbcConnectionProvider(jdbcConnectionConfig);
     }
 }

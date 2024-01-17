@@ -57,7 +57,7 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
         this.postgresDataTypeConvertor = new PostgresDataTypeConvertor();
         this.sourceCatalogName = catalogTable.getCatalogName();
         this.fieldIde = catalogTable.getOptions().get("fieldIde");
-        constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
+        this.constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
     }
 
     public String build(TablePath tablePath) {
@@ -128,7 +128,7 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
 
         // For simplicity, assume the column type in SeaTunnelDataType is the same as in PostgreSQL
         String columnType =
-                sourceCatalogName.equals(DatabaseIdentifier.POSTGRESQL)
+                StringUtils.equalsIgnoreCase(DatabaseIdentifier.POSTGRESQL, sourceCatalogName)
                                 && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
                         : buildColumnType(column);
@@ -160,7 +160,9 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
                     return "text";
                 }
             default:
-                String type = postgresDataTypeConvertor.toConnectorType(column.getDataType(), null);
+                String type =
+                        postgresDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
                 if (type.equals(PG_NUMERIC)) {
                     DecimalType decimalType = (DecimalType) column.getDataType();
                     return "numeric("

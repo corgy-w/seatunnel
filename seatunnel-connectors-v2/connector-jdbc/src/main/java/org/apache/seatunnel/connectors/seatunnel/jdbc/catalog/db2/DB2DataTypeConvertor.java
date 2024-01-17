@@ -1,6 +1,5 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2;
 
-import org.apache.seatunnel.api.table.catalog.DataTypeConvertException;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.DecimalType;
@@ -8,6 +7,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import org.apache.commons.collections4.MapUtils;
@@ -75,14 +75,13 @@ public class DB2DataTypeConvertor implements DataTypeConvertor<String> {
     public static final String DB2_XML = "XML";
 
     @Override
-    public SeaTunnelDataType<?> toSeaTunnelType(String connectorDataType) {
-        return toSeaTunnelType(connectorDataType, new HashMap<>(0));
+    public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
+        return toSeaTunnelType(field, connectorDataType, new HashMap<>(0));
     }
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
-            String connectorDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
         checkNotNull(connectorDataType, "DB2 Type cannot be null");
         switch (connectorDataType) {
             case DB2_BOOLEAN:
@@ -137,15 +136,16 @@ public class DB2DataTypeConvertor implements DataTypeConvertor<String> {
                 // maybe should support
             case DB2_XML:
             default:
-                throw new UnsupportedOperationException(
-                        String.format("Doesn't support DB2 type '%s''  yet.", connectorDataType));
+                throw CommonError.convertToSeaTunnelTypeError(
+                        DatabaseIdentifier.DB_2, connectorDataType, field);
         }
     }
 
     @Override
     public String toConnectorType(
-            SeaTunnelDataType<?> seaTunnelDataType, Map<String, Object> dataTypeProperties)
-            throws DataTypeConvertException {
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
         checkNotNull(seaTunnelDataType, "seaTunnelDataType cannot be null");
         SqlType sqlType = seaTunnelDataType.getSqlType();
         switch (sqlType) {
@@ -174,9 +174,8 @@ public class DB2DataTypeConvertor implements DataTypeConvertor<String> {
             case BYTES:
                 return DB2_VARBINARY;
             default:
-                throw new UnsupportedOperationException(
-                        String.format(
-                                "Doesn't support SeaTunnel type '%s' yet.", seaTunnelDataType));
+                throw CommonError.convertToConnectorTypeError(
+                        DatabaseIdentifier.DB_2, sqlType.toString(), field);
         }
     }
 

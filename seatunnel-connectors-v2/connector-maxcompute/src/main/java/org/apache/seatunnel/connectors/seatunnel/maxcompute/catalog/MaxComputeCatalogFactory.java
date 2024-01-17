@@ -25,11 +25,15 @@ import org.apache.seatunnel.api.table.factory.Factory;
 
 import com.google.auto.service.AutoService;
 
+import static org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions.SCHEMA;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.ACCESS_ID;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.ACCESS_KEY;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.ENDPOINT;
+import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.PARTITION_SPEC;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.PLUGIN_NAME;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.PROJECT;
+import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.SPLIT_ROW;
+import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.TABLE_NAME;
 
 @AutoService(Factory.class)
 public class MaxComputeCatalogFactory implements CatalogFactory {
@@ -46,6 +50,9 @@ public class MaxComputeCatalogFactory implements CatalogFactory {
 
     @Override
     public OptionRule optionRule() {
-        return OptionRule.builder().required(ACCESS_ID, ACCESS_KEY, ENDPOINT, PROJECT).build();
+        return OptionRule.builder()
+                .required(ACCESS_ID, ACCESS_KEY, ENDPOINT, PROJECT, TABLE_NAME)
+                .optional(PARTITION_SPEC, SPLIT_ROW, SPLIT_ROW, SCHEMA)
+                .build();
     }
 }

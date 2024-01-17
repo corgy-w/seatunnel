@@ -23,8 +23,6 @@ import org.apache.seatunnel.api.configuration.Options;
 
 public class SinkCommonOptions {
 
-    public static final String DATA_SAVE_MODE = "save_mode";
-
     @Experimental
     public static Option<Integer> MULTI_TABLE_SINK_REPLICA =
             Options.key("multi_table_sink_replica")

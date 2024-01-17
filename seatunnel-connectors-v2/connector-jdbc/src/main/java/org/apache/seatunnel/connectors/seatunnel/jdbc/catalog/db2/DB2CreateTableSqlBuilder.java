@@ -143,7 +143,9 @@ public class DB2CreateTableSqlBuilder {
                     return DB2_LONG_VARCHAR;
                 }
             default:
-                String type = db2DataTypeConvertor.toConnectorType(column.getDataType(), null);
+                String type =
+                        db2DataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
                 if (type.equals(DB2_DECIMAL)) {
                     DecimalType decimalType = (DecimalType) column.getDataType();
                     return "DECIMAL("

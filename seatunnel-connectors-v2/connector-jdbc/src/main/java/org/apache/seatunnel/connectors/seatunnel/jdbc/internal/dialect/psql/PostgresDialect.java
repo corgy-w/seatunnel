@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 public class PostgresDialect implements JdbcDialect {
 
     public static final int DEFAULT_POSTGRES_FETCH_SIZE = 128;
-    public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
+    protected String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
 
     public PostgresDialect() {}
 
@@ -64,6 +64,11 @@ public class PostgresDialect implements JdbcDialect {
     @Override
     public JdbcDialectTypeMapper getJdbcDialectTypeMapper() {
         return new PostgresTypeMapper();
+    }
+
+    @Override
+    public String hashModForField(String fieldName, int mod) {
+        return "(ABS(HASHTEXT(" + quoteIdentifier(fieldName) + ")) % " + mod + ")";
     }
 
     @Override
@@ -109,14 +114,7 @@ public class PostgresDialect implements JdbcDialect {
 
     @Override
     public String tableIdentifier(String database, String tableName) {
-        //        String[] strings = tableName.split("\\.");
-        //        String returnStr = "";
-        //
-        //        returnStr += "\"" + database + "\"";
-        //        for (String s : strings) {
-        //            returnStr += "." + "\"" + s + "\"";
-        //        }
-        //        return returnStr;
+        // resolve pg database name upper or lower not recognised
         return quoteDatabaseIdentifier(database) + "." + quoteIdentifier(tableName);
     }
 
@@ -135,6 +133,11 @@ public class PostgresDialect implements JdbcDialect {
         }
 
         return "\"" + getFieldIde(identifier, fieldIde) + "\"";
+    }
+
+    @Override
+    public String tableIdentifier(TablePath tablePath) {
+        return tablePath.getFullNameWithQuoted("\"");
     }
 
     @Override

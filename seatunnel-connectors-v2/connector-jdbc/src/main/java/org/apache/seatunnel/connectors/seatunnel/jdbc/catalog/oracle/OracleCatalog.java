@@ -19,15 +19,11 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.oracle;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
-import org.apache.seatunnel.api.table.catalog.PrimaryKey;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
-import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -39,18 +35,13 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.oracle.OracleDataTypeConvertor.ORACLE_BFILE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.oracle.OracleDataTypeConvertor.ORACLE_BLOB;
@@ -67,9 +58,11 @@ import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.oracle.Orac
 
 @Slf4j
 public class OracleCatalog extends AbstractJdbcCatalog {
+
     private static final OracleDataTypeConvertor DATA_TYPE_CONVERTOR =
             new OracleDataTypeConvertor();
-    private static final List<String> EXCLUDED_SCHEMAS =
+
+    protected static List<String> EXCLUDED_SCHEMAS =
             Collections.unmodifiableList(
                     Arrays.asList(
                             "APPQOSSYS",
@@ -93,7 +86,7 @@ public class OracleCatalog extends AbstractJdbcCatalog {
                             "EXFSYS",
                             "SYSMAN"));
 
-    private static final String SELECT_COLUMNS_SQL =
+    private static final String SELECT_COLUMNS_SQL_TEMPLATE =
             "SELECT\n"
                     + "    cols.COLUMN_NAME,\n"
                     + "    CASE \n"
@@ -133,222 +126,59 @@ public class OracleCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public List<String> listDatabases() throws CatalogException {
-        try (PreparedStatement ps =
-                defaultConnection.prepareStatement("SELECT name FROM v$database")) {
-
-            List<String> databases = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
-
-            while (rs.next()) {
-                String databaseName = rs.getString(1);
-                databases.add(databaseName);
-            }
-            return databases;
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", this.catalogName), e);
-        }
+    protected String getListDatabaseSql() {
+        return "SELECT name FROM v$database";
     }
 
     @Override
-    protected boolean createTableInternal(TablePath tablePath, CatalogTable table)
-            throws CatalogException {
-        OracleCreateTableSqlBuilder createTableSqlBuilder = new OracleCreateTableSqlBuilder(table);
-        String createTableSql = createTableSqlBuilder.build(tablePath);
-        String[] createTableSqls = createTableSql.split(";");
-        for (String sql : createTableSqls) {
-            log.info("create table sql: {}", sql);
-            try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
-                ps.execute();
-            } catch (Exception e) {
-                throw new CatalogException(
-                        String.format("Failed creating table %s", tablePath.getFullName()), e);
-            }
-        }
-        for (String sql : createTableSqlBuilder.getCreateIndexSqls()) {
-            log.info("create table index sql: {}", sql);
-            try (PreparedStatement ps = defaultConnection.prepareStatement(sql)) {
-                ps.execute();
-            } catch (Exception e) {
-                throw new CatalogException(
-                        String.format("Failed creating table index %s", tablePath.getFullName()),
-                        e);
-            }
-        }
-
-        return true;
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return new OracleCreateTableSqlBuilder(table).build(tablePath);
     }
 
     @Override
-    protected boolean dropTableInternal(TablePath tablePath) throws CatalogException {
-        Connection connection = defaultConnection;
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format(
-                                "DROP TABLE \"%s\".\"%s\"",
-                                tablePath.getSchemaName(), tablePath.getTableName()))) {
-            // Will there exist concurrent truncate for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
+    protected String getDropTableSql(TablePath tablePath) {
+        return String.format("DROP TABLE %s", tablePath.getSchemaAndTableName("\""));
     }
 
     @Override
-    protected boolean truncateTableInternal(TablePath tablePath) throws CatalogException {
-        Connection connection = defaultConnection;
-        try (PreparedStatement ps =
-                connection.prepareStatement(
-                        String.format(
-                                "TRUNCATE TABLE \"%s\".\"%s\"",
-                                tablePath.getSchemaName(), tablePath.getTableName()))) {
-            // Will there exist concurrent truncate for one table?
-            return ps.execute();
-        } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed truncating table %s", tablePath.getFullName()), e);
-        }
-    }
-
-    @Override
-    protected boolean createDatabaseInternal(String databaseName) {
-        return false;
-    }
-
-    @Override
-    protected boolean dropDatabaseInternal(String databaseName) throws CatalogException {
-        return false;
-    }
-
-    public String getCountSql(TablePath tablePath) {
+    protected String getTruncateTableSql(TablePath tablePath) {
         return String.format(
-                "select count(*) from %s.%s", tablePath.getSchemaName(), tablePath.getTableName());
+                "TRUNCATE TABLE \"%s\".\"%s\"",
+                tablePath.getSchemaName(), tablePath.getTableName());
     }
 
     @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getSchemaAndTableName());
-            }
-            return listTables().contains(tablePath.getSchemaAndTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
-        }
-    }
-
-    private List<String> listTables() {
-        List<String> databases = listDatabases();
-        return listTables(databases.get(0));
+    protected String getExistDataSql(TablePath tablePath) {
+        return String.format(
+                "select * from \"%s\".\"%s\" WHERE rownum = 1",
+                tablePath.getSchemaName(), tablePath.getTableName());
     }
 
     @Override
-    public List<String> listTables(String databaseName)
-            throws CatalogException, DatabaseNotExistException {
-        long startTime = System.currentTimeMillis();
-        if (!databaseExists(databaseName)) {
-            throw new DatabaseNotExistException(this.catalogName, databaseName);
-        }
-
-        try (PreparedStatement ps =
-                defaultConnection.prepareStatement(
-                        "SELECT OWNER, TABLE_NAME FROM ALL_TABLES\n"
-                                + "WHERE TABLE_NAME NOT LIKE 'MDRT_%'\n"
-                                + "  AND TABLE_NAME NOT LIKE 'MDRS_%'\n"
-                                + "  AND TABLE_NAME NOT LIKE 'MDXT_%'\n"
-                                + "  AND (TABLE_NAME NOT LIKE 'SYS_IOT_OVER_%' AND IOT_NAME IS NULL)")) {
-
-            ResultSet rs = ps.executeQuery();
-            List<String> tables = new ArrayList<>();
-            while (rs.next()) {
-                if (EXCLUDED_SCHEMAS.contains(rs.getString(1))) {
-                    continue;
-                }
-                tables.add(rs.getString(1) + "." + rs.getString(2));
-            }
-            log.debug(
-                    "OracleCatalog listTables for database: {} success cost: {}/ms",
-                    databaseName,
-                    System.currentTimeMillis() - startTime);
-            return tables;
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed listing database in catalog %s", catalogName), e);
-        }
+    protected String getListTableSql(String databaseName) {
+        return "SELECT OWNER, TABLE_NAME FROM ALL_TABLES"
+                + "  WHERE TABLE_NAME NOT LIKE 'MDRT_%'"
+                + "  AND TABLE_NAME NOT LIKE 'MDRS_%'"
+                + "  AND TABLE_NAME NOT LIKE 'MDXT_%'"
+                + "  AND (TABLE_NAME NOT LIKE 'SYS_IOT_OVER_%' AND IOT_NAME IS NULL)";
     }
 
     @Override
-    public CatalogTable getTable(TablePath tablePath)
-            throws CatalogException, TableNotExistException {
-        long startTime = System.currentTimeMillis();
-
-        if (!tableExists(tablePath)) {
-            throw new TableNotExistException(catalogName, tablePath);
+    protected String getTableName(ResultSet rs) throws SQLException {
+        if (EXCLUDED_SCHEMAS.contains(rs.getString(1))) {
+            return null;
         }
-
-        try {
-            DatabaseMetaData metaData = defaultConnection.getMetaData();
-            Optional<PrimaryKey> primaryKey =
-                    getPrimaryKey(
-                            metaData,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-            List<ConstraintKey> constraintKeys =
-                    getConstraintKeys(
-                            metaData,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-
-            String sql =
-                    String.format(
-                            SELECT_COLUMNS_SQL,
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName());
-            try (PreparedStatement ps = defaultConnection.prepareStatement(sql);
-                    ResultSet resultSet = ps.executeQuery()) {
-                TableSchema.Builder builder = TableSchema.builder();
-                // add column
-                while (resultSet.next()) {
-                    buildColumn(resultSet, builder);
-                }
-
-                // add primary key
-                primaryKey.ifPresent(builder::primaryKey);
-                // add constraint key
-                constraintKeys.forEach(builder::constraintKey);
-                TableIdentifier tableIdentifier =
-                        TableIdentifier.of(
-                                catalogName,
-                                tablePath.getDatabaseName(),
-                                tablePath.getSchemaName(),
-                                tablePath.getTableName());
-                CatalogTable catalogTable =
-                        CatalogTable.of(
-                                tableIdentifier,
-                                builder.build(),
-                                buildConnectorOptions(tablePath),
-                                Collections.emptyList(),
-                                "",
-                                catalogName);
-                log.info(
-                        "OracleCatalog get CatalogTable for: {} success cost {}/ms",
-                        tablePath,
-                        System.currentTimeMillis() - startTime);
-                return catalogTable;
-            }
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed getting table %s", tablePath.getFullName()), e);
-        }
+        return rs.getString(1) + "." + rs.getString(2);
     }
 
-    private void buildColumn(ResultSet resultSet, TableSchema.Builder builder) throws SQLException {
+    @Override
+    protected String getSelectColumnsSql(TablePath tablePath) {
+        return String.format(
+                SELECT_COLUMNS_SQL_TEMPLATE, tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
         String typeName = resultSet.getString("TYPE_NAME");
         String fullTypeName = resultSet.getString("FULL_TYPE_NAME");
@@ -359,7 +189,8 @@ public class OracleCatalog extends AbstractJdbcCatalog {
         Object defaultValue = resultSet.getObject("DEFAULT_VALUE");
         boolean isNullable = resultSet.getString("IS_NULLABLE").equals("YES");
 
-        SeaTunnelDataType<?> type = fromJdbcType(typeName, columnPrecision, columnScale);
+        SeaTunnelDataType<?> type =
+                fromJdbcType(columnName, typeName, columnPrecision, columnScale);
         long bitLen = 0;
         switch (typeName) {
             case ORACLE_LONG:
@@ -384,53 +215,61 @@ public class OracleCatalog extends AbstractJdbcCatalog {
                 break;
         }
 
-        PhysicalColumn physicalColumn =
-                PhysicalColumn.of(
-                        columnName,
-                        type,
-                        0,
-                        isNullable,
-                        defaultValue,
-                        columnComment,
-                        fullTypeName,
-                        false,
-                        false,
-                        bitLen,
-                        null,
-                        columnLength);
-        builder.column(physicalColumn);
+        return PhysicalColumn.of(
+                columnName,
+                type,
+                0,
+                isNullable,
+                defaultValue,
+                columnComment,
+                fullTypeName,
+                false,
+                false,
+                bitLen,
+                null,
+                columnLength);
     }
 
-    @SuppressWarnings("unchecked")
-    private SeaTunnelDataType<?> fromJdbcType(ResultSetMetaData metadata, int colIndex)
-            throws SQLException {
-        String columnType = metadata.getColumnTypeName(colIndex);
-        Map<String, Object> dataTypeProperties = new HashMap<>();
-        dataTypeProperties.put(OracleDataTypeConvertor.PRECISION, metadata.getPrecision(colIndex));
-        dataTypeProperties.put(OracleDataTypeConvertor.SCALE, metadata.getScale(colIndex));
-        return DATA_TYPE_CONVERTOR.toSeaTunnelType(columnType, dataTypeProperties);
-    }
-
-    private SeaTunnelDataType<?> fromJdbcType(String typeName, long precision, long scale) {
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
         Map<String, Object> dataTypeProperties = new HashMap<>();
         dataTypeProperties.put(OracleDataTypeConvertor.PRECISION, precision);
         dataTypeProperties.put(OracleDataTypeConvertor.SCALE, scale);
-        return DATA_TYPE_CONVERTOR.toSeaTunnelType(typeName, dataTypeProperties);
+        return DATA_TYPE_CONVERTOR.toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
-    @SuppressWarnings("MagicNumber")
-    private Map<String, String> buildConnectorOptions(TablePath tablePath) {
-        Map<String, String> options = new HashMap<>(8);
-        options.put("connector", "jdbc");
-        options.put("url", baseUrl);
-        options.put("table-name", tablePath.getSchemaAndTableName());
-        options.put("username", username);
-        options.put("password", pwd);
-        return options;
+    @Override
+    protected String getUrlFromDatabaseName(String databaseName) {
+        return defaultUrl;
+    }
+
+    @Override
+    protected String getOptionTableName(TablePath tablePath) {
+        return tablePath.getSchemaAndTableName();
+    }
+
+    @Override
+    public boolean tableExists(TablePath tablePath) throws CatalogException {
+        try {
+            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+                return databaseExists(tablePath.getDatabaseName())
+                        && listTables(tablePath.getDatabaseName())
+                                .contains(tablePath.getSchemaAndTableName());
+            }
+            return listTables().contains(tablePath.getSchemaAndTableName());
+        } catch (DatabaseNotExistException e) {
+            return false;
+        }
+    }
+
+    private List<String> listTables() {
+        List<String> databases = listDatabases();
+        return listTables(databases.get(0));
     }
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
+        Connection defaultConnection = getConnection(defaultUrl);
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new OracleTypeMapper());
     }
 }

@@ -17,9 +17,6 @@
 
 package org.apache.seatunnel.connectors.cdc.base.source;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.common.metrics.MetricsContext;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
@@ -27,13 +24,16 @@ import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.SupportCoordinate;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.config.StartupConfig;
 import org.apache.seatunnel.connectors.cdc.base.config.StopConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
+import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
 import org.apache.seatunnel.connectors.cdc.base.option.SourceOptions;
 import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
@@ -55,14 +55,17 @@ import org.apache.seatunnel.connectors.cdc.base.source.split.SourceRecords;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
 import org.apache.seatunnel.connectors.cdc.base.source.split.state.SourceSplitStateBase;
 import org.apache.seatunnel.connectors.cdc.debezium.DebeziumDeserializationSchema;
+import org.apache.seatunnel.connectors.cdc.debezium.DeserializeFormat;
 import org.apache.seatunnel.connectors.seatunnel.common.source.reader.RecordEmitter;
 import org.apache.seatunnel.connectors.seatunnel.common.source.reader.RecordsWithSplitIds;
 import org.apache.seatunnel.connectors.seatunnel.common.source.reader.SourceReaderOptions;
+import org.apache.seatunnel.format.compatible.debezium.json.CompatibleDebeziumJsonDeserializationSchema;
 
 import com.google.common.collect.Sets;
 import io.debezium.relational.TableId;
 import lombok.NoArgsConstructor;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -77,7 +80,7 @@ import java.util.stream.Stream;
 
 @NoArgsConstructor
 public abstract class IncrementalSource<T, C extends SourceConfig>
-        implements SeaTunnelSource<T, SourceSplitBase, PendingSplitsState> {
+        implements SeaTunnelSource<T, SourceSplitBase, PendingSplitsState>, SupportCoordinate {
 
     protected ReadonlyConfig readonlyConfig;
     protected SourceConfig.Factory<C> configFactory;
@@ -115,22 +118,6 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
         this.offsetFactory = createOffsetFactory(readonlyConfig);
     }
 
-    @Override
-    public final void prepare(Config pluginConfig) throws PrepareFailException {
-        this.readonlyConfig = ReadonlyConfig.fromConfig(pluginConfig);
-
-        this.startupConfig = getStartupConfig(readonlyConfig);
-        this.stopConfig = getStopConfig(readonlyConfig);
-        this.stopMode = stopConfig.getStopMode();
-        //        this.incrementalParallelism =
-        // readonlyConfig.get(SourceOptions.INCREMENTAL_PARALLELISM);
-        this.incrementalParallelism = 1;
-        this.configFactory = createSourceConfigFactory(readonlyConfig);
-        this.dataSourceDialect = createDataSourceDialect(readonlyConfig);
-        this.deserializationSchema = createDebeziumDeserializationSchema(readonlyConfig);
-        this.offsetFactory = createOffsetFactory(readonlyConfig);
-    }
-
     protected StartupConfig getStartupConfig(ReadonlyConfig config) {
         return new StartupConfig(
                 config.get(getStartupModeOption()),
@@ -149,6 +136,13 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
 
     @Override
     public List<CatalogTable> getProducedCatalogTables() {
+        if (DeserializeFormat.COMPATIBLE_DEBEZIUM_JSON.equals(
+                readonlyConfig.get(JdbcSourceOptions.FORMAT))) {
+            return Collections.singletonList(
+                    CatalogTableUtil.getCatalogTable(
+                            "default.default",
+                            CompatibleDebeziumJsonDeserializationSchema.DEBEZIUM_DATA_ROW_TYPE));
+        }
         return catalogTables;
     }
 

@@ -20,6 +20,8 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.config;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class JdbcConnectionConfig implements Serializable {
@@ -51,7 +53,9 @@ public class JdbcConnectionConfig implements Serializable {
 
     public String kerberosKeytabPath;
 
-    public String krb5Path = JdbcOptions.KERBEROS_KRB5_CONF_PATH.defaultValue();
+    public String krb5Path = JdbcOptions.KRB5_PATH.defaultValue();
+
+    private Map<String, String> properties;
 
     public static JdbcConnectionConfig of(ReadonlyConfig config) {
         JdbcConnectionConfig.Builder builder = JdbcConnectionConfig.builder();
@@ -68,16 +72,15 @@ public class JdbcConnectionConfig implements Serializable {
             builder.transactionTimeoutSec(config.get(JdbcOptions.TRANSACTION_TIMEOUT_SEC));
             builder.maxRetries(0);
         }
-
         if (config.get(JdbcOptions.USE_KERBEROS)) {
             builder.useKerberos(config.get(JdbcOptions.USE_KERBEROS));
             builder.kerberosPrincipal(config.get(JdbcOptions.KERBEROS_PRINCIPAL));
             builder.kerberosKeytabPath(config.get(JdbcOptions.KERBEROS_KEYTAB_PATH));
-            builder.krb5Path(config.get(JdbcOptions.KERBEROS_KRB5_CONF_PATH));
+            builder.krb5Path(config.get(JdbcOptions.KRB5_PATH));
         }
-
         config.getOptional(JdbcOptions.USER).ifPresent(builder::username);
         config.getOptional(JdbcOptions.PASSWORD).ifPresent(builder::password);
+        config.getOptional(JdbcOptions.PROPERTIES).ifPresent(builder::properties);
         return builder.build();
     }
 
@@ -129,6 +132,10 @@ public class JdbcConnectionConfig implements Serializable {
         return transactionTimeoutSec < 0 ? Optional.empty() : Optional.of(transactionTimeoutSec);
     }
 
+    public Map<String, String> getProperties() {
+        return properties;
+    }
+
     public static JdbcConnectionConfig.Builder builder() {
         return new JdbcConnectionConfig.Builder();
     }
@@ -148,10 +155,11 @@ public class JdbcConnectionConfig implements Serializable {
         private String xaDataSourceClassName;
         private int maxCommitAttempts = JdbcOptions.MAX_COMMIT_ATTEMPTS.defaultValue();
         private int transactionTimeoutSec = JdbcOptions.TRANSACTION_TIMEOUT_SEC.defaultValue();
+        private Map<String, String> properties;
         public boolean useKerberos = JdbcOptions.USE_KERBEROS.defaultValue();
         public String kerberosPrincipal;
         public String kerberosKeytabPath;
-        public String krb5Path = JdbcOptions.KERBEROS_KRB5_CONF_PATH.defaultValue();
+        public String krb5Path = JdbcOptions.KRB5_PATH.defaultValue();
 
         private Builder() {}
 
@@ -240,6 +248,11 @@ public class JdbcConnectionConfig implements Serializable {
             return this;
         }
 
+        public Builder properties(Map<String, String> properties) {
+            this.properties = properties;
+            return this;
+        }
+
         public JdbcConnectionConfig build() {
             JdbcConnectionConfig jdbcConnectionConfig = new JdbcConnectionConfig();
             jdbcConnectionConfig.batchSize = this.batchSize;
@@ -258,6 +271,8 @@ public class JdbcConnectionConfig implements Serializable {
             jdbcConnectionConfig.kerberosPrincipal = this.kerberosPrincipal;
             jdbcConnectionConfig.kerberosKeytabPath = this.kerberosKeytabPath;
             jdbcConnectionConfig.krb5Path = this.krb5Path;
+            jdbcConnectionConfig.properties =
+                    this.properties == null ? new HashMap<>() : this.properties;
             return jdbcConnectionConfig;
         }
     }

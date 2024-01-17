@@ -104,7 +104,9 @@ public class RedshiftCreateTableSqlBuilder {
                     return "text";
                 }
             default:
-                String type = redshiftDataTypeConvertor.toConnectorType(column.getDataType(), null);
+                String type =
+                        redshiftDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
                 if (type.equals(REDSHIFT_DECIMAL)) {
                     DecimalType decimalType = (DecimalType) column.getDataType();
                     return "numeric("

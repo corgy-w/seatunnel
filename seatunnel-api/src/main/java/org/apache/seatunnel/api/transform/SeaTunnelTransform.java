@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.common.PluginIdentifierInterface;
 import org.apache.seatunnel.api.common.SeaTunnelPluginLifeCycle;
 import org.apache.seatunnel.api.source.SeaTunnelJobAware;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 
 import java.io.Serializable;
@@ -38,33 +39,33 @@ public interface SeaTunnelTransform<T>
     /**
      * Set the data type info of input data.
      *
+     * @deprecated instead by {@link org.apache.seatunnel.api.table.factory.Factory}
      * @param inputDataType The data type info of upstream input.
      */
-    void setTypeInfo(SeaTunnelDataType<T> inputDataType);
+    @Deprecated
+    default void setTypeInfo(SeaTunnelDataType<T> inputDataType) {
+        throw new UnsupportedOperationException("setTypeInfo method is not supported");
+    }
 
     /**
      * Get the data type of the records produced by this transform.
      *
+     * @deprecated Please use {@link #getProducedCatalogTable}
      * @return Produced data type.
      */
+    @Deprecated
     SeaTunnelDataType<T> getProducedType();
 
-    /**
-     * Get the catalog table output by this transform
-     *
-     * @return
-     */
+    /** Get the catalog table output by this transform */
     CatalogTable getProducedCatalogTable();
 
     List<CatalogTable> getProducedCatalogTables();
 
-    /**
-     * Transform input data to {@link this#getProducedType()} types data.
-     *
-     * @param row the data need be transform.
-     * @return transformed data.
-     */
     T map(T row);
+
+    default SchemaChangeEvent mapSchemaChangeEvent(SchemaChangeEvent schemaChangeEvent) {
+        return schemaChangeEvent;
+    }
 
     /** call it when Transformer completed */
     default void close() {}

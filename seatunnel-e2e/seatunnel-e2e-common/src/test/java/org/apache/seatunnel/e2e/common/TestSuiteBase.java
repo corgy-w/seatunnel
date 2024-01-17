@@ -29,7 +29,10 @@ import org.apache.seatunnel.e2e.common.util.ContainerUtil;
 
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.Network;
+
+import com.github.dockerjava.api.DockerClient;
 
 @ExtendWith({
     ContainerTestingExtension.class,
@@ -47,4 +50,6 @@ public abstract class TestSuiteBase {
 
     @TestContainers
     private TestContainersFactory containersFactory = ContainerUtil::discoverTestContainers;
+
+    protected DockerClient dockerClient = DockerClientFactory.lazyClient();
 }

@@ -144,7 +144,7 @@ public class PostgresIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
 
     @Override
     public DataSourceDialect<JdbcSourceConfig> createDataSourceDialect(ReadonlyConfig config) {
-        return new PostgresDialect((PostgresSourceConfigFactory) configFactory);
+        return new PostgresDialect((PostgresSourceConfigFactory) configFactory, catalogTables);
     }
 
     @Override
@@ -155,7 +155,8 @@ public class PostgresIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
 
     private Map<TableId, Struct> tableChanges() {
         JdbcSourceConfig jdbcSourceConfig = configFactory.create(0);
-        PostgresDialect dialect = new PostgresDialect((PostgresSourceConfigFactory) configFactory);
+        PostgresDialect dialect =
+                new PostgresDialect((PostgresSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
                 new ConnectTableChangeSerializer();

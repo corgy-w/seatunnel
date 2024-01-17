@@ -38,22 +38,9 @@ public class PostgresDialectFactory implements JdbcDialectFactory {
     }
 
     @Override
-    public JdbcDialect createWithFieldIde(String fieldIde) {
-        return new PostgresDialect(fieldIde);
-    }
-
-    @Override
-    public JdbcDialect createWithCompatible(String compatibleMode) {
-        if ("postgresLow".equalsIgnoreCase(compatibleMode)) {
-            return new PostgresLowDialect();
-        }
-        return new PostgresDialect();
-    }
-
-    @Override
     public JdbcDialect create(@Nonnull String compatibleMode, String fieldIde) {
         if ("postgresLow".equalsIgnoreCase(compatibleMode)) {
-            return new PostgresLowDialect();
+            return new PostgresLowDialect(fieldIde);
         }
         return new PostgresDialect(fieldIde);
     }

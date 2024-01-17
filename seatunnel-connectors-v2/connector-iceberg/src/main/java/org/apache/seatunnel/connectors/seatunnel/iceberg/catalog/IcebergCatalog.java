@@ -90,6 +90,11 @@ public class IcebergCatalog implements Catalog {
     }
 
     @Override
+    public String name() {
+        return catalogName;
+    }
+
+    @Override
     public String getDefaultDatabase() throws CatalogException {
         log.info("Fetching default database...");
         return "default";
@@ -239,23 +244,18 @@ public class IcebergCatalog implements Catalog {
     public CatalogTable toCatalogTable(Table icebergTable, TablePath tablePath) {
         List<Types.NestedField> columns = icebergTable.schema().columns();
         TableSchema.Builder builder = TableSchema.builder();
-        columns.stream()
-                .forEach(
-                        nestedField -> {
-                            String name = nestedField.name();
-                            SeaTunnelDataType<?> seaTunnelType =
-                                    icebergDataTypeConvertor.toSeaTunnelType(
-                                            nestedField.type().typeId());
-                            PhysicalColumn physicalColumn =
-                                    PhysicalColumn.of(
-                                            name,
-                                            seaTunnelType,
-                                            null,
-                                            true,
-                                            null,
-                                            nestedField.doc());
-                            builder.column(physicalColumn);
-                        });
+        buildColumnsWithErrorCheck(
+                tablePath,
+                builder,
+                columns.iterator(),
+                nestedField -> {
+                    String name = nestedField.name();
+                    SeaTunnelDataType<?> seaTunnelType =
+                            icebergDataTypeConvertor.toSeaTunnelType(
+                                    name, nestedField.type().typeId());
+                    return PhysicalColumn.of(
+                            name, seaTunnelType, null, true, null, nestedField.doc());
+                });
 
         List<String> partitionKeys =
                 icebergTable.spec().fields().stream()
@@ -289,7 +289,7 @@ public class IcebergCatalog implements Catalog {
                 options.put(IcebergDataTypeConvertor.PRECISION, decimalType.getPrecision());
                 options.put(IcebergDataTypeConvertor.SCALE, decimalType.getScale());
             }
-            Type type = icebergDataTypeConvertor.toConnectorTypeType(dataType, options);
+            Type type = icebergDataTypeConvertor.toConnectorTypeType(name, dataType, options);
             nestedFields.add(Types.NestedField.of(i + 1, true, name, type, column.getComment()));
         }
         return new org.apache.iceberg.Schema(nestedFields);

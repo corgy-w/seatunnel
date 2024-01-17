@@ -30,6 +30,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.Optional;
 
 @Getter
 @Setter
@@ -108,12 +109,12 @@ public class ReplaceTransformConfig implements Serializable {
         return replaceTransformConfig;
     }
 
-    public static ReplaceTransformConfig of(ReadonlyConfig config, CatalogTable catalogTable) {
+    public static Optional<ReplaceTransformConfig> of(
+            ReadonlyConfig config, CatalogTable catalogTable) {
         String tablePath = catalogTable.getTableId().toTablePath().getFullName();
         if (null != config.get(MULTI_TABLES)) {
             return config.get(MULTI_TABLES).stream()
                     .filter(tableTransforms -> tableTransforms.getTablePath().equals(tablePath))
-                    .findFirst()
                     .map(
                             tableTransforms -> {
                                 ReplaceTransformConfig replaceTransformConfig =
@@ -128,8 +129,8 @@ public class ReplaceTransformConfig implements Serializable {
                                         tableTransforms.getReplaceFirst());
                                 return replaceTransformConfig;
                             })
-                    .orElseGet(() -> of(config));
+                    .findFirst();
         }
-        return of(config);
+        return Optional.of(of(config));
     }
 }

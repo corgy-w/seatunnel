@@ -128,7 +128,7 @@ public class SqlServerCreateTableSqlBuilder {
 
     public String build(TablePath tablePath, CatalogTable catalogTable) {
         List<String> sqls = new ArrayList<>();
-        String sqlTableName = tablePath.getFullName();
+        String sqlTableName = tablePath.getFullNameWithQuoted("[", "]");
         Map<String, String> columnComments = new HashMap<>();
         sqls.add(
                 String.format(
@@ -148,7 +148,7 @@ public class SqlServerCreateTableSqlBuilder {
             sqls.add("COLLATE = " + collate);
         }
         String sqlTableSql = String.join(" ", sqls) + ";";
-
+        sqlTableSql = CatalogUtils.quoteIdentifier(sqlTableSql, fieldIde);
         StringBuilder tableAndColumnComment = new StringBuilder();
         if (comment != null) {
             sqls.add("COMMENT = '" + comment + "'");
@@ -231,7 +231,8 @@ public class SqlServerCreateTableSqlBuilder {
             } else {
                 // Add column type
                 SqlServerType sqlServerType =
-                        sqlServerDataTypeConvertor.toConnectorType(column.getDataType(), null);
+                        sqlServerDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
                 String typeName = sqlServerType.getName();
                 String fieldSuffixSql = null;
                 tyNameDef = typeName;

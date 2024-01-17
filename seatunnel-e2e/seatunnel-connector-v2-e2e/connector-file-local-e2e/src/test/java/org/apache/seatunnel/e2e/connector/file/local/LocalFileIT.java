@@ -61,12 +61,26 @@ public class LocalFileIT extends TestSuiteBase {
                         "/seatunnel/read/text/name=tyrantlucifer/hobby=coding/e2e.txt",
                         container);
 
+                ContainerUtil.copyFileIntoContainers(
+                        "/text/e2e_delimiter.txt",
+                        "/seatunnel/read/text_delimiter/e2e.txt",
+                        container);
+
+                ContainerUtil.copyFileIntoContainers(
+                        "/text/e2e_time_format.txt",
+                        "/seatunnel/read/text_time_format/e2e.txt",
+                        container);
+
                 Path txtLzo = convertToLzoFile(ContainerUtil.getResourcesFile("/text/e2e.txt"));
                 ContainerUtil.copyFileIntoContainers(
                         txtLzo, "/seatunnel/read/lzo_text/e2e.txt", container);
                 ContainerUtil.copyFileIntoContainers(
                         "/excel/e2e.xlsx",
                         "/seatunnel/read/excel/name=tyrantlucifer/hobby=coding/e2e.xlsx",
+                        container);
+                ContainerUtil.copyFileIntoContainers(
+                        "/excel/e2e.xls",
+                        "/seatunnel/read/excel/name=tyrantlucifer/hobby=coding/e2e.xls",
                         container);
 
                 ContainerUtil.copyFileIntoContainers(
@@ -83,6 +97,7 @@ public class LocalFileIT extends TestSuiteBase {
                         "/excel/e2e.xlsx",
                         "/seatunnel/read/excel_filter/name=tyrantlucifer/hobby=coding/e2e_filter.xlsx",
                         container);
+                container.execInContainer("mkdir", "-p", "/tmp/fake_empty");
             };
 
     @TestTemplate
@@ -96,6 +111,8 @@ public class LocalFileIT extends TestSuiteBase {
         // test write local text file
         helper.execute("/text/fake_to_local_file_text.conf");
         helper.execute("/text/local_file_text_lzo_to_assert.conf");
+        helper.execute("/text/local_file_delimiter_assert.conf");
+        helper.execute("/text/local_file_time_format_assert.conf");
         // test read skip header
         helper.execute("/text/local_file_text_skip_headers.conf");
         // test read local text file
@@ -121,6 +138,10 @@ public class LocalFileIT extends TestSuiteBase {
         helper.execute("/parquet/local_file_parquet_projection_to_assert.conf");
         // test read filtered local file
         helper.execute("/excel/local_filter_excel_to_assert.conf");
+
+        // test read empty directory
+        helper.execute("/json/local_file_to_console.conf");
+        helper.execute("/parquet/local_file_to_console.conf");
     }
 
     private Path convertToLzoFile(File file) throws IOException {

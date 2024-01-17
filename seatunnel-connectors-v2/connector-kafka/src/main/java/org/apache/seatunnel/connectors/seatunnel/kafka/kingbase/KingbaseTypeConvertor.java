@@ -23,13 +23,24 @@ import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import org.apache.commons.collections4.MapUtils;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class KingbaseTypeConvertor {
-    public static final String PRECISION = "COLUMN_SIZE";
-    public static final String SCALE = "DECIMAL_DIGITS";
+    private static final Logger LOG = LoggerFactory.getLogger(KingbaseTypeConvertor.class);
+
+    public static final String KINGBASE = "KingBase";
+    public static final String PRECISION = "precision";
+    public static final String SCALE = "scale";
 
     public static final Integer DEFAULT_PRECISION = 38;
 
@@ -50,6 +61,7 @@ public class KingbaseTypeConvertor {
     private static final String PG_SMALLSERIAL = "SMALLSERIAL";
     private static final String PG_SERIAL = "SERIAL";
     private static final String PG_BIGSERIAL = "BIGSERIAL";
+    private static final String PG_TINYINT = "TINYINT";
     private static final String PG_BYTEA = "BYTEA";
     private static final String PG_BYTEA_ARRAY = "_BYTEA";
     private static final String PG_SMALLINT = "INT2";
@@ -82,13 +94,15 @@ public class KingbaseTypeConvertor {
     private static final String PG_CHARACTER_ARRAY = "_CHARACTER";
     private static final String PG_CHARACTER_VARYING = "VARCHAR";
     private static final String PG_CHARACTER_VARYING_ARRAY = "_VARCHAR";
-
+    private static final String PG_INTERVAL = "INTERVAL";
+    private static final String PG_GEOMETRY = "GEOMETRY";
+    private static final String PG_GEOGRAPHY = "GEOGRAPHY";
     private static final String DATETIME = "DATETIME";
 
-    public static SeaTunnelDataType<?> mapping(ResultSet resultSet) throws SQLException {
-        String pgType = resultSet.getString("TYPE_NAME").toUpperCase();
-
-        switch (pgType) {
+    public SeaTunnelDataType<?> toSeaTunnelType(
+            String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
+        checkNotNull(connectorDataType, "Postgres Type cannot be null");
+        switch (connectorDataType) {
             case PG_BOOLEAN:
                 return BasicType.BOOLEAN_TYPE;
             case PG_BOOLEAN_ARRAY:
@@ -97,13 +111,16 @@ public class KingbaseTypeConvertor {
                 return PrimitiveByteArrayType.INSTANCE;
             case PG_BYTEA_ARRAY:
                 return ArrayType.BYTE_ARRAY_TYPE;
+            case PG_TINYINT:
+                return BasicType.BYTE_TYPE;
             case PG_SMALLINT:
             case PG_SMALLSERIAL:
                 return BasicType.SHORT_TYPE;
+            case PG_SMALLINT_ARRAY:
+                return ArrayType.SHORT_ARRAY_TYPE;
             case PG_INTEGER:
             case PG_SERIAL:
                 return BasicType.INT_TYPE;
-            case PG_SMALLINT_ARRAY:
             case PG_INTEGER_ARRAY:
                 return ArrayType.INT_ARRAY_TYPE;
             case PG_BIGINT:
@@ -120,24 +137,26 @@ public class KingbaseTypeConvertor {
             case PG_DOUBLE_PRECISION_ARRAY:
                 return ArrayType.DOUBLE_ARRAY_TYPE;
             case PG_NUMERIC:
-                int precision = resultSet.getInt(PRECISION);
-                int scale = resultSet.getInt(SCALE);
-                if (precision > 0) {
-                    return new DecimalType(precision, scale);
-                }
-                return new DecimalType(DEFAULT_PRECISION, DEFAULT_SCALE);
+                int precision =
+                        MapUtils.getInteger(dataTypeProperties, PRECISION, DEFAULT_PRECISION);
+                ;
+                int scale = MapUtils.getInteger(dataTypeProperties, SCALE, DEFAULT_SCALE);
+                return new DecimalType(precision, scale);
             case PG_CHAR:
             case PG_CHARACTER:
             case PG_CHARACTER_VARYING:
             case PG_TEXT:
+            case PG_INTERVAL:
+            case PG_GEOMETRY:
+            case PG_GEOGRAPHY:
                 return BasicType.STRING_TYPE;
             case PG_CHAR_ARRAY:
             case PG_CHARACTER_ARRAY:
             case PG_CHARACTER_VARYING_ARRAY:
             case PG_TEXT_ARRAY:
                 return ArrayType.STRING_ARRAY_TYPE;
-            case PG_TIMESTAMP:
             case PG_TIMESTAMPTZ:
+            case PG_TIMESTAMP:
             case DATETIME:
                 return LocalTimeType.LOCAL_DATE_TIME_TYPE;
             case PG_TIME:
@@ -145,12 +164,49 @@ public class KingbaseTypeConvertor {
             case PG_DATE:
                 return LocalTimeType.LOCAL_DATE_TYPE;
             case PG_TIMESTAMP_ARRAY:
-            case PG_NUMERIC_ARRAY:
             case PG_TIMESTAMPTZ_ARRAY:
             case PG_TIME_ARRAY:
             case PG_DATE_ARRAY:
+            case PG_NUMERIC_ARRAY:
             default:
-                return BasicType.STRING_TYPE;
+                throw CommonError.convertToSeaTunnelTypeError(KINGBASE, connectorDataType, field);
+        }
+    }
+
+    public String toConnectorType(
+            String field,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            Map<String, Object> dataTypeProperties) {
+        checkNotNull(seaTunnelDataType, "seaTunnelDataType cannot be null");
+        SqlType sqlType = seaTunnelDataType.getSqlType();
+        switch (sqlType) {
+            case TINYINT:
+            case SMALLINT:
+                return PG_SMALLINT;
+            case INT:
+                return PG_INTEGER;
+            case BIGINT:
+                return PG_BIGINT;
+            case DECIMAL:
+                return PG_NUMERIC;
+            case FLOAT:
+                return PG_REAL;
+            case DOUBLE:
+                return PG_DOUBLE_PRECISION;
+            case BOOLEAN:
+                return PG_BOOLEAN;
+            case STRING:
+                return PG_TEXT;
+            case DATE:
+                return PG_DATE;
+            case BYTES:
+                return PG_BYTEA;
+            case TIME:
+                return PG_TIME;
+            case TIMESTAMP:
+                return PG_TIMESTAMP;
+            default:
+                throw CommonError.convertToConnectorTypeError(KINGBASE, sqlType.toString(), field);
         }
     }
 }

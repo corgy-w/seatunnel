@@ -60,9 +60,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import static org.apache.seatunnel.common.exception.CommonErrorCode.ILLEGAL_ARGUMENT;
-import static org.apache.seatunnel.common.exception.CommonErrorCode.UNSUPPORTED_DATA_TYPE;
-import static org.apache.seatunnel.common.exception.CommonErrorCode.UNSUPPORTED_OPERATION;
+import static org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated.ILLEGAL_ARGUMENT;
+import static org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE;
+import static org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION;
 import static org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.config.MongodbSourceOptions.DEFAULT_JSON_WRITER_SETTINGS;
 import static org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.config.MongodbSourceOptions.DOCUMENT_KEY;
 import static org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.config.MongodbSourceOptions.ENCODE_VALUE_FIELD;
@@ -73,7 +73,6 @@ import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.ch
 @Slf4j
 public class MongoDBConnectorDeserializationSchema
         extends AbstractDebeziumDeserializationSchema<SeaTunnelRow> {
-
     private final SeaTunnelDataType<SeaTunnelRow> resultTypeInfo;
 
     private final Map<String, DeserializationRuntimeConverter> tableRowConverters;
@@ -114,11 +113,13 @@ public class MongoDBConnectorDeserializationSchema
             case INSERT:
                 SeaTunnelRow insert = extractRowData(tableRowConverter, fullDocument);
                 insert.setRowKind(RowKind.INSERT);
+                insert.setTableId(tableId);
                 emit(record, insert, out);
                 break;
             case DELETE:
                 SeaTunnelRow delete = extractRowData(tableRowConverter, documentKey);
                 delete.setRowKind(RowKind.DELETE);
+                delete.setTableId(tableId);
                 emit(record, delete, out);
                 break;
             case UPDATE:
@@ -127,11 +128,13 @@ public class MongoDBConnectorDeserializationSchema
                 }
                 SeaTunnelRow updateAfter = extractRowData(tableRowConverter, fullDocument);
                 updateAfter.setRowKind(RowKind.UPDATE_AFTER);
+                updateAfter.setTableId(tableId);
                 emit(record, updateAfter, out);
                 break;
             case REPLACE:
                 SeaTunnelRow replaceAfter = extractRowData(tableRowConverter, fullDocument);
                 replaceAfter.setRowKind(RowKind.UPDATE_AFTER);
+                replaceAfter.setTableId(tableId);
                 emit(record, replaceAfter, out);
                 break;
             case INVALIDATE:

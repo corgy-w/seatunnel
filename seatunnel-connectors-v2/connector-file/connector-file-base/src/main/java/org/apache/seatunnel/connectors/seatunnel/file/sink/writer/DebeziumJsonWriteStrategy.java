@@ -3,6 +3,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.sink.writer;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.config.FileSinkConfig;
 import org.apache.seatunnel.format.compatible.debezium.json.CompatibleDebeziumJsonSerializationSchema;
@@ -79,7 +80,7 @@ public class DebeziumJsonWriteStrategy extends AbstractWriteStrategy {
                         value.flush();
                     } catch (IOException e) {
                         throw new FileConnectorException(
-                                CommonErrorCode.FLUSH_DATA_FAILED,
+                                CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
                                 String.format("Flush data to this file [%s] failed", key),
                                 e);
                     } finally {
@@ -103,17 +104,18 @@ public class DebeziumJsonWriteStrategy extends AbstractWriteStrategy {
                     case LZO:
                         LzopCodec lzo = new LzopCodec();
                         OutputStream out =
-                                lzo.createOutputStream(fileSystemUtils.getOutputStream(filePath));
+                                lzo.createOutputStream(
+                                        hadoopFileSystemProxy.getOutputStream(filePath));
                         fsDataOutputStream = new FSDataOutputStream(out, null);
                         break;
                     case NONE:
-                        fsDataOutputStream = fileSystemUtils.getOutputStream(filePath);
+                        fsDataOutputStream = hadoopFileSystemProxy.getOutputStream(filePath);
                         break;
                     default:
                         log.warn(
                                 "Json file does not support this compress type: {}",
                                 compressFormat.getCompressCodec());
-                        fsDataOutputStream = fileSystemUtils.getOutputStream(filePath);
+                        fsDataOutputStream = hadoopFileSystemProxy.getOutputStream(filePath);
                         break;
                 }
                 beingWrittenOutputStream.put(filePath, fsDataOutputStream);

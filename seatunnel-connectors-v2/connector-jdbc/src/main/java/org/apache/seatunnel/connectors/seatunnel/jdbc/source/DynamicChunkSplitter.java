@@ -20,9 +20,8 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.source;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceConfig;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.ObjectUtils;
 
 import org.apache.commons.lang3.StringUtils;
@@ -118,15 +117,15 @@ public class DynamicChunkSplitter extends ChunkSplitter {
             case INT:
             case BIGINT:
             case DECIMAL:
+            case DOUBLE:
+            case FLOAT:
             case STRING:
                 return evenlyColumnSplitChunks(table, splitColumnName, min, max, chunkSize);
             case DATE:
                 return dateColumnSplitChunks(table, splitColumnName, min, max, chunkSize);
             default:
-                throw new JdbcConnectorException(
-                        CommonErrorCode.ILLEGAL_ARGUMENT,
-                        String.format(
-                                "%s is not numeric/string type", splitColumnType.getSqlType()));
+                throw CommonError.unsupportedDataType(
+                        "JDBC", splitColumnType.getSqlType().toString(), splitColumnName);
         }
     }
 

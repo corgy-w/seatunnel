@@ -20,12 +20,15 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.sink;
 import org.apache.seatunnel.api.sink.MultiTableResourceManager;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventDispatcher;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
@@ -34,6 +37,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.JdbcOutputFormatB
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionPoolProviderProxy;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.JdbcBatchStatementExecutor;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcSinkState;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.XidInfo;
 
@@ -55,26 +59,34 @@ import java.util.Optional;
 public class JdbcSinkWriter
         implements SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState>,
                 SupportMultiTableSinkWriter<ConnectionPoolManager> {
-    private JdbcOutputFormat outputFormat;
+    private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
     private final SinkWriter.Context context;
     private final JdbcDialect dialect;
-    private SeaTunnelRowType rowType;
+    private final TableSchema tableSchema;
     private JdbcConnectionProvider connectionProvider;
     private transient boolean isOpen;
     private final Integer primaryKeyIndex;
     private final JdbcSinkConfig jdbcSinkConfig;
+    private SeaTunnelRowType rowType;
 
     public JdbcSinkWriter(
             SinkWriter.Context context,
             JdbcDialect dialect,
             JdbcSinkConfig jdbcSinkConfig,
-            SeaTunnelRowType rowType,
+            TableSchema tableSchema,
             Integer primaryKeyIndex) {
         this.context = context;
         this.jdbcSinkConfig = jdbcSinkConfig;
         this.dialect = dialect;
-        this.rowType = rowType;
+        this.tableSchema = tableSchema;
         this.primaryKeyIndex = primaryKeyIndex;
+        this.connectionProvider =
+                dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
+        this.outputFormat =
+                new JdbcOutputFormatBuilder(
+                                dialect, connectionProvider, jdbcSinkConfig, tableSchema)
+                        .build();
+        this.rowType = tableSchema.toPhysicalRowDataType();
     }
 
     @Override
@@ -110,7 +122,8 @@ public class JdbcSinkWriter
                         jdbcSinkConfig.getJdbcConnectionConfig(),
                         queueIndex);
         this.outputFormat =
-                new JdbcOutputFormatBuilder(dialect, connectionProvider, jdbcSinkConfig, rowType)
+                new JdbcOutputFormatBuilder(
+                                dialect, connectionProvider, jdbcSinkConfig, tableSchema)
                         .build();
     }
 
@@ -169,7 +182,9 @@ public class JdbcSinkWriter
         } catch (Exception e) {
             log.error("Close jdbc sink writer failed.", e);
             throw new JdbcConnectorException(
-                    CommonErrorCode.WRITER_OPERATION_FAILED, "unable to close JDBC sink write", e);
+                    CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
+                    "unable to close JDBC sink write",
+                    e);
         } finally {
             outputFormat.close();
         }
@@ -185,14 +200,21 @@ public class JdbcSinkWriter
                     new DataTypeChangeEventDispatcher();
             dataTypeChangeEventDispatcher.reset(rowType);
             rowType = dataTypeChangeEventDispatcher.handle(event);
+            CatalogTable preCatalogTable = CatalogTable.of(null, tableSchema, null, null, null);
+            CatalogTable catalogTable = CatalogTableUtil.newCatalogTable(preCatalogTable, rowType);
             outputFormat =
                     new JdbcOutputFormatBuilder(
-                                    dialect, connectionProvider, jdbcSinkConfig, rowType)
+                                    dialect,
+                                    connectionProvider,
+                                    jdbcSinkConfig,
+                                    catalogTable.getTableSchema())
                             .build();
             outputFormat.open();
         } catch (Exception e) {
             throw new JdbcConnectorException(
-                    CommonErrorCode.WRITER_OPERATION_FAILED, " rebuild outputFormat fail", e);
+                    CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
+                    " rebuild outputFormat fail",
+                    e);
         }
         final List<String> sqlList =
                 dialect.getSQLFromSchemaChangeEvent(
@@ -210,7 +232,9 @@ public class JdbcSinkWriter
         } catch (Exception throwables) {
             log.error("schema change error :", throwables);
             throw new JdbcConnectorException(
-                    CommonErrorCode.WRITER_OPERATION_FAILED, "schema change error", throwables);
+                    CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
+                    "schema change error",
+                    throwables);
         }
     }
 }

@@ -185,6 +185,7 @@ public class CheckpointCoordinator {
         this.pipelineTaskStatus = new ConcurrentHashMap<>();
         this.checkpointIdCounter = checkpointIdCounter;
         this.readyToCloseStartingTask = new CopyOnWriteArraySet<>();
+
         LOG.info(
                 "Create CheckpointCoordinator for job({}@{}) with plan({})",
                 pipelineId,
@@ -325,13 +326,23 @@ public class CheckpointCoordinator {
         InvocationFuture<?>[] futures = notifyTaskStart();
         CompletableFuture.allOf(futures).join();
         notifyCompleted(latestCompletedCheckpoint);
-        scheduleTriggerPendingCheckpoint(coordinatorConfig.getCheckpointInterval());
+        if (coordinatorConfig.isCheckpointEnable()) {
+            LOG.info("checkpoint is enabled, start schedule trigger pending checkpoint.");
+            scheduleTriggerPendingCheckpoint(coordinatorConfig.getCheckpointInterval());
+        } else {
+            LOG.info(
+                    "checkpoint is disabled, because in batch mode and 'checkpoint.interval' of env is missing.");
+        }
     }
 
     private void notifyCompleted(CompletedCheckpoint completedCheckpoint) {
         if (completedCheckpoint != null) {
             try {
-                LOG.info("start notify checkpoint completed, checkpoint:{}", completedCheckpoint);
+                LOG.info(
+                        "start notify checkpoint completed, job id: {}, pipeline id: {}, checkpoint id:{}",
+                        completedCheckpoint.getJobId(),
+                        completedCheckpoint.getPipelineId(),
+                        completedCheckpoint.getCheckpointId());
                 InvocationFuture<?>[] invocationFutures =
                         notifyCheckpointCompleted(completedCheckpoint);
                 CompletableFuture.allOf(invocationFutures).join();
@@ -430,7 +441,7 @@ public class CheckpointCoordinator {
 
             if (pendingCounter.get() > 0) {
                 scheduleTriggerPendingCheckpoint(checkpointType, 500L);
-                LOG.info("skip trigger checkpoint because there is already a pending checkpoint.");
+                LOG.debug("skip trigger checkpoint because there is already a pending checkpoint.");
                 return;
             }
 
@@ -457,18 +468,24 @@ public class CheckpointCoordinator {
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().size()));
     }
 
+    @SneakyThrows
     public PassiveCompletableFuture<CompletedCheckpoint> startSavepoint() {
         LOG.info(String.format("Start save point for Job (%s)", jobId));
         if (!isAllTaskReady) {
-            CompletableFuture savepointFuture = new CompletableFuture();
+            CompletableFuture<CompletedCheckpoint> savepointFuture = new CompletableFuture<>();
             savepointFuture.completeExceptionally(
                     new CheckpointException(
                             CheckpointCloseReason.TASK_NOT_ALL_READY_WHEN_SAVEPOINT));
             return new PassiveCompletableFuture<>(savepointFuture);
         }
-        CompletableFuture<PendingCheckpoint> savepoint =
-                createPendingCheckpoint(Instant.now().toEpochMilli(), SAVEPOINT_TYPE);
-        startTriggerPendingCheckpoint(savepoint);
+        CompletableFuture<PendingCheckpoint> savepoint;
+        synchronized (lock) {
+            while (pendingCounter.get() > 0) {
+                Thread.sleep(500);
+            }
+            savepoint = createPendingCheckpoint(Instant.now().toEpochMilli(), SAVEPOINT_TYPE);
+            startTriggerPendingCheckpoint(savepoint);
+        }
         PendingCheckpoint savepointPendingCheckpoint = savepoint.join();
         LOG.info(
                 String.format(
@@ -594,7 +611,13 @@ public class CheckpointCoordinator {
             long triggerTimestamp,
             CompletableFuture<Long> idFuture,
             CheckpointType checkpointType) {
-        assert Thread.holdsLock(lock);
+        if (!Thread.holdsLock(lock)) {
+            throw new RuntimeException(
+                    String.format(
+                            "Unsafe invoke, the current thread[%s] has not acquired the lock[%s].",
+                            Thread.currentThread().getName(), this.lock.toString()));
+        }
+
         latestTriggerTimestamp.set(triggerTimestamp);
         return idFuture.thenApplyAsync(
                         checkpointId ->
@@ -689,6 +712,10 @@ public class CheckpointCoordinator {
     protected void acknowledgeTask(TaskAcknowledgeOperation ackOperation) {
         final long checkpointId = ackOperation.getBarrier().getId();
         final PendingCheckpoint pendingCheckpoint = pendingCheckpoints.get(checkpointId);
+        if (pendingCheckpoint == null) {
+            LOG.info("skip already ack checkpoint " + checkpointId);
+            return;
+        }
         TaskLocation location = ackOperation.getTaskLocation();
         LOG.debug(
                 "task[{}]({}/{}) ack. {}",
@@ -801,6 +828,18 @@ public class CheckpointCoordinator {
             return false;
         }
         return latestCompletedCheckpoint.getCheckpointType().isFinalCheckpoint()
+                && !latestCompletedCheckpoint.isRestored();
+    }
+
+    public boolean isNoErrorCompleted() {
+        if (latestCompletedCheckpoint == null) {
+            return false;
+        }
+        CheckpointCoordinatorStatus status =
+                (CheckpointCoordinatorStatus) runningJobStateIMap.get(checkpointStateImapKey);
+        return latestCompletedCheckpoint.getCheckpointType().isFinalCheckpoint()
+                && (status.equals(CheckpointCoordinatorStatus.FINISHED)
+                        || status.equals(CheckpointCoordinatorStatus.SUSPEND))
                 && !latestCompletedCheckpoint.isRestored();
     }
 
