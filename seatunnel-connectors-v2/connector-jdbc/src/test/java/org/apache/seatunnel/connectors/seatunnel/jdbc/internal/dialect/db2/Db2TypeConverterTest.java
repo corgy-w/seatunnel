@@ -507,8 +507,8 @@ public class Db2TypeConverterTest {
 
         BasicTypeDefine typeDefine = DB2TypeConverter.INSTANCE.reconvert(column);
         Assertions.assertEquals(column.getName(), typeDefine.getName());
-        Assertions.assertEquals(DB2TypeConverter.DB2_BLOB, typeDefine.getColumnType());
-        Assertions.assertEquals(DB2TypeConverter.DB2_BLOB, typeDefine.getDataType());
+        Assertions.assertEquals("VARBINARY(32672)", typeDefine.getColumnType());
+        Assertions.assertEquals(DB2TypeConverter.DB2_VARBINARY, typeDefine.getDataType());
 
         column =
                 PhysicalColumn.builder()
@@ -564,8 +564,8 @@ public class Db2TypeConverterTest {
 
         BasicTypeDefine typeDefine = DB2TypeConverter.INSTANCE.reconvert(column);
         Assertions.assertEquals(column.getName(), typeDefine.getName());
-        Assertions.assertEquals(DB2TypeConverter.DB2_CLOB, typeDefine.getColumnType());
-        Assertions.assertEquals(DB2TypeConverter.DB2_CLOB, typeDefine.getDataType());
+        Assertions.assertEquals("VARCHAR(32672)", typeDefine.getColumnType());
+        Assertions.assertEquals(DB2TypeConverter.DB2_VARCHAR, typeDefine.getDataType());
 
         column =
                 PhysicalColumn.builder()
