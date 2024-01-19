@@ -61,8 +61,9 @@ public class PostgresDialect implements JdbcDataSourceDialect {
     private final PostgresSourceConfig sourceConfig;
 
     private transient PostgresSchema postgresSchema;
-    private final Map<TableId, CatalogTable> tableMap;
     private PostgresWalFetchTask postgresWalFetchTask;
+
+    private final Map<TableId, CatalogTable> tableMap;
 
     public PostgresDialect(
             PostgresSourceConfigFactory configFactory, List<CatalogTable> catalogTables) {

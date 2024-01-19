@@ -237,7 +237,6 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
         return "CREATE DATABASE \"" + databaseName + "\"";
     }
 
-    @Override
     public String getExistDataSql(TablePath tablePath) {
         String schemaName = tablePath.getSchemaName();
         String tableName = tablePath.getTableName();

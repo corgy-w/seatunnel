@@ -19,8 +19,10 @@ package org.apache.seatunnel.connectors.seatunnel.file.ftp.config;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
+import org.apache.seatunnel.connectors.seatunnel.file.ftp.system.FtpConnectionMode;
 
 import java.util.HashMap;
+import java.util.Optional;
 
 public class FtpConf extends HadoopConf {
     private static final String HDFS_IMPL =
@@ -49,6 +51,13 @@ public class FtpConf extends HadoopConf {
         HashMap<String, String> ftpOptions = new HashMap<>();
         ftpOptions.put("fs.ftp.user." + host, config.get(FtpConfigOptions.FTP_USERNAME));
         ftpOptions.put("fs.ftp.password." + host, config.get(FtpConfigOptions.FTP_PASSWORD));
+        Optional<FtpConnectionMode> optional =
+                config.getOptional(FtpConfigOptions.FTP_CONNECTION_MODE);
+        if (optional.isPresent()) {
+            ftpOptions.put(
+                    "fs.ftp.connection.mode",
+                    config.get(FtpConfigOptions.FTP_CONNECTION_MODE).toString());
+        }
         hadoopConf.setExtraOptions(ftpOptions);
         return hadoopConf;
     }

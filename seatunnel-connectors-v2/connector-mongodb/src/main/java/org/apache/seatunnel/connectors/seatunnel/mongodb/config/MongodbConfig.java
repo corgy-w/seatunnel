@@ -28,9 +28,9 @@ import org.bson.json.JsonWriterSettings;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.apache.seatunnel.api.sink.DataSaveMode.APPEND_DATA;
+import static org.apache.seatunnel.api.sink.DataSaveMode.DROP_DATA;
 import static org.apache.seatunnel.api.sink.DataSaveMode.ERROR_WHEN_DATA_EXISTS;
-import static org.apache.seatunnel.api.sink.DataSaveMode.KEEP_SCHEMA_AND_DATA;
-import static org.apache.seatunnel.api.sink.DataSaveMode.KEEP_SCHEMA_DROP_DATA;
 
 public class MongodbConfig {
 
@@ -171,10 +171,7 @@ public class MongodbConfig {
             Options.key("data_save_mode")
                     .singleChoice(
                             DataSaveMode.class,
-                            Arrays.asList(
-                                    KEEP_SCHEMA_DROP_DATA,
-                                    KEEP_SCHEMA_AND_DATA,
-                                    ERROR_WHEN_DATA_EXISTS))
-                    .defaultValue(KEEP_SCHEMA_AND_DATA)
+                            Arrays.asList(DROP_DATA, APPEND_DATA, ERROR_WHEN_DATA_EXISTS))
+                    .defaultValue(APPEND_DATA)
                     .withDescription("data_save_mode");
 }

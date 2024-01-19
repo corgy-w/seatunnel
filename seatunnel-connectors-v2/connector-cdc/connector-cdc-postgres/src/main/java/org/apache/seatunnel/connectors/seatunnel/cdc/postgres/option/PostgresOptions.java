@@ -20,6 +20,8 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.postgres.option;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 
+import java.util.List;
+
 public interface PostgresOptions {
 
     Option<String> DECODING_PLUGIN_NAME =
@@ -39,4 +41,10 @@ public interface PostgresOptions {
                             "The name of the PostgreSQL logical decoding slot that was created for streaming changes "
                                     + "from a particular plug-in for a particular database/schema. The server uses this slot "
                                     + "to stream events to the connector that you are configuring. Default is \"seatunnel\".");
+
+    Option<List<String>> SCHEMA_NAME =
+            Options.key("schema-name")
+                    .listType()
+                    .noDefaultValue()
+                    .withDescription("Schema name of the database to monitor.");
 }

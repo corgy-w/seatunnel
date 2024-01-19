@@ -18,7 +18,6 @@
 package org.apache.seatunnel.connectors.seatunnel.file.s3.config;
 
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
-import org.apache.seatunnel.shade.com.typesafe.config.ConfigFactory;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.common.config.CheckConfigUtil;
@@ -73,7 +72,7 @@ public class S3Conf extends HadoopConf {
     }
 
     public static HadoopConf buildWithReadOnlyConfig(ReadonlyConfig readonlyConfig) {
-        Config config = ConfigFactory.parseMap(readonlyConfig.getConfData());
+        Config config = readonlyConfig.toConfig();
         HadoopConf hadoopConf = new S3Conf(readonlyConfig.get(S3ConfigOptions.S3_BUCKET));
         String bucketName = readonlyConfig.get(S3ConfigOptions.S3_BUCKET);
         if (bucketName.startsWith(S3A_SCHEMA)) {

@@ -69,7 +69,7 @@ public interface JdbcOptions {
     Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key("data_save_mode")
                     .enumType(DataSaveMode.class)
-                    .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
+                    .defaultValue(DataSaveMode.APPEND_DATA)
                     .withDescription("data_save_mode");
 
     Option<String> CUSTOM_SQL =

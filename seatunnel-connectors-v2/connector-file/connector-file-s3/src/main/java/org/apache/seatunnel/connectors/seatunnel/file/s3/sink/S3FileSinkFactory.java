@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.file.s3.sink;
 
+import org.apache.seatunnel.shade.com.typesafe.config.Config;
+import org.apache.seatunnel.shade.com.typesafe.config.ConfigValueFactory;
+
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -31,9 +34,6 @@ import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
 import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3ConfigOptions;
 
 import com.google.auto.service.AutoService;
-
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
@@ -124,10 +124,11 @@ public class S3FileSinkFactory implements TableSinkFactory {
         path = path.replace(REPLACE_SCHEMA_NAME_KEY, sourceSchemaName);
         path = path.replace(REPLACE_TABLE_NAME_KEY, sourceTableName);
         // rebuild
-        Map<String, Object> confData = options.getConfData();
-        final HashMap<String, Object> stringObjectHashMap = new HashMap<>(confData);
-        stringObjectHashMap.put(S3ConfigOptions.FILE_PATH.key(), path);
-        ReadonlyConfig finalConfig = ReadonlyConfig.fromMap(stringObjectHashMap);
+        Config config = options.toConfig();
+        config =
+                config.withValue(
+                        S3ConfigOptions.FILE_PATH.key(), ConfigValueFactory.fromAnyRef(path));
+        ReadonlyConfig finalConfig = ReadonlyConfig.fromConfig(config);
         return () -> new S3FileSink(catalogTable, finalConfig);
     }
 }

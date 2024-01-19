@@ -72,13 +72,29 @@ public class PostgresSourceConfigFactory extends JdbcSourceConfigFactory {
         props.setProperty("database.history.skip.unparseable.ddl", String.valueOf(true));
         props.setProperty("database.history.refer.ddl", String.valueOf(true));
 
+        props.setProperty("database.tcpKeepAlive", String.valueOf(true));
+        props.setProperty("include.schema.changes", String.valueOf(false));
+
         if (tableList != null) {
-            // SqlServer identifier is of the form schemaName.tableName
-            String tableIncludeList =
+            // pg identifier is of the form schemaName.tableName
+            props.setProperty(
+                    "table.include.list",
                     tableList.stream()
-                            .map(table -> table.substring(table.indexOf(".") + 1))
-                            .collect(Collectors.joining(","));
-            props.setProperty("table.include.list", tableIncludeList);
+                            .map(
+                                    tableStr -> {
+                                        String[] splits = tableStr.split("\\.");
+                                        if (splits.length == 2) {
+                                            return tableStr;
+                                        }
+                                        if (splits.length == 3) {
+                                            return String.join(".", splits[1], splits[2]);
+                                        }
+                                        throw new IllegalArgumentException(
+                                                "Invalid table name: "
+                                                        + tableStr
+                                                        + " ,Postgres identifier is of the form schemaName.tableName");
+                                    })
+                            .collect(Collectors.joining(",")));
         }
 
         if (dbzProperties != null) {

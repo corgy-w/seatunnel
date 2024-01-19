@@ -47,7 +47,7 @@ public class SeaTunnelSparkDataWriter<CommitInfoT, StateT> implements DataWriter
     private final RowConverter<InternalRow> rowConverter;
     private CommitInfoT latestCommitInfoT;
     private long epochId;
-    private MultiTableResourceManager resourceManager;
+    private volatile MultiTableResourceManager resourceManager;
 
     public SeaTunnelSparkDataWriter(
             SinkWriter<SeaTunnelRow, CommitInfoT, StateT> sinkWriter,
@@ -58,16 +58,20 @@ public class SeaTunnelSparkDataWriter<CommitInfoT, StateT> implements DataWriter
         this.sinkCommitter = sinkCommitter;
         this.rowConverter = new InternalRowConverter(dataType);
         this.epochId = epochId == 0 ? 1 : epochId;
-        if (sinkWriter instanceof SupportResourceShare) {
-            resourceManager =
-                    ((SupportResourceShare) sinkWriter).initMultiTableResourceManager(1, 1);
-            ((SupportResourceShare) sinkWriter).setMultiTableResourceManager(resourceManager, 0);
-        }
+        initResourceManger();
     }
 
     @Override
     public void write(InternalRow record) throws IOException {
         sinkWriter.write(rowConverter.reconvert(record));
+    }
+
+    private void initResourceManger() {
+        if (sinkWriter instanceof SupportResourceShare) {
+            resourceManager =
+                    ((SupportResourceShare) sinkWriter).initMultiTableResourceManager(1, 1);
+            ((SupportResourceShare) sinkWriter).setMultiTableResourceManager(resourceManager, 0);
+        }
     }
 
     @Override

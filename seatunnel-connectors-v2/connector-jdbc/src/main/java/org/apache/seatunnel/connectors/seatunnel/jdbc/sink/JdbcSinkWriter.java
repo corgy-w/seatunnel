@@ -60,7 +60,6 @@ public class JdbcSinkWriter
         implements SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState>,
                 SupportMultiTableSinkWriter<ConnectionPoolManager> {
     private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
-    private final SinkWriter.Context context;
     private final JdbcDialect dialect;
     private final TableSchema tableSchema;
     private JdbcConnectionProvider connectionProvider;
@@ -70,12 +69,10 @@ public class JdbcSinkWriter
     private SeaTunnelRowType rowType;
 
     public JdbcSinkWriter(
-            SinkWriter.Context context,
             JdbcDialect dialect,
             JdbcSinkConfig jdbcSinkConfig,
             TableSchema tableSchema,
             Integer primaryKeyIndex) {
-        this.context = context;
         this.jdbcSinkConfig = jdbcSinkConfig;
         this.dialect = dialect;
         this.tableSchema = tableSchema;

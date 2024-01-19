@@ -61,6 +61,7 @@ public class SinkConfig implements Serializable {
 
     private SchemaSaveMode schemaSaveMode;
     private DataSaveMode dataSaveMode;
+    private String customSql;
 
     private int httpSocketTimeout;
 
@@ -95,6 +96,7 @@ public class SinkConfig implements Serializable {
         sinkConfig.setLoadFormat(config.get(StarRocksSinkOptions.LOAD_FORMAT));
         sinkConfig.setSchemaSaveMode(config.get(StarRocksSinkOptions.SCHEMA_SAVE_MODE));
         sinkConfig.setDataSaveMode(config.get(StarRocksSinkOptions.DATA_SAVE_MODE));
+        sinkConfig.setCustomSql(config.get(StarRocksSinkOptions.CUSTOM_SQL));
         sinkConfig.setHttpSocketTimeout(config.get(StarRocksSinkOptions.HTTP_SOCKET_TIMEOUT_MS));
         return sinkConfig;
     }
