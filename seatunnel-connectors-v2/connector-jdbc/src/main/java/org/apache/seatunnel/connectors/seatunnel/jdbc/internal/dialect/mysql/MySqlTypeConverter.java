@@ -98,7 +98,6 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
     public static final long POWER_2_16 = (long) Math.pow(2, 16);
     public static final long POWER_2_24 = (long) Math.pow(2, 24);
     public static final long POWER_2_32 = (long) Math.pow(2, 32);
-    public static final long MAX_VARBINARY_LENGTH = POWER_2_16 - 4;
     public static final MySqlTypeConverter INSTANCE = new MySqlTypeConverter();
 
     @Override
@@ -393,15 +392,18 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
                 break;
             case BYTES:
                 if (column.getColumnLength() == null || column.getColumnLength() <= 0) {
-                    builder.nativeType(MysqlType.VARBINARY);
-                    builder.columnType(
-                            String.format("%s(%s)", MYSQL_VARBINARY, MAX_VARBINARY_LENGTH));
-                    builder.dataType(MYSQL_VARBINARY);
-                } else if (column.getColumnLength() < MAX_VARBINARY_LENGTH) {
+                    builder.nativeType(MysqlType.LONGBLOB);
+                    builder.columnType(MYSQL_LONGBLOB);
+                    builder.dataType(MYSQL_LONGBLOB);
+                } else if (column.getColumnLength() < POWER_2_8) {
                     builder.nativeType(MysqlType.VARBINARY);
                     builder.columnType(
                             String.format("%s(%s)", MYSQL_VARBINARY, column.getColumnLength()));
                     builder.dataType(MYSQL_VARBINARY);
+                } else if (column.getColumnLength() < POWER_2_16) {
+                    builder.nativeType(MysqlType.BLOB);
+                    builder.columnType(MYSQL_BLOB);
+                    builder.dataType(MYSQL_BLOB);
                 } else if (column.getColumnLength() < POWER_2_24) {
                     builder.nativeType(MysqlType.MEDIUMBLOB);
                     builder.columnType(MYSQL_MEDIUMBLOB);

@@ -322,10 +322,8 @@ public class DB2TypeConverter implements TypeConverter<BasicTypeDefine> {
                 break;
             case BYTES:
                 if (column.getColumnLength() == null || column.getColumnLength() <= 0) {
-                    builder.columnType(
-                            String.format("%s(%s)", DB2_VARBINARY, MAX_VARBINARY_LENGTH));
-                    builder.dataType(DB2_VARBINARY);
-                    builder.length(column.getColumnLength());
+                    builder.columnType(DB2_BLOB);
+                    builder.dataType(DB2_BLOB);
                 } else if (column.getColumnLength() <= MAX_BINARY_LENGTH) {
                     builder.columnType(
                             String.format("%s(%s)", DB2_BINARY, column.getColumnLength()));
@@ -354,9 +352,8 @@ public class DB2TypeConverter implements TypeConverter<BasicTypeDefine> {
                 break;
             case STRING:
                 if (column.getColumnLength() == null || column.getColumnLength() <= 0) {
-                    builder.columnType(String.format("%s(%s)", DB2_VARCHAR, MAX_VARCHAR_LENGTH));
-                    builder.dataType(DB2_VARCHAR);
-                    builder.length(column.getColumnLength());
+                    builder.columnType(DB2_CLOB);
+                    builder.dataType(DB2_CLOB);
                 } else if (column.getColumnLength() <= MAX_CHAR_LENGTH) {
                     builder.columnType(String.format("%s(%s)", DB2_CHAR, column.getColumnLength()));
                     builder.dataType(DB2_CHAR);
