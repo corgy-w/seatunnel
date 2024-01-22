@@ -96,11 +96,6 @@ public class InformixDialect implements JdbcDialect {
     }
 
     @Override
-    public String tableIdentifier(String database, String tableName) {
-        return parse(tableName).getSchemaAndTableName();
-    }
-
-    @Override
     public Object[] sampleDataFromColumn(
             Connection connection, JdbcSourceTable table, String columnName, int samplingRate)
             throws SQLException {

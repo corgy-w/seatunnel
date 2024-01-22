@@ -2,8 +2,10 @@ package org.apache.seatunnel.connectors.dws.guassdb.sink.sql;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
+import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBTypeConverter;
+import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption;
 
 import org.apache.commons.lang3.StringUtils;
@@ -30,6 +32,8 @@ public class DwsGaussSqlGenerator implements Serializable {
 
     private final String delimiter = "|";
 
+    private final DwsGaussDBDataTypeConvertor dwsGaussDBDataTypeConvertor;
+
     public DwsGaussSqlGenerator(
             String primaryKey,
             DwsGaussDBSinkOption.FieldIdeEnum fieldIdeEnum,
@@ -47,6 +51,7 @@ public class DwsGaussSqlGenerator implements Serializable {
                         .orElse("default");
         this.targetTableName = getIDEString(catalogTable.getTableId().getTableName());
         this.templateTableName = getIDEString("st_temporary_" + targetTableName);
+        this.dwsGaussDBDataTypeConvertor = new DwsGaussDBDataTypeConvertor();
     }
 
     public String getTemporaryTableName() {
@@ -292,7 +297,31 @@ public class DwsGaussSqlGenerator implements Serializable {
     }
 
     private String buildColumnType(Column column) {
-        return DwsGaussDBTypeConverter.INSTANCE.reconvert(column).getColumnType();
+        SqlType sqlType = column.getDataType().getSqlType();
+        Long columnLength = column.getLongColumnLength();
+        switch (sqlType) {
+            case BYTES:
+                return "bytea";
+            case STRING:
+                if (columnLength > 0 && columnLength < 10485760) {
+                    return "varchar(" + columnLength + ")";
+                } else {
+                    return "text";
+                }
+            default:
+                String type =
+                        dwsGaussDBDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
+                if (type.equals("numeric")) {
+                    DecimalType decimalType = (DecimalType) column.getDataType();
+                    return "numeric("
+                            + decimalType.getPrecision()
+                            + ","
+                            + decimalType.getScale()
+                            + ")";
+                }
+                return type;
+        }
     }
 
     private String getIDEString(String originString) {

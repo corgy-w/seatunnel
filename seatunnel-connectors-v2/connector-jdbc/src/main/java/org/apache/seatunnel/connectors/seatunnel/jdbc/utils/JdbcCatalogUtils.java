@@ -314,9 +314,7 @@ public class JdbcCatalogUtils {
             TablePath tablePath = jdbcDialect.parse(tableConfig.getTablePath());
             CatalogTable tableOfPath = null;
             try {
-                tableOfPath =
-                        CatalogUtils.getCatalogTable(
-                                connection, tablePath, jdbcDialect.getJdbcDialectTypeMapper());
+                tableOfPath = CatalogUtils.getCatalogTable(connection, tablePath);
             } catch (Exception e) {
                 // ignore
                 log.debug("User-defined table path: {}", tablePath);
@@ -340,8 +338,7 @@ public class JdbcCatalogUtils {
         }
         if (StringUtils.isNotEmpty(tableConfig.getTablePath())) {
             TablePath tablePath = jdbcDialect.parse(tableConfig.getTablePath());
-            return CatalogUtils.getCatalogTable(
-                    connection, tablePath, jdbcDialect.getJdbcDialectTypeMapper());
+            return CatalogUtils.getCatalogTable(connection, tablePath);
         }
 
         return getCatalogTable(connection, tableConfig.getQuery(), jdbcDialect);

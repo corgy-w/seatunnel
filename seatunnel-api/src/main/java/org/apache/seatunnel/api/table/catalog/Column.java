@@ -20,7 +20,6 @@ package org.apache.seatunnel.api.table.catalog;
 
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -33,7 +32,6 @@ import java.util.Map;
  * @see MetadataColumn
  */
 @Data
-@AllArgsConstructor
 @SuppressWarnings("PMD.AbstractClassShouldStartWithAbstractNamingRule")
 public abstract class Column implements Serializable {
 
@@ -46,25 +44,7 @@ public abstract class Column implements Serializable {
     // todo: use generic type
     protected final SeaTunnelDataType<?> dataType;
 
-    /**
-     * Designated column's specified column size.
-     *
-     * <p>For numeric data, this is the maximum precision. For character/binary data, this is the
-     * length in bytes.
-     *
-     * <p>Null is returned for data types where the scale is not applicable.
-     */
-    protected final Long columnLength;
-
-    /**
-     * Number of digits to right of the decimal point.
-     *
-     * <p>For decimal data, this is the maximum scale. For time/timestamp data, this is the maximum
-     * allowed precision of the fractional seconds component.
-     *
-     * <p>Null is returned for data types where the scale is not applicable.
-     */
-    protected final Integer scale;
+    protected final Integer columnLength;
 
     /** Does the column can be null */
     protected final boolean nullable;
@@ -81,57 +61,27 @@ public abstract class Column implements Serializable {
      */
     protected final String sourceType;
 
+    /** Unsigned bit * */
+    protected final boolean isUnsigned;
+
+    /** Whether to use the 0 bit * */
+    protected final boolean isZeroFill;
+
+    /**
+     * Bit length For different database byte types, it is possible to define the number of bits is
+     * not the same, so the byte types parameter is converted to bits according to the database at
+     * the time of construction, and then the bitLen is converted to the child end when the
+     * automatic table is builtinteger may be cross the border For example, Mysql has 8 bits of
+     * bytes: bitLen = bytesLen << 3
+     */
+    protected final Long bitLen;
+
+    /** integer may be cross the border * */
+    protected final Long longColumnLength;
+
     /** your options * */
     protected final Map<String, Object> options;
 
-    // TODO Waiting for migration to complete before remove
-    @Deprecated protected boolean isUnsigned;
-    @Deprecated protected boolean isZeroFill;
-    @Deprecated protected Long bitLen;
-    @Deprecated protected Long longColumnLength;
-
-    protected Column(String name, SeaTunnelDataType<?> dataType, Long columnLength, Integer scale) {
-        this(name, dataType, columnLength, scale, true, null, null, null, null);
-    }
-
-    protected Column(
-            String name,
-            SeaTunnelDataType<?> dataType,
-            Long columnLength,
-            boolean nullable,
-            Object defaultValue,
-            String comment) {
-        this(name, dataType, columnLength, null, nullable, defaultValue, comment, null, null);
-    }
-
-    protected Column(
-            String name,
-            SeaTunnelDataType<?> dataType,
-            Long columnLength,
-            Integer scale,
-            boolean nullable,
-            Object defaultValue,
-            String comment,
-            String sourceType,
-            Map<String, Object> options) {
-        this.name = name;
-        this.dataType = dataType;
-        this.columnLength = columnLength;
-        this.scale = scale;
-        this.nullable = nullable;
-        this.defaultValue = defaultValue;
-        this.comment = comment;
-        this.sourceType = sourceType;
-        this.options = options;
-
-        // TODO Waiting for migration to complete before remove
-        this.bitLen = columnLength != null ? columnLength * 8 : 0;
-        this.longColumnLength = columnLength;
-        this.isUnsigned = false;
-        this.isZeroFill = false;
-    }
-
-    @Deprecated
     protected Column(
             String name,
             SeaTunnelDataType<?> dataType,
@@ -142,13 +92,18 @@ public abstract class Column implements Serializable {
         this(
                 name,
                 dataType,
-                columnLength == null ? null : columnLength.longValue(),
+                columnLength,
                 nullable,
                 defaultValue,
-                comment);
+                comment,
+                null,
+                false,
+                false,
+                null,
+                0L,
+                null);
     }
 
-    @Deprecated
     protected Column(
             String name,
             SeaTunnelDataType<?> dataType,
@@ -164,8 +119,7 @@ public abstract class Column implements Serializable {
             Map<String, Object> options) {
         this.name = name;
         this.dataType = dataType;
-        this.columnLength = columnLength == null ? null : columnLength.longValue();
-        this.scale = null;
+        this.columnLength = columnLength;
         this.nullable = nullable;
         this.defaultValue = defaultValue;
         this.comment = comment;

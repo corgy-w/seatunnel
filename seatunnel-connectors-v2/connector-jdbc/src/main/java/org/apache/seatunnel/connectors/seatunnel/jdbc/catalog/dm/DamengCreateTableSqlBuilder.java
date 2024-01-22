@@ -5,10 +5,11 @@ import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.type.DecimalType;
+import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCreateTableSqlBuilder;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeConverter;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -21,6 +22,7 @@ public class DamengCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
 
     private List<Column> columns;
     private PrimaryKey primaryKey;
+    private DamengDataTypeConvertor damengDataTypeConvertor;
     private String sourceCatalogName;
     private String fieldIde;
     private List<ConstraintKey> constraintKeys;
@@ -28,6 +30,7 @@ public class DamengCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
     public DamengCreateTableSqlBuilder(CatalogTable catalogTable) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
+        this.damengDataTypeConvertor = new DamengDataTypeConvertor();
         this.sourceCatalogName = catalogTable.getCatalogName();
         this.fieldIde = catalogTable.getOptions().get("fieldIde");
         constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
@@ -109,7 +112,44 @@ public class DamengCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
     }
 
     private String buildColumnType(Column column) {
-        return DmdbTypeConverter.INSTANCE.reconvert(column).getColumnType();
+        SqlType sqlType = column.getDataType().getSqlType();
+        Long columnLength = column.getLongColumnLength();
+        Long bitLen = column.getBitLen();
+        switch (sqlType) {
+            case BYTES:
+                bitLen = bitLen == null ? -1 : (bitLen <= 64 ? bitLen : bitLen >> 3);
+                if (bitLen <= 0 || bitLen > 2000) {
+                    return "BLOB";
+                } else {
+                    return "VARBINARY(" + bitLen + ")";
+                }
+            case STRING:
+                columnLength = columnLength == null ? 0 : columnLength;
+                if (columnLength > 0 && columnLength < 16358) {
+                    return "VARCHAR(" + columnLength + " CHAR)";
+                } else if (columnLength < 64000) {
+                    return "TEXT";
+                } else {
+                    return "CLOB";
+                }
+            default:
+                String type =
+                        damengDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
+                if (type.equals("NUMBER")) {
+                    if (column.getDataType() instanceof DecimalType) {
+                        DecimalType decimalType = (DecimalType) column.getDataType();
+                        return "NUMBER("
+                                + decimalType.getPrecision()
+                                + ","
+                                + decimalType.getScale()
+                                + ")";
+                    } else {
+                        return "NUMBER";
+                    }
+                }
+                return type;
+        }
     }
 
     private String buildPrimaryKeySql(PrimaryKey primaryKey) {

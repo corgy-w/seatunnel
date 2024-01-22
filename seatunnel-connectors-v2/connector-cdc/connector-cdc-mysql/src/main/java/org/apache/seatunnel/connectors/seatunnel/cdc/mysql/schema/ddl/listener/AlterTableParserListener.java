@@ -25,7 +25,7 @@ import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableModifyColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.schema.ddl.MySqlAntlrDdlParser;
-import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.utils.MySqlTypeUtils;
+import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.schema.ddl.MysqlColumnConverter;
 
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
@@ -104,18 +104,15 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
         if (ctx.FIRST() != null) {
             addColumn =
                     AlterTableAddColumnEvent.addFirst(
-                            tablePath, MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            tablePath, MysqlColumnConverter.convert(column));
         } else if (ctx.AFTER() != null) {
             String afterColumn = parser.parseName(ctx.uid(1));
             addColumn =
                     AlterTableAddColumnEvent.addAfter(
-                            tablePath,
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column),
-                            afterColumn);
+                            tablePath, MysqlColumnConverter.convert(column), afterColumn);
         } else {
             addColumn =
-                    AlterTableAddColumnEvent.add(
-                            tablePath, MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                    AlterTableAddColumnEvent.add(tablePath, MysqlColumnConverter.convert(column));
         }
         alterTableColumnsEvent.addEvent(addColumn);
 
@@ -141,8 +138,7 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
         for (ColumnEditor columnEditor : columnEditors) {
             Column column = columnEditor.create();
             AlterTableAddColumnEvent addColumnEvent =
-                    AlterTableAddColumnEvent.add(
-                            tablePath, MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                    AlterTableAddColumnEvent.add(tablePath, MysqlColumnConverter.convert(column));
             alterTableColumnsEvent.addEvent(addColumnEvent);
         }
 
@@ -176,18 +172,16 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
         if (ctx.FIRST() != null) {
             modifyColumnEvent =
                     AlterTableModifyColumnEvent.modifyFirst(
-                            tablePath, MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            tablePath, MysqlColumnConverter.convert(column));
         } else if (ctx.AFTER() != null) {
             String afterColumn = parser.parseName(ctx.uid(1));
             modifyColumnEvent =
                     AlterTableModifyColumnEvent.modifyAfter(
-                            tablePath,
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column),
-                            afterColumn);
+                            tablePath, MysqlColumnConverter.convert(column), afterColumn);
         } else {
             modifyColumnEvent =
                     AlterTableModifyColumnEvent.modify(
-                            tablePath, MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            tablePath, MysqlColumnConverter.convert(column));
         }
         alterTableColumnsEvent.addEvent(modifyColumnEvent);
 
@@ -223,23 +217,19 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
         if (ctx.FIRST() != null) {
             changeColumnEvent =
                     AlterTableChangeColumnEvent.changeFirst(
-                            tablePath,
-                            oldColumnName,
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            tablePath, oldColumnName, MysqlColumnConverter.convert(column));
         } else if (ctx.AFTER() != null) {
             String afterColumn = parser.parseName(ctx.afterColumn);
             changeColumnEvent =
                     AlterTableChangeColumnEvent.changeAfter(
                             tablePath,
                             oldColumnName,
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column),
+                            MysqlColumnConverter.convert(column),
                             afterColumn);
         } else {
             changeColumnEvent =
                     AlterTableChangeColumnEvent.change(
-                            tablePath,
-                            oldColumnName,
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            tablePath, oldColumnName, MysqlColumnConverter.convert(column));
         }
         alterTableColumnsEvent.addEvent(changeColumnEvent);
 

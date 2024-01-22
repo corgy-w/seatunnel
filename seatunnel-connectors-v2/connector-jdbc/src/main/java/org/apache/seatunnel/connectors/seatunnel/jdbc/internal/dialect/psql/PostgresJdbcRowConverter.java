@@ -29,7 +29,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcUtils;
 
 import java.sql.Date;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -48,14 +47,13 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
 
     @Override
     public SeaTunnelRow toInternal(ResultSet rs, TableSchema tableSchema) throws SQLException {
-        ResultSetMetaData metaData = rs.getMetaData();
         SeaTunnelRowType typeInfo = tableSchema.toPhysicalRowDataType();
         Object[] fields = new Object[typeInfo.getTotalFields()];
         for (int fieldIndex = 0; fieldIndex < typeInfo.getTotalFields(); fieldIndex++) {
             SeaTunnelDataType<?> seaTunnelDataType = typeInfo.getFieldType(fieldIndex);
             int resultSetIndex = fieldIndex + 1;
             String metaDataColumnType =
-                    metaData.getColumnTypeName(resultSetIndex).toUpperCase(Locale.ROOT);
+                    rs.getMetaData().getColumnTypeName(resultSetIndex).toUpperCase(Locale.ROOT);
             switch (seaTunnelDataType.getSqlType()) {
                 case STRING:
                     if (metaDataColumnType.equals(PG_GEOMETRY)

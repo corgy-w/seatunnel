@@ -4,23 +4,30 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.type.DecimalType;
+import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresDataTypeConvertor;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase.KingbaseTypeConverter;
 
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresDataTypeConvertor.PG_BYTEA;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresDataTypeConvertor.PG_NUMERIC;
+
 public class KingbaseCreateTableSqlBuilder {
     private List<Column> columns;
     private PrimaryKey primaryKey;
+    private PostgresDataTypeConvertor postgresDataTypeConvertor;
     private String sourceCatalogName;
 
     public KingbaseCreateTableSqlBuilder(CatalogTable catalogTable) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
+        this.postgresDataTypeConvertor = new PostgresDataTypeConvertor();
         this.sourceCatalogName = catalogTable.getCatalogName();
     }
 
@@ -75,7 +82,7 @@ public class KingbaseCreateTableSqlBuilder {
                                         || sourceCatalogName.equals(DatabaseIdentifier.POSTGRESQL))
                                 && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
-                        : KingbaseTypeConverter.INSTANCE.reconvert(column).getColumnType();
+                        : buildColumnType(column);
         columnSql.append(columnType);
 
         // Add NOT NULL if column is not nullable
@@ -95,6 +102,34 @@ public class KingbaseCreateTableSqlBuilder {
         //        }
 
         return columnSql.toString();
+    }
+
+    private String buildColumnType(Column column) {
+        SqlType sqlType = column.getDataType().getSqlType();
+        Long columnLength = column.getLongColumnLength();
+        switch (sqlType) {
+            case BYTES:
+                return PG_BYTEA;
+            case STRING:
+                if (columnLength > 0 && columnLength < 10485760) {
+                    return "varchar(" + columnLength + ")";
+                } else {
+                    return "text";
+                }
+            default:
+                String type =
+                        postgresDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
+                if (type.equals(PG_NUMERIC)) {
+                    DecimalType decimalType = (DecimalType) column.getDataType();
+                    return "numeric("
+                            + decimalType.getPrecision()
+                            + ","
+                            + decimalType.getScale()
+                            + ")";
+                }
+                return type;
+        }
     }
 
     private String buildColumnCommentSql(Column column, String tableName, String fieldIde) {

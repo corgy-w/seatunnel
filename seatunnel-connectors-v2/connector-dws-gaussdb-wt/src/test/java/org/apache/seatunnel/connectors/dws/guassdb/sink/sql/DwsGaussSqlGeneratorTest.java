@@ -157,12 +157,12 @@ public class DwsGaussSqlGeneratorTest {
     void getCreateTemporaryTableSql() {
         String createTemporaryTableSql = dwsGaussSqlGenerator.getCreateTemporaryTableSql();
         Assertions.assertEquals(
-                "CREATE TABLE IF NOT EXISTS \"public\".\"st_temporary_t_st_users\" (\n"
+                "CREATE TABLE IF NOT EXISTS \"public\".\"t_st_users\" (\n"
                         + "\"id\" int4 NOT NULL PRIMARY KEY,\n"
                         + "\"name\" text NOT NULL,\n"
                         + "\"age\" int4 NOT NULL,\n"
                         + "\"create_time\" timestamp NOT NULL,\n"
-                        + "\"st_snapshot_id\" bigint,\n"
+                        + "\"st_snapshot_id\" varchar(255),\n"
                         + "\"st_is_deleted\" boolean\n"
                         + ");",
                 createTemporaryTableSql);
@@ -197,7 +197,7 @@ public class DwsGaussSqlGeneratorTest {
     void getMergeInTargetTableSql() {
         String mergeInTargetTableSql = dwsGaussSqlGenerator.getMergeInTargetTableSql(1L);
         Assertions.assertEquals(
-                "INSERT INTO \"public\".\"t_st_users\" SELECT id,name,age,create_time FROM \"public\".\"st_temporary_t_st_users\" WHERE st_snapshot_id = 1 ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,age=EXCLUDED.age,create_time=EXCLUDED.create_time;",
+                "INSERT INTO \"public\".\"t_st_users\" SELECT id,name,age,create_time FROM \"public\".\"st_temporary_t_st_users\" WHERE st_current_snapshot_id = 1 ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name,age=EXCLUDED.age,create_time=EXCLUDED.create_time;",
                 mergeInTargetTableSql);
     }
 

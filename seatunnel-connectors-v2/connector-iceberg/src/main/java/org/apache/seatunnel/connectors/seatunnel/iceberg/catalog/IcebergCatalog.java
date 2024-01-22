@@ -254,7 +254,7 @@ public class IcebergCatalog implements Catalog {
                             icebergDataTypeConvertor.toSeaTunnelType(
                                     name, nestedField.type().typeId());
                     return PhysicalColumn.of(
-                            name, seaTunnelType, (Long) null, true, null, nestedField.doc());
+                            name, seaTunnelType, null, true, null, nestedField.doc());
                 });
 
         List<String> partitionKeys =

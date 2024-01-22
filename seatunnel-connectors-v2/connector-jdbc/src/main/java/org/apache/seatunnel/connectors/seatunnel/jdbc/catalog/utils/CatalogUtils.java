@@ -176,23 +176,11 @@ public class CatalogUtils {
         return new ArrayList<>(constraintKeyMap.values());
     }
 
-    public static TableSchema getTableSchema(
-            DatabaseMetaData metadata, TablePath tablePath, JdbcDialectTypeMapper typeMapper)
+    public static TableSchema getTableSchema(DatabaseMetaData metadata, TablePath tablePath)
             throws SQLException {
         Optional<PrimaryKey> primaryKey = getPrimaryKey(metadata, tablePath);
         List<ConstraintKey> constraintKeys = getConstraintKeys(metadata, tablePath);
-        List<Column> columns;
-        try {
-            columns =
-                    typeMapper.mappingColumn(
-                            metadata,
-                            tablePath.getDatabaseName(),
-                            tablePath.getSchemaName(),
-                            tablePath.getTableName(),
-                            null);
-        } catch (UnsupportedOperationException e) {
-            columns = JdbcColumnConverter.convert(metadata, tablePath);
-        }
+        List<Column> columns = JdbcColumnConverter.convert(metadata, tablePath);
         return TableSchema.builder()
                 .primaryKey(primaryKey.orElse(null))
                 .constraintKey(constraintKeys)
@@ -200,11 +188,10 @@ public class CatalogUtils {
                 .build();
     }
 
-    public static CatalogTable getCatalogTable(
-            Connection connection, TablePath tablePath, JdbcDialectTypeMapper typeMapper)
+    public static CatalogTable getCatalogTable(Connection connection, TablePath tablePath)
             throws SQLException {
         DatabaseMetaData metadata = connection.getMetaData();
-        TableSchema tableSchema = getTableSchema(metadata, tablePath, typeMapper);
+        TableSchema tableSchema = getTableSchema(metadata, tablePath);
         String catalogName = "jdbc_catalog";
         return CatalogTable.of(
                 TableIdentifier.of(
@@ -291,14 +278,6 @@ public class CatalogUtils {
         }
     }
 
-    /**
-     * @deprecated instead by {@link #getCatalogTable(Connection, String, JdbcDialectTypeMapper)}
-     * @param connection
-     * @param sqlQuery
-     * @return
-     * @throws SQLException
-     */
-    @Deprecated
     public static CatalogTable getCatalogTable(Connection connection, String sqlQuery)
             throws SQLException {
         ResultSetMetaData resultSetMetaData;

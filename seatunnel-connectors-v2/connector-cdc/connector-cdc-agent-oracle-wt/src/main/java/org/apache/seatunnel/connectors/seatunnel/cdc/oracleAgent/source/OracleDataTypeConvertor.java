@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.oracle;
+package org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source;
 
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
 import org.apache.seatunnel.api.table.type.BasicType;
@@ -64,7 +64,6 @@ public class OracleDataTypeConvertor implements DataTypeConvertor<String> {
     public static final String ORACLE_ROWID = "ROWID";
     public static final String ORACLE_CLOB = "CLOB";
     public static final String ORACLE_NCLOB = "NCLOB";
-    private static final String ORACLE_XML = "XMLTYPE";
     // ------------------------------time-------------------------
     public static final String ORACLE_DATE = "DATE";
     public static final String ORACLE_TIMESTAMP = "TIMESTAMP";
@@ -122,9 +121,9 @@ public class OracleDataTypeConvertor implements DataTypeConvertor<String> {
             case ORACLE_ROWID:
             case ORACLE_NCLOB:
             case ORACLE_CLOB:
-            case ORACLE_XML:
                 return BasicType.STRING_TYPE;
             case ORACLE_DATE:
+                return LocalTimeType.LOCAL_DATE_TYPE;
             case ORACLE_TIMESTAMP:
             case ORACLE_TIMESTAMP_WITH_LOCAL_TIME_ZONE:
                 return LocalTimeType.LOCAL_DATE_TIME_TYPE;
@@ -173,9 +172,7 @@ public class OracleDataTypeConvertor implements DataTypeConvertor<String> {
                 return ORACLE_BLOB;
             default:
                 throw CommonError.convertToConnectorTypeError(
-                        DatabaseIdentifier.ORACLE,
-                        seaTunnelDataType.getSqlType().toString(),
-                        field);
+                        DatabaseIdentifier.ORACLE, sqlType.toString(), field);
         }
     }
 
@@ -195,6 +192,6 @@ public class OracleDataTypeConvertor implements DataTypeConvertor<String> {
 
     @Override
     public String getIdentity() {
-        return DatabaseIdentifier.ORACLE;
+        return "OracleAgent";
     }
 }

@@ -4,23 +4,28 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.type.DecimalType;
+import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.redshift.RedshiftTypeConverter;
 
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.redshift.RedshiftDataTypeConvertor.REDSHIFT_DECIMAL;
+
 public class RedshiftCreateTableSqlBuilder {
     private List<Column> columns;
     private PrimaryKey primaryKey;
+    private RedshiftDataTypeConvertor redshiftDataTypeConvertor;
     private String sourceCatalogName;
 
     public RedshiftCreateTableSqlBuilder(CatalogTable catalogTable) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
+        this.redshiftDataTypeConvertor = new RedshiftDataTypeConvertor();
         this.sourceCatalogName = catalogTable.getCatalogName();
     }
 
@@ -74,7 +79,7 @@ public class RedshiftCreateTableSqlBuilder {
                                                 sourceCatalogName, DatabaseIdentifier.POSTGRESQL))
                                 && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
-                        : RedshiftTypeConverter.INSTANCE.reconvert(column).getColumnType();
+                        : buildColumnType(column);
         columnSql.append(columnType);
 
         if (!column.isNullable()) {
@@ -86,6 +91,32 @@ public class RedshiftCreateTableSqlBuilder {
         }
 
         return columnSql.toString();
+    }
+
+    private String buildColumnType(Column column) {
+        SqlType sqlType = column.getDataType().getSqlType();
+        Long columnLength = column.getLongColumnLength();
+        switch (sqlType) {
+            case STRING:
+                if (columnLength > 0 && columnLength < 10485760) {
+                    return "varchar(" + columnLength + ")";
+                } else {
+                    return "text";
+                }
+            default:
+                String type =
+                        redshiftDataTypeConvertor.toConnectorType(
+                                column.getName(), column.getDataType(), null);
+                if (type.equals(REDSHIFT_DECIMAL)) {
+                    DecimalType decimalType = (DecimalType) column.getDataType();
+                    return "numeric("
+                            + decimalType.getPrecision()
+                            + ","
+                            + decimalType.getScale()
+                            + ")";
+                }
+                return type;
+        }
     }
 
     private String buildColumnCommentSql(Column column, String tableName, String fieldIde) {

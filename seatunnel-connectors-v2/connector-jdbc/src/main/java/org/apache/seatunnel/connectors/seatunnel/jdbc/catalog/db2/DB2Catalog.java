@@ -2,15 +2,15 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
+import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
-import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.db2.DB2TypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.db2.DB2TypeMapper;
 
 import org.apache.commons.lang3.StringUtils;
@@ -26,10 +26,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_BINARY;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_BLOB;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_VARBINARY;
 
 @Slf4j
 public class DB2Catalog extends AbstractJdbcCatalog {
@@ -40,7 +45,7 @@ public class DB2Catalog extends AbstractJdbcCatalog {
             "SELECT NAME AS column_name,\n"
                     + "       TYPENAME AS type_name,\n"
                     + "       TYPENAME AS full_type_name,\n"
-                    + "       (CASE WHEN LENGTH = -1 THEN LONGLENGTH ELSE LENGTH END) AS column_length,\n"
+                    + "       LENGTH AS column_length,\n"
                     + "       SCALE AS column_scale,\n"
                     + "       REMARKS AS column_comment,\n"
                     + "       DEFAULT  AS default_value,\n"
@@ -71,19 +76,12 @@ public class DB2Catalog extends AbstractJdbcCatalog {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
-            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getSchemaAndTableName());
-            }
-            return listTables().contains(tablePath.getSchemaAndTableName());
+            return databaseExists(tablePath.getDatabaseName())
+                    && listTables(tablePath.getDatabaseName())
+                            .contains(tablePath.getSchemaAndTableName());
         } catch (DatabaseNotExistException e) {
             return false;
         }
-    }
-
-    private List<String> listTables() {
-        return listTables(defaultDatabase);
     }
 
     @Override
@@ -120,11 +118,9 @@ public class DB2Catalog extends AbstractJdbcCatalog {
     protected Optional<PrimaryKey> getPrimaryKey(
             DatabaseMetaData metaData, String database, String schema, String table)
             throws SQLException {
-        List<String> fields = getPrimaryKeyFieldList(schema, table);
-        if (fields == null || fields.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(PrimaryKey.of(getPrimaryKeyName(schema, table), fields));
+        return Optional.of(
+                PrimaryKey.of(
+                        getPrimaryKeyName(schema, table), getPrimaryKeyFieldList(schema, table)));
     }
 
     private List<String> getPrimaryKeyFieldList(String schema, String table) {
@@ -194,24 +190,42 @@ public class DB2Catalog extends AbstractJdbcCatalog {
         String typeName = resultSet.getString("type_name").trim();
         String fullTypeName = resultSet.getString("full_type_name").trim();
         long columnLength = resultSet.getLong("column_length");
-        int columnScale = resultSet.getInt("column_scale");
+        long columnScale = resultSet.getLong("column_scale");
         String columnComment = resultSet.getString("column_comment");
         Object defaultValue = resultSet.getObject("default_value");
         boolean isNullable = resultSet.getString("is_nullable").equals("Y");
 
-        BasicTypeDefine typeDefine =
-                BasicTypeDefine.builder()
-                        .name(columnName)
-                        .columnType(fullTypeName)
-                        .dataType(typeName)
-                        .length(columnLength)
-                        .precision(columnLength)
-                        .scale(columnScale)
-                        .nullable(isNullable)
-                        .defaultValue(defaultValue)
-                        .comment(columnComment)
-                        .build();
-        return DB2TypeConverter.INSTANCE.convert(typeDefine);
+        SeaTunnelDataType<?> type = fromJdbcType(columnName, typeName, columnLength, columnScale);
+        long bitLen = 0;
+        switch (typeName) {
+            case DB2_BLOB:
+            case DB2_BINARY:
+            case DB2_VARBINARY:
+                bitLen = columnLength;
+                break;
+        }
+
+        return PhysicalColumn.of(
+                columnName,
+                type,
+                0,
+                isNullable,
+                defaultValue,
+                columnComment,
+                fullTypeName,
+                false,
+                false,
+                bitLen,
+                null,
+                columnLength);
+    }
+
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
+        Map<String, Object> dataTypeProperties = new HashMap<>();
+        dataTypeProperties.put(DB2DataTypeConvertor.PRECISION, precision);
+        dataTypeProperties.put(DB2DataTypeConvertor.SCALE, scale);
+        return new DB2DataTypeConvertor().toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     @Override

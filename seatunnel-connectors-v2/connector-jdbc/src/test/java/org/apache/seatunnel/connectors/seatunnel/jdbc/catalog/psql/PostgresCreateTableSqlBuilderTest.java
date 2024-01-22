@@ -50,7 +50,7 @@ class PostgresCreateTableSqlBuilderTest {
                                     postgresCreateTableSqlBuilder.build(
                                             catalogTable.getTableId().toTablePath());
                             Assertions.assertEquals(
-                                    "CREATE TABLE IF NOT EXISTS \"test\" (\n"
+                                    "CREATE TABLE \"test\" (\n"
                                             + "\"id\" int4 NOT NULL PRIMARY KEY,\n"
                                             + "\"name\" text NOT NULL,\n"
                                             + "\"age\" int4 NOT NULL,\n"

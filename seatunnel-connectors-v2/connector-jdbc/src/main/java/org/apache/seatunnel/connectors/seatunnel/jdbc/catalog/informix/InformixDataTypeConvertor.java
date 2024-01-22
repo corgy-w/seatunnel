@@ -18,13 +18,15 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.informix;
 
-import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
-import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
-import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.type.BasicType;
+import org.apache.seatunnel.api.table.type.DecimalType;
+import org.apache.seatunnel.api.table.type.LocalTimeType;
+import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.informix.InformixTypeConverter;
 
 import org.apache.commons.collections4.MapUtils;
 
@@ -35,47 +37,108 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-/** @deprecated instead by {@link InformixTypeConverter} */
-@Deprecated
 @AutoService(DataTypeConvertor.class)
 public class InformixDataTypeConvertor implements DataTypeConvertor<String> {
 
     public static final String PRECISION = "precision";
     public static final String SCALE = "scale";
     public static final Integer DEFAULT_PRECISION = 38;
+
     public static final Integer DEFAULT_SCALE = 18;
+
+    private static final String BIGINT = "BIGINT";
+    private static final String BIGSERIAL = "BIGSERIAL";
+    private static final String BSON = "BSON";
+    private static final String BYTE = "BYTE";
+    private static final String CHAR = "CHAR";
+    private static final String CHARACTER = "CHARACTER";
+    private static final String DATE = "DATE";
+    private static final String DATETIME = "DATETIME";
+    private static final String DEC = "DEC";
+    private static final String DECIMAL = "DECIMAL";
+    private static final String FLOAT = "FLOAT";
+    private static final String INT = "INT";
+    private static final String INT8 = "INT8";
+    private static final String INTEGER = "INTEGER";
+    private static final String INTERVAL = "INTERVAL";
+    private static final String MONEY = "MONEY";
+    private static final String NCHAR = "NCHAR";
+    private static final String NUMERIC = "NUMERIC";
+    private static final String NVARCHAR = "NVARCHAR";
+    private static final String REAL = "REAL";
+    private static final String SERIAL = "SERIAL";
+    private static final String SERIAL8 = "SERIAL8";
+    private static final String SMALLFLOAT = "SMALLFLOAT";
+    private static final String SMALLINT = "SMALLINT";
+    private static final String TEXT = "TEXT";
+    private static final String VARCHAR = "VARCHAR";
+    private static final String BOOLEAN = "BOOLEAN";
+
+    private static final String BLOB = "BLOB";
+    private static final String CLOB = "CLOB";
+    private static final String LVARCHAR = "LVARCHAR";
+    private static final String IDSSECURITYLABEL = "IDSSECURITYLABEL";
+    private static final String DOUBLE_PRECISION = "DOUBLE PRECISION";
+    // TODO "CHARACTER VARYING"
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
             String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
         checkNotNull(connectorDataType, "seaTunnelDataType cannot be null");
-
-        Integer precision = null;
-        Integer scale = null;
         String dataType = connectorDataType.toUpperCase();
-        switch (dataType) {
-            case InformixTypeConverter.DEC:
-            case InformixTypeConverter.DECIMAL:
-            case InformixTypeConverter.MONEY:
-            case InformixTypeConverter.NUMERIC:
-                precision = MapUtils.getInteger(dataTypeProperties, PRECISION, DEFAULT_PRECISION);
-                scale = MapUtils.getInteger(dataTypeProperties, SCALE, DEFAULT_SCALE);
-                break;
-            default:
-                break;
+        if (dataType.startsWith(DATETIME)) {
+            return LocalTimeType.LOCAL_DATE_TIME_TYPE;
         }
-
-        BasicTypeDefine typeDefine =
-                BasicTypeDefine.builder()
-                        .name(field)
-                        .columnType(connectorDataType)
-                        .dataType(connectorDataType)
-                        .length(precision == null ? null : precision.longValue())
-                        .precision(precision == null ? null : precision.longValue())
-                        .scale(scale)
-                        .build();
-
-        return InformixTypeConverter.INSTANCE.convert(typeDefine).getDataType();
+        switch (dataType) {
+            case SMALLINT:
+                return BasicType.SHORT_TYPE;
+            case BIGINT:
+            case BIGSERIAL:
+            case INT8:
+            case SERIAL8:
+                return BasicType.LONG_TYPE;
+            case BOOLEAN:
+                return BasicType.BOOLEAN_TYPE;
+            case BSON:
+            case CHAR:
+            case CHARACTER:
+            case NCHAR:
+            case NVARCHAR:
+            case TEXT:
+            case VARCHAR:
+            case LVARCHAR:
+            case IDSSECURITYLABEL:
+                return BasicType.STRING_TYPE;
+            case BYTE:
+            case BLOB:
+            case CLOB:
+                return PrimitiveByteArrayType.INSTANCE;
+            case DATE:
+                return LocalTimeType.LOCAL_DATE_TYPE;
+            case DATETIME:
+                return LocalTimeType.LOCAL_DATE_TIME_TYPE;
+            case DEC:
+            case DECIMAL:
+            case MONEY:
+            case NUMERIC:
+                int precision =
+                        MapUtils.getInteger(dataTypeProperties, PRECISION, DEFAULT_PRECISION);
+                int scale = MapUtils.getInteger(dataTypeProperties, SCALE, DEFAULT_SCALE);
+                return new DecimalType(precision, scale);
+            case FLOAT:
+            case REAL:
+            case SMALLFLOAT:
+                return BasicType.FLOAT_TYPE;
+            case DOUBLE_PRECISION:
+                return BasicType.DOUBLE_TYPE;
+            case INT:
+            case INTEGER:
+            case SERIAL:
+                return BasicType.INT_TYPE;
+            case INTERVAL:
+            default:
+                throw CommonError.convertToSeaTunnelTypeError("Informix", dataType, field);
+        }
     }
 
     @Override
@@ -89,20 +152,36 @@ public class InformixDataTypeConvertor implements DataTypeConvertor<String> {
             SeaTunnelDataType<?> seaTunnelDataType,
             Map<String, Object> dataTypeProperties) {
         checkNotNull(seaTunnelDataType, "seaTunnelDataType cannot be null");
-
-        Long precision = MapUtils.getLong(dataTypeProperties, PRECISION);
-        Integer scale = MapUtils.getInteger(dataTypeProperties, SCALE);
-        Column column =
-                PhysicalColumn.builder()
-                        .name(field)
-                        .dataType(seaTunnelDataType)
-                        .columnLength(precision)
-                        .scale(scale)
-                        .nullable(true)
-                        .build();
-
-        BasicTypeDefine typeDefine = InformixTypeConverter.INSTANCE.reconvert(column);
-        return typeDefine.getColumnType();
+        SqlType sqlType = seaTunnelDataType.getSqlType();
+        switch (sqlType) {
+            case TINYINT:
+            case SMALLINT:
+                return SMALLINT;
+            case INT:
+                return INT;
+            case BIGINT:
+                return BIGINT;
+            case DECIMAL:
+                return DECIMAL;
+            case FLOAT:
+                return FLOAT;
+            case DOUBLE:
+                return DOUBLE_PRECISION;
+            case BOOLEAN:
+                return BOOLEAN;
+            case STRING:
+                return VARCHAR;
+            case DATE:
+                return DATE;
+            case BYTES:
+                return BLOB;
+            case TIMESTAMP:
+                return DATETIME;
+            case TIME:
+            default:
+                throw CommonError.convertToConnectorTypeError(
+                        "Informix", sqlType.toString(), field);
+        }
     }
 
     @Override

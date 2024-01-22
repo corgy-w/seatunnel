@@ -22,7 +22,6 @@ import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
@@ -201,13 +200,7 @@ public class JdbcSinkWriter
                     new DataTypeChangeEventDispatcher();
             dataTypeChangeEventDispatcher.reset(rowType);
             rowType = dataTypeChangeEventDispatcher.handle(event);
-            CatalogTable preCatalogTable =
-                    CatalogTable.of(
-                            TableIdentifier.of("default", "default", "default"),
-                            tableSchema,
-                            Collections.emptyMap(),
-                            Collections.emptyList(),
-                            null);
+            CatalogTable preCatalogTable = CatalogTable.of(null, tableSchema, null, null, null);
             CatalogTable catalogTable = CatalogTableUtil.newCatalogTable(preCatalogTable, rowType);
             outputFormat =
                     new JdbcOutputFormatBuilder(

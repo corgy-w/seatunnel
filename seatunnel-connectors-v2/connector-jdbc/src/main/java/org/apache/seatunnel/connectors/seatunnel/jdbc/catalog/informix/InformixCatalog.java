@@ -21,6 +21,7 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.informix;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
@@ -28,11 +29,10 @@ import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
-import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.informix.InformixTypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.informix.InformixTypeMapper;
 
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +47,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -211,26 +212,29 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     @Override
     protected Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
-        String typeName = resultSet.getString("TYPE_NAME");
+        String fullTypeName = resultSet.getString("TYPE_NAME");
         long columnLength = resultSet.getLong("COLUMN_SIZE");
-        int columnScale = resultSet.getInt("DECIMAL_DIGITS");
+        long columnScale = resultSet.getLong("DECIMAL_DIGITS");
         String columnComment = resultSet.getString("REMARKS");
         Object defaultValue = resultSet.getObject("COLUMN_DEF");
         boolean isNullable = resultSet.getInt("NULLABLE") == 1;
 
-        BasicTypeDefine typeDefine =
-                BasicTypeDefine.builder()
-                        .name(columnName)
-                        .columnType(typeName)
-                        .dataType(typeName)
-                        .length(columnLength)
-                        .precision(columnLength)
-                        .scale(columnScale)
-                        .nullable(isNullable)
-                        .defaultValue(defaultValue)
-                        .comment(columnComment)
-                        .build();
-        return InformixTypeConverter.INSTANCE.convert(typeDefine);
+        SeaTunnelDataType<?> type =
+                fromJdbcType(columnName, fullTypeName, columnLength, columnScale);
+
+        return PhysicalColumn.of(
+                columnName,
+                type,
+                0,
+                isNullable,
+                defaultValue,
+                columnComment,
+                fullTypeName,
+                false,
+                false,
+                0L,
+                null,
+                columnLength);
     }
 
     @Override
@@ -243,7 +247,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     protected String getDropTableSql(TablePath tablePath) {
         String schemaName = tablePath.getSchemaName();
         String tableName = tablePath.getTableName();
-        return "DROP TABLE IF EXISTS " + schemaName + "." + tableName;
+        return "DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"";
     }
 
     @Override
@@ -275,6 +279,15 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     @Override
     protected String getDropDatabaseSql(String databaseName) {
         return "DROP DATABASE IF EXISTS \"" + databaseName + "\"";
+    }
+
+    private SeaTunnelDataType<?> fromJdbcType(
+            String columnName, String typeName, long precision, long scale) {
+        Map<String, Object> dataTypeProperties = new HashMap<>();
+        dataTypeProperties.put(InformixDataTypeConvertor.PRECISION, precision);
+        dataTypeProperties.put(InformixDataTypeConvertor.SCALE, scale);
+        return new InformixDataTypeConvertor()
+                .toSeaTunnelType(columnName, typeName, dataTypeProperties);
     }
 
     @Override
