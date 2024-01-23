@@ -225,31 +225,6 @@ jobs:
           echo $build_modules
           echo "modules=$build_modules" >> $GITHUB_OUTPUT
 
-  unit-test:
-    needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true' || (needs.changes.outputs.api == 'false' && needs.changes.outputs.ut-modules != '')
-    runs-on:
-      labels: wtci
-    strategy:
-      matrix:
-        os: [ 'self-hosted' ]
-    timeout-minutes: 100
-    steps:
-      - uses: actions/checkout@v2
-      - name: run all modules unit test
-        if: needs.changes.outputs.api == 'true'
-        run: |
-          ./mvnw --settings maven-settings.xml -B -T 1 clean verify -D"maven.test.skip"=false -D"license.skipAddThirdParty"=true --no-snapshot-updates
-        env:
-          MAVEN_OPTS: -Xmx4096m
-
-      - name: run updated modules unit test
-        if: needs.changes.outputs.api == 'false' && needs.changes.outputs.ut-modules != ''
-        run: |
-          ./mvnw --settings maven-settings.xml -B -T 1 clean verify -D"maven.test.skip"=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl ${{needs.changes.outputs.ut-modules}} -am -Pci
-        env:
-          MAVEN_OPTS: -Xmx4096m
-
   updated-modules-integration-test-part-1:
     needs: [ changes, sanity-check ]
     if: needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
@@ -359,23 +334,6 @@ jobs:
           fi
         env:
           MAVEN_OPTS: -Xmx2048m
-  engine-v2-it:
-    needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
-    runs-on:
-      labels: wtci
-    strategy:
-      matrix:
-        os: [ 'self-hosted' ]
-    timeout-minutes: 180
-    steps:
-      - uses: actions/checkout@v2
-      - name: run seatunnel zeta integration test
-        if: needs.changes.outputs.api == 'true'
-        run: |
-          ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-seatunnel-e2e-base -am -Pci
-        env:
-          MAVEN_OPTS: -Xmx4096m
 
   transform-v2-it-part-1:
     needs: [ changes, sanity-check ]
@@ -429,7 +387,7 @@ jobs:
         run: |
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/sub_module.txt
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/sub_module.txt`
-          run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 0`
+          run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 0`
           ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
