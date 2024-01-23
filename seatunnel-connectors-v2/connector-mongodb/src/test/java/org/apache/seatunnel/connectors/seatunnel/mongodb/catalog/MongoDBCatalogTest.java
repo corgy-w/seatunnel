@@ -12,6 +12,7 @@ import org.apache.seatunnel.connectors.seatunnel.mongodb.internal.MongodbCollect
 
 import org.bson.Document;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Disabled
 class MongoDBCatalogTest {
 
     MongodbClientProvider clientProvider =

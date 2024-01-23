@@ -7,6 +7,7 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.connectors.seatunnel.hive.BaseHiveTest;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -14,6 +15,7 @@ import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.util.List;
 
+@Disabled("We have no hive test env")
 class HiveSourceTest extends BaseHiveTest {
 
     @Test

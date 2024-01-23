@@ -17,9 +17,6 @@
 
 package org.apache.seatunnel.connectors.seatunnel.mongodb.sink;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.DefaultSerializer;
 import org.apache.seatunnel.api.serialization.Serializer;
@@ -31,10 +28,7 @@ import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSink;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.catalog.MongoDBCatalog;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.internal.MongodbClientProvider;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.internal.MongodbCollectionProvider;
@@ -45,13 +39,10 @@ import org.apache.seatunnel.connectors.seatunnel.mongodb.sink.state.DocumentBulk
 import org.apache.seatunnel.connectors.seatunnel.mongodb.sink.state.MongodbAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.sink.state.MongodbCommitInfo;
 
-import com.google.auto.service.AutoService;
-
 import java.util.Optional;
 
 import static org.apache.seatunnel.connectors.seatunnel.mongodb.config.MongodbConfig.CONNECTOR_IDENTITY;
 
-@AutoService(SeaTunnelSink.class)
 public class MongodbSink
         implements SeaTunnelSink<
                         SeaTunnelRow, DocumentBulk, MongodbCommitInfo, MongodbAggregatedCommitInfo>,
@@ -62,37 +53,14 @@ public class MongodbSink
 
     private CatalogTable catalogTable;
 
-    public MongodbSink() {}
-
     public MongodbSink(CatalogTable catalogTable, ReadonlyConfig options) {
         this.options = MongodbWriterOptions.from(options);
         this.catalogTable = catalogTable;
     }
 
     @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        this.options = MongodbWriterOptions.from(ReadonlyConfig.fromConfig(pluginConfig));
-    }
-
-    @Override
     public String getPluginName() {
         return CONNECTOR_IDENTITY;
-    }
-
-    @Override
-    public void setTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        this.catalogTable =
-                CatalogTableUtil.getCatalogTable(
-                        "mongodb",
-                        options.getDatabase(),
-                        null,
-                        options.getCollection(),
-                        seaTunnelRowType);
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getConsumedType() {
-        return this.catalogTable.getTableSchema().toPhysicalRowDataType();
     }
 
     @Override

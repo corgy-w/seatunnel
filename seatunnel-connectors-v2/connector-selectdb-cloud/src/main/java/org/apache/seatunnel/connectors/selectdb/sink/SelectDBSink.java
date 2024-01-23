@@ -17,10 +17,7 @@
 
 package org.apache.seatunnel.connectors.selectdb.sink;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
 import org.apache.seatunnel.api.common.JobContext;
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.Serializer;
@@ -33,13 +30,8 @@ import org.apache.seatunnel.api.sink.SupportMultiTableSink;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.factory.CatalogFactory;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.config.CheckConfigUtil;
-import org.apache.seatunnel.common.config.CheckResult;
 import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig;
 import org.apache.seatunnel.connectors.selectdb.exception.SelectDBConnectorException;
@@ -50,7 +42,6 @@ import org.apache.seatunnel.connectors.selectdb.sink.writer.SelectDBSinkState;
 import org.apache.seatunnel.connectors.selectdb.sink.writer.SelectDBSinkStateSerializer;
 import org.apache.seatunnel.connectors.selectdb.sink.writer.SelectDBSinkWriter;
 
-import com.google.auto.service.AutoService;
 import lombok.NoArgsConstructor;
 
 import java.io.IOException;
@@ -59,14 +50,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
-import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.BASE_URL;
-import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.CLUSTER_NAME;
-import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.DATABASE;
-import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.LOAD_URL;
-import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.TABLE;
-import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.USERNAME;
 
-@AutoService(SeaTunnelSink.class)
 @NoArgsConstructor
 public class SelectDBSink
         implements SeaTunnelSink<
@@ -90,46 +74,8 @@ public class SelectDBSink
     }
 
     @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        CheckResult result =
-                CheckConfigUtil.checkAllExists(
-                        pluginConfig,
-                        BASE_URL.key(),
-                        LOAD_URL.key(),
-                        CLUSTER_NAME.key(),
-                        USERNAME.key(),
-                        DATABASE.key(),
-                        TABLE.key());
-        if (!result.isSuccess()) {
-            throw new SelectDBConnectorException(
-                    SeaTunnelAPIErrorCode.CONFIG_VALIDATION_FAILED,
-                    String.format(
-                            "PluginName: %s, PluginType: %s, Message: %s",
-                            getPluginName(), PluginType.SINK, result.getMsg()));
-        }
-        this.readonlyConfig = ReadonlyConfig.fromConfig(pluginConfig);
-        this.selectDBConfig = SelectDBConfig.loadConfig(readonlyConfig);
-    }
-
-    @Override
     public void setJobContext(JobContext jobContext) {
         this.jobId = jobContext.getJobId();
-    }
-
-    @Override
-    public void setTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        this.catalogTable =
-                CatalogTableUtil.getCatalogTable(
-                        "SelectDBCloud",
-                        selectDBConfig.getDatabase(),
-                        null,
-                        selectDBConfig.getTable(),
-                        seaTunnelRowType);
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getConsumedType() {
-        return this.catalogTable.getTableSchema().toPhysicalRowDataType();
     }
 
     @Override

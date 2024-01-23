@@ -17,10 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.iceberg.sink;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
 import org.apache.seatunnel.api.common.JobContext;
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.DefaultSerializer;
 import org.apache.seatunnel.api.serialization.Serializer;
@@ -36,7 +33,6 @@ import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
@@ -52,7 +48,6 @@ import org.apache.seatunnel.connectors.seatunnel.iceberg.sink.writer.SeaTunnelRo
 
 import org.apache.iceberg.Table;
 
-import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import lombok.SneakyThrows;
@@ -69,7 +64,6 @@ import java.util.stream.Collectors;
 import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkNotNull;
 
 @Slf4j
-@AutoService(SeaTunnelSink.class)
 public class IcebergSink
         implements SeaTunnelSink<
                         SeaTunnelRow,
@@ -89,8 +83,6 @@ public class IcebergSink
 
     private List<String> equalityFieldColumns;
 
-    public IcebergSink() {}
-
     @SneakyThrows
     public IcebergSink(CatalogTable catalogTable, ReadonlyConfig readonlyConfig) {
         this.sinkConfig = new SinkConfig(readonlyConfig);
@@ -108,25 +100,6 @@ public class IcebergSink
     @Override
     public String getPluginName() {
         return "Iceberg";
-    }
-
-    @Override
-    @SneakyThrows
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        this.sinkConfig = new SinkConfig(ReadonlyConfig.fromConfig(pluginConfig));
-    }
-
-    @Override
-    public void setTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        if (null == this.seaTunnelRowType) {
-            this.seaTunnelRowType = convertLowerCaseSeaTunnelRowType(seaTunnelRowType);
-            this.equalityFieldColumns = sinkConfig.getPrimaryKeys();
-        }
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getConsumedType() {
-        return this.seaTunnelRowType;
     }
 
     @Override

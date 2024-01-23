@@ -23,7 +23,6 @@ import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.SaveModeHandler;
-import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SinkAggregatedCommitter;
 import org.apache.seatunnel.api.sink.SinkCommitter;
 import org.apache.seatunnel.api.sink.SinkWriter;
@@ -47,7 +46,6 @@ import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConf;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConfig;
 import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftConnectorException;
 
-import com.google.auto.service.AutoService;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
@@ -55,7 +53,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@AutoService(SeaTunnelSink.class)
 public class S3RedshiftSink extends BaseHdfsFileSink
         implements SupportMultiTableSink, SupportSaveMode {
 
