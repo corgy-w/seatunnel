@@ -60,6 +60,7 @@ import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.SCH
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.SELECTDB_SINK_CONFIG_PREFIX;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.SINK_BUFFER_COUNT;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.SINK_BUFFER_SIZE;
+import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.SINK_ENABLE_2PC;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.SINK_ENABLE_DELETE;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.SINK_FLUSH_QUEUE_SIZE;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.SINK_LABEL_PREFIX;
@@ -87,6 +88,7 @@ public class SelectDBSinkFactory
                         SINK_MAX_RETRIES,
                         SINK_LABEL_PREFIX,
                         SINK_BUFFER_SIZE,
+                        SINK_ENABLE_2PC,
                         SINK_BUFFER_COUNT,
                         SINK_ENABLE_DELETE,
                         SINK_FLUSH_QUEUE_SIZE,
