@@ -15,18 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.cdc.informix.utils;
+package org.apache.seatunnel.api.table.converter;
 
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.informix.InformixTypeMapper;
-
-import io.debezium.relational.Column;
-
-public class InformixTypeConverter {
-    private static final InformixTypeMapper INFORMIX_TYPE_MAPPER = new InformixTypeMapper();
-
-    public static SeaTunnelDataType<?> convert(Column column) {
-        return INFORMIX_TYPE_MAPPER.mapping(
-                column.name(), column.typeName(), column.position(), column.scale().orElse(null));
-    }
-}
+public interface BasicDataTypeConverter<T extends BasicTypeDefine>
+        extends BasicTypeConverter<T>, BasicDataConverter<T> {}

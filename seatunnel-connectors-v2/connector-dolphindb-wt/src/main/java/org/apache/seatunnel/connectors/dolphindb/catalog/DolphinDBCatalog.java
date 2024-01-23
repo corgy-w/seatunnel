@@ -167,7 +167,7 @@ public class DolphinDBCatalog implements Catalog {
                                 columnName,
                                 dolphinDBDataTypeConvertor.toSeaTunnelType(
                                         columnName, dataType.name()),
-                                null,
+                                (Long) null,
                                 true,
                                 null,
                                 null);

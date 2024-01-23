@@ -117,9 +117,11 @@ public class KingbaseJdbcRowConverter extends AbstractJdbcRowConverter {
                 case NULL:
                     fields[fieldIndex] = null;
                     break;
+                case ARRAY:
+                    fields[fieldIndex] = convertToArray(rs, resultSetIndex, seaTunnelDataType);
+                    break;
                 case ROW:
                 case MAP:
-                case ARRAY:
                 default:
                     throw new JdbcConnectorException(
                             CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,

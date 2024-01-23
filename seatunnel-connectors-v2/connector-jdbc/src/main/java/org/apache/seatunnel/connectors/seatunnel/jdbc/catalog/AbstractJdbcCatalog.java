@@ -264,7 +264,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
                     defaultUrl,
                     getListDatabaseSql(),
                     rs -> {
-                        String s = rs.getString(1);
+                        String s = rs.getString(1).trim();
                         return SYS_DATABASES.contains(s) ? null : s;
                     });
         } catch (Exception e) {

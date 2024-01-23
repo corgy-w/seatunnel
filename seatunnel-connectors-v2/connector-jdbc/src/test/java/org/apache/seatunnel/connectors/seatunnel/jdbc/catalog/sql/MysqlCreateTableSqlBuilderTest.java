@@ -56,7 +56,7 @@ public class MysqlCreateTableSqlBuilderTest {
                                         "name", BasicType.STRING_TYPE, 128, false, null, "name"))
                         .column(
                                 PhysicalColumn.of(
-                                        "age", BasicType.INT_TYPE, null, true, null, "age"))
+                                        "age", BasicType.INT_TYPE, (Long) null, true, null, "age"))
                         .column(
                                 PhysicalColumn.of(
                                         "createTime",
@@ -98,12 +98,13 @@ public class MysqlCreateTableSqlBuilderTest {
         // create table sql is change; The old unit tests are no longer applicable
         String expect =
                 "CREATE TABLE IF NOT EXISTS `test_table` (\n"
-                        + "\t`id` null NOT NULL COMMENT 'id', \n"
-                        + "\t`name` null NOT NULL COMMENT 'name', \n"
-                        + "\t`age` null NULL COMMENT 'age', \n"
-                        + "\t`createTime` null NULL COMMENT 'createTime', \n"
-                        + "\t`lastUpdateTime` null NULL COMMENT 'lastUpdateTime', \n"
-                        + "\tPRIMARY KEY (`id`)\n"
+                        + "\t`id` BIGINT NOT NULL COMMENT 'id', \n"
+                        + "\t`name` VARCHAR(128) NOT NULL COMMENT 'name', \n"
+                        + "\t`age` INT NULL COMMENT 'age', \n"
+                        + "\t`createTime` TIMESTAMP NULL COMMENT 'createTime', \n"
+                        + "\t`lastUpdateTime` TIMESTAMP NULL COMMENT 'lastUpdateTime', \n"
+                        + "\tPRIMARY KEY (`id`), \n"
+                        + "\tKEY `name` (`name`)\n"
                         + ") COMMENT = 'User table';";
         CONSOLE.println(expect);
         System.out.println(createTableSql);

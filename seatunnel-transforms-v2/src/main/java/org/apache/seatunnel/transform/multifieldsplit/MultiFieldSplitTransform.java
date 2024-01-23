@@ -101,19 +101,16 @@ public class MultiFieldSplitTransform extends MultipleFieldOutputTransform {
                 final Column originColumn = originColumnOptional.get();
                 for (String outputField : outputFields) {
                     columnList.add(
-                            PhysicalColumn.of(
+                            new PhysicalColumn(
                                     outputField,
                                     originColumn.getDataType(),
                                     originColumn.getColumnLength(),
+                                    originColumn.getScale(),
                                     originColumn.isNullable(),
                                     originColumn.getDefaultValue(),
                                     originColumn.getComment(),
                                     originColumn.getSourceType(),
-                                    originColumn.isUnsigned(),
-                                    originColumn.isZeroFill(),
-                                    originColumn.getBitLen(),
-                                    originColumn.getOptions(),
-                                    originColumn.getLongColumnLength()));
+                                    originColumn.getOptions()));
                 }
             }
         }
