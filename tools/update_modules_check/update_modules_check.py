@@ -149,7 +149,6 @@ def get_sub_it_modules(modules, total_num, current_num):
     modules_arr.remove("connector-kudu-e2e")
     modules_arr.remove("connector-amazonsqs-e2e")
     modules_arr.remove("connector-doris-e2e")
-    modules_arr.remove("connector-elasticsearch-e2e")
     output = ""
     for i, module in enumerate(modules_arr):
         if len(module) > 0 and i % int(total_num) == int(current_num):
