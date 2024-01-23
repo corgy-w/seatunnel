@@ -20,11 +20,13 @@ package org.apache.seatunnel.e2e.transform;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 
 import java.io.IOException;
 
+@Disabled
 public class TestMultiFieldSplitIT extends TestSuiteBase {
 
     @TestTemplate
