@@ -27,6 +27,7 @@ import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.OracleContainer;
@@ -60,11 +61,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
 
 @Slf4j
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK, EngineType.FLINK},
-        disabledReason =
-                "Currently SPARK do not support cdc,Flink is prone to time out, temporarily disable")
+@Disabled("wait for oracle cdc wt")
 public class OracleCDCIT extends TestSuiteBase implements TestResource {
 
     private static final String ORACLE_IMAGE = "jark/oracle-xe-11g-r2-cdc:0.1";

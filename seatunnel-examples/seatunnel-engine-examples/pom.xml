@@ -98,6 +98,18 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-cdc-postgres</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.4.3</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.huaweicloud.dws</groupId>
             <artifactId>huaweicloud-dws-jdbc</artifactId>
             <version>8.1.1.1-200</version>

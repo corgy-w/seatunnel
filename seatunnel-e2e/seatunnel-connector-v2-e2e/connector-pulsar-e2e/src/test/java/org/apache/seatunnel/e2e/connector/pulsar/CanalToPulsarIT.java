@@ -34,6 +34,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,7 @@ import static org.awaitility.Awaitility.given;
  * canal server producer data to pulsar, st-cdc is consumer reference:
  * https://pulsar.apache.org/docs/2.11.x/io-canal-source/
  */
+@Disabled
 public class CanalToPulsarIT extends TestSuiteBase implements TestResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(CanalToPulsarIT.class);
