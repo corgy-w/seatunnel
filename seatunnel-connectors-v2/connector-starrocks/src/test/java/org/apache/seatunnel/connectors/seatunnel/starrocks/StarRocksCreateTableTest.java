@@ -38,14 +38,14 @@ public class StarRocksCreateTableTest {
 
         List<Column> columns = new ArrayList<>();
 
-        columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, null, true, null, ""));
+        columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, (Long) null, true, null, ""));
         columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, 100, true, null, ""));
-        columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, null, true, null, ""));
-        columns.add(PhysicalColumn.of("gender", BasicType.BYTE_TYPE, null, true, null, ""));
-        columns.add(PhysicalColumn.of("create_time", BasicType.LONG_TYPE, null, true, null, ""));
+        columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("gender", BasicType.BYTE_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("create_time", BasicType.LONG_TYPE, (Long) null, true, null, ""));
         columns.add(
                 PhysicalColumn.of(
-                        "update_time", LocalTimeType.LOCAL_TIME_TYPE, null, true, null, ""));
+                        "update_time", LocalTimeType.LOCAL_TIME_TYPE, (Long) null, true, null, ""));
 
         String result =
                 StarRocksSaveModeUtil.fillingCreateSql(
