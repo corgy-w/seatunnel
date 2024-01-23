@@ -19,10 +19,8 @@ package org.apache.seatunnel.e2e.connector.file.ftp;
 
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.container.TestHelper;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.util.ContainerUtil;
 
 import org.junit.jupiter.api.AfterAll;
@@ -38,11 +36,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.stream.Stream;
 
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK},
-        disabledReason =
-                "1.The apache-compress version is not compatible with apache-poi. 2.Spark Engine is not compatible with commons-net")
 @Slf4j
 public class FtpFileIT extends TestSuiteBase implements TestResource {
 

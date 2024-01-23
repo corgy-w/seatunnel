@@ -19,9 +19,7 @@ package org.apache.seatunnel.e2e.connector.kudu;
 
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 
 import org.apache.kudu.ColumnSchema;
 import org.apache.kudu.ColumnTypeAttributes;
@@ -68,10 +66,6 @@ import static java.lang.String.format;
 import static org.awaitility.Awaitility.await;
 
 @Slf4j
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK},
-        disabledReason = "Currently SPARK do not support cdc")
 public class KuduCDCSinkIT extends TestSuiteBase implements TestResource {
 
     private static final String IMAGE = "apache/kudu:1.15.0";

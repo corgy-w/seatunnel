@@ -17,9 +17,7 @@
 
 package org.apache.seatunnel.e2e.connector.v2.mongodb;
 
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 
 import org.bson.Document;
 import org.junit.jupiter.api.Assertions;
@@ -37,10 +35,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK},
-        disabledReason = "Spark engine will lose the row kind of record")
 @Slf4j
 public class MongodbCDCIT extends AbstractMongodbIT {
 

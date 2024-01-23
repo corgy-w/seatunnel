@@ -64,10 +64,6 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertNotNull;
 
 @Slf4j
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK},
-        disabledReason = "Currently SPARK do not support cdc")
 public class PostgresCDCIT extends TestSuiteBase implements TestResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(PostgresCDCIT.class);

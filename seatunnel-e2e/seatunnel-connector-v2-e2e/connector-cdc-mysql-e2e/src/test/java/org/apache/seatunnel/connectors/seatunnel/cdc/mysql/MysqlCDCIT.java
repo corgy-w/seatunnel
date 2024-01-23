@@ -55,10 +55,6 @@ import java.util.stream.Stream;
 import static org.awaitility.Awaitility.await;
 
 @Slf4j
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK},
-        disabledReason = "Currently SPARK do not support cdc")
 public class MysqlCDCIT extends TestSuiteBase implements TestResource {
 
     // mysql
