@@ -20,25 +20,24 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.redshift;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
-import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.mysql.MysqlDataTypeConvertor;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.redshift.RedshiftTypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.redshift.RedshiftTypeMapper;
 
-import com.mysql.cj.MysqlType;
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -50,7 +49,7 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
     protected static final Set<String> EXCLUDED_SCHEMAS = new HashSet<>(4);
 
     private final String SELECT_COLUMNS =
-            "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME ='%s'";
+            "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME ='%s' ORDER BY ordinal_position ASC";
 
     static {
         EXCLUDED_SCHEMAS.add("catalog_history");
@@ -144,9 +143,13 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName())
-                            .contains(tablePath.getSchemaAndTableName().toLowerCase());
+            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+                return databaseExists(tablePath.getDatabaseName())
+                        && listTables(tablePath.getDatabaseName())
+                                .contains(tablePath.getSchemaAndTableName().toLowerCase());
+            }
+            return listTables(defaultDatabase)
+                    .contains(tablePath.getSchemaAndTableName().toLowerCase());
         } catch (DatabaseNotExistException e) {
             return false;
         }
@@ -160,79 +163,40 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
     @Override
     protected TableIdentifier getTableIdentifier(TablePath tablePath) {
         return TableIdentifier.of(
-                catalogName, tablePath.getDatabaseName(), tablePath.getTableName());
+                catalogName,
+                tablePath.getDatabaseName(),
+                tablePath.getSchemaName(),
+                tablePath.getTableName());
     }
 
     @Override
     protected Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
-        String sourceType = resultSet.getString("COLUMN_TYPE");
         String typeName = resultSet.getString("DATA_TYPE").toUpperCase();
-        int precision = resultSet.getInt("NUMERIC_PRECISION");
+        long precision = resultSet.getLong("NUMERIC_PRECISION");
         int scale = resultSet.getInt("NUMERIC_SCALE");
         long columnLength = resultSet.getLong("CHARACTER_MAXIMUM_LENGTH");
-        long octetLength = resultSet.getLong("CHARACTER_OCTET_LENGTH");
-        SeaTunnelDataType<?> type = fromJdbcType(columnName, typeName, precision, scale);
-        String comment = resultSet.getString("COLUMN_COMMENT");
         Object defaultValue = resultSet.getObject("COLUMN_DEFAULT");
         String isNullableStr = resultSet.getString("IS_NULLABLE");
         boolean isNullable = isNullableStr.equals("YES");
-        long bitLen = 0;
-        MysqlType mysqlType = MysqlType.valueOf(typeName);
-        switch (mysqlType) {
-            case BIT:
-                bitLen = precision;
-                break;
-            case CHAR:
-            case VARCHAR:
-                columnLength = octetLength;
-                break;
-            case BINARY:
-            case VARBINARY:
-                // Uniform conversion to bits
-                bitLen = octetLength * 4 * 8L;
-                break;
-            case BLOB:
-            case TINYBLOB:
-            case MEDIUMBLOB:
-            case LONGBLOB:
-                bitLen = columnLength << 3;
-                break;
-            case JSON:
-                columnLength = 4 * 1024 * 1024 * 1024L;
-                break;
-            default:
-                break;
-        }
 
-        return PhysicalColumn.of(
-                columnName,
-                type,
-                0,
-                isNullable,
-                defaultValue,
-                comment,
-                sourceType,
-                sourceType.contains("unsigned"),
-                sourceType.contains("zerofill"),
-                bitLen,
-                null,
-                columnLength);
+        BasicTypeDefine typeDefine =
+                BasicTypeDefine.builder()
+                        .name(columnName)
+                        .columnType(typeName)
+                        .dataType(typeName)
+                        .length(columnLength)
+                        .precision(precision)
+                        .scale(scale)
+                        .nullable(isNullable)
+                        .defaultValue(defaultValue)
+                        .build();
+        return RedshiftTypeConverter.INSTANCE.convert(typeDefine);
     }
 
     @Override
     public String getExistDataSql(TablePath tablePath) {
         return String.format("select * from %s LIMIT 1;", tablePath.getFullName());
-    }
-
-    private SeaTunnelDataType<?> fromJdbcType(
-            String columnName, String typeName, int precision, int scale) {
-        MysqlType mysqlType = MysqlType.getByName(typeName);
-        Map<String, Object> dataTypeProperties = new HashMap<>();
-        dataTypeProperties.put(MysqlDataTypeConvertor.PRECISION, precision);
-        dataTypeProperties.put(MysqlDataTypeConvertor.SCALE, scale);
-        return new MysqlDataTypeConvertor()
-                .toSeaTunnelType(columnName, mysqlType, dataTypeProperties);
     }
 
     @Override

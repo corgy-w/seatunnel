@@ -17,16 +17,26 @@
 
 package org.apache.seatunnel.connectors.cdc.dameng.utils;
 
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeMapper;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeConverter;
 
 import io.debezium.relational.Column;
 
 public class DamengTypeConverter {
-    private static final DmdbTypeMapper DAMENG_TYPE_MAPPER = new DmdbTypeMapper();
 
     public static SeaTunnelDataType<?> convert(Column column) {
-        return DAMENG_TYPE_MAPPER.mapping(
-                column.name(), column.typeName(), column.position(), column.scale().orElse(null));
+        BasicTypeDefine typeDefine =
+                BasicTypeDefine.builder()
+                        .name(column.name())
+                        .columnType(column.typeName())
+                        .dataType(column.typeName())
+                        .precision((long) column.length())
+                        .length((long) column.length())
+                        .scale(column.scale().orElse(0))
+                        .build();
+        org.apache.seatunnel.api.table.catalog.Column seaTunnelColumn =
+                DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        return seaTunnelColumn.getDataType();
     }
 }

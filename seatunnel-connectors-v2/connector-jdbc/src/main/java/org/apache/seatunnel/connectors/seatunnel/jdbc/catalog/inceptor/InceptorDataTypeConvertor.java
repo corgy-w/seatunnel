@@ -18,67 +18,33 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.inceptor;
 
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.DataTypeConvertor;
-import org.apache.seatunnel.api.table.type.BasicType;
-import org.apache.seatunnel.api.table.type.DecimalType;
-import org.apache.seatunnel.api.table.type.LocalTimeType;
-import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
+import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.common.exception.CommonError;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.inceptor.InceptorTypeConverter;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.collections4.MapUtils;
 
 import com.google.auto.service.AutoService;
 
 import java.util.Collections;
-import java.util.Locale;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier.INCEPTOR;
 
+/** @deprecated instead by {@link InceptorTypeConverter} */
+@Deprecated
 @AutoService(DataTypeConvertor.class)
 public class InceptorDataTypeConvertor implements DataTypeConvertor<String> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(InceptorDataTypeConvertor.class);
 
     public static final String PRECISION = "precision";
     public static final String SCALE = "scale";
 
     public static final Integer DEFAULT_PRECISION = 38;
-
     public static final Integer DEFAULT_SCALE = 18;
-
-    // 基本数据类型
-    public static final String HIVE_TINYINT = "tinyint";
-    public static final String HIVE_SMALLINT = "smallint";
-    public static final String HIVE_INT = "int";
-    public static final String HIVE_BIGINT = "bigint";
-    public static final String HIVE_FLOAT = "float";
-    public static final String HIVE_DOUBLE = "double";
-    public static final String HIVE_BOOLEAN = "boolean";
-    public static final String HIVE_STRING = "string";
-    public static final String HIVE_BINARY = "binary";
-    public static final String HIVE_TIMESTAMP = "timestamp";
-    public static final String HIVE_DATE = "date";
-    public static final String HIVE_DECIMAL = "decimal";
-
-    public static final String HIVE_CHAR = "char";
-    public static final String HIVE_VARCHAR = "varchar";
-
-    public static final String HIVE_ARRAY = "array";
-    public static final String HIVE_MAP = "map";
-    public static final String HIVE_STRUCT = "struct";
-    public static final String HIVE_UNION = "uniontype";
-
-    public static final String HIVE_ARRAY_INT = "array<int>";
-    public static final String HIVE_MAP_STRING_INT = "map<string,int>";
-    public static final String HIVE_STRUCT_NAME_AGE = "struct<name:string,age:int>";
-
-    public static final String HIVE_CUSTOM_TYPE = "custom_type";
 
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(String field, String dataType) {
@@ -88,47 +54,22 @@ public class InceptorDataTypeConvertor implements DataTypeConvertor<String> {
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
             String field, String connectorDataType, Map<String, Object> dataTypeProperties) {
-        checkNotNull(connectorDataType, "Postgres Type cannot be null");
+        checkNotNull(connectorDataType, "Inceptor Type cannot be null");
 
-        switch (connectorDataType.toLowerCase(Locale.ROOT)) {
-            case HIVE_BOOLEAN:
-                return BasicType.BOOLEAN_TYPE;
-            case HIVE_TINYINT:
-                return BasicType.BYTE_TYPE;
-            case HIVE_SMALLINT:
-                return BasicType.SHORT_TYPE;
-            case HIVE_INT:
-                return BasicType.INT_TYPE;
-            case HIVE_BIGINT:
-                return BasicType.LONG_TYPE;
-            case HIVE_FLOAT:
-                return BasicType.FLOAT_TYPE;
-            case HIVE_DOUBLE:
-                return BasicType.DOUBLE_TYPE;
-            case HIVE_STRING:
-            case HIVE_CHAR:
-            case HIVE_VARCHAR:
-            case HIVE_STRUCT:
-            case HIVE_ARRAY:
-            case HIVE_MAP:
-            case HIVE_UNION:
-            case HIVE_ARRAY_INT:
-            case HIVE_MAP_STRING_INT:
-            case HIVE_STRUCT_NAME_AGE:
-            case HIVE_CUSTOM_TYPE:
-                return BasicType.STRING_TYPE;
-            case HIVE_BINARY:
-                return PrimitiveByteArrayType.INSTANCE;
-            case HIVE_DATE:
-                return LocalTimeType.LOCAL_DATE_TYPE;
-            case HIVE_TIMESTAMP:
-                return LocalTimeType.LOCAL_DATE_TIME_TYPE;
-            case HIVE_DECIMAL:
-                return new DecimalType(DEFAULT_PRECISION, DEFAULT_SCALE);
-            default:
-                throw CommonError.convertToSeaTunnelTypeError(
-                        DatabaseIdentifier.INCEPTOR, connectorDataType, field);
-        }
+        Long precision = MapUtils.getLong(dataTypeProperties, PRECISION);
+        Integer scale = MapUtils.getInteger(dataTypeProperties, SCALE);
+        BasicTypeDefine typeDefine =
+                BasicTypeDefine.builder()
+                        .name(field)
+                        .nativeType(connectorDataType)
+                        .dataType(connectorDataType)
+                        .columnType(connectorDataType)
+                        .length(precision)
+                        .precision(precision)
+                        .scale(scale)
+                        .build();
+
+        return InceptorTypeConverter.INSTANCE.convert(typeDefine).getDataType();
     }
 
     @Override
@@ -137,43 +78,19 @@ public class InceptorDataTypeConvertor implements DataTypeConvertor<String> {
             SeaTunnelDataType<?> seaTunnelDataType,
             Map<String, Object> dataTypeProperties) {
         checkNotNull(seaTunnelDataType, "seaTunnelDataType cannot be null");
-        SqlType sqlType = seaTunnelDataType.getSqlType();
-        // todo: verify
-        switch (sqlType) {
-            case ARRAY:
-                return HIVE_ARRAY;
-            case MAP:
-            case ROW:
-            case STRING:
-            case NULL:
-                return HIVE_STRING;
-            case BOOLEAN:
-                return HIVE_BOOLEAN;
-            case TINYINT:
-                return HIVE_TINYINT;
-            case SMALLINT:
-                return HIVE_SMALLINT;
-            case INT:
-                return HIVE_INT;
-            case BIGINT:
-                return HIVE_BIGINT;
-            case FLOAT:
-                return HIVE_FLOAT;
-            case DOUBLE:
-                return HIVE_DOUBLE;
-            case DECIMAL:
-                return HIVE_DECIMAL;
-            case BYTES:
-                return HIVE_BINARY;
-            case DATE:
-                return HIVE_DATE;
-            case TIME:
-            case TIMESTAMP:
-                return HIVE_TIMESTAMP;
-            default:
-                throw CommonError.convertToConnectorTypeError(
-                        DatabaseIdentifier.INCEPTOR, seaTunnelDataType.toString(), field);
-        }
+        Long precision = MapUtils.getLong(dataTypeProperties, PRECISION);
+        Integer scale = MapUtils.getInteger(dataTypeProperties, SCALE);
+        Column column =
+                PhysicalColumn.builder()
+                        .name(field)
+                        .dataType(seaTunnelDataType)
+                        .columnLength(precision)
+                        .scale(scale)
+                        .nullable(true)
+                        .build();
+
+        BasicTypeDefine typeDefine = InceptorTypeConverter.INSTANCE.reconvert(column);
+        return typeDefine.getColumnType();
     }
 
     @Override
