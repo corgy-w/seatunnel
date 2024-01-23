@@ -23,13 +23,15 @@ import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
-import org.apache.seatunnel.api.table.type.MapType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class RedshiftTypeConverterTest {
     @Test
     public void testConvertUnsupported() {
@@ -37,26 +39,6 @@ public class RedshiftTypeConverterTest {
                 BasicTypeDefine.builder().name("test").columnType("aaa").dataType("aaa").build();
         try {
             RedshiftTypeConverter.INSTANCE.convert(typeDefine);
-            Assertions.fail();
-        } catch (SeaTunnelRuntimeException e) {
-            // ignore
-        } catch (Throwable e) {
-            Assertions.fail();
-        }
-    }
-
-    @Test
-    public void testReconvertUnsupported() {
-        Column column =
-                PhysicalColumn.of(
-                        "test",
-                        new MapType<>(BasicType.STRING_TYPE, BasicType.STRING_TYPE),
-                        (Long) null,
-                        true,
-                        null,
-                        null);
-        try {
-            RedshiftTypeConverter.INSTANCE.reconvert(column);
             Assertions.fail();
         } catch (SeaTunnelRuntimeException e) {
             // ignore

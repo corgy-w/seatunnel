@@ -22,7 +22,8 @@ public class DolphinDBSaveModeUtilTest {
         columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, (Long) null, true, null, ""));
         columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, (Long) null, true, null, ""));
         columns.add(PhysicalColumn.of("gender", BasicType.BYTE_TYPE, (Long) null, true, null, ""));
-        columns.add(PhysicalColumn.of("create_time", BasicType.LONG_TYPE, (Long) null, true, null, ""));
+        columns.add(
+                PhysicalColumn.of("create_time", BasicType.LONG_TYPE, (Long) null, true, null, ""));
 
         String result =
                 DolphinDBSaveModeUtil.fillingCreateSql(

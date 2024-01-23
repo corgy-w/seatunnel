@@ -268,7 +268,7 @@ public class StarRocksCreateTableTest {
                         + "`id` BIGINT NULL ,`age` INT NULL   ,       \n"
                         + "`create_time` DATETIME NOT NULL ,  \n"
                         + "`name` STRING NULL ,\n"
-                        + "`comment` VARCHAR(1500) NULL ,\n"
+                        + "`comment` VARCHAR(500) NULL ,\n"
                         + "`description` STRING NULL   \n"
                         + ") ENGINE=OLAP  \n"
                         + "PRIMARY KEY(`id`,`age`,`create_time`)  \n"

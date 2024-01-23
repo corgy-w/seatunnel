@@ -42,7 +42,8 @@ public class StarRocksCreateTableTest {
         columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, 100, true, null, ""));
         columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, (Long) null, true, null, ""));
         columns.add(PhysicalColumn.of("gender", BasicType.BYTE_TYPE, (Long) null, true, null, ""));
-        columns.add(PhysicalColumn.of("create_time", BasicType.LONG_TYPE, (Long) null, true, null, ""));
+        columns.add(
+                PhysicalColumn.of("create_time", BasicType.LONG_TYPE, (Long) null, true, null, ""));
         columns.add(
                 PhysicalColumn.of(
                         "update_time", LocalTimeType.LOCAL_TIME_TYPE, (Long) null, true, null, ""));

@@ -53,7 +53,8 @@ public class DorisCreateTableTest {
         columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, (Long) null, true, null, ""));
         columns.add(PhysicalColumn.of("score", BasicType.INT_TYPE, (Long) null, true, null, ""));
         columns.add(PhysicalColumn.of("gender", BasicType.BYTE_TYPE, (Long) null, true, null, ""));
-        columns.add(PhysicalColumn.of("create_time", BasicType.LONG_TYPE, (Long) null, true, null, ""));
+        columns.add(
+                PhysicalColumn.of("create_time", BasicType.LONG_TYPE, (Long) null, true, null, ""));
 
         String result =
                 DorisCatalogUtil.getCreateTableStatement(
@@ -136,33 +137,60 @@ public class DorisCreateTableTest {
 
         List<Column> columns = new ArrayList<>();
 
-        columns.add(PhysicalColumn.of("L_ORDERKEY", BasicType.INT_TYPE, (Long) null, false, null, ""));
-        columns.add(PhysicalColumn.of("L_PARTKEY", BasicType.INT_TYPE, (Long) null, false, null, ""));
-        columns.add(PhysicalColumn.of("L_SUPPKEY", BasicType.INT_TYPE, (Long) null, false, null, ""));
-        columns.add(PhysicalColumn.of("L_LINENUMBER", BasicType.INT_TYPE, (Long) null, false, null, ""));
-        columns.add(PhysicalColumn.of("L_QUANTITY", new DecimalType(15, 2), (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of("L_ORDERKEY", BasicType.INT_TYPE, (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of("L_PARTKEY", BasicType.INT_TYPE, (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of("L_SUPPKEY", BasicType.INT_TYPE, (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of(
+                        "L_LINENUMBER", BasicType.INT_TYPE, (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of(
+                        "L_QUANTITY", new DecimalType(15, 2), (Long) null, false, null, ""));
         columns.add(
                 PhysicalColumn.of(
                         "L_EXTENDEDPRICE", new DecimalType(15, 2), (Long) null, false, null, ""));
-        columns.add(PhysicalColumn.of("L_DISCOUNT", new DecimalType(15, 2), (Long) null, false, null, ""));
-        columns.add(PhysicalColumn.of("L_TAX", new DecimalType(15, 2), (Long) null, false, null, ""));
         columns.add(
-                PhysicalColumn.of("L_RETURNFLAG", BasicType.STRING_TYPE, (Long) null, false, null, ""));
+                PhysicalColumn.of(
+                        "L_DISCOUNT", new DecimalType(15, 2), (Long) null, false, null, ""));
         columns.add(
-                PhysicalColumn.of("L_LINESTATUS", BasicType.STRING_TYPE, (Long) null, false, null, ""));
+                PhysicalColumn.of("L_TAX", new DecimalType(15, 2), (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of(
+                        "L_RETURNFLAG", BasicType.STRING_TYPE, (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of(
+                        "L_LINESTATUS", BasicType.STRING_TYPE, (Long) null, false, null, ""));
         columns.add(
                 PhysicalColumn.of(
                         "L_SHIPDATE", LocalTimeType.LOCAL_DATE_TYPE, (Long) null, false, null, ""));
         columns.add(
                 PhysicalColumn.of(
-                        "L_COMMITDATE", LocalTimeType.LOCAL_DATE_TYPE, (Long) null, false, null, ""));
+                        "L_COMMITDATE",
+                        LocalTimeType.LOCAL_DATE_TYPE,
+                        (Long) null,
+                        false,
+                        null,
+                        ""));
         columns.add(
                 PhysicalColumn.of(
-                        "L_RECEIPTDATE", LocalTimeType.LOCAL_DATE_TYPE, (Long) null, false, null, ""));
+                        "L_RECEIPTDATE",
+                        LocalTimeType.LOCAL_DATE_TYPE,
+                        (Long) null,
+                        false,
+                        null,
+                        ""));
         columns.add(
-                PhysicalColumn.of("L_SHIPINSTRUCT", BasicType.STRING_TYPE, (Long) null, false, null, ""));
-        columns.add(PhysicalColumn.of("L_SHIPMODE", BasicType.STRING_TYPE, (Long) null, false, null, ""));
-        columns.add(PhysicalColumn.of("L_COMMENT", BasicType.STRING_TYPE, (Long) null, false, null, ""));
+                PhysicalColumn.of(
+                        "L_SHIPINSTRUCT", BasicType.STRING_TYPE, (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of(
+                        "L_SHIPMODE", BasicType.STRING_TYPE, (Long) null, false, null, ""));
+        columns.add(
+                PhysicalColumn.of(
+                        "L_COMMENT", BasicType.STRING_TYPE, (Long) null, false, null, ""));
 
         String result =
                 DorisCatalogUtil.getCreateTableStatement(
@@ -262,7 +290,7 @@ public class DorisCreateTableTest {
                         + "`id` BIGINT(1) NULL ,`age` INT(1) NULL   ,       \n"
                         + "`create_time` DATETIME NOT NULL ,  \n"
                         + "`name` STRING NULL ,\n"
-                        + "`comment` VARCHAR(1500) NULL ,\n"
+                        + "`comment` VARCHAR(500) NULL ,\n"
                         + "`description` STRING NULL   \n"
                         + ") ENGINE=OLAP  \n"
                         + "PRIMARY KEY(`id`,`age`,`create_time`)  \n"

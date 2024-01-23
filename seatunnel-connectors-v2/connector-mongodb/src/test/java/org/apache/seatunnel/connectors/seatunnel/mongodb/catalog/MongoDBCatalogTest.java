@@ -158,11 +158,14 @@ class MongoDBCatalogTest {
     CatalogTable buildTestTable(TableIdentifier tableIdentifier) {
         TableSchema.Builder builder = TableSchema.builder();
         builder.column(
-                PhysicalColumn.of("_id", BasicType.STRING_TYPE, (Long) null, true, null, "test comment"));
+                PhysicalColumn.of(
+                        "_id", BasicType.STRING_TYPE, (Long) null, true, null, "test comment"));
         builder.column(
-                PhysicalColumn.of("name", BasicType.STRING_TYPE, (Long) null, true, null, "test comment"));
+                PhysicalColumn.of(
+                        "name", BasicType.STRING_TYPE, (Long) null, true, null, "test comment"));
         builder.column(
-                PhysicalColumn.of("age", BasicType.INT_TYPE, (Long) null, true, null, "test comment"));
+                PhysicalColumn.of(
+                        "age", BasicType.INT_TYPE, (Long) null, true, null, "test comment"));
         TableSchema schema = builder.build();
         HashMap<String, String> options = new HashMap<>();
 
