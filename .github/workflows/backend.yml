@@ -79,7 +79,7 @@ jobs:
         id: job-timestamp
         run: |
           curr_time=$(date +%s%3N)
-          mkdir -p /tmp/$timestamp
+          mkdir -p /tmp/$curr_time
           echo "timestamp=$curr_time" >> $GITHUB_OUTPUT
       - name: Check for file changes by python
         id: filter
