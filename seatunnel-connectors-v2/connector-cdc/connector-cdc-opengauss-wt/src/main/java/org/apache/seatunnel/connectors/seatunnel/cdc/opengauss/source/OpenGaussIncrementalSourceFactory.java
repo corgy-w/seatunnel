@@ -32,7 +32,6 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceTableConfig;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
-import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.option.OpenGaussOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
@@ -71,10 +70,6 @@ public class OpenGaussIncrementalSourceFactory implements TableSourceFactory {
                         JdbcSourceOptions.SAMPLE_SHARDING_THRESHOLD,
                         JdbcSourceOptions.TABLE_NAMES_CONFIG)
                 .optional(OpenGaussSourceOptions.STARTUP_MODE, OpenGaussSourceOptions.STOP_MODE)
-                .conditional(
-                        OpenGaussSourceOptions.STARTUP_MODE,
-                        StartupMode.INITIAL,
-                        JdbcSourceOptions.EXACTLY_ONCE)
                 .build();
     }
 

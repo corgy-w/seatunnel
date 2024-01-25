@@ -32,8 +32,6 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceTableConfig;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
-import org.apache.seatunnel.connectors.cdc.base.option.SourceOptions;
-import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.cdc.informix.config.InformixSourceOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
@@ -68,10 +66,6 @@ public class InformixIncrementalSourceFactory implements TableSourceFactory {
                         JdbcSourceOptions.CONNECTION_POOL_SIZE,
                         InformixSourceOptions.STARTUP_MODE,
                         JdbcSourceOptions.TABLE_NAMES_CONFIG)
-                .conditional(
-                        InformixSourceOptions.STARTUP_MODE,
-                        StartupMode.INITIAL,
-                        SourceOptions.EXACTLY_ONCE)
                 .build();
     }
 

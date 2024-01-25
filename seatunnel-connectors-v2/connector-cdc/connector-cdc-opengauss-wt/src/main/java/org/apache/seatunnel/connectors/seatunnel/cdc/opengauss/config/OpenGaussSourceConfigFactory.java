@@ -35,6 +35,7 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
     private static final String DATABASE_SERVER_NAME = "opengauss_cdc_source";
 
     private static final String DRIVER_CLASS_NAME = "org.postgresql.Driver";
+    private static final boolean SUPPORTED_EXACTLY_ONCE = false;
 
     private String decodingPluginName = OpenGaussOptions.DECODING_PLUGIN_NAME.defaultValue();
 
@@ -108,6 +109,6 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
                 connectTimeoutMillis,
                 connectMaxRetries,
                 connectionPoolSize,
-                false);
+                SUPPORTED_EXACTLY_ONCE);
     }
 }
