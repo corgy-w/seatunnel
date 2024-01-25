@@ -31,7 +31,7 @@ public class SeaTunnelEngineExample {
 
     public static void main(String[] args)
             throws FileNotFoundException, URISyntaxException, CommandException {
-        String configurePath = args.length > 0 ? args[0] : "/examples/124.conf";
+        String configurePath = args.length > 0 ? args[0] : "/examples/fake_to_console.conf";
         String configFile = getTestConfigFile(configurePath);
         ClientCommandArgs clientCommandArgs = new ClientCommandArgs();
         clientCommandArgs.setConfigFile(configFile);
@@ -51,37 +51,4 @@ public class SeaTunnelEngineExample {
         }
         return Paths.get(resource.toURI()).toString();
     }
-
-    /*public static void main(String[] args) {
-        // JDBC连接参数
-        String serverName = "192.168.124.238";
-        String instanceName = "MSSQLSERVER1";
-        String databaseName = "YourDatabaseName";
-        String user = "sa";
-        String password = "root@123";
-
-        // JDBC连接字符串
-        String jdbcUrl = "jdbc:sqlserver://" + serverName + "\\" + instanceName;
-
-        // JDBC驱动程序类名
-        String jdbcDriver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
-
-        // 建立连接
-        try {
-            // 加载JDBC驱动程序
-            Class.forName(jdbcDriver);
-
-            // 建立连接
-            Connection connection = DriverManager.getConnection(jdbcUrl, user, password);
-
-            // 连接成功后的操作，例如执行SQL查询等
-
-            // 关闭连接
-            connection.close();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }*/
 }
