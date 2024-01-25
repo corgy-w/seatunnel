@@ -42,6 +42,7 @@ public class MySqlTypeUtils {
                         .length((long) column.length())
                         .precision((long) column.length())
                         .scale(column.scale().orElse(0))
+                        .defaultValue(column.defaultValue())
                         .build();
         return MySqlTypeConverter.INSTANCE.convert(typeDefine);
     }
