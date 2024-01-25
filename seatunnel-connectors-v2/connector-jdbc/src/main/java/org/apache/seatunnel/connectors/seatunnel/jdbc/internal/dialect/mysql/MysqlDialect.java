@@ -235,22 +235,30 @@ public class MysqlDialect implements JdbcDialect {
                                 } else if (column instanceof AlterTableModifyColumnEvent) {
                                     String sql =
                                             String.format(
-                                                    "alter table %s MODIFY COLUMN %s",
+                                                    "alter table %s MODIFY COLUMN %s DEFAULT %s ",
                                                     tablePath.getFullName(),
                                                     this.buildColumnIdentifySql(
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn(),
-                                                            fieldIde));
+                                                            fieldIde),
+                                                    this.getDefaultValue(
+                                                            ((AlterTableModifyColumnEvent) column)
+                                                                    .getColumn()
+                                                                    .getDefaultValue()));
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableAddColumnEvent) {
                                     String sql =
                                             String.format(
-                                                    "alter table %s add column %s ",
+                                                    "alter table %s add column %s DEFAULT %s ",
                                                     tablePath.getFullName(),
                                                     this.buildColumnIdentifySql(
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn(),
-                                                            fieldIde));
+                                                            fieldIde),
+                                                    this.getDefaultValue(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn()
+                                                                    .getDefaultValue()));
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableDropColumnEvent) {
                                     String sql =
@@ -283,5 +291,12 @@ public class MysqlDialect implements JdbcDialect {
             columnSqls.add("COMMENT '" + column.getComment() + "'");
         }
         return String.join(" ", columnSqls);
+    }
+
+    private String getDefaultValue(Object defaultValue) {
+        if (defaultValue == null) {
+            return "null";
+        }
+        return String.format("'%s'", defaultValue.toString());
     }
 }

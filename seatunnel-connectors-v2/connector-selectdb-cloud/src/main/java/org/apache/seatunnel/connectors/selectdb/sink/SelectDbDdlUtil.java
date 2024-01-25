@@ -87,11 +87,15 @@ public class SelectDbDdlUtil {
                                 } else if (column instanceof AlterTableAddColumnEvent) {
                                     String sql =
                                             String.format(
-                                                    "alter table %s add column %s ",
+                                                    "alter table %s add column %s DEFAULT %s",
                                                     tablePath.getFullName(),
                                                     SelectDBSaveModeUtil.columnToSelectDBType(
                                                             ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn()));
+                                                                    .getColumn()),
+                                                    getDefaultValue(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn()
+                                                                    .getDefaultValue()));
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableDropColumnEvent) {
                                     String sql =
@@ -108,5 +112,12 @@ public class SelectDbDdlUtil {
                             });
         }
         return sqlList;
+    }
+
+    private static String getDefaultValue(Object defaultValue) {
+        if (defaultValue == null) {
+            return "null";
+        }
+        return String.format("\"%s\"", defaultValue.toString());
     }
 }
