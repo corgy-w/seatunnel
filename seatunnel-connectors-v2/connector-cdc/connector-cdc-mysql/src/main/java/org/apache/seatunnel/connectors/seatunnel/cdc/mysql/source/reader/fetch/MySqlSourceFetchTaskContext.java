@@ -118,7 +118,7 @@ public class MySqlSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.taskContext =
                 new MySqlTaskContextImpl(connectorConfig, databaseSchema, binaryLogClient);
         final int queueSize =
-                sourceSplitBase.isSnapshotSplit()
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
                         : getSourceConfig().getDbzConnectorConfig().getMaxQueueSize();
         this.queue =

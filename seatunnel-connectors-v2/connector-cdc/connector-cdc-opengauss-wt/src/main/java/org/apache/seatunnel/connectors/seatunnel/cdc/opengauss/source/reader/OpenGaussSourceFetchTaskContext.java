@@ -138,7 +138,7 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
                         new OpengaussOffsetContext.Loader(connectorConfig), sourceSplitBase);
 
         final int queueSize =
-                sourceSplitBase.isSnapshotSplit()
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
                         : getSourceConfig().getDbzConnectorConfig().getMaxQueueSize();
 

@@ -117,7 +117,7 @@ public class SqlServerSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
         this.taskContext = new SqlServerTaskContext(connectorConfig, databaseSchema);
 
         final int queueSize =
-                sourceSplitBase.isSnapshotSplit()
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
                         : getSourceConfig().getDbzConnectorConfig().getMaxQueueSize();
 

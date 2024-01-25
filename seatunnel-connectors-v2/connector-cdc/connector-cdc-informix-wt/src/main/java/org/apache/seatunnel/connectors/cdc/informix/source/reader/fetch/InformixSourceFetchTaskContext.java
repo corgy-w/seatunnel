@@ -95,7 +95,7 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.taskContext = new InformixTaskContext(connectorConfig, databaseSchema);
 
         int queueSize =
-                sourceSplitBase.isSnapshotSplit()
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
                         : getSourceConfig().getDbzConnectorConfig().getMaxQueueSize();
         this.queue =
