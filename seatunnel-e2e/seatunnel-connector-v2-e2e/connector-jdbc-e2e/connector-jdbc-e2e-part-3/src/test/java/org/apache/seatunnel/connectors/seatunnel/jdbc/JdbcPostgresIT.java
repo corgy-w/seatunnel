@@ -61,7 +61,7 @@ import static org.awaitility.Awaitility.given;
 public class JdbcPostgresIT extends TestSuiteBase implements TestResource {
     private static final String PG_IMAGE = "postgis/postgis";
     private static final String PG_DRIVER_JAR =
-            "https://repo1.maven.org/maven2/org/postgresql/postgresql/42.3.3/postgresql-42.3.3.jar";
+            "https://repo1.maven.org/maven2/org/postgresql/postgresql/42.4.3/postgresql-42.4.3.jar";
     private static final String PG_JDBC_JAR =
             "https://repo1.maven.org/maven2/net/postgis/postgis-jdbc/2.5.1/postgis-jdbc-2.5.1.jar";
     private static final String PG_GEOMETRY_JAR =

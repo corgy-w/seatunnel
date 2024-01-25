@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormatErrorHandleWay;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorException;
+import org.apache.seatunnel.format.compatible.kafka.connect.json.CompatibleKafkaConnectDeserializationSchema;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -152,11 +153,18 @@ public class KafkaSourceReader implements SourceReader<SeaTunnelRow, KafkaSource
                                                                                 record.topic(),
                                                                                 record.value(),
                                                                                 output);
+                                                            } else if (deserializationSchema
+                                                                    instanceof
+                                                                    CompatibleKafkaConnectDeserializationSchema) {
+                                                                ((CompatibleKafkaConnectDeserializationSchema)
+                                                                                deserializationSchema)
+                                                                        .deserialize(
+                                                                                record, output);
                                                             } else {
                                                                 deserializationSchema.deserialize(
                                                                         record.value(), output);
                                                             }
-                                                        } catch (IOException e) {
+                                                        } catch (RuntimeException e) {
                                                             if (this.messageFormatErrorHandleWay
                                                                     == MessageFormatErrorHandleWay
                                                                             .SKIP) {

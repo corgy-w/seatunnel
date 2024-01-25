@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
+import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -202,6 +203,22 @@ public class JdbcSinkFactory implements TableSinkFactory {
                                     .collect(Collectors.joining(",")));
                 }
             }
+        } else {
+            // replace primary key to config
+            PrimaryKey configPk = PrimaryKey.of("configed_pk", config.get(PRIMARY_KEYS));
+            TableSchema tableSchema = catalogTable.getTableSchema();
+            catalogTable =
+                    CatalogTable.of(
+                            catalogTable.getTableId(),
+                            TableSchema.builder()
+                                    .primaryKey(configPk)
+                                    .constraintKey(tableSchema.getConstraintKeys())
+                                    .columns(tableSchema.getColumns())
+                                    .build(),
+                            catalogTable.getOptions(),
+                            catalogTable.getPartitionKeys(),
+                            catalogTable.getComment(),
+                            catalogTable.getCatalogName());
         }
         config = ReadonlyConfig.fromMap(new HashMap<>(map));
         // always execute
