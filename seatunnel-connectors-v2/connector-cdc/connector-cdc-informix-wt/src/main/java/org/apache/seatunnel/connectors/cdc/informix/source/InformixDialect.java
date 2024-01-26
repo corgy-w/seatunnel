@@ -23,7 +23,6 @@ import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
-import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionFactory;
 import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionPoolFactory;
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter.ChunkSplitter;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
@@ -74,15 +73,7 @@ public class InformixDialect implements JdbcDataSourceDialect {
 
     @Override
     public InformixConnection openJdbcConnection(JdbcSourceConfig sourceConfig) {
-        InformixConnection connection =
-                new InformixConnection(
-                        sourceConfig.getDbzConfiguration(),
-                        new JdbcConnectionFactory(sourceConfig, getPooledDataSourceFactory()));
-        try {
-            return connection.connect();
-        } catch (Exception e) {
-            throw new SeaTunnelException(e);
-        }
+        return new InformixConnection(sourceConfig.getDbzConfiguration());
     }
 
     @Override

@@ -23,22 +23,17 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.config.OracleAg
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.config.OracleAgentSourceConfigFactory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.config.OracleAgentSourceOptions;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source.offset.OracleAgentOffsetFactory;
-import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleConnectionUtils;
-import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleTypeUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
 
 import org.apache.kafka.connect.data.Struct;
 
 import com.google.auto.service.AutoService;
-import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.jdbc.JdbcConnection;
-import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
 import lombok.NoArgsConstructor;
 
-import java.sql.SQLException;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
@@ -105,24 +100,7 @@ public class OracleAgentIncrementalSource<T> extends IncrementalSource<T, JdbcSo
         }
 
         // TODO: support multi-table
-        SeaTunnelDataType<SeaTunnelRow> physicalRowType;
-        if (dataType == null) {
-            TableId tableId = dataSourceDialect.discoverDataCollections(getSourceConfig()).get(0);
-            Table table;
-            try (OracleConnection oracleConnection =
-                    OracleConnectionUtils.createOracleConnection(
-                            getSourceConfig().getDbzConfiguration())) {
-                table =
-                        ((OracleAgentDialect) dataSourceDialect)
-                                .queryTableSchema(oracleConnection, tableId)
-                                .getTable();
-            } catch (SQLException e) {
-                throw new SeaTunnelException(e);
-            }
-            physicalRowType = OracleTypeUtils.convertFromTable(table);
-        } else {
-            physicalRowType = dataType;
-        }
+        SeaTunnelDataType<SeaTunnelRow> physicalRowType = dataType;
         String zoneId = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);
         return (DebeziumDeserializationSchema<T>)
                 SeaTunnelRowDebeziumDeserializeSchema.builder()

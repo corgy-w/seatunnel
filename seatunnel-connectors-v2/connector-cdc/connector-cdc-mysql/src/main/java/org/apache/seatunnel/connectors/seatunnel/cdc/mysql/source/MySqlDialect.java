@@ -34,6 +34,7 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.source.eumerator.MySq
 import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.source.reader.fetch.MySqlSourceFetchTaskContext;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.source.reader.fetch.binlog.MySqlBinlogFetchTask;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.source.reader.fetch.scan.MySqlSnapshotFetchTask;
+import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.utils.MySqlConnectionUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.utils.MySqlSchema;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.utils.TableDiscoveryUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
@@ -70,10 +71,19 @@ public class MySqlDialect implements JdbcDataSourceDialect {
     @Override
     public boolean isDataCollectionIdCaseSensitive(JdbcSourceConfig sourceConfig) {
         try (JdbcConnection jdbcConnection = openJdbcConnection(sourceConfig)) {
-            return isTableIdCaseSensitive(jdbcConnection);
+            return isDataCollectionIdCaseSensitive(jdbcConnection);
         } catch (SQLException e) {
             throw new SeaTunnelException("Error reading MySQL variables: " + e.getMessage(), e);
         }
+    }
+
+    private boolean isDataCollectionIdCaseSensitive(JdbcConnection jdbcConnection) {
+        return isTableIdCaseSensitive(jdbcConnection);
+    }
+
+    @Override
+    public JdbcConnection openJdbcConnection(JdbcSourceConfig sourceConfig) {
+        return MySqlConnectionUtils.createMySqlConnection(sourceConfig.getDbzConfiguration());
     }
 
     @Override
@@ -101,8 +111,7 @@ public class MySqlDialect implements JdbcDataSourceDialect {
     public TableChanges.TableChange queryTableSchema(JdbcConnection jdbc, TableId tableId) {
         if (mySqlSchema == null) {
             mySqlSchema =
-                    new MySqlSchema(
-                            sourceConfig, isDataCollectionIdCaseSensitive(sourceConfig), tableMap);
+                    new MySqlSchema(sourceConfig, isDataCollectionIdCaseSensitive(jdbc), tableMap);
         }
         return mySqlSchema.getTableSchema(jdbc, tableId);
     }
