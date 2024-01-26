@@ -93,7 +93,7 @@ public class DorisSinkFactory implements TableSinkFactory {
         if (StringUtils.isNotEmpty(options.get(DATABASE))) {
             namespace = replaceName(options.get(DATABASE), tableId);
         } else {
-            namespace = tableId.getSchemaName();
+            namespace = tableId.getDatabaseName();
         }
 
         TableIdentifier newTableId =
