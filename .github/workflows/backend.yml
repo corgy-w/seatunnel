@@ -667,4 +667,4 @@ jobs:
       - name: remove tmp dir
         run: |
           timestamp='${{needs.changes.outputs.timestamp}}'
-          rm -rf /tmp/$timestamp_*
+          rm -rf /tmp/${timestamp}_*

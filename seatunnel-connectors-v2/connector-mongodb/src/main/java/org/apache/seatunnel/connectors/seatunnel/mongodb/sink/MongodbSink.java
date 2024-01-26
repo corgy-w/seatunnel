@@ -66,6 +66,14 @@ public class MongodbSink
     @Override
     public SinkWriter<SeaTunnelRow, MongodbCommitInfo, DocumentBulk> createWriter(
             SinkWriter.Context context) {
+        String[] primaryKeyInCatalogTable =
+                catalogTable.getTableSchema().getPrimaryKey() == null
+                        ? null
+                        : catalogTable
+                                .getTableSchema()
+                                .getPrimaryKey()
+                                .getColumnNames()
+                                .toArray(new String[0]);
         return new MongodbWriter(
                 this.catalogTable,
                 new RowDataDocumentSerializer(
@@ -75,11 +83,7 @@ public class MongodbSink
                         new MongoKeyExtractor(
                                 options.getPrimaryKey() != null
                                         ? options.getPrimaryKey()
-                                        : catalogTable
-                                                .getTableSchema()
-                                                .getPrimaryKey()
-                                                .getColumnNames()
-                                                .toArray(new String[0]))),
+                                        : primaryKeyInCatalogTable)),
                 options,
                 context);
     }

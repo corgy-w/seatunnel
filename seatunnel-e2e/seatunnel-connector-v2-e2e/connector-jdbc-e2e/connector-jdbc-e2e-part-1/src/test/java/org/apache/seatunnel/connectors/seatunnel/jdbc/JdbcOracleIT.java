@@ -51,7 +51,7 @@ import java.util.Map;
 
 public class JdbcOracleIT extends AbstractJdbcIT {
 
-    private static final String ORACLE_IMAGE = "gvenzl/oracle-xe:21-slim-faststart";
+    private static final String ORACLE_IMAGE = "gvenzl/oracle-xe:18-slim-faststart";
     private static final String ORACLE_NETWORK_ALIASES = "e2e_oracleDb";
     private static final String DRIVER_CLASS = "oracle.jdbc.OracleDriver";
     private static final int ORACLE_PORT = 1521;
