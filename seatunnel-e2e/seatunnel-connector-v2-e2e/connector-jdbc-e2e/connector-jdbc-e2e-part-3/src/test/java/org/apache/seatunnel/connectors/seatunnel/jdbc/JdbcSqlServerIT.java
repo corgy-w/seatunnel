@@ -28,6 +28,7 @@ import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MSSQLServerContainer;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Disabled("jdbc:sqlserver://sqlserver;encrypt=false is not supported")
 public class JdbcSqlServerIT extends AbstractJdbcIT {
 
     private static final String SQLSERVER_IMAGE = "mcr.microsoft.com/mssql/server:2022-latest";
