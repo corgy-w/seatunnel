@@ -256,8 +256,6 @@ public interface DorisOptions {
                     .required(
                             FENODES,
                             USERNAME,
-                            DATABASE,
-                            TABLE,
                             PASSWORD,
                             SINK_LABEL_PREFIX,
                             DORIS_SINK_CONFIG_PREFIX,
@@ -265,6 +263,8 @@ public interface DorisOptions {
                             SCHEMA_SAVE_MODE)
                     .bundled(COLUMN_PATTERN, COLUMN_REPLACEMENT)
                     .optional(
+                            DATABASE,
+                            TABLE,
                             QUERY_PORT,
                             DORIS_BATCH_SIZE,
                             SINK_ENABLE_2PC,

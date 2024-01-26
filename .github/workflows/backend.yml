@@ -189,8 +189,8 @@ jobs:
             exit 0
           fi
           timestamp='${{ steps.job-timestamp.outputs.timestamp }}'
-          ./mvnw help:evaluate --settings maven-settings.xml -Dexpression=project.modules -q -DforceStdout -pl $pl_modules > /tmp/$timestamp_sub_module_change.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_change.txt`
+          ./mvnw help:evaluate --settings maven-settings.xml -Dexpression=project.modules -q -DforceStdout -pl $pl_modules > /tmp/${timestamp}_sub_module_change.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_change.txt`
           tree_modules="$modules$sub_modules"
           includes=`python tools/update_modules_check/update_modules_check.py tree "$tree_modules"`
           ./mvnw --settings maven-settings.xml -Pci -D"e2e.dependency.skip"=false  dependency:tree $includes -DoutputType=text -DoutputFile=/tmp/tree_out.txt
@@ -219,8 +219,8 @@ jobs:
             exit 0
           fi
           timestamp='${{ steps.job-timestamp.outputs.timestamp }}'
-          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl $pl_modules > /tmp/$timestamp_sub_module_it.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_it.txt`
+          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl $pl_modules > /tmp/${timestamp}_sub_module_it.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_it.txt`
           tree_modules="$modules$sub_modules"
           includes=`python tools/update_modules_check/update_modules_check.py tree "$tree_modules"`
           ./mvnw --settings maven-settings.xml -Pci -D"e2e.dependency.skip"=false  dependency:tree $includes -DoutputType=text -DoutputFile=/tmp/tree_out.txt
@@ -389,8 +389,8 @@ jobs:
         if: needs.changes.outputs.api == 'true'
         run: |
           timestamp='${{needs.changes.outputs.timestamp}}'
-          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e > /tmp/$timestamp_sub_module_all_1.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_all_1.txt`
+          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e > /tmp/${timestamp}_sub_module_all_1.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_1.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 0`
           ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
@@ -411,8 +411,8 @@ jobs:
         if: needs.changes.outputs.api == 'true'
         run: |
           timestamp='${{needs.changes.outputs.timestamp}}'
-          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/$timestamp_sub_module_all_2.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_all_2.txt`
+          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_2.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_2.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 1`
           ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
@@ -433,8 +433,8 @@ jobs:
         if: needs.changes.outputs.api == 'true'
         run: |
           timestamp='${{needs.changes.outputs.timestamp}}'
-          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/$timestamp_sub_module_all_3.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_all_3.txt`
+          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_3.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_3.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 2`
           ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
@@ -455,8 +455,8 @@ jobs:
         if: needs.changes.outputs.api == 'true'
         run: |
           timestamp='${{needs.changes.outputs.timestamp}}'
-          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/$timestamp_sub_module_all_4.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_all_4.txt`
+          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_4.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_4.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 3`
           ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
@@ -477,8 +477,8 @@ jobs:
         if: needs.changes.outputs.api == 'true'
         run: |
           timestamp='${{needs.changes.outputs.timestamp}}'
-          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/$timestamp_sub_module_all_5.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_all_5.txt`
+          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_5.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_5.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 4`
           ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
@@ -499,8 +499,8 @@ jobs:
         if: needs.changes.outputs.api == 'true'
         run: |
           timestamp='${{needs.changes.outputs.timestamp}}'
-          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/$timestamp_sub_module_all_6.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_all_6.txt`
+          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_6.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_6.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 5`
           ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
@@ -521,8 +521,8 @@ jobs:
         if: needs.changes.outputs.api == 'true'
         run: |
           timestamp='${{needs.changes.outputs.timestamp}}'
-          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/$timestamp_sub_module_all_7.txt
-          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/$timestamp_sub_module_all_7.txt`
+          ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_7.txt
+          sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_7.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 6`
           ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
@@ -618,6 +618,40 @@ jobs:
         env:
           MAVEN_OPTS: -Xmx4096m
 
+  kudu-connector-it:
+    needs: [ changes, sanity-check ]
+    if: needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-kudu-e2e')
+    runs-on:
+      labels: wtci
+    strategy:
+      matrix:
+        os: [ 'self-hosted' ]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v2
+      - name: run kudu connector integration test
+        run: |
+          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kudu-e2e -am -Pci
+        env:
+          MAVEN_OPTS: -Xmx4096m
+
+  amazonSqs-connector-it:
+    needs: [ changes, sanity-check ]
+    if: needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-amazonsqs-e2e')
+    runs-on:
+      labels: wtci
+    strategy:
+      matrix:
+        os: [ 'self-hosted' ]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v2
+      - name: run amazonsqs connector integration test
+        run: |
+          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-amazonsqs-e2e -am -Pci
+        env:
+          MAVEN_OPTS: -Xmx4096m
+
   kafka-connector-it:
     needs: [ changes, sanity-check ]
     if: needs.changes.outputs.api == 'true'
@@ -626,13 +660,13 @@ jobs:
     strategy:
       matrix:
         os: [ 'self-hosted' ]
-    timeout-minutes: 180
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v2
       - name: run kafka connector integration test
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kafka-e2e -am -Pci
+          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kafka-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -644,18 +678,35 @@ jobs:
     strategy:
       matrix:
         os: [ 'self-hosted' ]
-    timeout-minutes: 180
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v2
       - name: run rocket connector integration test
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-rocketmq-e2e -am -Pci
+          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-rocketmq-e2e -am -Pci
+        env:
+          MAVEN_OPTS: -Xmx4096m
+
+  doris-connector-it:
+    needs: [ changes, sanity-check ]
+    if: needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-doris-e2e')
+    runs-on:
+      labels: wtci
+    strategy:
+      matrix:
+        os: [ 'self-hosted' ]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v2
+      - name: run doris connector integration test
+        run: |
+          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-doris-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
   tmp_dir_rm:
-    needs: [ changes, sanity-check, all-connectors-it-1, all-connectors-it-2, all-connectors-it-3, all-connectors-it-4, all-connectors-it-5, all-connectors-it-6, all-connectors-it-7 ]
+    needs: [ changes, sanity-check, all-connectors-it-1, all-connectors-it-2, all-connectors-it-3, all-connectors-it-4, all-connectors-it-5, all-connectors-it-6, all-connectors-it-7, doris-connector-it ]
     if: always()
     runs-on:
       labels: wtci
