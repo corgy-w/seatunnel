@@ -257,7 +257,7 @@ public class CatalogTableUtil implements Serializable {
 
     public static CatalogTable buildEmptyCatalogTable(String catalogName) {
         return CatalogTable.of(
-                TableIdentifier.of(catalogName, TablePath.EMPTY),
+                TableIdentifier.of(catalogName, TablePath.DEFAULT),
                 TableSchema.builder().build(),
                 new HashMap<>(),
                 new ArrayList<>(),
