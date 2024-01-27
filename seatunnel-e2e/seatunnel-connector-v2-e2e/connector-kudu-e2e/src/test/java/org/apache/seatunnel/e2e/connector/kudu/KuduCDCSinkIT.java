@@ -37,7 +37,6 @@ import org.apache.kudu.client.RowResultIterator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
@@ -209,12 +208,11 @@ public class KuduCDCSinkIT extends TestSuiteBase implements TestResource {
     }
 
     @TestTemplate
-    @Disabled("This test case have timezone problem.")
     public void testKudu(TestContainer container) throws IOException, InterruptedException {
         this.initializeKuduTable();
         Container.ExecResult execResult = container.executeJob("/write-cdc-changelog-to-kudu.conf");
         Assertions.assertEquals(0, execResult.getExitCode());
-
+        String dateString = "2020-02-02T02:02:02";
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .untilAsserted(
                         () -> {
@@ -231,7 +229,8 @@ public class KuduCDCSinkIT extends TestSuiteBase implements TestResource {
                                                             "5.3",
                                                             "6.30000",
                                                             "NEW",
-                                                            "2020-02-02 02:02:02.0"),
+                                                            KuduITUtils.getLocalTimeStr(
+                                                                    dateString)),
                                                     Arrays.asList(
                                                             "1",
                                                             "true",
@@ -243,7 +242,8 @@ public class KuduCDCSinkIT extends TestSuiteBase implements TestResource {
                                                             "5.3",
                                                             "6.30000",
                                                             "NEW",
-                                                            "2020-02-02 02:02:02.0"))
+                                                            KuduITUtils.getLocalTimeStr(
+                                                                    dateString)))
                                             .collect(Collectors.toList()),
                                     readData(KUDU_SINK_TABLE));
                         });
