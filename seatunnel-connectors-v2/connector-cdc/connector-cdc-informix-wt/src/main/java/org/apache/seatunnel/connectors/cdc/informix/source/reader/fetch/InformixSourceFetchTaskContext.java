@@ -31,6 +31,7 @@ import org.apache.seatunnel.connectors.cdc.informix.utils.InformixUtils;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import io.debezium.connector.base.ChangeEventQueue;
+import io.debezium.connector.informix.InformixCDCEngine;
 import io.debezium.connector.informix.InformixConnection;
 import io.debezium.connector.informix.InformixConnectorConfig;
 import io.debezium.connector.informix.InformixDatabaseSchema;
@@ -56,6 +57,7 @@ import java.sql.SQLException;
 @Slf4j
 public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     @Getter private final InformixConnection connection;
+    private InformixCDCEngine cdcEngine;
     private final InformixEventMetadataProvider metadataProvider;
     private TopicSelector<TableId> topicSelector;
     private InformixDatabaseSchema databaseSchema;
@@ -69,8 +71,7 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     public InformixSourceFetchTaskContext(
             JdbcSourceConfig sourceConfig, JdbcDataSourceDialect dataSourceDialect) {
         super(sourceConfig, dataSourceDialect);
-        this.connection =
-                new InformixConnection(sourceConfig.getDbzConnectorConfig().getJdbcConfig());
+        this.connection = new InformixConnection(sourceConfig.getDbzConfiguration());
         this.metadataProvider = new InformixEventMetadataProvider();
     }
 
@@ -135,9 +136,23 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     public void close() {
         try {
             this.connection.close();
+            if (this.cdcEngine != null) {
+                this.cdcEngine.close();
+            }
         } catch (SQLException e) {
             log.warn("Failed to close connection", e);
         }
+    }
+
+    public InformixCDCEngine getCDCEngine() {
+        if (cdcEngine == null) {
+            synchronized (this) {
+                if (cdcEngine == null) {
+                    cdcEngine = this.connection.createCDCEngine();
+                }
+            }
+        }
+        return cdcEngine;
     }
 
     @Override

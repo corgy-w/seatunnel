@@ -44,12 +44,16 @@ public class InformixCDCLogFetchTask implements FetchTask<SourceSplitBase> {
         InformixStreamingChangeEventSource streamingChangeEventSource =
                 new InformixStreamingChangeEventSource(
                         sourceFetchContext.getSourceConfig(),
-                        sourceFetchContext.getConnection(),
+                        sourceFetchContext.getCDCEngine(),
                         incrementalSplit.getTableIds(),
                         sourceFetchContext.getDispatcher(),
                         sourceFetchContext.getErrorHandler(),
                         Clock.SYSTEM,
                         sourceFetchContext.getDatabaseSchema());
+
+        sourceFetchContext.getConnection().close();
+        log.info("CDCEngine client created, closed idle jdbc connection.");
+
         InformixCDCLogChangeEventSourceContext changeEventSourceContext =
                 new InformixCDCLogChangeEventSourceContext();
         streamingChangeEventSource.execute(

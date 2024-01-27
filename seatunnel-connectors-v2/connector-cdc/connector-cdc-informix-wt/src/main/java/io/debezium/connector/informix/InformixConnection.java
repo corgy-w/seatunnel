@@ -69,12 +69,11 @@ public class InformixConnection extends JdbcConnection {
 
     public InformixConnection(Configuration config) {
         this(config, FACTORY);
-        this.config = config;
     }
 
     public InformixConnection(Configuration config, ConnectionFactory connectionFactory) {
-        super(config, connectionFactory);
-        this.config = config;
+        super(redefineConfig(config), connectionFactory);
+        this.config = redefineConfig(config);
     }
 
     @Override
@@ -205,7 +204,11 @@ public class InformixConnection extends JdbcConnection {
         return queryAndMap(sql, mapper);
     }
 
-    public InformixCDCEngine getCdcEngine() {
+    public InformixCDCEngine createCDCEngine() {
         return InformixCDCEngine.build(config);
+    }
+
+    private static Configuration redefineConfig(Configuration config) {
+        return config.subset("database.", true).edit().build();
     }
 }
