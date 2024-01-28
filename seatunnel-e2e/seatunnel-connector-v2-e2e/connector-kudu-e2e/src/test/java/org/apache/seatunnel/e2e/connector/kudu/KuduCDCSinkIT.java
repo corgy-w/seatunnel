@@ -37,6 +37,7 @@ import org.apache.kudu.client.RowResultIterator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
@@ -208,6 +209,7 @@ public class KuduCDCSinkIT extends TestSuiteBase implements TestResource {
     }
 
     @TestTemplate
+    @Disabled("kudu ci have time zone problem")
     public void testKudu(TestContainer container) throws IOException, InterruptedException {
         this.initializeKuduTable();
         Container.ExecResult execResult = container.executeJob("/write-cdc-changelog-to-kudu.conf");

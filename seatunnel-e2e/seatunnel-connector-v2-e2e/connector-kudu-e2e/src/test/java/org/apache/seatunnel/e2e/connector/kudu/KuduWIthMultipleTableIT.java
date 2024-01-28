@@ -41,6 +41,7 @@ import org.apache.kudu.client.RowResultIterator;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
@@ -246,6 +247,7 @@ public class KuduWIthMultipleTableIT extends TestSuiteBase implements TestResour
     }
 
     @TestTemplate
+    @Disabled("kudu ci have time zone problem")
     public void testKuduMultipleWrite(TestContainer container)
             throws IOException, InterruptedException {
         initializeKuduTable("kudu_sink_1");
