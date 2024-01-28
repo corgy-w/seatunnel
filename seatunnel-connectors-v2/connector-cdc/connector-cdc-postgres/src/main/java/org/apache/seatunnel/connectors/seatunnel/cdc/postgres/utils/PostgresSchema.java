@@ -58,8 +58,9 @@ public class PostgresSchema {
     }
 
     private TableChanges.TableChange readTableSchema(JdbcConnection jdbc, TableId tableId) {
+        CatalogTable catalogTable = tableMap.get(tableId);
         // Because the catalog is null in the postgresConnection.readSchema method
-        TableId tableIdNotContainCatalog = new TableId(null, tableId.schema(), tableId.table());
+        tableId = new TableId(null, tableId.schema(), tableId.table());
 
         PostgresConnection postgresConnection = (PostgresConnection) jdbc;
         final Map<TableId, TableChanges.TableChange> tableChangeMap = new HashMap<>();
@@ -67,13 +68,14 @@ public class PostgresSchema {
         try {
             postgresConnection.readSchema(
                     tables,
-                    tableIdNotContainCatalog.catalog(),
-                    tableIdNotContainCatalog.schema(),
+                    tableId.catalog(),
+                    tableId.schema(),
                     connectorConfig.getTableFilters().dataCollectionFilter(),
                     null,
                     false);
-            Table table = tables.forTable(tableIdNotContainCatalog);
-            table = CatalogTableUtils.mergeCatalogTableConfig(table, tableMap.get(tableId));
+            Table table =
+                    CatalogTableUtils.mergeCatalogTableConfig(
+                            tables.forTable(tableId), catalogTable);
             TableChanges.TableChange tableChange =
                     new TableChanges.TableChange(TableChanges.TableChangeType.CREATE, table);
             tableChangeMap.put(tableId, tableChange);

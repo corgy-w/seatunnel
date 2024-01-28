@@ -19,12 +19,14 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.WriteStrategyF
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConf;
 import org.apache.seatunnel.connectors.seatunnel.redshift.sink.S3RedshiftChangelogWriter;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+@Disabled("we have no redshift env for test")
 public class DDLTest {
 
     @Test

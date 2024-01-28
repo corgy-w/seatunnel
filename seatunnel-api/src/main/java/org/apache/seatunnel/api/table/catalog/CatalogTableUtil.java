@@ -219,7 +219,7 @@ public class CatalogTableUtil implements Serializable {
         } else {
             Optional<String> resultTableNameOptional =
                     readonlyConfig.getOptional(CommonOptions.RESULT_TABLE_NAME);
-            tablePath = resultTableNameOptional.map(TablePath::of).orElse(TablePath.EMPTY);
+            tablePath = resultTableNameOptional.map(TablePath::of).orElse(TablePath.DEFAULT);
         }
 
         return CatalogTable.of(
@@ -257,7 +257,7 @@ public class CatalogTableUtil implements Serializable {
 
     public static CatalogTable buildEmptyCatalogTable(String catalogName) {
         return CatalogTable.of(
-                TableIdentifier.of(catalogName, TablePath.EMPTY),
+                TableIdentifier.of(catalogName, TablePath.DEFAULT),
                 TableSchema.builder().build(),
                 new HashMap<>(),
                 new ArrayList<>(),

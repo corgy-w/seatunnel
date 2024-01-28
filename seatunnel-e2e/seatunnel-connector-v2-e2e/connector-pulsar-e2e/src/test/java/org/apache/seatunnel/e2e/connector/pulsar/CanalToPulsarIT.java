@@ -24,9 +24,7 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.testutils.UniqueDatab
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.apache.commons.lang3.StringUtils;
@@ -36,6 +34,7 @@ import org.apache.pulsar.client.api.PulsarClientException;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,10 +70,7 @@ import static org.awaitility.Awaitility.given;
  * canal server producer data to pulsar, st-cdc is consumer reference:
  * https://pulsar.apache.org/docs/2.11.x/io-canal-source/
  */
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK},
-        disabledReason = "spark would ignore delete type")
+@Disabled
 public class CanalToPulsarIT extends TestSuiteBase implements TestResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(CanalToPulsarIT.class);

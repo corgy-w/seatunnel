@@ -50,6 +50,7 @@ import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_R
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.DATABASE;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.NEEDS_UNSUPPORTED_TYPE_CASTING;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.TABLE;
+import static org.apache.seatunnel.connectors.doris.config.DorisOptions.TABLE_IDENTIFIER;
 
 @AutoService(Factory.class)
 public class DorisSinkFactory implements TableSinkFactory {
@@ -83,21 +84,27 @@ public class DorisSinkFactory implements TableSinkFactory {
 
         TableIdentifier tableId = catalogTable.getTableId();
         String tableName;
-        String namespace;
-        if (StringUtils.isNotEmpty(options.get(TABLE))) {
-            tableName = replaceName(options.get(TABLE), tableId);
+        String databaseName;
+        String tableIdentifier = options.get(TABLE_IDENTIFIER);
+        if (StringUtils.isNotEmpty(tableIdentifier)) {
+            tableName = tableIdentifier.split("\\.")[1];
+            databaseName = tableIdentifier.split("\\.")[0];
         } else {
-            tableName = tableId.getTableName();
-        }
+            if (StringUtils.isNotEmpty(options.get(TABLE))) {
+                tableName = replaceName(options.get(TABLE), tableId);
+            } else {
+                tableName = tableId.getTableName();
+            }
 
-        if (StringUtils.isNotEmpty(options.get(DATABASE))) {
-            namespace = replaceName(options.get(DATABASE), tableId);
-        } else {
-            namespace = tableId.getSchemaName();
+            if (StringUtils.isNotEmpty(options.get(DATABASE))) {
+                databaseName = replaceName(options.get(DATABASE), tableId);
+            } else {
+                databaseName = tableId.getDatabaseName();
+            }
         }
 
         TableIdentifier newTableId =
-                TableIdentifier.of(tableId.getCatalogName(), namespace, null, tableName);
+                TableIdentifier.of(tableId.getCatalogName(), databaseName, null, tableName);
 
         if (options.get(COLUMN_PATTERN) != null && options.get(COLUMN_REPLACEMENT) != null) {
             catalogTable =

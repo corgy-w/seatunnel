@@ -28,7 +28,7 @@ import java.util.Map;
 import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_REPLICA;
 
 public interface DorisOptions {
-
+    int DORIS_TABLET_SIZE_MIN = 1;
     int DORIS_TABLET_SIZE_DEFAULT = Integer.MAX_VALUE;
     int DORIS_REQUEST_CONNECT_TIMEOUT_MS_DEFAULT = 30 * 1000;
     int DORIS_REQUEST_READ_TIMEOUT_MS_DEFAULT = 30 * 1000;
@@ -37,10 +37,13 @@ public interface DorisOptions {
     Boolean DORIS_DESERIALIZE_ARROW_ASYNC_DEFAULT = false;
     int DORIS_DESERIALIZE_QUEUE_SIZE_DEFAULT = 64;
     int DORIS_BATCH_SIZE_DEFAULT = 1024;
+    long DORIS_EXEC_MEM_LIMIT_DEFAULT = 2147483648L;
     int DEFAULT_SINK_CHECK_INTERVAL = 10000;
     int DEFAULT_SINK_MAX_RETRIES = 3;
     int DEFAULT_SINK_BUFFER_SIZE = 256 * 1024;
     int DEFAULT_SINK_BUFFER_COUNT = 3;
+
+    String DORIS_DEFAULT_CLUSTER = "default_cluster";
 
     // common option
     Option<String> FENODES =
@@ -138,6 +141,12 @@ public interface DorisOptions {
                     .defaultValue(DORIS_DESERIALIZE_QUEUE_SIZE_DEFAULT)
                     .withDescription("");
 
+    Option<Long> DORIS_EXEC_MEM_LIMIT =
+            Options.key("doris.exec.mem.limit")
+                    .longType()
+                    .defaultValue(DORIS_EXEC_MEM_LIMIT_DEFAULT)
+                    .withDescription("");
+
     // sink config options
     Option<Boolean> SINK_ENABLE_2PC =
             Options.key("sink.enable-2pc")
@@ -211,7 +220,7 @@ public interface DorisOptions {
     Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key("data_save_mode")
                     .enumType(DataSaveMode.class)
-                    .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
+                    .defaultValue(DataSaveMode.APPEND_DATA)
                     .withDescription("data_save_mode");
 
     Option<String> CUSTOM_SQL =
@@ -247,8 +256,6 @@ public interface DorisOptions {
                     .required(
                             FENODES,
                             USERNAME,
-                            DATABASE,
-                            TABLE,
                             PASSWORD,
                             SINK_LABEL_PREFIX,
                             DORIS_SINK_CONFIG_PREFIX,
@@ -256,6 +263,8 @@ public interface DorisOptions {
                             SCHEMA_SAVE_MODE)
                     .bundled(COLUMN_PATTERN, COLUMN_REPLACEMENT)
                     .optional(
+                            DATABASE,
+                            TABLE,
                             QUERY_PORT,
                             DORIS_BATCH_SIZE,
                             SINK_ENABLE_2PC,

@@ -6,6 +6,8 @@
 
 package io.debezium.connector.postgresql.connection;
 
+import org.apache.seatunnel.common.utils.ExceptionUtils;
+
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.kafka.connect.errors.ConnectException;
 
@@ -275,6 +277,7 @@ public class PostgresReplicationConnection extends JdbcConnection implements Rep
                     String.format(
                             "SELECT * FROM pg_publication_tables WHERE pubname = '%s'; ",
                             publicationName);
+            LOGGER.error(selectPublication);
             try (Statement stmt = pgConnection().createStatement();
                     ResultSet rs = stmt.executeQuery(selectPublication)) {
                 while (rs.next()) {
@@ -284,6 +287,7 @@ public class PostgresReplicationConnection extends JdbcConnection implements Rep
                 }
             }
         } catch (SQLException e) {
+            LOGGER.error(ExceptionUtils.getMessage(e));
             throw new JdbcConnectionException(e);
         }
         return tableList;

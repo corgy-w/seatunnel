@@ -126,16 +126,6 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public String getExistDataSql(TablePath tablePath) {
-        return String.format("select TOP 1 * from %s ;", tablePath.getFullNameWithQuoted("[", "]"));
-    }
-
-    @Override
-    protected String getTruncateTableSql(TablePath tablePath) {
-        return String.format("TRUNCATE TABLE  %s", tablePath.getFullName());
-    }
-
-    @Override
     protected String getCreateDatabaseSql(String databaseName) {
         return String.format("CREATE DATABASE [%s]", databaseName);
     }
@@ -174,5 +164,15 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new SqlserverTypeMapper());
+    }
+
+    @Override
+    public String getExistDataSql(TablePath tablePath) {
+        return String.format("select TOP 1 * from %s ;", tablePath.getFullNameWithQuoted("[", "]"));
+    }
+
+    @Override
+    protected String getTruncateTableSql(TablePath tablePath) throws CatalogException {
+        return String.format("TRUNCATE TABLE  %s", tablePath.getFullNameWithQuoted("[", "]"));
     }
 }

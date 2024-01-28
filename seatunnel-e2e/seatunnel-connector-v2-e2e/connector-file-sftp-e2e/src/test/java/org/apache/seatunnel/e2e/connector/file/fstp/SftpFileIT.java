@@ -20,9 +20,7 @@ package org.apache.seatunnel.e2e.connector.file.fstp;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.container.TestContainerId;
 import org.apache.seatunnel.e2e.common.container.TestHelper;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.util.ContainerUtil;
 
 import org.junit.jupiter.api.AfterAll;
@@ -37,9 +35,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.stream.Stream;
 
-@DisabledOnContainer(
-        value = {TestContainerId.SPARK_2_4},
-        disabledReason = "The apache-compress version is not compatible with apache-poi")
 @Slf4j
 public class SftpFileIT extends TestSuiteBase implements TestResource {
 

@@ -59,6 +59,7 @@ public class SparkDataSourceWriter<StateT, CommitInfoT, AggregatedCommitInfoT>
         this.catalogTable = catalogTable;
         this.sinkAggregatedCommitter = sink.createAggregatedCommitter().orElse(null);
         if (sinkAggregatedCommitter != null) {
+            // TODO close it
             if (this.sinkAggregatedCommitter instanceof SupportResourceShare) {
                 resourceManager =
                         ((SupportResourceShare) this.sinkAggregatedCommitter)

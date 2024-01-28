@@ -59,6 +59,7 @@ public abstract class AbstractDorisIT extends TestSuiteBase implements TestResou
     private static final String SET_SQL =
             "ADMIN SET FRONTEND CONFIG (\"enable_batch_delete_by_default\" = \"true\")";
     private static final String SHOW_BE = "SHOW BACKENDS";
+    protected static final String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
 
     @BeforeAll
     @Override
@@ -67,13 +68,6 @@ public abstract class AbstractDorisIT extends TestSuiteBase implements TestResou
                 new GenericContainer<>(DOCKER_IMAGE)
                         .withNetwork(NETWORK)
                         .withNetworkAliases(HOST)
-                        .withEnv("FE_SERVERS", "fe1:127.0.0.1:9010")
-                        .withEnv("FE_ID", "1")
-                        .withEnv("CURRENT_BE_IP", "127.0.0.1")
-                        .withEnv("CURRENT_BE_PORT", "9050")
-                        .withCommand("ulimit -n 65536")
-                        .withCreateContainerCmdModifier(
-                                cmd -> cmd.getHostConfig().withMemorySwap(0L))
                         .withPrivilegedMode(true)
                         .withLogConsumer(
                                 new Slf4jLogConsumer(DockerLoggerFactory.getLogger(DOCKER_IMAGE)));
@@ -109,8 +103,8 @@ public abstract class AbstractDorisIT extends TestSuiteBase implements TestResou
 
     private boolean isBeReady(ResultSet rs, Duration duration) throws SQLException {
         if (rs.next()) {
-            String isAlive = rs.getString(10).trim();
-            String totalCap = rs.getString(16).trim();
+            String isAlive = rs.getString("Alive").trim();
+            String totalCap = rs.getString("TotalCapacity").trim();
             LockSupport.parkNanos(duration.toNanos());
             return "true".equalsIgnoreCase(isAlive) && !"0.000".equalsIgnoreCase(totalCap);
         }

@@ -29,7 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.seatunnel.api.sink.DataSaveMode.KEEP_SCHEMA_AND_DATA;
+import static org.apache.seatunnel.api.sink.DataSaveMode.APPEND_DATA;
 import static org.apache.seatunnel.api.sink.SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST;
 import static org.apache.seatunnel.api.sink.SchemaSaveMode.ERROR_WHEN_SCHEMA_NOT_EXIST;
 
@@ -192,9 +192,8 @@ public class Config {
 
     public static final Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key("data_save_mode")
-                    .singleChoice(
-                            DataSaveMode.class, Collections.singletonList(KEEP_SCHEMA_AND_DATA))
-                    .defaultValue(KEEP_SCHEMA_AND_DATA)
+                    .singleChoice(DataSaveMode.class, Collections.singletonList(APPEND_DATA))
+                    .defaultValue(APPEND_DATA)
                     .withDescription("data_save_mode");
 
     public static final Option<Integer> TOPIC_PARTITIONS_NUM =

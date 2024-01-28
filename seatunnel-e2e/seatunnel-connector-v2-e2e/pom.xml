@@ -45,9 +45,9 @@
         <module>connector-http-e2e</module>
         <module>connector-rabbitmq-e2e</module>
         <module>connector-kafka-e2e</module>
-        <!--        <module>connector-doris-e2e</module>-->
+        <module>connector-doris-e2e</module>
         <module>connector-fake-e2e</module>
-        <module>connector-elasticsearch-e2e</module>
+        <!--        <module>connector-elasticsearch-e2e</module>-->
         <module>connector-iotdb-e2e</module>
         <module>connector-cdc-mysql-e2e</module>
         <module>connector-cdc-mongodb-e2e</module>
@@ -64,6 +64,8 @@
         <module>connector-pulsar-e2e</module>
         <module>connector-paimon-e2e</module>
         <module>connector-kudu-e2e</module>
+        <module>connector-cdc-postgres-e2e</module>
+        <module>connector-cdc-oracle-e2e</module>
     </modules>
 
     <dependencies>

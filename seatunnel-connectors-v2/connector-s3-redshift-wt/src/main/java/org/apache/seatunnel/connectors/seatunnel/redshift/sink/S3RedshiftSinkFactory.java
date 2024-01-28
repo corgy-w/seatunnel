@@ -45,7 +45,7 @@ import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHE
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 
 @AutoService(Factory.class)
-public class S3RedshiftFactory implements TableSinkFactory {
+public class S3RedshiftSinkFactory implements TableSinkFactory {
 
     @Override
     public String factoryIdentifier() {
