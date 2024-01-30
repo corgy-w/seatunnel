@@ -193,8 +193,8 @@ jobs:
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_change.txt`
           tree_modules="$modules$sub_modules"
           includes=`python tools/update_modules_check/update_modules_check.py tree "$tree_modules"`
-          ./mvnw --settings maven-settings.xml -Pci -D"e2e.dependency.skip"=false  dependency:tree $includes -DoutputType=text -DoutputFile=/tmp/tree_out.txt
-          build_modules=`python tools/update_modules_check/update_modules_check.py final_ut /tmp/tree_out.txt`
+          ./mvnw --settings maven-settings.xml -Pci -D"e2e.dependency.skip"=false  dependency:tree $includes -DoutputType=text -DoutputFile=/tmp/${timestamp}_tree_out.txt
+          build_modules=`python tools/update_modules_check/update_modules_check.py final_ut /tmp/${timestamp}_tree_out.txt`
           if [[ "zz"$build_modules == "zz" ]];then
             build_modules=$pl_modules
           fi 
@@ -223,8 +223,8 @@ jobs:
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_it.txt`
           tree_modules="$modules$sub_modules"
           includes=`python tools/update_modules_check/update_modules_check.py tree "$tree_modules"`
-          ./mvnw --settings maven-settings.xml -Pci -D"e2e.dependency.skip"=false  dependency:tree $includes -DoutputType=text -DoutputFile=/tmp/tree_out.txt
-          build_modules=`python tools/update_modules_check/update_modules_check.py final_it /tmp/tree_out.txt`
+          ./mvnw --settings maven-settings.xml -Pci -D"e2e.dependency.skip"=false  dependency:tree $includes -DoutputType=text -DoutputFile=/tmp/${timestamp}_tree_out.txt
+          build_modules=`python tools/update_modules_check/update_modules_check.py final_it /tmp/${timestamp}_tree_out.txt`
           echo $build_modules
           echo "modules=$build_modules" >> $GITHUB_OUTPUT
 
