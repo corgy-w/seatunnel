@@ -225,7 +225,7 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
             case SQLSERVER_UNIQUEIDENTIFIER:
                 builder.sourceType(SQLSERVER_UNIQUEIDENTIFIER);
                 builder.dataType(BasicType.STRING_TYPE);
-                builder.columnLength(typeDefine.getLength());
+                builder.columnLength(typeDefine.getLength() * 4);
                 break;
             case SQLSERVER_SQLVARIANT:
                 builder.sourceType(SQLSERVER_SQLVARIANT);

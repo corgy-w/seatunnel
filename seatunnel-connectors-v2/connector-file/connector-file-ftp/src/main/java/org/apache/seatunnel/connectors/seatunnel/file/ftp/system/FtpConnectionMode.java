@@ -38,6 +38,11 @@ public enum FtpConnectionMode {
 
     public static FtpConnectionMode fromMode(String mode) {
         for (FtpConnectionMode ftpConnectionModeEnum : FtpConnectionMode.values()) {
+            if (ftpConnectionModeEnum.name().equals(mode)) {
+                return ftpConnectionModeEnum;
+            }
+        }
+        for (FtpConnectionMode ftpConnectionModeEnum : FtpConnectionMode.values()) {
             if (ftpConnectionModeEnum.getMode().equals(mode)) {
                 return ftpConnectionModeEnum;
             }
