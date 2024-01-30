@@ -11,7 +11,6 @@ import org.apache.seatunnel.transform.exception.TransformExceptionUtil;
 
 import org.apache.commons.collections4.CollectionUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -48,13 +47,8 @@ public class SQLMultiCatalogTransform extends AbstractMultiCatalogSupportTransfo
 
     @Override
     public List<CatalogTable> getProducedCatalogTables() {
-        List<CatalogTable> outputCatalogTable = new ArrayList<>();
         preCheckForConfig(inputCatalogTables);
-        for (CatalogTable table : inputCatalogTables) {
-            CatalogTable newCatalogTable = table.copy();
-            outputCatalogTable.add(newCatalogTable);
-        }
-        return outputCatalogTable;
+        return outputCatalogTables;
     }
 
     private void preCheckForConfig(List<CatalogTable> inputCatalogTables) {
