@@ -30,12 +30,13 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistExceptio
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.connectors.doris.config.DorisConfig;
 import org.apache.seatunnel.connectors.doris.config.DorisOptions;
-import org.apache.seatunnel.connectors.doris.datatype.DorisTypeConverter;
+import org.apache.seatunnel.connectors.doris.datatype.DorisTypeConverterFactory;
 import org.apache.seatunnel.connectors.doris.util.DorisCatalogUtil;
 
 import org.slf4j.Logger;
@@ -55,7 +56,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public class DorisCatalog implements Catalog {
@@ -77,6 +77,10 @@ public class DorisCatalog implements Catalog {
     private Connection conn;
 
     private DorisConfig dorisConfig;
+
+    private String dorisVersion;
+
+    private TypeConverter<BasicTypeDefine> typeConverter;
 
     public DorisCatalog(
             String catalogName,
@@ -124,10 +128,24 @@ public class DorisCatalog implements Catalog {
         try {
             conn = DriverManager.getConnection(jdbcUrl, username, password);
             conn.getCatalog();
+            dorisVersion = getDorisVersion();
+            typeConverter = DorisTypeConverterFactory.getTypeConverter(dorisVersion);
         } catch (SQLException e) {
             throw new CatalogException(String.format("Failed to connect url %s", jdbcUrl), e);
         }
         LOG.info("Catalog {} established connection to {} success", catalogName, jdbcUrl);
+    }
+
+    private String getDorisVersion() throws SQLException {
+        String dorisVersion = null;
+        try (PreparedStatement preparedStatement =
+                conn.prepareStatement(DorisCatalogUtil.QUERY_DORIS_VERSION_QUERY)) {
+            ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                dorisVersion = resultSet.getString(2);
+            }
+        }
+        return dorisVersion;
     }
 
     @Override
@@ -285,24 +303,18 @@ public class DorisCatalog implements Catalog {
         long numberPrecision = resultSet.getInt("NUMERIC_PRECISION");
         // e.g. `decimal(10, 2)` is 2
         int numberScale = resultSet.getInt("NUMERIC_SCALE");
-        // e.g. `varchar(10)` is 40
-        long charOctetLength = resultSet.getLong("CHARACTER_OCTET_LENGTH");
+        long charOctetLength = resultSet.getLong("CHARACTER_MAXIMUM_LENGTH");
         // e.g. `timestamp(3)` is 3
         int timePrecision = resultSet.getInt("DATETIME_PRECISION");
 
         Preconditions.checkArgument(!(numberPrecision > 0 && charOctetLength > 0));
         Preconditions.checkArgument(!(numberScale > 0 && timePrecision > 0));
 
-        MysqlType mysqlType = MysqlType.getByName(columnType);
-        boolean unsigned = columnType.toLowerCase(Locale.ROOT).contains("unsigned");
-
         BasicTypeDefine<MysqlType> typeDefine =
                 BasicTypeDefine.<MysqlType>builder()
                         .name(columnName)
                         .columnType(columnType)
                         .dataType(dataType)
-                        .nativeType(mysqlType)
-                        .unsigned(unsigned)
                         .length(Math.max(charOctetLength, numberPrecision))
                         .precision(numberPrecision)
                         .scale(Math.max(numberScale, timePrecision))
@@ -310,7 +322,7 @@ public class DorisCatalog implements Catalog {
                         .defaultValue(defaultValue)
                         .comment(comment)
                         .build();
-        return DorisTypeConverter.INSTANCE.convert(typeDefine);
+        return typeConverter.convert(typeDefine);
     }
 
     @Override
@@ -333,8 +345,7 @@ public class DorisCatalog implements Catalog {
 
         String stmt =
                 DorisCatalogUtil.getCreateTableStatement(
-                        dorisConfig.getCreateTableTemplate(), tablePath, table);
-
+                        dorisConfig.getCreateTableTemplate(), tablePath, table, typeConverter);
         try (Statement statement = conn.createStatement()) {
             statement.execute(stmt);
         } catch (SQLException e) {

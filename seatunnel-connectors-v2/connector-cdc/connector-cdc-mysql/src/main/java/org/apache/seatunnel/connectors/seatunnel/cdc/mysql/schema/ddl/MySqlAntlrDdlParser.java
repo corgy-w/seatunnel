@@ -38,8 +38,11 @@ public class MySqlAntlrDdlParser extends AntlrDdlParser<MySqlLexer, MySqlParser>
     @Getter private MySqlValueConverters converters;
 
     public MySqlAntlrDdlParser(
-            String terminator, boolean throwErrorsFromTreeWalk, MySqlValueConverters converters) {
-        super(terminator, throwErrorsFromTreeWalk);
+            String terminator,
+            boolean throwErrorsFromTreeWalk,
+            String catalogName,
+            MySqlValueConverters converters) {
+        super(terminator, throwErrorsFromTreeWalk, catalogName);
         this.converters = converters;
     }
 

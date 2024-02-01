@@ -133,7 +133,8 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
                                                 (MySqlConnectorConfig)
                                                         configFactory
                                                                 .create(0)
-                                                                .getDbzConnectorConfig())))
+                                                                .getDbzConnectorConfig()),
+                                        dataSourceDialect.getName()))
                         .build();
     }
 

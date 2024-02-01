@@ -106,9 +106,7 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                             Optional.ofNullable(sqlDate).map(e -> e.toLocalDate()).orElse(null);
                     break;
                 case TIME:
-                    Time sqlTime = JdbcUtils.getTime(rs, resultSetIndex);
-                    fields[fieldIndex] =
-                            Optional.ofNullable(sqlTime).map(e -> e.toLocalTime()).orElse(null);
+                    fields[fieldIndex] = readTime(rs, resultSetIndex);
                     break;
                 case TIMESTAMP:
                     Timestamp sqlTimestamp = JdbcUtils.getTimestamp(rs, resultSetIndex);
@@ -135,6 +133,11 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
             }
         }
         return new SeaTunnelRow(fields);
+    }
+
+    protected LocalTime readTime(ResultSet rs, int resultSetIndex) throws SQLException {
+        Time sqlTime = JdbcUtils.getTime(rs, resultSetIndex);
+        return Optional.ofNullable(sqlTime).map(e -> e.toLocalTime()).orElse(null);
     }
 
     public Object[] convertToArray(
