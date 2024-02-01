@@ -404,4 +404,8 @@ public interface JdbcDialect extends Serializable {
             JdbcConnectionConfig jdbcConnectionConfig) {
         return new SimpleJdbcConnectionProvider(jdbcConnectionConfig);
     }
+
+    default String converterMinMaxColumn(JdbcSourceTable table, String columnName) {
+        return columnName;
+    }
 }
