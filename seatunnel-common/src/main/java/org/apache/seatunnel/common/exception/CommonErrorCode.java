@@ -49,7 +49,9 @@ public enum CommonErrorCode implements SeaTunnelErrorCode {
             "COMMON-23",
             "<connector> write SeaTunnelRow failed, the SeaTunnelRow value is '<seaTunnelRow>'."),
 
-    PRIMARY_KEY_IS_NECESSARY("COMMON-16", "primary key is necessary");
+    PRIMARY_KEY_IS_NECESSARY("COMMON-24", "primary key is necessary"),
+
+    VERSION_NOT_SUPPORTED("COMMON-25", "<identifier> <version> is unsupported.");
 
     private final String code;
     private final String description;
