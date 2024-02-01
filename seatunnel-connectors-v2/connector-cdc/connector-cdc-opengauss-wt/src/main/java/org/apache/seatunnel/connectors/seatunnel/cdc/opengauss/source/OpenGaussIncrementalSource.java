@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
+import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -58,7 +59,8 @@ import java.util.stream.Collectors;
 
 @NoArgsConstructor
 @AutoService(SeaTunnelSource.class)
-public class OpenGaussIncrementalSource<T> extends IncrementalSource<T, JdbcSourceConfig> {
+public class OpenGaussIncrementalSource<T> extends IncrementalSource<T, JdbcSourceConfig>
+        implements SupportParallelism {
 
     static final String IDENTIFIER = "OpenGauss-CDC";
 
