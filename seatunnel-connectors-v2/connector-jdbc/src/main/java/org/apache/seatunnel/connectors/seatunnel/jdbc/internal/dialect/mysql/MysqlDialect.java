@@ -232,6 +232,8 @@ public class MysqlDialect implements JdbcDialect {
                                                     ((AlterTableChangeColumnEvent) column)
                                                             .getOldColumn(),
                                                     this.buildColumnIdentifySql(
+                                                            column.tableIdentifier()
+                                                                    .getCatalogName(),
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn(),
                                                             fieldIde));
@@ -242,6 +244,8 @@ public class MysqlDialect implements JdbcDialect {
                                                     "alter table %s MODIFY COLUMN %s DEFAULT %s ",
                                                     tablePath.getFullName(),
                                                     this.buildColumnIdentifySql(
+                                                            column.tableIdentifier()
+                                                                    .getCatalogName(),
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn(),
                                                             fieldIde),
@@ -256,6 +260,8 @@ public class MysqlDialect implements JdbcDialect {
                                                     "alter table %s add column %s DEFAULT %s ",
                                                     tablePath.getFullName(),
                                                     this.buildColumnIdentifySql(
+                                                            column.tableIdentifier()
+                                                                    .getCatalogName(),
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn(),
                                                             fieldIde),
@@ -281,10 +287,15 @@ public class MysqlDialect implements JdbcDialect {
         return sqlList;
     }
 
-    private String buildColumnIdentifySql(Column column, String fieldIde) {
+    private String buildColumnIdentifySql(String catalogName, Column column, String fieldIde) {
         final List<String> columnSqls = new ArrayList<>();
         columnSqls.add(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "`"));
-        columnSqls.add(MySqlTypeConverter.INSTANCE.reconvert(column).getColumnType());
+        if (DatabaseIdentifier.MYSQL.equalsIgnoreCase(catalogName)
+                && column.getSourceType() != null) {
+            columnSqls.add(column.getSourceType());
+        } else {
+            columnSqls.add(MySqlTypeConverter.INSTANCE.reconvert(column).getColumnType());
+        }
         // nullable
         if (column.isNullable()) {
             columnSqls.add("NULL");

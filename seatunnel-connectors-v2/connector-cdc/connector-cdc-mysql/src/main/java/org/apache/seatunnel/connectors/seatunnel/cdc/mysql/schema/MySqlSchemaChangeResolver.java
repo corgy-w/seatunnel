@@ -44,8 +44,8 @@ public class MySqlSchemaChangeResolver implements SchemaChangeResolver {
 
     private MySqlAntlrDdlParser ddlParser;
 
-    public MySqlSchemaChangeResolver(MySqlValueConverters converters) {
-        this.ddlParser = new MySqlAntlrDdlParser(";", false, null);
+    public MySqlSchemaChangeResolver(MySqlValueConverters converters, String catalogName) {
+        this.ddlParser = new MySqlAntlrDdlParser(";", false, catalogName, null);
     }
 
     @Override

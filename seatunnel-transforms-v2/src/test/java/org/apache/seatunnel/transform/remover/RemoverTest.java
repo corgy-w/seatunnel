@@ -210,7 +210,7 @@ public class RemoverTest {
                         config);
         AlterTableAddColumnEvent alterTableAddColumnEvent =
                 new AlterTableAddColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         PhysicalColumn.of(
                                 "f4",
                                 BasicType.LONG_TYPE,
@@ -231,7 +231,7 @@ public class RemoverTest {
 
         AlterTableAddColumnEvent alterTableAddColumnEvent2 =
                 new AlterTableAddColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         PhysicalColumn.of(
                                 "f2",
                                 BasicType.LONG_TYPE,
@@ -251,11 +251,13 @@ public class RemoverTest {
 
         AlterTableNameEvent alterTableNameEvent =
                 new AlterTableNameEvent(
-                        DEFAULT_TABLE.getTablePath(), TablePath.of("test", "test3"));
+                        DEFAULT_TABLE.getTableId(),
+                        TableIdentifier.of(
+                                DEFAULT_TABLE.getCatalogName(), TablePath.of("test", "test3")));
         transform.mapSchemaChangeEvent(alterTableNameEvent);
         AlterTableChangeColumnEvent alterTableChangeColumnEvent =
                 new AlterTableChangeColumnEvent(
-                        TablePath.of("test.test3"),
+                        TableIdentifier.of(null, TablePath.of("test.test3")),
                         "f2",
                         PhysicalColumn.of(
                                 "f3_xx",

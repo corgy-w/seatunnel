@@ -285,7 +285,7 @@ public class RenamerTest {
                         config);
         AlterTableAddColumnEvent alterTableAddColumnEvent =
                 new AlterTableAddColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         PhysicalColumn.of(
                                 "f1_x",
                                 BasicType.LONG_TYPE,
@@ -319,7 +319,7 @@ public class RenamerTest {
                         config);
         AlterTableAddColumnEvent alterTableAddColumnEvent2 =
                 new AlterTableAddColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         PhysicalColumn.of(
                                 "f1_xx",
                                 BasicType.LONG_TYPE,
@@ -341,7 +341,8 @@ public class RenamerTest {
         Assertions.assertEquals("f1_xx", newAlterTableAddColumnEvent2.getColumn().getName());
         Assertions.assertEquals("f1_x", newAlterTableAddColumnEvent2.getAfterColumn());
         AlterTableDropColumnEvent alterTableDropColumnEvent =
-                new AlterTableDropColumnEvent(TablePath.of("test.test2"), "f2");
+                new AlterTableDropColumnEvent(
+                        TableIdentifier.of(null, TablePath.of("test.test2")), "f2");
         Assertions.assertEquals(
                 "abcF2ee",
                 ((AlterTableDropColumnEvent)
@@ -349,7 +350,7 @@ public class RenamerTest {
                         .getColumn());
         AlterTableChangeColumnEvent alterTableChangeColumnEvent =
                 new AlterTableChangeColumnEvent(
-                        TablePath.of("test.test2"),
+                        TableIdentifier.of(null, TablePath.of("test.test2")),
                         "f3",
                         PhysicalColumn.of(
                                 "f3_xx",
@@ -375,7 +376,7 @@ public class RenamerTest {
 
         AlterTableChangeColumnEvent alterTableChangeColumnEvent2 =
                 new AlterTableChangeColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         "f1",
                         PhysicalColumn.of(
                                 "f1_xt",
@@ -399,7 +400,9 @@ public class RenamerTest {
 
         AlterTableNameEvent alterTableNameEvent =
                 new AlterTableNameEvent(
-                        DEFAULT_TABLE.getTablePath(), TablePath.of("test", "test3"));
+                        DEFAULT_TABLE.getTableId(),
+                        TableIdentifier.of(
+                                DEFAULT_TABLE.getCatalogName(), TablePath.of("test", "test3")));
         transform2.mapSchemaChangeEvent(alterTableNameEvent);
         Assertions.assertEquals(
                 "abcF2ee",
