@@ -204,14 +204,18 @@ public class S3RedshiftChangelogWriter extends BaseFileSinkWriter<WriterResource
                                 } else if (column instanceof AlterTableAddColumnEvent) {
                                     String sql =
                                             String.format(
-                                                    "alter table %s add column %s %s default null",
+                                                    "alter table %s add column %s %s default %s",
                                                     tableName,
                                                     ((AlterTableAddColumnEvent) column)
                                                             .getColumn()
                                                             .getName(),
                                                     ToRedshiftTypeConverter.INSTANCE.convert(
                                                             ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn()));
+                                                                    .getColumn()),
+                                                    this.getDefaultValue(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn()
+                                                                    .getDefaultValue()));
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableDropColumnEvent) {
                                     String sql =
@@ -352,5 +356,12 @@ public class S3RedshiftChangelogWriter extends BaseFileSinkWriter<WriterResource
             throw new IllegalArgumentException(
                     "Unsupported write strategy: " + writeStrategy.getClass().getName());
         }
+    }
+
+    private String getDefaultValue(Object defaultValue) {
+        if (defaultValue == null) {
+            return "null";
+        }
+        return String.format("'%s'", defaultValue.toString());
     }
 }
