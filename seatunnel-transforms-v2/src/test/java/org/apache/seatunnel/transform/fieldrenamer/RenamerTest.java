@@ -306,7 +306,7 @@ public class RenamerTest {
                         TransformException.class,
                         () -> transform.mapSchemaChangeEvent(alterTableAddColumnEvent));
         Assertions.assertEquals(
-                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":{\"f1_x\":\"f1_x\",\"f1\":\"f1_x\"}}']",
+                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":{\"f1\":\"f1_x\",\"f1_x\":\"f1_x\"}}']",
                 exception.getMessage());
 
         FieldRenamerTransform transform2 =

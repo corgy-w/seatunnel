@@ -78,7 +78,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
             CatalogTable newCatalogTable;
             String tableName = table.getTablePath().getFullName();
             if (shouldBeRenamed(tableName)) {
-                Map<String, String> changedName = new HashMap<>();
+                Map<String, String> changedName = new LinkedHashMap<>();
                 List<Column> newColumns = new ArrayList<>();
                 for (Column column : table.getTableSchema().getColumns()) {
                     String newName = convertName(tableName, column.getName());
@@ -94,7 +94,12 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                                 .stream()
                                 .filter(l -> l.size() > 1)
                                 .flatMap(List::stream)
-                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                                .collect(
+                                        Collectors.toMap(
+                                                Map.Entry::getKey,
+                                                Map.Entry::getValue,
+                                                (oldValue, newValue) -> newValue,
+                                                LinkedHashMap::new));
                 if (!duplicated.isEmpty()) {
                     tableWithDuplicateName.put(tableName, duplicated);
                 }

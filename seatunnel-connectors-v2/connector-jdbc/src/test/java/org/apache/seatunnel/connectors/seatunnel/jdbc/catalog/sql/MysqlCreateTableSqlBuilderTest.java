@@ -101,8 +101,8 @@ public class MysqlCreateTableSqlBuilderTest {
                         + "\t`id` BIGINT NOT NULL COMMENT 'id', \n"
                         + "\t`name` VARCHAR(128) NOT NULL COMMENT 'name', \n"
                         + "\t`age` INT NULL COMMENT 'age', \n"
-                        + "\t`createTime` TIMESTAMP NULL COMMENT 'createTime', \n"
-                        + "\t`lastUpdateTime` TIMESTAMP NULL COMMENT 'lastUpdateTime', \n"
+                        + "\t`createTime` DATETIME NULL COMMENT 'createTime', \n"
+                        + "\t`lastUpdateTime` DATETIME NULL COMMENT 'lastUpdateTime', \n"
                         + "\tPRIMARY KEY (`id`), \n"
                         + "\tKEY `name` (`name`)\n"
                         + ") COMMENT = 'User table';";
