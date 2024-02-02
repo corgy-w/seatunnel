@@ -52,9 +52,13 @@ import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
 import lombok.NoArgsConstructor;
 
+import java.lang.reflect.Field;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -97,7 +101,10 @@ public class SqlServerIncrementalSource<T> extends IncrementalSource<T, JdbcSour
                 SqlServerURLParser.parse(config.get(JdbcCatalogOptions.BASE_URL));
         configFactory.originUrl(urlInfo.getOrigin());
         configFactory.hostname(urlInfo.getHost());
-        configFactory.port(urlInfo.getPort());
+        configFactory.port(
+                urlInfo.getPort() == null
+                        ? getPortNumberFromJdbcConnection(urlInfo, config)
+                        : urlInfo.getPort());
         return configFactory;
     }
 
@@ -133,6 +140,24 @@ public class SqlServerIncrementalSource<T> extends IncrementalSource<T, JdbcSour
     public OffsetFactory createOffsetFactory(ReadonlyConfig config) {
         return new LsnOffsetFactory(
                 (SqlServerSourceConfigFactory) configFactory, (SqlServerDialect) dataSourceDialect);
+    }
+
+    private int getPortNumberFromJdbcConnection(
+            JdbcUrlUtil.UrlInfo urlInfo, ReadonlyConfig config) {
+        try (Connection connection =
+                DriverManager.getConnection(
+                        urlInfo.getOrigin(),
+                        config.get(JdbcCatalogOptions.USERNAME),
+                        config.get(JdbcCatalogOptions.PASSWORD))) {
+            final Class<? extends Connection> aClass = connection.getClass();
+            Field privateField = aClass.getDeclaredField("activeConnectionProperties");
+            privateField.setAccessible(true);
+            Properties fieldValue = (Properties) privateField.get(connection);
+            String portNumber = (String) fieldValue.get("portNumber");
+            return Integer.parseInt(portNumber);
+        } catch (Exception e) {
+            throw new SeaTunnelException("getPortNumberFromJdbcConnection error", e);
+        }
     }
 
     private Map<TableId, Struct> tableChanges() {

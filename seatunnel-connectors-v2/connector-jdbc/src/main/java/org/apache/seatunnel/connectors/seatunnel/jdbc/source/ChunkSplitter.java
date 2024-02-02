@@ -207,6 +207,7 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
             throws SQLException {
         String sqlQuery;
         columnName = jdbcDialect.quoteIdentifier(columnName);
+        columnName = jdbcDialect.converterMinMaxColumn(table, columnName);
         if (StringUtils.isNotBlank(table.getQuery())) {
             sqlQuery =
                     String.format(

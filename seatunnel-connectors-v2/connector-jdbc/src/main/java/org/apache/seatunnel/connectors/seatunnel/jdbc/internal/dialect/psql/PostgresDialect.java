@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql;
 
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
@@ -36,6 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -70,6 +72,56 @@ public class PostgresDialect implements JdbcDialect {
     @Override
     public String hashModForField(String fieldName, int mod) {
         return "(ABS(HASHTEXT(" + quoteIdentifier(fieldName) + ")) % " + mod + ")";
+    }
+
+    @Override
+    public Object queryNextChunkMax(
+            Connection connection,
+            JdbcSourceTable table,
+            String columnName,
+            int chunkSize,
+            Object includedLowerBound)
+            throws SQLException {
+        String quotedColumn = quoteIdentifier(columnName);
+        quotedColumn = converterMinMaxColumn(table, quotedColumn);
+        String sqlQuery;
+        if (StringUtils.isNotBlank(table.getQuery())) {
+            sqlQuery =
+                    String.format(
+                            "SELECT MAX(%s) FROM ("
+                                    + "SELECT %s FROM (%s) AS T1 WHERE %s >= ? ORDER BY %s ASC LIMIT %s"
+                                    + ") AS T2",
+                            quotedColumn,
+                            quotedColumn,
+                            table.getQuery(),
+                            quotedColumn,
+                            quotedColumn,
+                            chunkSize);
+        } else {
+            sqlQuery =
+                    String.format(
+                            "SELECT MAX(%s) FROM ("
+                                    + "SELECT %s FROM %s WHERE %s >= ? ORDER BY %s ASC LIMIT %s"
+                                    + ") AS T",
+                            quotedColumn,
+                            quotedColumn,
+                            tableIdentifier(table.getTablePath()),
+                            quotedColumn,
+                            quotedColumn,
+                            chunkSize);
+        }
+        try (PreparedStatement ps = connection.prepareStatement(sqlQuery)) {
+            ps.setObject(1, includedLowerBound);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getObject(1);
+                } else {
+                    // this should never happen
+                    throw new SQLException(
+                            String.format("No result returned after running query [%s]", sqlQuery));
+                }
+            }
+        }
     }
 
     @Override
@@ -187,5 +239,21 @@ public class PostgresDialect implements JdbcDialect {
             }
         }
         return SQLUtils.countForSubquery(connection, table.getQuery());
+    }
+
+    public String converterMinMaxColumn(JdbcSourceTable table, String columnName) {
+        columnName = columnName.replace("\"", "");
+        final List<Column> columns = table.getCatalogTable().getTableSchema().getColumns();
+        for (Column column : columns) {
+            final String name = column.getName();
+            if (name.equals(columnName)) {
+                if (PostgresTypeConverter.PG_UUID.equals(column.getSourceType())) {
+                    return columnName + "::text";
+                } else {
+                    return columnName;
+                }
+            }
+        }
+        return columnName;
     }
 }
