@@ -108,7 +108,8 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.metadataProvider = new PostgresEventMetadataProvider();
         this.engineHistory = engineHistory;
         this.postgresValueConverterBuilder =
-                newPostgresValueConverterBuilder(getDbzConnectorConfig());
+                newPostgresValueConverterBuilder(
+                        getDbzConnectorConfig(), sourceConfig.getServerTimeZone());
     }
 
     @Override

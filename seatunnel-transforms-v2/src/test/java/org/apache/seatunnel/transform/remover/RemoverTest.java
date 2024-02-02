@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.transform.remover;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -193,7 +210,7 @@ public class RemoverTest {
                         config);
         AlterTableAddColumnEvent alterTableAddColumnEvent =
                 new AlterTableAddColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         PhysicalColumn.of(
                                 "f4",
                                 BasicType.LONG_TYPE,
@@ -214,7 +231,7 @@ public class RemoverTest {
 
         AlterTableAddColumnEvent alterTableAddColumnEvent2 =
                 new AlterTableAddColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         PhysicalColumn.of(
                                 "f2",
                                 BasicType.LONG_TYPE,
@@ -234,11 +251,13 @@ public class RemoverTest {
 
         AlterTableNameEvent alterTableNameEvent =
                 new AlterTableNameEvent(
-                        DEFAULT_TABLE.getTablePath(), TablePath.of("test", "test3"));
+                        DEFAULT_TABLE.getTableId(),
+                        TableIdentifier.of(
+                                DEFAULT_TABLE.getCatalogName(), TablePath.of("test", "test3")));
         transform.mapSchemaChangeEvent(alterTableNameEvent);
         AlterTableChangeColumnEvent alterTableChangeColumnEvent =
                 new AlterTableChangeColumnEvent(
-                        TablePath.of("test.test3"),
+                        TableIdentifier.of(null, TablePath.of("test.test3")),
                         "f2",
                         PhysicalColumn.of(
                                 "f3_xx",

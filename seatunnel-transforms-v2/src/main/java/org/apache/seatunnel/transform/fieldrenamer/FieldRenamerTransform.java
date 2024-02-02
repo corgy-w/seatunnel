@@ -78,7 +78,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
             CatalogTable newCatalogTable;
             String tableName = table.getTablePath().getFullName();
             if (shouldBeRenamed(tableName)) {
-                Map<String, String> changedName = new HashMap<>();
+                Map<String, String> changedName = new LinkedHashMap<>();
                 List<Column> newColumns = new ArrayList<>();
                 for (Column column : table.getTableSchema().getColumns()) {
                     String newName = convertName(tableName, column.getName());
@@ -94,7 +94,12 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                                 .stream()
                                 .filter(l -> l.size() > 1)
                                 .flatMap(List::stream)
-                                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                                .collect(
+                                        Collectors.toMap(
+                                                Map.Entry::getKey,
+                                                Map.Entry::getValue,
+                                                (oldValue, newValue) -> newValue,
+                                                LinkedHashMap::new));
                 if (!duplicated.isEmpty()) {
                     tableWithDuplicateName.put(tableName, duplicated);
                 }
@@ -342,7 +347,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                 String afterColumnRenamed =
                         convertName(tableName, alterTableChangeColumnEvent.getAfterColumn());
                 return new AlterTableChangeColumnEvent(
-                        alterTableChangeColumnEvent.getTablePath(),
+                        alterTableChangeColumnEvent.tableIdentifier(),
                         oldColumnRenamed,
                         columnRenamed,
                         alterTableChangeColumnEvent.isFirst(),
@@ -369,7 +374,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                 String afterColumnRenamed =
                         convertName(tableName, alterTableAddColumnEvent.getAfterColumn());
                 return new AlterTableAddColumnEvent(
-                        alterTableAddColumnEvent.getTablePath(),
+                        alterTableAddColumnEvent.tableIdentifier(),
                         columnRenamed,
                         alterTableAddColumnEvent.isFirst(),
                         afterColumnRenamed);
@@ -392,7 +397,7 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                 String oldColumnRenamed =
                         convertName(tableName, alterTableDropColumnEvent.getColumn());
                 return new AlterTableDropColumnEvent(
-                        alterTableDropColumnEvent.getTablePath(), oldColumnRenamed);
+                        alterTableDropColumnEvent.tableIdentifier(), oldColumnRenamed);
             }
         } else if (schemaChangeEvent instanceof AlterTableNameEvent) {
             AlterTableNameEvent alterTableNameEvent = (AlterTableNameEvent) schemaChangeEvent;
