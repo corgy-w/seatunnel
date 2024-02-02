@@ -196,7 +196,7 @@ jobs:
           if [[ "zz"$delete_modules != "zz" ]];then
             pl_modules=`python tools/update_modules_check/update_modules_check.py rm "$pl_modules" "$delete_modules"`
           fi
-          
+
           if [[ "zz"$pl_modules == "zz" ]];then
             exit 0
           fi

@@ -88,13 +88,11 @@ public class ElasticsearchSink
         if (catalogFactory == null) {
             return Optional.empty();
         }
-        ReadonlyConfig readonlyConfig = ReadonlyConfig.fromConfig(pluginConfig);
-        Catalog catalog =
-                catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), readonlyConfig);
-        SchemaSaveMode schemaSaveMode = readonlyConfig.get(SinkConfig.SCHEMA_SAVE_MODE);
-        DataSaveMode dataSaveMode = readonlyConfig.get(SinkConfig.DATA_SAVE_MODE);
+        Catalog catalog = catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
+        SchemaSaveMode schemaSaveMode = config.get(SinkConfig.SCHEMA_SAVE_MODE);
+        DataSaveMode dataSaveMode = config.get(SinkConfig.DATA_SAVE_MODE);
 
-        TablePath tablePath = TablePath.of("", readonlyConfig.get(SinkConfig.INDEX));
+        TablePath tablePath = TablePath.of("", config.get(SinkConfig.INDEX));
         catalog.open();
         return Optional.of(
                 new DefaultSaveModeHandler(
