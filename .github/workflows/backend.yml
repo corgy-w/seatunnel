@@ -135,6 +135,8 @@ jobs:
           file_list=${api_files#*$'\n'}
           echo "api=$true_or_false" >> $GITHUB_OUTPUT
           echo "api_files=$file_list" >> $GITHUB_OUTPUT
+          
+          /usr/bin/git checkout $current_branch
 
       - name: Check Connector V2 Update
         id: cv2-modules
