@@ -49,10 +49,6 @@ public class ReleaseSlotOperation extends Operation implements IdentifiedDataSer
         try {
             server.getSlotService().releaseSlot(jobID, slotProfile);
         } catch (WrongTargetSlotException ignore) {
-        }
-        try {
-            server.getSlotService().releaseSlot(jobID, slotProfile);
-        } catch (WrongTargetSlotException ignore) {
             log.warn(
                     "wrong target release operation with job {} and slot profile {}",
                     jobID,
