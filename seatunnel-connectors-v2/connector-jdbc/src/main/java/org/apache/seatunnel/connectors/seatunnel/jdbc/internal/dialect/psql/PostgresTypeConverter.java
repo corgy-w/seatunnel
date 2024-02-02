@@ -201,9 +201,7 @@ public class PostgresTypeConverter implements TypeConverter<BasicTypeDefine> {
             case PG_UUID:
                 builder.dataType(BasicType.STRING_TYPE);
                 builder.sourceType(pgDataType);
-                builder.sourceType(String.format("%s", pgDataType));
                 builder.columnLength(128L);
-
                 break;
             case PG_JSON:
             case PG_JSONB:
