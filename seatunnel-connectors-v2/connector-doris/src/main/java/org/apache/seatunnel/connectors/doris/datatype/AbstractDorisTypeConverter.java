@@ -80,6 +80,8 @@ public abstract class AbstractDorisTypeConverter implements TypeConverter<BasicT
 
     public static final Integer DEFAULT_SCALE = 0;
 
+    public static final Integer MAX_DATETIME_SCALE = 6;
+
     // Min value of LARGEINT is -170141183460469231731687303715884105728, it will use 39 bytes in
     // UTF-8.
     // Add a bit to prevent overflow
