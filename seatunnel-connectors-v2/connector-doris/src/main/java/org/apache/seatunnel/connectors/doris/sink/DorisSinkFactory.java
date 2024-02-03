@@ -21,6 +21,8 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.connector.TableSink;
@@ -37,8 +39,11 @@ import org.apache.seatunnel.connectors.doris.util.UnsupportedTypeConverterUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -129,30 +134,71 @@ public class DorisSinkFactory implements TableSinkFactory {
         return original;
     }
 
-    private CatalogTable replaceColumnName(
-            CatalogTable catalogTable, String original, String replacement) {
+    @VisibleForTesting
+    CatalogTable replaceColumnName(CatalogTable catalogTable, String original, String replacement) {
         checkNotNull(original, "original can not be null");
         checkNotNull(replacement, "replacement can not be null");
         checkArgument(StringUtils.isNotEmpty(original), "original can not be empty");
-        TableSchema tableSchema = catalogTable.getTableSchema();
         List<Column> columns = catalogTable.getTableSchema().getColumns();
+        Map<String, String> changedName = new LinkedHashMap<>();
         List<Column> newColumns =
                 columns.stream()
                         .map(
                                 column -> {
                                     if (column.getName().contains(original)) {
-                                        return column.rename(
+                                        changedName.put(
+                                                column.getName(),
                                                 column.getName().replace(original, replacement));
+                                        return column.rename(changedName.get(column.getName()));
                                     }
                                     return column;
                                 })
                         .collect(Collectors.toList());
-
+        List<String> newPrimaryKey = null;
+        if (catalogTable.getTableSchema().getPrimaryKey() != null
+                && catalogTable.getTableSchema().getPrimaryKey().getColumnNames() != null) {
+            newPrimaryKey =
+                    catalogTable.getTableSchema().getPrimaryKey().getColumnNames().stream()
+                            .map(key -> changedName.getOrDefault(key, key))
+                            .collect(Collectors.toList());
+        }
+        List<ConstraintKey> newConstraintKeys =
+                catalogTable.getTableSchema().getConstraintKeys().stream()
+                        .map(
+                                key -> {
+                                    List<ConstraintKey.ConstraintKeyColumn> columnNames =
+                                            key.getColumnNames().stream()
+                                                    .map(
+                                                            column ->
+                                                                    ConstraintKey
+                                                                            .ConstraintKeyColumn.of(
+                                                                            changedName
+                                                                                    .getOrDefault(
+                                                                                            column
+                                                                                                    .getColumnName(),
+                                                                                            column
+                                                                                                    .getColumnName()),
+                                                                            column.getSortType()))
+                                                    .collect(Collectors.toList());
+                                    return ConstraintKey.of(
+                                            key.getConstraintType(),
+                                            key.getConstraintName(),
+                                            columnNames);
+                                })
+                        .collect(Collectors.toList());
         TableSchema newTableSchema =
                 TableSchema.builder()
-                        .primaryKey(tableSchema.getPrimaryKey())
-                        .constraintKey(tableSchema.getConstraintKeys())
                         .columns(newColumns)
+                        .primaryKey(
+                                newPrimaryKey == null
+                                        ? null
+                                        : PrimaryKey.of(
+                                                catalogTable
+                                                        .getTableSchema()
+                                                        .getPrimaryKey()
+                                                        .getPrimaryKey(),
+                                                newPrimaryKey))
+                        .constraintKey(newConstraintKeys)
                         .build();
 
         return CatalogTable.of(
