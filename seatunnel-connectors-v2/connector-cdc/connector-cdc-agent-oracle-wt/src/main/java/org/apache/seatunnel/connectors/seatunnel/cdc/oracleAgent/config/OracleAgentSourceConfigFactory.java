@@ -23,6 +23,7 @@ import org.apache.seatunnel.connectors.cdc.debezium.EmbeddedDatabaseHistory;
 import io.debezium.connector.oracle.OracleConnector;
 import lombok.Getter;
 
+import java.sql.DriverManager;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -51,6 +52,11 @@ public class OracleAgentSourceConfigFactory extends JdbcSourceConfigFactory {
         validateConfig();
 
         try {
+            // Load DriverManager first to avoid deadlock between DriverManager's
+            // static initialization block and specific driver class's static
+            // initialization block.
+            DriverManager.getDrivers();
+
             Class.forName(DRIVER_CLASS_NAME);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);

@@ -30,6 +30,7 @@ import javax.sql.DataSource;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.DriverManager;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -114,6 +115,11 @@ public class DataSourceUtils implements Serializable {
                     Thread.currentThread().getContextClassLoader().loadClass(xaDataSourceClassName);
         } catch (final ClassNotFoundException ignored) {
             try {
+                // Load DriverManager first to avoid deadlock between DriverManager's
+                // static initialization block and specific driver class's static
+                // initialization block.
+                DriverManager.getDrivers();
+
                 xaDataSourceClass = Class.forName(xaDataSourceClassName);
             } catch (final ClassNotFoundException ex) {
                 throw new JdbcConnectorException(

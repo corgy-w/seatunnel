@@ -33,6 +33,7 @@ import io.debezium.util.Clock;
 import io.debezium.util.Metronome;
 
 import java.nio.ByteBuffer;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -61,6 +62,18 @@ import static java.lang.Math.toIntExact;
  * @author Horia Chiorean (hchiorea@redhat.com)
  */
 public class PostgresReplicationConnection extends JdbcConnection implements ReplicationConnection {
+
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
 
     private static final String TABLE_INCLUDE_LIST = "table.include.list";
     private static Logger LOGGER = LoggerFactory.getLogger(PostgresReplicationConnection.class);
