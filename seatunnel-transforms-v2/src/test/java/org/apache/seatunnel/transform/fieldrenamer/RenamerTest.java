@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
 import org.apache.seatunnel.api.table.type.BasicType;
@@ -440,5 +441,40 @@ public class RenamerTest {
                         .getColumns()
                         .get(3)
                         .getName());
+
+        AlterTableColumnsEvent alterTableColumnsEvent =
+                new AlterTableColumnsEvent(
+                        DEFAULT_TABLE.getTableId(),
+                        Collections.singletonList(
+                                new AlterTableAddColumnEvent(
+                                        TableIdentifier.of(
+                                                DEFAULT_TABLE.getCatalogName(),
+                                                TablePath.of("test", "test2")),
+                                        PhysicalColumn.of(
+                                                "f1_new",
+                                                BasicType.LONG_TYPE,
+                                                null,
+                                                false,
+                                                null,
+                                                null,
+                                                "int unsigned",
+                                                false,
+                                                false,
+                                                null,
+                                                null,
+                                                null),
+                                        false,
+                                        "f1")));
+        AlterTableColumnsEvent newAlterTableColumnsEvent =
+                (AlterTableColumnsEvent) transform2.mapSchemaChangeEvent(alterTableColumnsEvent);
+        Assertions.assertEquals(
+                "abcF1_NEWee",
+                ((AlterTableAddColumnEvent) newAlterTableColumnsEvent.getEvents().get(0))
+                        .getColumn()
+                        .getName());
+        Assertions.assertEquals(
+                "abcF1ee",
+                ((AlterTableAddColumnEvent) newAlterTableColumnsEvent.getEvents().get(0))
+                        .getAfterColumn());
     }
 }

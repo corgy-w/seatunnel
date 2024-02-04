@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -275,5 +276,29 @@ public class RemoverTest {
                         false,
                         "f2");
         Assertions.assertNull(transform.mapSchemaChangeEvent(alterTableChangeColumnEvent));
+
+        AlterTableColumnsEvent alterTableColumnsEvent =
+                new AlterTableColumnsEvent(
+                        DEFAULT_TABLE.getTableId(),
+                        Collections.singletonList(
+                                new AlterTableChangeColumnEvent(
+                                        TableIdentifier.of(null, TablePath.of("test.test3")),
+                                        "f2",
+                                        PhysicalColumn.of(
+                                                "f3_xx",
+                                                BasicType.LONG_TYPE,
+                                                null,
+                                                false,
+                                                null,
+                                                null,
+                                                "int unsigned",
+                                                false,
+                                                false,
+                                                null,
+                                                null,
+                                                null),
+                                        false,
+                                        "f2")));
+        Assertions.assertNull(transform.mapSchemaChangeEvent(alterTableColumnsEvent));
     }
 }

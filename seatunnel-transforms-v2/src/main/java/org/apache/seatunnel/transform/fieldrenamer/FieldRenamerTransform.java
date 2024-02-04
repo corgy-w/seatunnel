@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
@@ -46,6 +47,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -438,7 +440,16 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
         } else if (schemaChangeEvent instanceof AlterTableColumnsEvent) {
             AlterTableColumnsEvent alterTableColumnsEvent =
                     (AlterTableColumnsEvent) schemaChangeEvent;
-            alterTableColumnsEvent.getEvents().forEach(this::mapSchemaChangeEvent);
+            List<AlterTableColumnEvent> events =
+                    alterTableColumnsEvent.getEvents().stream()
+                            .map(this::mapSchemaChangeEvent)
+                            .filter(Objects::nonNull)
+                            .map(e -> (AlterTableColumnEvent) e)
+                            .collect(Collectors.toList());
+            if (events.isEmpty()) {
+                return null;
+            }
+            return new AlterTableColumnsEvent(alterTableColumnsEvent.getTableIdentifier(), events);
         }
         return schemaChangeEvent;
     }

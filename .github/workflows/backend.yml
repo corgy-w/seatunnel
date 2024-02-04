@@ -425,7 +425,7 @@ jobs:
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e > /tmp/${timestamp}_sub_module_all_1.txt
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_1.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 0`
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -447,7 +447,7 @@ jobs:
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_2.txt
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_2.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 1`
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -469,7 +469,7 @@ jobs:
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_3.txt
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_3.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 2`
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -491,7 +491,7 @@ jobs:
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_4.txt
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_4.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 3`
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -513,7 +513,7 @@ jobs:
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_5.txt
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_5.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 4`
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -535,7 +535,7 @@ jobs:
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_6.txt
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_6.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 5`
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -557,7 +557,7 @@ jobs:
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_7.txt
           sub_modules=`python tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_7.txt`
           run_it_modules=`python tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 6`
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
