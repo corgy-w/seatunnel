@@ -26,6 +26,7 @@ import org.apache.seatunnel.connectors.dolphindb.catalog.DolphinDBSqlGenerator;
 import com.dolphindb.jdbc.JDBCConnection;
 import com.xxdb.comm.SqlStdEnum;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
@@ -50,6 +51,15 @@ public class DolphinDbDeleteWriter implements DolphinDBWriter {
         this.pluginConfig = pluginConfig;
         this.seaTunnelRowType = catalogTable.getTableSchema().toPhysicalRowDataType();
         this.dbConnection = createDbConnection();
+        this.dbConnection
+                .createStatement()
+                .execute(
+                        catalogTable.getTableId().getTableName()
+                                + " = loadTable(\""
+                                + catalogTable.getTableId().getDatabaseName()
+                                + "\", \""
+                                + catalogTable.getTableId().getTableName()
+                                + "\")");
         this.deleteSql =
                 DolphinDBSqlGenerator.generateDeleteRowSql(
                         catalogTable.getTableId().getDatabaseName(),
@@ -62,7 +72,11 @@ public class DolphinDbDeleteWriter implements DolphinDBWriter {
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(deleteSql)) {
             Object[] fields = seaTunnelRow.getFields();
             for (int i = 0; i < fields.length; i++) {
-                preparedStatement.setObject(i + 1, fields[i]);
+                if (fields[i] != null && fields[i] instanceof BigDecimal) {
+                    preparedStatement.setObject(i + 1, ((BigDecimal) fields[i]).doubleValue());
+                } else {
+                    preparedStatement.setObject(i + 1, fields[i]);
+                }
             }
             preparedStatement.execute();
         } catch (SQLException e) {
