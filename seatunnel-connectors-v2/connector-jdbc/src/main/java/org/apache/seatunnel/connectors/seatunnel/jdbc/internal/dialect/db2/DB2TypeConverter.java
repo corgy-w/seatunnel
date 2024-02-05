@@ -377,9 +377,9 @@ public class DB2TypeConverter implements TypeConverter<BasicTypeDefine> {
                                 DB2_CLOB,
                                 length);
                     }
-                    builder.columnType(String.format("%s(%s)", DB2_CLOB, column.getColumnLength()));
+                    builder.columnType(String.format("%s(%s)", DB2_CLOB, length));
                     builder.dataType(DB2_CLOB);
-                    builder.length(column.getColumnLength());
+                    builder.length(length);
                 }
                 break;
             case DATE:
