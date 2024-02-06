@@ -34,8 +34,8 @@ import org.apache.seatunnel.common.config.CheckConfigUtil;
 import org.apache.seatunnel.common.config.CheckResult;
 import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.connectors.seatunnel.file.hdfs.sink.BaseHdfsFileSink;
-import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3Conf;
 import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3ConfigOptions;
+import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
@@ -67,7 +67,8 @@ public class S3RedshiftSink extends BaseHdfsFileSink
             ReadonlyConfig readonlyConfig) {
         this.readonlyConfig = readonlyConfig;
         this.pluginConfig = S3RedshiftConf.enhanceS3RedshiftConfig(pluginConfig);
-        this.hadoopConf = S3Conf.buildWithConfig(this.pluginConfig);
+        this.hadoopConf =
+                S3HadoopConf.buildWithReadOnlyConfig(ReadonlyConfig.fromConfig(this.pluginConfig));
         this.s3RedshiftConf = s3RedshiftConf;
         this.catalogTable = catalogTable;
         this.setTypeInfo(catalogTable.getTableSchema().toPhysicalRowDataType());
@@ -96,7 +97,8 @@ public class S3RedshiftSink extends BaseHdfsFileSink
                             getPluginName(), PluginType.SINK, checkResult.getMsg()));
         }
         this.pluginConfig = S3RedshiftConf.enhanceS3RedshiftConfig(this.pluginConfig);
-        hadoopConf = S3Conf.buildWithConfig(this.pluginConfig);
+        hadoopConf =
+                S3HadoopConf.buildWithReadOnlyConfig(ReadonlyConfig.fromConfig(this.pluginConfig));
         s3RedshiftConf = S3RedshiftConf.valueOf(this.pluginConfig);
     }
 
