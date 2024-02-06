@@ -67,7 +67,7 @@ public class S3RedshiftConfig extends S3ConfigOptions {
     public static final Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key("data_save_mode")
                     .enumType(DataSaveMode.class)
-                    .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
+                    .defaultValue(DataSaveMode.APPEND_DATA)
                     .withDescription("data_save_mode");
 
     public static final Option<String> CUSTOM_SQL =

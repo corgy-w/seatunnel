@@ -27,7 +27,7 @@ import org.apache.seatunnel.connectors.cdc.informix.source.reader.fetch.snapshot
 import com.informix.jdbc.IfmxReadableType;
 import com.informix.stream.cdc.records.IfxCDCOperationRecord;
 import io.debezium.DebeziumException;
-import io.debezium.connector.informix.InformixConnection;
+import io.debezium.connector.informix.InformixCDCEngine;
 import io.debezium.connector.informix.InformixDatabaseSchema;
 import io.debezium.connector.informix.InformixOffsetContext;
 import io.debezium.connector.informix.InformixStreamingChangeEventSource;
@@ -54,14 +54,14 @@ public class InformixCDCLogSplitReadTask extends InformixStreamingChangeEventSou
     public InformixCDCLogSplitReadTask(
             InformixOffsetContext offsetContext,
             InformixSourceConfig sourceConfig,
-            InformixConnection connection,
+            InformixCDCEngine cdcEngine,
             JdbcSourceEventDispatcher eventDispatcher,
             ErrorHandler errorHandler,
             InformixDatabaseSchema databaseSchema,
             IncrementalSplit split) {
         super(
                 sourceConfig,
-                connection,
+                cdcEngine,
                 split.getTableIds(),
                 eventDispatcher,
                 errorHandler,

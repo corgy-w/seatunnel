@@ -17,10 +17,12 @@
 
 package org.apache.seatunnel.connectors.cdc.informix.utils;
 
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.informix.source.offset.InformixOffset;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.informix.InformixTypeConverter;
 
 import io.debezium.connector.informix.Lsn;
 import io.debezium.connector.informix.SourceInfo;
@@ -44,22 +46,35 @@ public class InformixUtils {
         }
 
         // use first field in primary key as the split key
-        return convert(primaryKeys.get(0));
+        return convertRowType(primaryKeys.get(0));
     }
 
     public static SeaTunnelRowType convert(Table table) {
-        return convert(table.columns().toArray(new Column[0]));
+        return convertRowType(table.columns().toArray(new Column[0]));
     }
 
-    public static SeaTunnelRowType convert(Column... columns) {
+    public static SeaTunnelRowType convertRowType(Column... columns) {
         String[] fieldNames = new String[columns.length];
         SeaTunnelDataType<?>[] fieldTypes = new SeaTunnelDataType[columns.length];
         for (int i = 0; i < columns.length; i++) {
             Column column = columns[i];
             fieldNames[i] = column.name();
-            fieldTypes[i] = InformixTypeConverter.convert(column);
+            fieldTypes[i] = convert(column);
         }
         return new SeaTunnelRowType(fieldNames, fieldTypes);
+    }
+
+    public static SeaTunnelDataType convert(Column column) {
+        BasicTypeDefine typeDefine =
+                BasicTypeDefine.builder()
+                        .name(column.name())
+                        .columnType(column.typeName())
+                        .dataType(column.typeName())
+                        .precision((long) column.length())
+                        .length((long) column.length())
+                        .scale(column.scale().orElse(0))
+                        .build();
+        return InformixTypeConverter.INSTANCE.convert(typeDefine).getDataType();
     }
 
     public static InformixOffset createCDCOffset(Map<String, ?> offset) {

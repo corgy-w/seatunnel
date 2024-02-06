@@ -25,9 +25,6 @@ import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableModifyColumnEvent;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
-import org.apache.seatunnel.api.table.type.DecimalType;
-import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.mysql.MysqlDataTypeConvertor;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
@@ -39,7 +36,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.source.JdbcSourceTable;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.mysql.cj.MysqlType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -182,12 +178,16 @@ public class MysqlDialect implements JdbcDialect {
         // 2. If a query is configured but does not contain a WHERE clause and tablePath is
         // configured, use TABLE STATUS.
         // 3. If a query is configured with a WHERE clause, or a query statement is configured but
-        // tablePath is not, use COUNT(*).
+        // tablePath is TablePath.DEFAULT, use COUNT(*).
 
         boolean useTableStats =
                 StringUtils.isBlank(table.getQuery())
                         || (!table.getQuery().toLowerCase().contains("where")
-                                && table.getTablePath() != null);
+                                && table.getTablePath() != null
+                                && !TablePath.DEFAULT
+                                        .getFullName()
+                                        .equals(table.getTablePath().getFullName()));
+
         if (useTableStats) {
             // The statement used to get approximate row count which is less
             // accurate than COUNT(*), but is more efficient for large table.
@@ -232,6 +232,8 @@ public class MysqlDialect implements JdbcDialect {
                                                     ((AlterTableChangeColumnEvent) column)
                                                             .getOldColumn(),
                                                     this.buildColumnIdentifySql(
+                                                            column.tableIdentifier()
+                                                                    .getCatalogName(),
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn(),
                                                             fieldIde));
@@ -239,22 +241,34 @@ public class MysqlDialect implements JdbcDialect {
                                 } else if (column instanceof AlterTableModifyColumnEvent) {
                                     String sql =
                                             String.format(
-                                                    "alter table %s MODIFY COLUMN %s",
+                                                    "alter table %s MODIFY COLUMN %s DEFAULT %s ",
                                                     tablePath.getFullName(),
                                                     this.buildColumnIdentifySql(
+                                                            column.tableIdentifier()
+                                                                    .getCatalogName(),
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn(),
-                                                            fieldIde));
+                                                            fieldIde),
+                                                    this.getDefaultValue(
+                                                            ((AlterTableModifyColumnEvent) column)
+                                                                    .getColumn()
+                                                                    .getDefaultValue()));
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableAddColumnEvent) {
                                     String sql =
                                             String.format(
-                                                    "alter table %s add column %s ",
+                                                    "alter table %s add column %s DEFAULT %s ",
                                                     tablePath.getFullName(),
                                                     this.buildColumnIdentifySql(
+                                                            column.tableIdentifier()
+                                                                    .getCatalogName(),
                                                             ((AlterTableAddColumnEvent) column)
                                                                     .getColumn(),
-                                                            fieldIde));
+                                                            fieldIde),
+                                                    this.getDefaultValue(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn()
+                                                                    .getDefaultValue()));
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableDropColumnEvent) {
                                     String sql =
@@ -273,88 +287,14 @@ public class MysqlDialect implements JdbcDialect {
         return sqlList;
     }
 
-    private String buildColumnIdentifySql(Column column, String fieldIde) {
-        final MysqlDataTypeConvertor mysqlDataTypeConvertor = new MysqlDataTypeConvertor();
+    private String buildColumnIdentifySql(String catalogName, Column column, String fieldIde) {
         final List<String> columnSqls = new ArrayList<>();
         columnSqls.add(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "`"));
-        // Column name
-        SqlType dataType = column.getDataType().getSqlType();
-        boolean isBytes = StringUtils.equals(dataType.name(), SqlType.BYTES.name());
-        Long columnLength = column.getLongColumnLength();
-        if (isBytes) {
-            Long bitLen = column.getBitLen() == null ? columnLength : column.getBitLen();
-            if (bitLen >= 0 && bitLen <= 64) {
-                columnSqls.add(MysqlType.BIT.getName());
-                columnSqls.add("(" + (bitLen == 0 ? 1 : bitLen) + ")");
-            } else {
-                bitLen = bitLen == -1 ? bitLen : bitLen >> 3;
-                if (bitLen >= 0 && bitLen <= 255) {
-                    columnSqls.add(MysqlType.TINYBLOB.getName());
-                } else if (bitLen <= 16383) {
-                    columnSqls.add(MysqlType.BLOB.getName());
-                } else if (bitLen <= 16777215) {
-                    columnSqls.add(MysqlType.MEDIUMBLOB.getName());
-                } else {
-                    columnSqls.add(MysqlType.LONGBLOB.getName());
-                }
-            }
+        if (DatabaseIdentifier.MYSQL.equalsIgnoreCase(catalogName)
+                && column.getSourceType() != null) {
+            columnSqls.add(column.getSourceType());
         } else {
-            if (columnLength >= 16383 && columnLength <= 65535) {
-                columnSqls.add(MysqlType.TEXT.getName());
-            } else if (columnLength >= 65535 && columnLength <= 16777215) {
-                columnSqls.add(MysqlType.MEDIUMTEXT.getName());
-            } else if (columnLength > 16777215) {
-                columnSqls.add(MysqlType.LONGTEXT.getName());
-            } else {
-                // Column type
-                columnSqls.add(
-                        mysqlDataTypeConvertor
-                                .toConnectorType(column.getName(), column.getDataType(), null)
-                                .getName());
-                // Column length
-                // add judge is need column legth
-                if (column.getColumnLength() != null) {
-                    final String name =
-                            mysqlDataTypeConvertor
-                                    .toConnectorType(column.getName(), column.getDataType(), null)
-                                    .getName();
-                    String fieSql = "";
-                    List<String> list = new ArrayList<>();
-                    list.add(MysqlType.VARCHAR.getName());
-                    list.add(MysqlType.CHAR.getName());
-                    list.add(MysqlType.BIGINT.getName());
-                    list.add(MysqlType.INT.getName());
-                    list.add(MysqlType.SMALLINT.getName());
-                    if (StringUtils.equals(name, MysqlType.DECIMAL.getName())) {
-                        DecimalType decimalType = (DecimalType) column.getDataType();
-                        fieSql =
-                                String.format(
-                                        "(%d, %d)",
-                                        decimalType.getPrecision(), decimalType.getScale());
-                        columnSqls.add(fieSql);
-                    } else if (list.contains(name)) {
-                        if (MysqlType.VARCHAR.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "16367" + ")";
-                        } else if (MysqlType.CHAR.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "255" + ")";
-                        } else if (MysqlType.SMALLINT.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "6" + ")";
-                        } else if (MysqlType.BIGINT.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "20" + ")";
-                        } else if (MysqlType.INT.getName().equals(name)
-                                && column.getColumnLength() <= 0) {
-                            fieSql = "(" + "11" + ")";
-                        } else {
-                            fieSql = "(" + column.getColumnLength() + ")";
-                        }
-                        columnSqls.add(fieSql);
-                    }
-                }
-            }
+            columnSqls.add(MySqlTypeConverter.INSTANCE.reconvert(column).getColumnType());
         }
         // nullable
         if (column.isNullable()) {
@@ -366,5 +306,12 @@ public class MysqlDialect implements JdbcDialect {
             columnSqls.add("COMMENT '" + column.getComment() + "'");
         }
         return String.join(" ", columnSqls);
+    }
+
+    private String getDefaultValue(Object defaultValue) {
+        if (defaultValue == null) {
+            return "null";
+        }
+        return String.format("'%s'", defaultValue.toString());
     }
 }

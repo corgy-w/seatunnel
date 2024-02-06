@@ -114,7 +114,7 @@ public class OracleSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.taskContext = new OracleTaskContext(connectorConfig, databaseSchema);
 
         final int queueSize =
-                sourceSplitBase.isSnapshotSplit()
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
                         : getSourceConfig().getDbzConnectorConfig().getMaxQueueSize();
         this.queue =

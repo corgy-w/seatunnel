@@ -21,10 +21,7 @@ import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SupportParallelism;
-import org.apache.seatunnel.api.table.catalog.Catalog;
-import org.apache.seatunnel.api.table.catalog.CatalogOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
@@ -44,8 +41,6 @@ import org.apache.seatunnel.connectors.cdc.debezium.row.SeaTunnelRowDebeziumDese
 import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.config.PostgresSourceConfigFactory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.source.offset.LsnOffsetFactory;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresCatalogFactory;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import org.apache.kafka.connect.data.Struct;
 
@@ -117,21 +112,7 @@ public class PostgresIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
                             config.get(JdbcSourceOptions.DEBEZIUM_PROPERTIES), tableIdStructMap);
         }
 
-        SeaTunnelDataType<SeaTunnelRow> physicalRowType;
-        if (dataType == null) {
-            // TODO: support metadata keys
-            try (Catalog catalog =
-                    new PostgresCatalogFactory()
-                            .createCatalog(DatabaseIdentifier.POSTGRESQL, config)) {
-                catalog.open();
-                CatalogTable table =
-                        catalog.getTable(
-                                TablePath.of(config.get(CatalogOptions.TABLE_NAMES).get(0)));
-                physicalRowType = table.getTableSchema().toPhysicalRowDataType();
-            }
-        } else {
-            physicalRowType = dataType;
-        }
+        SeaTunnelDataType<SeaTunnelRow> physicalRowType = dataType;
         String zoneId = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);
         return (DebeziumDeserializationSchema<T>)
                 SeaTunnelRowDebeziumDeserializeSchema.builder()

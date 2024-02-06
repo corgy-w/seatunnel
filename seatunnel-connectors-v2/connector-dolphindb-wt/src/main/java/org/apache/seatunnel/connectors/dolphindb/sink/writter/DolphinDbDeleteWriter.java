@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.connectors.dolphindb.sink.writter;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
@@ -9,6 +26,7 @@ import org.apache.seatunnel.connectors.dolphindb.catalog.DolphinDBSqlGenerator;
 import com.dolphindb.jdbc.JDBCConnection;
 import com.xxdb.comm.SqlStdEnum;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
@@ -33,6 +51,15 @@ public class DolphinDbDeleteWriter implements DolphinDBWriter {
         this.pluginConfig = pluginConfig;
         this.seaTunnelRowType = catalogTable.getTableSchema().toPhysicalRowDataType();
         this.dbConnection = createDbConnection();
+        this.dbConnection
+                .createStatement()
+                .execute(
+                        catalogTable.getTableId().getTableName()
+                                + " = loadTable(\""
+                                + catalogTable.getTableId().getDatabaseName()
+                                + "\", \""
+                                + catalogTable.getTableId().getTableName()
+                                + "\")");
         this.deleteSql =
                 DolphinDBSqlGenerator.generateDeleteRowSql(
                         catalogTable.getTableId().getDatabaseName(),
@@ -45,7 +72,11 @@ public class DolphinDbDeleteWriter implements DolphinDBWriter {
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(deleteSql)) {
             Object[] fields = seaTunnelRow.getFields();
             for (int i = 0; i < fields.length; i++) {
-                preparedStatement.setObject(i + 1, fields[i]);
+                if (fields[i] != null && fields[i] instanceof BigDecimal) {
+                    preparedStatement.setObject(i + 1, ((BigDecimal) fields[i]).doubleValue());
+                } else {
+                    preparedStatement.setObject(i + 1, fields[i]);
+                }
             }
             preparedStatement.execute();
         } catch (SQLException e) {

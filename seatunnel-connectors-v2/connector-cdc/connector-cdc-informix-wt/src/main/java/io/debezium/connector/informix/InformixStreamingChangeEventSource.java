@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 public class InformixStreamingChangeEventSource
         implements StreamingChangeEventSource<InformixOffsetContext> {
     private final InformixSourceConfig sourceConfig;
-    private final InformixConnection connection;
+    private final InformixCDCEngine cdcEngine;
     private final List<TableId> tableIds;
     private final EventDispatcher<TableId> eventDispatcher;
     private final ErrorHandler errorHandler;
@@ -57,14 +57,14 @@ public class InformixStreamingChangeEventSource
 
     public InformixStreamingChangeEventSource(
             InformixSourceConfig sourceConfig,
-            InformixConnection connection,
+            InformixCDCEngine cdcEngine,
             List<TableId> tableIds,
             EventDispatcher<TableId> eventDispatcher,
             ErrorHandler errorHandler,
             Clock clock,
             InformixDatabaseSchema databaseSchema) {
         this.sourceConfig = sourceConfig;
-        this.connection = connection;
+        this.cdcEngine = cdcEngine;
         this.tableIds = tableIds;
         this.eventDispatcher = eventDispatcher;
         this.errorHandler = errorHandler;
@@ -75,7 +75,6 @@ public class InformixStreamingChangeEventSource
     @Override
     public void execute(ChangeEventSourceContext context, InformixOffsetContext offsetContext)
             throws InterruptedException {
-        InformixCDCEngine cdcEngine = connection.getCdcEngine();
         InformixTransactionCache transCache = offsetContext.getInformixTransactionCache();
 
         TxLogPosition lastPosition = offsetContext.getChangePosition();

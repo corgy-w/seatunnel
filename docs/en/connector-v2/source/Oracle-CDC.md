@@ -2,10 +2,10 @@
 
 > Oracle CDC source connector
 
-## Description
+## Support Those Engines
 
-The Oracle CDC connector allows for reading snapshot data and incremental data from Oracle database. This document
-describes how to setup the Oracle CDC connector to run SQL queries against Oracle databases.
+> SeaTunnel Zeta<br/>
+> Flink <br/>
 
 ## Key features
 
@@ -16,203 +16,287 @@ describes how to setup the Oracle CDC connector to run SQL queries against Oracl
 - [x] [parallelism](../../concept/connector-v2-features.md)
 - [x] [support user-defined split](../../concept/connector-v2-features.md)
 
-## Options
+## Description
 
-|                      name                      |   type   | required | default value |
-|------------------------------------------------|----------|----------|---------------|
-| username                                       | String   | Yes      | -             |
-| password                                       | String   | Yes      | -             |
-| database-names                                 | List     | No       | -             |
-| table-names                                    | List     | Yes      | -             |
-| base-url                                       | String   | Yes      | -             |
-| startup.mode                                   | Enum     | No       | INITIAL       |
-| startup.timestamp                              | Long     | No       | -             |
-| startup.specific-offset.file                   | String   | No       | -             |
-| startup.specific-offset.pos                    | Long     | No       | -             |
-| stop.mode                                      | Enum     | No       | NEVER         |
-| stop.timestamp                                 | Long     | No       | -             |
-| stop.specific-offset.file                      | String   | No       | -             |
-| stop.specific-offset.pos                       | Long     | No       | -             |
-| incremental.parallelism                        | Integer  | No       | 1             |
-| snapshot.split.size                            | Integer  | No       | 8096          |
-| snapshot.fetch.size                            | Integer  | No       | 1024          |
-| server-time-zone                               | String   | No       | UTC           |
-| connect.timeout                                | Duration | No       | 30s           |
-| connect.max-retries                            | Integer  | No       | 3             |
-| connection.pool.size                           | Integer  | No       | 20            |
-| chunk-key.even-distribution.factor.upper-bound | Double   | No       | 100           |
-| chunk-key.even-distribution.factor.lower-bound | Double   | No       | 0.05          |
-| sample-sharding.threshold                      | int      | No       | 1000          |
-| inverse-sampling.rate                          | int      | No       | 1000          |
-| exactly_once                                   | Boolean  | No       | true          |
-| debezium.*                                     | config   | No       | -             |
-| format                                         | Enum     | No       | DEFAULT       |
-| common-options                                 |          | no       | -             |
+The Oracle CDC connector allows for reading snapshot data and incremental data from Oracle database. This document
+describes how to set up the Oracle CDC connector to run SQL queries against Oracle databases.
 
-### username [String]
+## Supported DataSource Info
 
-Name of the database to use when connecting to the database server.
+| Datasource |                    Supported versions                    |          Driver          |                  Url                   |                               Maven                                |
+|------------|----------------------------------------------------------|--------------------------|----------------------------------------|--------------------------------------------------------------------|
+| Oracle     | Different dependency version has different driver class. | oracle.jdbc.OracleDriver | jdbc:oracle:thin:@datasource01:1523:xe | https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8 |
 
-### password [String]
+## Database Dependency
 
-Password to use when connecting to the database server.
+### Install Jdbc Driver
 
-### database-names [List]
+#### For Spark/Flink Engine
 
-Database name of the database to monitor.
+> 1. You need to ensure that the [jdbc driver jar package](https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8) has been placed in directory `${SEATUNNEL_HOME}/plugins/`.
+> 2. To support the i18n character set, copy the `orai18n.jar` to the `$SEATNUNNEL_HOME/plugins/` directory.
 
-### table-names [List]
+#### For SeaTunnel Zeta Engine
 
-Table name is a combination of schema name and table name (databaseName.schemaName.tableName).
+> 1. You need to ensure that the [jdbc driver jar package](https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8) has been placed in directory `${SEATUNNEL_HOME}/lib/`.
+> 2. To support the i18n character set, copy the `orai18n.jar` to the `$SEATNUNNEL_HOME/lib/` directory.
 
-### base-url [String]
+### Enable Oracle Logminer
 
-URL has to be with database, like "jdbc:oracle:thin:@127.0.0.1:1521:test".
+> To enable Oracle CDC (Change Data Capture) using Logminer in Seatunnel, which is a built-in tool provided by Oracle, follow the steps below:
 
-### startup.mode [Enum]
+#### Enabling Logminer without CDB (Container Database) mode.
 
-Optional startup mode for Oracle CDC consumer, valid enumerations are "initial", "earliest", "latest" and "specific".
+1. The operating system creates an empty file directory to store Oracle archived logs and user tablespaces.
 
-### startup.timestamp [Long]
+```shell
+mkdir -p /opt/oracle/oradata/recovery_area
+mkdir -p /opt/oracle/oradata/ORCLCDB
+chown -R oracle /opt/oracle/***
+```
 
-Start from the specified epoch timestamp (in milliseconds).
+2. Login as admin and enable Oracle archived logs.
 
-**Note, This option is required when the "startup.mode" option used `'timestamp'`.**
+```sql
+sqlplus /nolog;
+connect sys as sysdba;
+alter system set db_recovery_file_dest_size = 10G;
+alter system set db_recovery_file_dest = '/opt/oracle/oradata/recovery_area' scope=spfile;
+shutdown immediate;
+startup mount;
+alter database archivelog;
+alter database open;
+ALTER DATABASE ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+archive log list;
+```
 
-### startup.specific-offset.file [String]
+3. Login as admin and create an account called logminer_user with the password "oracle", and grant it privileges to read tables and logs.
 
-Start from the specified binlog file name.
+```sql
+CREATE TABLESPACE logminer_tbs DATAFILE '/opt/oracle/oradata/ORCLCDB/logminer_tbs.dbf' SIZE 25M REUSE AUTOEXTEND ON MAXSIZE UNLIMITED;
+CREATE USER logminer_user IDENTIFIED BY oracle DEFAULT TABLESPACE logminer_tbs QUOTA UNLIMITED ON logminer_tbs;
 
-**Note, This option is required when the "startup.mode" option used `'specific'`.**
+GRANT CREATE SESSION TO logminer_user;
+GRANT SELECT ON V_$DATABASE to logminer_user;
+GRANT SELECT ON V_$LOG TO logminer_user;
+GRANT SELECT ON V_$LOGFILE TO logminer_user;
+GRANT SELECT ON V_$LOGMNR_LOGS TO logminer_user;
+GRANT SELECT ON V_$LOGMNR_CONTENTS TO logminer_user;
+GRANT SELECT ON V_$ARCHIVED_LOG TO logminer_user;
+GRANT SELECT ON V_$ARCHIVE_DEST_STATUS TO logminer_user;
+GRANT EXECUTE ON DBMS_LOGMNR TO logminer_user;
+GRANT EXECUTE ON DBMS_LOGMNR_D TO logminer_user;
+```
 
-### startup.specific-offset.pos [Long]
+##### Oracle 11g is not supported
 
-Start from the specified binlog file position.
+```sql
+GRANT LOGMINING TO logminer_user;
+```
 
-**Note, This option is required when the "startup.mode" option used `'specific'`.**
+##### Grant privileges only to the tables that need to be collected
 
-### stop.mode [Enum]
+```sql
+GRANT SELECT ANY TABLE TO logminer_user;
+GRANT ANALYZE ANY TO logminer_user;
+```
 
-Optional stop mode for Oracle CDC consumer, valid enumerations are "never".
+#### To enable Logminer in Oracle with CDB (Container Database) + PDB (Pluggable Database) mode, follow the steps below:
 
-### stop.timestamp [Long]
+1. The operating system creates an empty file directory to store Oracle archived logs and user tablespaces.
 
-Stop from the specified epoch timestamp (in milliseconds).
+```shell
+mkdir -p /opt/oracle/oradata/recovery_area
+mkdir -p /opt/oracle/oradata/ORCLCDB
+mkdir -p /opt/oracle/oradata/ORCLCDB/ORCLPDB1
+chown -R oracle /opt/oracle/***
+```
 
-**Note, This option is required when the "stop.mode" option used `'timestamp'`.**
+2. Login as admin and enable logging
 
-### stop.specific-offset.file [String]
+```sql
+sqlplus /nolog
+connect sys as sysdba; # Password: oracle
+alter system set db_recovery_file_dest_size = 10G;
+alter system set db_recovery_file_dest = '/opt/oracle/oradata/recovery_area' scope=spfile;
+shutdown immediate
+startup mount
+alter database archivelog;
+alter database open;
+archive log list;
+```
 
-Stop from the specified binlog file name.
+3. Executing in CDB
 
-**Note, This option is required when the "stop.mode" option used `'specific'`.**
+```sql
+ALTER TABLE TEST.* ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+ALTER TABLE TEST.T2 ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS;
+```
 
-### stop.specific-offset.pos [Long]
+4. Creating debeziume account
 
-Stop from the specified binlog file position.
+> Operating in CDB
 
-**Note, This option is required when the "stop.mode" option used `'specific'`.**
+```sql
+sqlplus sys/top_secret@//localhost:1521/ORCLCDB as sysdba
+CREATE TABLESPACE logminer_tbs DATAFILE '/opt/oracle/oradata/ORCLCDB/logminer_tbs.dbf'
+ SIZE 25M REUSE AUTOEXTEND ON MAXSIZE UNLIMITED;
+exit;
+```
 
-### incremental.parallelism [Integer]
+> Operating in PDB
 
-The number of parallel readers in the incremental phase.
+```sql
+sqlplus sys/top_secret@//localhost:1521/ORCLPDB1 as sysdba
+ CREATE TABLESPACE logminer_tbs DATAFILE '/opt/oracle/oradata/ORCLCDB/ORCLPDB1/logminer_tbs.dbf'
+   SIZE 25M REUSE AUTOEXTEND ON MAXSIZE UNLIMITED;
+ exit;
+```
 
-### snapshot.split.size [Integer]
+5. Operating in CDB
 
-The split size (number of rows) of table snapshot, captured tables are split into multiple splits when read the snapshot
-of table.
+```sql
+sqlplus sys/top_secret@//localhost:1521/ORCLCDB as sysdba
 
-### snapshot.fetch.size [Integer]
+CREATE USER c##dbzuser IDENTIFIED BY dbz
+DEFAULT TABLESPACE logminer_tbs
+QUOTA UNLIMITED ON logminer_tbs
+CONTAINER=ALL;
 
-The maximum fetch size for per poll when read table snapshot.
+GRANT CREATE SESSION TO c##dbzuser CONTAINER=ALL;
+GRANT SET CONTAINER TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ON V_$DATABASE to c##dbzuser CONTAINER=ALL;
+GRANT FLASHBACK ANY TABLE TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ANY TABLE TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT_CATALOG_ROLE TO c##dbzuser CONTAINER=ALL;
+GRANT EXECUTE_CATALOG_ROLE TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ANY TRANSACTION TO c##dbzuser CONTAINER=ALL;
+GRANT LOGMINING TO c##dbzuser CONTAINER=ALL;
 
-### chunk-key.even-distribution.factor.upper-bound [Double]
+GRANT CREATE TABLE TO c##dbzuser CONTAINER=ALL;
+GRANT LOCK ANY TABLE TO c##dbzuser CONTAINER=ALL;
+GRANT CREATE SEQUENCE TO c##dbzuser CONTAINER=ALL;
 
-The upper bound of the chunk key distribution factor. This factor is used to determine whether the table data is evenly distributed. If the distribution factor is calculated to be less than or equal to this upper bound (i.e., (MAX(id) - MIN(id) + 1) / row count), the table chunks would be optimized for even distribution. Otherwise, if the distribution factor is greater, the table will be considered as unevenly distributed and the sampling-based sharding strategy will be used if the estimated shard count exceeds the value specified by `sample-sharding.threshold`. The default value is 100.0.
+GRANT EXECUTE ON DBMS_LOGMNR TO c##dbzuser CONTAINER=ALL;
+GRANT EXECUTE ON DBMS_LOGMNR_D TO c##dbzuser CONTAINER=ALL;
 
-### chunk-key.even-distribution.factor.lower-bound [Double]
+GRANT SELECT ON V_$LOG TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ON V_$LOG_HISTORY TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ON V_$LOGMNR_LOGS TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ON V_$LOGMNR_CONTENTS TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ON V_$LOGMNR_PARAMETERS TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ON V_$LOGFILE TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ON V_$ARCHIVED_LOG TO c##dbzuser CONTAINER=ALL;
+GRANT SELECT ON V_$ARCHIVE_DEST_STATUS TO c##dbzuser CONTAINER=ALL;
+GRANT analyze any TO debeziume_1 CONTAINER=ALL;
 
-The lower bound of the chunk key distribution factor. This factor is used to determine whether the table data is evenly distributed. If the distribution factor is calculated to be greater than or equal to this lower bound (i.e., (MAX(id) - MIN(id) + 1) / row count), the table chunks would be optimized for even distribution. Otherwise, if the distribution factor is less, the table will be considered as unevenly distributed and the sampling-based sharding strategy will be used if the estimated shard count exceeds the value specified by `sample-sharding.threshold`. The default value is 0.05.
+exit;
+```
 
-### sample-sharding.threshold [Integer]
+## Data Type Mapping
 
-This configuration specifies the threshold of estimated shard count to trigger the sample sharding strategy. When the distribution factor is outside the bounds specified by `chunk-key.even-distribution.factor.upper-bound` and `chunk-key.even-distribution.factor.lower-bound`, and the estimated shard count (calculated as approximate row count / chunk size) exceeds this threshold, the sample sharding strategy will be used. This can help to handle large datasets more efficiently. The default value is 1000 shards.
+|                                   Oracle Data type                                   | SeaTunnel Data type |
+|--------------------------------------------------------------------------------------|---------------------|
+| INTEGER                                                                              | INT                 |
+| FLOAT                                                                                | DECIMAL(38, 18)     |
+| NUMBER(precision <= 9, scale == 0)                                                   | INT                 |
+| NUMBER(9 < precision <= 18, scale == 0)                                              | BIGINT              |
+| NUMBER(18 < precision, scale == 0)                                                   | DECIMAL(38, 0)      |
+| NUMBER(precision == 0, scale == 0)                                                   | DECIMAL(38, 18)     |
+| NUMBER(scale != 0)                                                                   | DECIMAL(38, 18)     |
+| BINARY_DOUBLE                                                                        | DOUBLE              |
+| BINARY_FLOAT<br/>REAL                                                                | FLOAT               |
+| CHAR<br/>NCHAR<br/>NVARCHAR2<br/>VARCHAR2<br/>LONG<br/>ROWID<br/>NCLOB<br/>CLOB<br/> | STRING              |
+| DATE                                                                                 | DATE                |
+| TIMESTAMP<br/>TIMESTAMP WITH LOCAL TIME ZONE                                         | TIMESTAMP           |
+| BLOB<br/>RAW<br/>LONG RAW<br/>BFILE                                                  | BYTES               |
 
-### inverse-sampling.rate [Integer]
+## Source Options
 
-The inverse of the sampling rate used in the sample sharding strategy. For example, if this value is set to 1000, it means a 1/1000 sampling rate is applied during the sampling process. This option provides flexibility in controlling the granularity of the sampling, thus affecting the final number of shards. It's especially useful when dealing with very large datasets where a lower sampling rate is preferred. The default value is 1000.
+|                      Name                      |   Type   | Required | Default |                                                                                                                                                                                                                                                                                                     Description                                                                                                                                                                                                                                                                                                      |
+|------------------------------------------------|----------|----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| base-url                                       | String   | Yes      | -       | The URL of the JDBC connection. Refer to a case: `idbc:oracle:thin:datasource01:1523:xe`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| username                                       | String   | Yes      | -       | Name of the database to use when connecting to the database server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| password                                       | String   | Yes      | -       | Password to use when connecting to the database server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| database-names                                 | List     | No       | -       | Database name of the database to monitor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| schema-names                                   | List     | No       | -       | Schema name of the database to monitor.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| table-names                                    | List     | Yes      | -       | Table name of the database to monitor. The table name needs to include the database name, for example: `database_name.table_name`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| table-names-config                             | List     | No       | -       | Table config list. for example: [{"table": "db1.schema1.table1","primaryKeys":["key1"]}]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| startup.mode                                   | Enum     | No       | INITIAL | Optional startup mode for Oracle CDC consumer, valid enumerations are `initial`, `earliest`, `latest` and `specific`. <br/> `initial`: Synchronize historical data at startup, and then synchronize incremental data.<br/> `earliest`: Startup from the earliest offset possible.<br/> `latest`: Startup from the latest offset.<br/> `specific`: Startup from user-supplied specific offsets.                                                                                                                                                                                                                       |
+| startup.specific-offset.file                   | String   | No       | -       | Start from the specified binlog file name. **Note, This option is required when the `startup.mode` option used `specific`.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| startup.specific-offset.pos                    | Long     | No       | -       | Start from the specified binlog file position. **Note, This option is required when the `startup.mode` option used `specific`.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| stop.mode                                      | Enum     | No       | NEVER   | Optional stop mode for Oracle CDC consumer, valid enumerations are `never`, `latest` or `specific`. <br/> `never`: Real-time job don't stop the source.<br/> `latest`: Stop from the latest offset.<br/> `specific`: Stop from user-supplied specific offset.                                                                                                                                                                                                                                                                                                                                                        |
+| stop.specific-offset.file                      | String   | No       | -       | Stop from the specified binlog file name. **Note, This option is required when the `stop.mode` option used `specific`.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| stop.specific-offset.pos                       | Long     | No       | -       | Stop from the specified binlog file position. **Note, This option is required when the `stop.mode` option used `specific`.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| snapshot.split.size                            | Integer  | No       | 8096    | The split size (number of rows) of table snapshot, captured tables are split into multiple splits when read the snapshot of table.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| snapshot.fetch.size                            | Integer  | No       | 1024    | The maximum fetch size for per poll when read table snapshot.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| server-time-zone                               | String   | No       | UTC     | The session time zone in database server. If not set, then ZoneId.systemDefault() is used to determine the server time zone.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| connect.timeout.ms                             | Duration | No       | 30000   | The maximum time that the connector should wait after trying to connect to the database server before timing out.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| connect.max-retries                            | Integer  | No       | 3       | The max retry times that the connector should retry to build database server connection.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| connection.pool.size                           | Integer  | No       | 20      | The jdbc connection pool size.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| chunk-key.even-distribution.factor.upper-bound | Double   | No       | 100     | The upper bound of the chunk key distribution factor. This factor is used to determine whether the table data is evenly distributed. If the distribution factor is calculated to be less than or equal to this upper bound (i.e., (MAX(id) - MIN(id) + 1) / row count), the table chunks would be optimized for even distribution. Otherwise, if the distribution factor is greater, the table will be considered as unevenly distributed and the sampling-based sharding strategy will be used if the estimated shard count exceeds the value specified by `sample-sharding.threshold`. The default value is 100.0. |
+| chunk-key.even-distribution.factor.lower-bound | Double   | No       | 0.05    | The lower bound of the chunk key distribution factor. This factor is used to determine whether the table data is evenly distributed. If the distribution factor is calculated to be greater than or equal to this lower bound (i.e., (MAX(id) - MIN(id) + 1) / row count), the table chunks would be optimized for even distribution. Otherwise, if the distribution factor is less, the table will be considered as unevenly distributed and the sampling-based sharding strategy will be used if the estimated shard count exceeds the value specified by `sample-sharding.threshold`. The default value is 0.05.  |
+| sample-sharding.threshold                      | Integer  | No       | 1000    | This configuration specifies the threshold of estimated shard count to trigger the sample sharding strategy. When the distribution factor is outside the bounds specified by `chunk-key.even-distribution.factor.upper-bound` and `chunk-key.even-distribution.factor.lower-bound`, and the estimated shard count (calculated as approximate row count / chunk size) exceeds this threshold, the sample sharding strategy will be used. This can help to handle large datasets more efficiently. The default value is 1000 shards.                                                                                   |
+| inverse-sampling.rate                          | Integer  | No       | 1000    | The inverse of the sampling rate used in the sample sharding strategy. For example, if this value is set to 1000, it means a 1/1000 sampling rate is applied during the sampling process. This option provides flexibility in controlling the granularity of the sampling, thus affecting the final number of shards. It's especially useful when dealing with very large datasets where a lower sampling rate is preferred. The default value is 1000.                                                                                                                                                              |
+| exactly_once                                   | Boolean  | No       | false   | Enable exactly once semantic.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| format                                         | Enum     | No       | DEFAULT | Optional output format for Oracle CDC, valid enumerations are `DEFAULT`、`COMPATIBLE_DEBEZIUM_JSON`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| debezium                                       | Config   | No       | -       | Pass-through [Debezium's properties](https://debezium.io/documentation/reference/1.6/connectors/oracle.html#oracle-connector-properties) to Debezium Embedded Engine which is used to capture data changes from Oracle server.                                                                                                                                                                                                                                                                                                                                                                                       |
+| common-options                                 |          | no       | -       | Source plugin common parameters, please refer to [Source Common Options](common-options.md) for details                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-### server-time-zone [String]
+## Task Example
 
-The session time zone in database server.
+### Simple
 
-### connect.timeout [Duration]
-
-The maximum time that the connector should wait after trying to connect to the database server before timing out.
-
-### connect.max-retries [Integer]
-
-The max retry times that the connector should retry to build database server connection.
-
-### connection.pool.size [Integer]
-
-The connection pool size.
-
-### exactly_once [Boolean]
-
-Enable exactly once semantic.
-
-### debezium [Config]
-
-Pass-through Debezium's properties to Debezium Embedded Engine which is used to capture data changes from  server.
-
-See more about
-the [Debezium's Oracle Connector properties](https://debezium.io/documentation/reference/1.6/connectors/oracle.html#oracle-connector-properties)
-
-### format [Enum]
-
-Optional output format for Oracle CDC, valid enumerations are "DEFAULT"、"COMPATIBLE_DEBEZIUM_JSON".
-
-#### example
+> Support multi-table reading
 
 ```conf
 source {
+  # This is a example source plugin **only for test and demonstrate the feature source plugin**
   Oracle-CDC {
-    debezium {
-        snapshot.mode = "never"
-        decimal.handling.mode = "double"
-    }
+    result_table_name = "customers"
+    username = "system"
+    password = "oracle"
+    database-names = ["XE"]
+    schema-names = ["DEBEZIUM"]
+    table-names = ["XE.DEBEZIUM.FULL_TYPES"]
+    base-url = "jdbc:oracle:thin:system/oracle@oracle-host:1521:xe"
+    source.reader.close.timeout = 120000
   }
 }
 ```
 
-### common options
+### Support custom primary key for table
 
-Source plugin common parameters, please refer to [Source Common Options](common-options.md) for details.
+```
 
-## Example
-
-```Jdbc {
 source {
   Oracle-CDC {
     result_table_name = "customers"
-    
-    catalog = {
-      factory = Oracle
-    }
-    base-url = "jdbc:oracle:thin:@127.0.0.1:1521:example_db"
-    username = "cdcuser"
-    password = "cdcpw"
-    database-names = ["EXAMPLE_DB"]
-    table-names = ["EXAMPLE_DB.EXAMPLE_SCHEMA.T1"]
+    base-url = "jdbc:oracle:thin:system/oracle@oracle-host:1521:xe"
+    source.reader.close.timeout = 120000
+    username = "system"
+    password = "oracle"
+    database-names = ["XE"]
+    schema-names = ["DEBEZIUM"]
+    table-names = ["XE.DEBEZIUM.FULL_TYPES"]
+    table-names-config = [
+      {
+        table = "XE.DEBEZIUM.FULL_TYPES"
+        primaryKeys = ["ID"]
+      }
+    ]
   }
 }
+
 ```
+
+### Support debezium-compatible format send to kafka
+
+> Must be used with kafka connector sink, see [compatible debezium format](../formats/cdc-compatible-debezium-json.md) for details
 
 ## Changelog
 
-### next version
-
 - Add Oracle CDC Source Connector
-- [Feature] Support multi-table read ([4377](https://github.com/apache/incubator-seatunnel/pull/4377))
+
+### next version
 

@@ -17,6 +17,8 @@
 
 package org.apache.seatunnel.connectors.seatunnel.mongodb.sink;
 
+import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.connectors.seatunnel.mongodb.exception.MongodbConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.serde.SerializableFunction;
 
 import org.bson.BsonDocument;
@@ -31,11 +33,20 @@ public class MongoKeyExtractor implements SerializableFunction<BsonDocument, Bso
     private final String[] primaryKey;
 
     public MongoKeyExtractor(String[] primaryKey) {
-        this.primaryKey = primaryKey.clone();
+        if (primaryKey != null) {
+            this.primaryKey = primaryKey.clone();
+        } else {
+            this.primaryKey = null;
+        }
     }
 
     @Override
     public BsonDocument apply(BsonDocument bsonDocument) {
+        if (primaryKey == null) {
+            throw new MongodbConnectorException(
+                    CommonErrorCode.PRIMARY_KEY_IS_NECESSARY,
+                    "primary key is necessary for update or delete data in mongodb");
+        }
         return Arrays.stream(primaryKey)
                 .filter(bsonDocument::containsKey)
                 .collect(

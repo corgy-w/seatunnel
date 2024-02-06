@@ -28,6 +28,7 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.config.PostgresSou
 import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.source.offset.LsnOffset;
 import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils.PostgresUtils;
 
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceRecord;
 
@@ -46,6 +47,7 @@ import io.debezium.connector.postgresql.connection.ReplicationConnection;
 import io.debezium.connector.postgresql.spi.SlotCreationResult;
 import io.debezium.connector.postgresql.spi.SlotState;
 import io.debezium.connector.postgresql.spi.Snapshotter;
+import io.debezium.data.Envelope;
 import io.debezium.pipeline.DataChangeEvent;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.metrics.DefaultChangeEventSourceMetricsFactory;
@@ -65,6 +67,8 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Collection;
 
+import static io.debezium.connector.AbstractSourceInfo.SCHEMA_NAME_KEY;
+import static io.debezium.connector.AbstractSourceInfo.TABLE_NAME_KEY;
 import static org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils.PostgresConnectionUtils.newPostgresValueConverterBuilder;
 
 @Slf4j
@@ -104,7 +108,8 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.metadataProvider = new PostgresEventMetadataProvider();
         this.engineHistory = engineHistory;
         this.postgresValueConverterBuilder =
-                newPostgresValueConverterBuilder(getDbzConnectorConfig());
+                newPostgresValueConverterBuilder(
+                        getDbzConnectorConfig(), sourceConfig.getServerTimeZone());
     }
 
     @Override
@@ -136,7 +141,7 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                         new PostgresOffsetContext.Loader(connectorConfig), sourceSplitBase);
 
         final int queueSize =
-                sourceSplitBase.isSnapshotSplit()
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
                         : getSourceConfig().getDbzConnectorConfig().getMaxQueueSize();
 
@@ -167,28 +172,29 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                 snapshotter.init(connectorConfig, offsetContext.asOffsetState(), slotInfo);
             }
 
-            SlotCreationResult slotCreatedInfo = null;
             if (snapshotter.shouldStream()) {
-                final boolean doSnapshot = snapshotter.shouldSnapshot();
-                createReplicationConnection(
-                        doSnapshot, connectorConfig.maxRetries(), connectorConfig.retryDelay());
+                if (sourceSplitBase.isIncrementalSplit() || slotInfo == null) {
+                    final boolean doSnapshot = snapshotter.shouldSnapshot();
+                    createReplicationConnection(
+                            doSnapshot, connectorConfig.maxRetries(), connectorConfig.retryDelay());
+                }
                 // we need to create the slot before we start streaming if it doesn't exist
                 // otherwise we can't stream back changes happening while the snapshot is taking
                 // place
                 if (slotInfo == null) {
                     try {
-                        slotCreatedInfo =
+                        SlotCreationResult slotCreatedInfo =
                                 replicationConnection.createReplicationSlot().orElse(null);
                     } catch (SQLException ex) {
                         String message = "Creation of replication slot failed";
                         if (ex.getMessage().contains("already exists")) {
                             message +=
                                     "; when setting up multiple connectors for the same database host, please make sure to use a distinct replication slot name for each.";
+                            log.warn(message);
+                        } else {
+                            throw new DebeziumException(message, ex);
                         }
-                        throw new DebeziumException(message, ex);
                     }
-                } else {
-                    slotCreatedInfo = null;
                 }
             }
 
@@ -299,6 +305,15 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     }
 
     @Override
+    public TableId getTableId(SourceRecord record) {
+        Struct value = (Struct) record.value();
+        Struct source = value.getStruct(Envelope.FieldName.SOURCE);
+        String schemaName = source.getString(SCHEMA_NAME_KEY);
+        String tableName = source.getString(TABLE_NAME_KEY);
+        return new TableId(null, schemaName, tableName);
+    }
+
+    @Override
     public Offset getStreamOffset(SourceRecord sourceRecord) {
         return PostgresUtils.getLsnPosition(sourceRecord);
     }
@@ -307,7 +322,9 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     public void close() {
         try {
             this.dataConnection.close();
-            this.replicationConnection.close();
+            if (this.replicationConnection != null) {
+                this.replicationConnection.close();
+            }
         } catch (Exception e) {
             log.warn("Failed to close connection", e);
         }

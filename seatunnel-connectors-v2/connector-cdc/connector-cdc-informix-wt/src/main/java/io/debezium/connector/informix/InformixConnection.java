@@ -27,6 +27,7 @@ import io.debezium.relational.TableId;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,6 +39,18 @@ import java.util.stream.Collectors;
 @Slf4j
 @SuppressWarnings("MagicNumber")
 public class InformixConnection extends JdbcConnection {
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
+
     private static final String URL_PATTERN =
             "jdbc:informix-sqli://${"
                     + JdbcConfiguration.HOSTNAME
@@ -69,12 +82,11 @@ public class InformixConnection extends JdbcConnection {
 
     public InformixConnection(Configuration config) {
         this(config, FACTORY);
-        this.config = config;
     }
 
     public InformixConnection(Configuration config, ConnectionFactory connectionFactory) {
-        super(config, connectionFactory);
-        this.config = config;
+        super(redefineConfig(config), connectionFactory);
+        this.config = redefineConfig(config);
     }
 
     @Override
@@ -205,7 +217,11 @@ public class InformixConnection extends JdbcConnection {
         return queryAndMap(sql, mapper);
     }
 
-    public InformixCDCEngine getCdcEngine() {
+    public InformixCDCEngine createCDCEngine() {
         return InformixCDCEngine.build(config);
+    }
+
+    private static Configuration redefineConfig(Configuration config) {
+        return config.subset("database.", true).edit().build();
     }
 }

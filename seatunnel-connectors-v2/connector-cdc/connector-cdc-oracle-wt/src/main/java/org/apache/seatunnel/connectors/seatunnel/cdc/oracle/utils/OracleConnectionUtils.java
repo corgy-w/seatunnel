@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.debezium.config.Configuration;
-import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.Scn;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.RelationalTableFilters;
@@ -52,7 +51,6 @@ public class OracleConnectionUtils {
     /** Creates a new {@link OracleConnection}, but not open the connection. */
     public static OracleConnection createOracleConnection(Configuration dbzConfiguration) {
         Configuration configuration = dbzConfiguration.subset(DATABASE_CONFIG_PREFIX, true);
-
         return new OracleConnection(
                 configuration.isEmpty() ? dbzConfiguration : configuration,
                 OracleConnectionUtils.class::getClassLoader);

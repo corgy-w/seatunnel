@@ -42,6 +42,7 @@ import io.debezium.util.Metronome;
 
 import java.nio.charset.Charset;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -57,6 +58,18 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Horia Chiorean
  */
 public class OpengaussConnection extends JdbcConnection {
+
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
 
     private static Logger LOGGER = LoggerFactory.getLogger(OpengaussConnection.class);
 

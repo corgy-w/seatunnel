@@ -264,7 +264,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
                     defaultUrl,
                     getListDatabaseSql(),
                     rs -> {
-                        String s = rs.getString(1);
+                        String s = rs.getString(1).trim();
                         return SYS_DATABASES.contains(s) ? null : s;
                     });
         } catch (Exception e) {
@@ -528,7 +528,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
     // If sql is DDL, the execute() method always returns false, so the return value
     // should not be used to determine whether changes were made in database.
     protected boolean executeInternal(String url, String sql) throws SQLException {
-        LOG.info("Execute sql : {}", sql);
+        LOG.info("Execute sql : {}", sql.replace("\n", " "));
         try (PreparedStatement ps = getConnection(url).prepareStatement(sql)) {
             return ps.execute();
         }

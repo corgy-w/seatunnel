@@ -92,7 +92,6 @@ public class SinkAggregatedCommitterTask<CommandInfoT, AggregatedCommitInfoT>
     private CompletableFuture<Void> completableFuture;
 
     private MultiTableResourceManager resourceManager;
-
     private volatile boolean receivedSinkWriter;
 
     public SinkAggregatedCommitterTask(

@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mysql.cj.MysqlType;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -64,6 +65,7 @@ import java.util.stream.IntStream;
 
 import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkArgument;
 
+@Slf4j
 public class StarRocksCatalog implements Catalog {
 
     protected final String catalogName;
@@ -72,8 +74,8 @@ public class StarRocksCatalog implements Catalog {
     protected final String pwd;
     protected final String baseUrl;
     protected String defaultUrl;
-    private final String template;
     private final JdbcUrlUtil.UrlInfo urlInfo;
+    private final String template;
 
     private static final Set<String> SYS_DATABASES = new HashSet<>();
     private static final Logger LOG = LoggerFactory.getLogger(StarRocksCatalog.class);
@@ -87,7 +89,6 @@ public class StarRocksCatalog implements Catalog {
             String catalogName, String username, String pwd, String defaultUrl, String template) {
 
         checkArgument(StringUtils.isNotBlank(username));
-        checkArgument(StringUtils.isNotBlank(pwd));
         checkArgument(StringUtils.isNotBlank(defaultUrl));
         urlInfo = JdbcUrlUtil.getUrlInfo(defaultUrl);
         this.baseUrl = urlInfo.getUrlWithoutDatabase();
@@ -215,8 +216,8 @@ public class StarRocksCatalog implements Catalog {
         this.createTable(
                 StarRocksSaveModeUtil.fillingCreateSql(
                         template,
-                        table.getTableId().getDatabaseName(),
-                        table.getTableId().getTableName(),
+                        tablePath.getDatabaseName(),
+                        tablePath.getTableName(),
                         table.getTableSchema()));
     }
 
@@ -224,11 +225,15 @@ public class StarRocksCatalog implements Catalog {
     public void dropTable(TablePath tablePath, boolean ignoreIfNotExists)
             throws TableNotExistException, CatalogException {
         try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            conn.createStatement()
-                    .execute(String.format("DROP TABLE IF EXISTS %s", tablePath.getFullName()));
+            if (ignoreIfNotExists) {
+                conn.createStatement().execute("DROP TABLE IF EXISTS " + tablePath.getFullName());
+            } else {
+                conn.createStatement()
+                        .execute(String.format("DROP TABLE %s", tablePath.getFullName()));
+            }
         } catch (Exception e) {
             throw new CatalogException(
-                    String.format("Failed DROP TABLE in catalog %s", tablePath.getFullName()), e);
+                    String.format("Failed listing database in catalog %s", catalogName), e);
         }
     }
 
@@ -246,14 +251,9 @@ public class StarRocksCatalog implements Catalog {
         }
     }
 
-    public void executeSql(String sql) {
+    public void executeSql(TablePath tablePath, String sql) {
         try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                // Will there exist concurrent drop for one table?
-                ps.execute();
-            } catch (SQLException e) {
-                throw new CatalogException(String.format("Failed executeSql error %s", sql), e);
-            }
+            connection.createStatement().execute(sql);
         } catch (Exception e) {
             throw new CatalogException(String.format("Failed EXECUTE SQL in catalog %s", sql), e);
         }
@@ -261,9 +261,8 @@ public class StarRocksCatalog implements Catalog {
 
     public boolean isExistsData(TablePath tablePath) {
         try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            String sql = String.format("select * from %s limit 1", tablePath.getTableName());
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ResultSet resultSet = ps.executeQuery();
+            String sql = String.format("select * from %s limit 1", tablePath.getFullName());
+            ResultSet resultSet = connection.createStatement().executeQuery(sql);
             if (resultSet == null) {
                 return false;
             }
@@ -393,6 +392,7 @@ public class StarRocksCatalog implements Catalog {
     public void createTable(String sql)
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
+            log.info("create table sql is :{}", sql);
             conn.createStatement().execute(sql);
         } catch (Exception e) {
             throw new CatalogException(

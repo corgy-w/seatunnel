@@ -27,7 +27,6 @@
     </parent>
 
     <artifactId>seatunnel-dist</artifactId>
-    <packaging>pom</packaging>
     <name>SeaTunnel : Dist</name>
 
     <properties>
@@ -239,6 +238,18 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-tablestore</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-doris</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-cdc-mysql</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
@@ -318,7 +329,7 @@
 
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-doris</artifactId>
+                    <artifactId>connector-cdc-sqlserver</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -487,18 +498,6 @@
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
-                    <groupId>com.aliyun.oss</groupId>
-                    <artifactId>aliyun-sdk-oss</artifactId>
-                    <version>${aliyun.sdk.oss.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.jdom</groupId>
-                    <artifactId>jdom</artifactId>
-                    <version>${jdom.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-aliyun</artifactId>
                     <version>${hadoop-aliyun.version}</version>
@@ -514,12 +513,6 @@
                     <groupId>org.jdom</groupId>
                     <artifactId>jdom</artifactId>
                     <version>${jdom.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-aliyun</artifactId>
-                    <version>${hadoop-aliyun.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>

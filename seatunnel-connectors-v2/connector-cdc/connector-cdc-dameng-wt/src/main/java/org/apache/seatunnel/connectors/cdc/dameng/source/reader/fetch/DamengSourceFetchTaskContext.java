@@ -93,7 +93,7 @@ public class DamengSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.taskContext = new DamengTaskContext(connectorConfig, databaseSchema);
 
         int queueSize =
-                sourceSplitBase.isSnapshotSplit()
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
                         : getSourceConfig().getDbzConnectorConfig().getMaxQueueSize();
         this.queue =

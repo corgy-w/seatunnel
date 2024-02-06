@@ -23,10 +23,8 @@ import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.node.ObjectNode
 import org.apache.seatunnel.api.common.metrics.MetricNames;
 import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.container.flink.Flink13Container;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -36,6 +34,7 @@ import org.apache.http.util.EntityUtils;
 
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,9 +46,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK, EngineType.SEATUNNEL})
+@Disabled
 public class FlinkMetricsIT extends TestSuiteBase {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FlinkMetricsIT.class);

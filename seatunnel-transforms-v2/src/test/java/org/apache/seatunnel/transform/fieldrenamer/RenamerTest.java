@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.transform.fieldrenamer;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -9,6 +26,7 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
 import org.apache.seatunnel.api.table.type.BasicType;
@@ -268,7 +286,7 @@ public class RenamerTest {
                         config);
         AlterTableAddColumnEvent alterTableAddColumnEvent =
                 new AlterTableAddColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         PhysicalColumn.of(
                                 "f1_x",
                                 BasicType.LONG_TYPE,
@@ -289,7 +307,7 @@ public class RenamerTest {
                         TransformException.class,
                         () -> transform.mapSchemaChangeEvent(alterTableAddColumnEvent));
         Assertions.assertEquals(
-                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":{\"f1_x\":\"f1_x\",\"f1\":\"f1_x\"}}']",
+                "ErrorCode:[FIELD_RENAMER-01], ErrorDescription:[The FieldRenamer renamed target field name had duplicate name: '{\"database-x.table-x\":{\"f1\":\"f1_x\",\"f1_x\":\"f1_x\"}}']",
                 exception.getMessage());
 
         FieldRenamerTransform transform2 =
@@ -302,7 +320,7 @@ public class RenamerTest {
                         config);
         AlterTableAddColumnEvent alterTableAddColumnEvent2 =
                 new AlterTableAddColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         PhysicalColumn.of(
                                 "f1_xx",
                                 BasicType.LONG_TYPE,
@@ -324,7 +342,8 @@ public class RenamerTest {
         Assertions.assertEquals("f1_xx", newAlterTableAddColumnEvent2.getColumn().getName());
         Assertions.assertEquals("f1_x", newAlterTableAddColumnEvent2.getAfterColumn());
         AlterTableDropColumnEvent alterTableDropColumnEvent =
-                new AlterTableDropColumnEvent(TablePath.of("test.test2"), "f2");
+                new AlterTableDropColumnEvent(
+                        TableIdentifier.of(null, TablePath.of("test.test2")), "f2");
         Assertions.assertEquals(
                 "abcF2ee",
                 ((AlterTableDropColumnEvent)
@@ -332,7 +351,7 @@ public class RenamerTest {
                         .getColumn());
         AlterTableChangeColumnEvent alterTableChangeColumnEvent =
                 new AlterTableChangeColumnEvent(
-                        TablePath.of("test.test2"),
+                        TableIdentifier.of(null, TablePath.of("test.test2")),
                         "f3",
                         PhysicalColumn.of(
                                 "f3_xx",
@@ -358,7 +377,7 @@ public class RenamerTest {
 
         AlterTableChangeColumnEvent alterTableChangeColumnEvent2 =
                 new AlterTableChangeColumnEvent(
-                        DEFAULT_TABLE.getTablePath(),
+                        DEFAULT_TABLE.getTableId(),
                         "f1",
                         PhysicalColumn.of(
                                 "f1_xt",
@@ -382,7 +401,9 @@ public class RenamerTest {
 
         AlterTableNameEvent alterTableNameEvent =
                 new AlterTableNameEvent(
-                        DEFAULT_TABLE.getTablePath(), TablePath.of("test", "test3"));
+                        DEFAULT_TABLE.getTableId(),
+                        TableIdentifier.of(
+                                DEFAULT_TABLE.getCatalogName(), TablePath.of("test", "test3")));
         transform2.mapSchemaChangeEvent(alterTableNameEvent);
         Assertions.assertEquals(
                 "abcF2ee",
@@ -420,5 +441,40 @@ public class RenamerTest {
                         .getColumns()
                         .get(3)
                         .getName());
+
+        AlterTableColumnsEvent alterTableColumnsEvent =
+                new AlterTableColumnsEvent(
+                        DEFAULT_TABLE.getTableId(),
+                        Collections.singletonList(
+                                new AlterTableAddColumnEvent(
+                                        TableIdentifier.of(
+                                                DEFAULT_TABLE.getCatalogName(),
+                                                TablePath.of("test", "test2")),
+                                        PhysicalColumn.of(
+                                                "f1_new",
+                                                BasicType.LONG_TYPE,
+                                                null,
+                                                false,
+                                                null,
+                                                null,
+                                                "int unsigned",
+                                                false,
+                                                false,
+                                                null,
+                                                null,
+                                                null),
+                                        false,
+                                        "f1")));
+        AlterTableColumnsEvent newAlterTableColumnsEvent =
+                (AlterTableColumnsEvent) transform2.mapSchemaChangeEvent(alterTableColumnsEvent);
+        Assertions.assertEquals(
+                "abcF1_NEWee",
+                ((AlterTableAddColumnEvent) newAlterTableColumnsEvent.getEvents().get(0))
+                        .getColumn()
+                        .getName());
+        Assertions.assertEquals(
+                "abcF1ee",
+                ((AlterTableAddColumnEvent) newAlterTableColumnsEvent.getEvents().get(0))
+                        .getAfterColumn());
     }
 }

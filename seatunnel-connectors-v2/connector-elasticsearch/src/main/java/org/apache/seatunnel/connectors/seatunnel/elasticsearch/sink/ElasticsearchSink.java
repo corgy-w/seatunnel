@@ -91,7 +91,7 @@ public class ElasticsearchSink
         Catalog catalog = catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
         SchemaSaveMode schemaSaveMode = config.get(SinkConfig.SCHEMA_SAVE_MODE);
         DataSaveMode dataSaveMode = config.get(SinkConfig.DATA_SAVE_MODE);
-        // todo tableName
+
         TablePath tablePath = TablePath.of("", config.get(SinkConfig.INDEX));
         catalog.open();
         return Optional.of(

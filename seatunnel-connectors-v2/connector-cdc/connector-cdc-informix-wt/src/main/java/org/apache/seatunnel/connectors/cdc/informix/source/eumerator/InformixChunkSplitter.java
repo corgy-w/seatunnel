@@ -23,7 +23,7 @@ import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter.AbstractJdbcSourceChunkSplitter;
 import org.apache.seatunnel.connectors.cdc.informix.source.InformixDialect;
 import org.apache.seatunnel.connectors.cdc.informix.utils.InformixConnectionUtils;
-import org.apache.seatunnel.connectors.cdc.informix.utils.InformixTypeConverter;
+import org.apache.seatunnel.connectors.cdc.informix.utils.InformixUtils;
 
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
@@ -89,6 +89,6 @@ public class InformixChunkSplitter extends AbstractJdbcSourceChunkSplitter {
 
     @Override
     public SeaTunnelDataType<?> fromDbzColumn(Column splitColumn) {
-        return InformixTypeConverter.convert(splitColumn);
+        return InformixUtils.convert(splitColumn);
     }
 }

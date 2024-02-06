@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql;
 
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
@@ -36,12 +37,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
 public class PostgresDialect implements JdbcDialect {
 
+    private static final long serialVersionUID = -5834746193472465218L;
     public static final int DEFAULT_POSTGRES_FETCH_SIZE = 128;
     protected String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
 
@@ -69,6 +72,56 @@ public class PostgresDialect implements JdbcDialect {
     @Override
     public String hashModForField(String fieldName, int mod) {
         return "(ABS(HASHTEXT(" + quoteIdentifier(fieldName) + ")) % " + mod + ")";
+    }
+
+    @Override
+    public Object queryNextChunkMax(
+            Connection connection,
+            JdbcSourceTable table,
+            String columnName,
+            int chunkSize,
+            Object includedLowerBound)
+            throws SQLException {
+        String quotedColumn = quoteIdentifier(columnName);
+        quotedColumn = converterMinMaxColumn(table, quotedColumn);
+        String sqlQuery;
+        if (StringUtils.isNotBlank(table.getQuery())) {
+            sqlQuery =
+                    String.format(
+                            "SELECT MAX(%s) FROM ("
+                                    + "SELECT %s FROM (%s) AS T1 WHERE %s >= ? ORDER BY %s ASC LIMIT %s"
+                                    + ") AS T2",
+                            quotedColumn,
+                            quotedColumn,
+                            table.getQuery(),
+                            quotedColumn,
+                            quotedColumn,
+                            chunkSize);
+        } else {
+            sqlQuery =
+                    String.format(
+                            "SELECT MAX(%s) FROM ("
+                                    + "SELECT %s FROM %s WHERE %s >= ? ORDER BY %s ASC LIMIT %s"
+                                    + ") AS T",
+                            quotedColumn,
+                            quotedColumn,
+                            tableIdentifier(table.getTablePath()),
+                            quotedColumn,
+                            quotedColumn,
+                            chunkSize);
+        }
+        try (PreparedStatement ps = connection.prepareStatement(sqlQuery)) {
+            ps.setObject(1, includedLowerBound);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getObject(1);
+                } else {
+                    // this should never happen
+                    throw new SQLException(
+                            String.format("No result returned after running query [%s]", sqlQuery));
+                }
+            }
+        }
     }
 
     @Override
@@ -158,19 +211,22 @@ public class PostgresDialect implements JdbcDialect {
         // 2. If a query is configured but does not contain a WHERE clause and tablePath is
         // configured, use TABLE STATUS.
         // 3. If a query is configured with a WHERE clause, or a query statement is configured but
-        // tablePath is not, use COUNT(*).
+        // tablePath is TablePath.DEFAULT, use COUNT(*).
 
         boolean useTableStats =
                 StringUtils.isBlank(table.getQuery())
                         || (!table.getQuery().toLowerCase().contains("where")
-                                && table.getTablePath() != null);
+                                && table.getTablePath() != null
+                                && !TablePath.DEFAULT
+                                        .getFullName()
+                                        .equals(table.getTablePath().getFullName()));
         if (useTableStats) {
             String rowCountQuery =
                     String.format(
                             "SELECT reltuples FROM pg_class r WHERE relkind = 'r' AND relname = '%s';",
                             table.getTablePath().getTableName());
             try (Statement stmt = connection.createStatement()) {
-                log.info("Split Chunk, approximateRowCntStatement: {}", rowCountQuery);
+                log.error("Split Chunk, approximateRowCntStatement: {}", rowCountQuery);
                 try (ResultSet rs = stmt.executeQuery(rowCountQuery)) {
                     if (!rs.next()) {
                         throw new SQLException(
@@ -183,5 +239,21 @@ public class PostgresDialect implements JdbcDialect {
             }
         }
         return SQLUtils.countForSubquery(connection, table.getQuery());
+    }
+
+    public String converterMinMaxColumn(JdbcSourceTable table, String columnName) {
+        columnName = columnName.replace("\"", "");
+        final List<Column> columns = table.getCatalogTable().getTableSchema().getColumns();
+        for (Column column : columns) {
+            final String name = column.getName();
+            if (name.equals(columnName)) {
+                if (PostgresTypeConverter.PG_UUID.equals(column.getSourceType())) {
+                    return columnName + "::text";
+                } else {
+                    return columnName;
+                }
+            }
+        }
+        return columnName;
     }
 }

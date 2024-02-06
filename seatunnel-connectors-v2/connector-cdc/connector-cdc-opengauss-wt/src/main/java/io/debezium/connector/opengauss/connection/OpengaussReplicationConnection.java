@@ -32,6 +32,7 @@ import io.debezium.util.Metronome;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -62,6 +63,19 @@ import static java.lang.Math.toIntExact;
  */
 public class OpengaussReplicationConnection extends JdbcConnection
         implements ReplicationConnection {
+
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
+
     private static Logger LOGGER = LoggerFactory.getLogger(OpengaussReplicationConnection.class);
 
     private final String slotName;

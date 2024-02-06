@@ -106,9 +106,7 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                             Optional.ofNullable(sqlDate).map(e -> e.toLocalDate()).orElse(null);
                     break;
                 case TIME:
-                    Time sqlTime = JdbcUtils.getTime(rs, resultSetIndex);
-                    fields[fieldIndex] =
-                            Optional.ofNullable(sqlTime).map(e -> e.toLocalTime()).orElse(null);
+                    fields[fieldIndex] = readTime(rs, resultSetIndex);
                     break;
                 case TIMESTAMP:
                     Timestamp sqlTimestamp = JdbcUtils.getTimestamp(rs, resultSetIndex);
@@ -135,6 +133,11 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
             }
         }
         return new SeaTunnelRow(fields);
+    }
+
+    protected LocalTime readTime(ResultSet rs, int resultSetIndex) throws SQLException {
+        Time sqlTime = JdbcUtils.getTime(rs, resultSetIndex);
+        return Optional.ofNullable(sqlTime).map(e -> e.toLocalTime()).orElse(null);
     }
 
     public Object[] convertToArray(
@@ -227,8 +230,7 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                         statement.setDate(statementIndex, java.sql.Date.valueOf(localDate));
                         break;
                     case TIME:
-                        LocalTime localTime = (LocalTime) row.getField(fieldIndex);
-                        statement.setTime(statementIndex, java.sql.Time.valueOf(localTime));
+                        writeTime(statement, statementIndex, (LocalTime) row.getField(fieldIndex));
                         break;
                     case TIMESTAMP:
                         LocalDateTime localDateTime = (LocalDateTime) row.getField(fieldIndex);
@@ -241,8 +243,15 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                     case NULL:
                         statement.setNull(statementIndex, java.sql.Types.NULL);
                         break;
-                    case MAP:
                     case ARRAY:
+                        Object[] array = (Object[]) row.getField(fieldIndex);
+                        if (array == null) {
+                            statement.setNull(statementIndex, java.sql.Types.ARRAY);
+                            break;
+                        }
+                        statement.setObject(statementIndex, array);
+                        break;
+                    case MAP:
                     case ROW:
                     default:
                         throw new JdbcConnectorException(
@@ -257,5 +266,10 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
             }
         }
         return statement;
+    }
+
+    protected void writeTime(PreparedStatement statement, int index, LocalTime time)
+            throws SQLException {
+        statement.setTime(index, java.sql.Time.valueOf(time));
     }
 }

@@ -22,12 +22,13 @@ import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
+import java.util.concurrent.TimeUnit;
+
 /** A connection pool factory to create pooled DataSource {@link HikariDataSource}. */
 public abstract class JdbcConnectionPoolFactory {
 
     public static final String CONNECTION_POOL_PREFIX = "connection-pool-";
     public static final String SERVER_TIMEZONE_KEY = "serverTimezone";
-    public static final int MINIMUM_POOL_SIZE = 1;
 
     public HikariDataSource createPooledDataSource(JdbcSourceConfig sourceConfig) {
         final HikariConfig config = new HikariConfig();
@@ -40,7 +41,8 @@ public abstract class JdbcConnectionPoolFactory {
         config.setUsername(sourceConfig.getUsername());
         config.setPassword(sourceConfig.getPassword());
         config.setDriverClassName(sourceConfig.getDriverClassName());
-        config.setMinimumIdle(MINIMUM_POOL_SIZE);
+        config.setMinimumIdle(0);
+        config.setIdleTimeout(TimeUnit.SECONDS.toMillis(60));
         config.setMaximumPoolSize(sourceConfig.getConnectionPoolSize());
         config.setConnectionTimeout(sourceConfig.getConnectTimeoutMillis());
         config.addDataSourceProperty(SERVER_TIMEZONE_KEY, sourceConfig.getServerTimeZone());

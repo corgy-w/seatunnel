@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
+import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
@@ -60,7 +61,6 @@ public class JdbcSinkWriter
         implements SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState>,
                 SupportMultiTableSinkWriter<ConnectionPoolManager> {
     private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
-    private final SinkWriter.Context context;
     private final JdbcDialect dialect;
     private final TableSchema tableSchema;
     private JdbcConnectionProvider connectionProvider;
@@ -70,12 +70,10 @@ public class JdbcSinkWriter
     private SeaTunnelRowType rowType;
 
     public JdbcSinkWriter(
-            SinkWriter.Context context,
             JdbcDialect dialect,
             JdbcSinkConfig jdbcSinkConfig,
             TableSchema tableSchema,
             Integer primaryKeyIndex) {
-        this.context = context;
         this.jdbcSinkConfig = jdbcSinkConfig;
         this.dialect = dialect;
         this.tableSchema = tableSchema;
@@ -200,7 +198,13 @@ public class JdbcSinkWriter
                     new DataTypeChangeEventDispatcher();
             dataTypeChangeEventDispatcher.reset(rowType);
             rowType = dataTypeChangeEventDispatcher.handle(event);
-            CatalogTable preCatalogTable = CatalogTable.of(null, tableSchema, null, null, null);
+            CatalogTable preCatalogTable =
+                    CatalogTable.of(
+                            TableIdentifier.of("default", "default", "default"),
+                            tableSchema,
+                            Collections.emptyMap(),
+                            Collections.emptyList(),
+                            null);
             CatalogTable catalogTable = CatalogTableUtil.newCatalogTable(preCatalogTable, rowType);
             outputFormat =
                     new JdbcOutputFormatBuilder(

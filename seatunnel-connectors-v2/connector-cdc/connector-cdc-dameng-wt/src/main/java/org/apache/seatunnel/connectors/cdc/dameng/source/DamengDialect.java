@@ -23,7 +23,6 @@ import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
-import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionFactory;
 import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionPoolFactory;
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter.ChunkSplitter;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
@@ -36,6 +35,7 @@ import org.apache.seatunnel.connectors.cdc.dameng.source.eumerator.DamengChunkSp
 import org.apache.seatunnel.connectors.cdc.dameng.source.reader.fetch.DamengSourceFetchTaskContext;
 import org.apache.seatunnel.connectors.cdc.dameng.source.reader.fetch.logminer.DamengLogMinerFetchTask;
 import org.apache.seatunnel.connectors.cdc.dameng.source.reader.fetch.snapshot.DamengSnapshotFetchTask;
+import org.apache.seatunnel.connectors.cdc.dameng.utils.DamengConncetionUtils;
 import org.apache.seatunnel.connectors.cdc.dameng.utils.DamengSchema;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
@@ -71,15 +71,7 @@ public class DamengDialect implements JdbcDataSourceDialect {
 
     @Override
     public DamengConnection openJdbcConnection(JdbcSourceConfig sourceConfig) {
-        DamengConnection connection =
-                new DamengConnection(
-                        sourceConfig.getDbzConfiguration(),
-                        new JdbcConnectionFactory(sourceConfig, getPooledDataSourceFactory()));
-        try {
-            return connection.connect();
-        } catch (Exception e) {
-            throw new SeaTunnelException(e);
-        }
+        return DamengConncetionUtils.createDamengConnection(sourceConfig.getDbzConfiguration());
     }
 
     @Override

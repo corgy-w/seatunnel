@@ -20,19 +20,11 @@ package org.apache.seatunnel.connectors.seatunnel.kafka.sink;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.DefaultSerializer;
 import org.apache.seatunnel.api.serialization.Serializer;
-import org.apache.seatunnel.api.sink.DataSaveMode;
-import org.apache.seatunnel.api.sink.DefaultSaveModeHandler;
-import org.apache.seatunnel.api.sink.SaveModeHandler;
-import org.apache.seatunnel.api.sink.SchemaSaveMode;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SinkCommitter;
 import org.apache.seatunnel.api.sink.SinkWriter;
-import org.apache.seatunnel.api.sink.SupportSaveMode;
-import org.apache.seatunnel.api.table.catalog.Catalog;
-import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
 import org.apache.seatunnel.connectors.seatunnel.kafka.state.KafkaAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.kafka.state.KafkaCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.kafka.state.KafkaSinkState;
@@ -41,20 +33,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
-import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.DATA_SAVE_MODE;
-import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.FORMAT;
-import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.SCHEMA_SAVE_MODE;
-import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.TOPIC;
-
 /**
  * Kafka Sink implementation by using SeaTunnel sink API. This class contains the method to create
  * {@link KafkaSinkWriter} and {@link KafkaSinkCommitter}.
  */
 public class KafkaSink
         implements SeaTunnelSink<
-                        SeaTunnelRow, KafkaSinkState, KafkaCommitInfo, KafkaAggregatedCommitInfo>,
-                SupportSaveMode {
+                SeaTunnelRow, KafkaSinkState, KafkaCommitInfo, KafkaAggregatedCommitInfo> {
 
     private final ReadonlyConfig pluginConfig;
     private final SeaTunnelRowType seaTunnelRowType;
@@ -95,31 +80,5 @@ public class KafkaSink
     @Override
     public String getPluginName() {
         return org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.CONNECTOR_IDENTITY;
-    }
-
-    @Override
-    public Optional<SaveModeHandler> getSaveModeHandler() {
-        if (MessageFormat.COMPATIBLE_DEBEZIUM_JSON.equals(pluginConfig.get(FORMAT))) {
-            return Optional.empty();
-        }
-        if (pluginConfig.get(TOPIC).contains("${")) {
-            return Optional.empty();
-        }
-        CatalogFactory catalogFactory =
-                discoverFactory(
-                        Thread.currentThread().getContextClassLoader(),
-                        CatalogFactory.class,
-                        getPluginName());
-        if (catalogFactory == null) {
-            return Optional.empty();
-        }
-        Catalog catalog =
-                catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), pluginConfig);
-        SchemaSaveMode schemaSaveMode = pluginConfig.get(SCHEMA_SAVE_MODE);
-        DataSaveMode dataSaveMode = pluginConfig.get(DATA_SAVE_MODE);
-        catalog.open();
-        return Optional.of(
-                new DefaultSaveModeHandler(
-                        schemaSaveMode, dataSaveMode, catalog, null, null, null));
     }
 }

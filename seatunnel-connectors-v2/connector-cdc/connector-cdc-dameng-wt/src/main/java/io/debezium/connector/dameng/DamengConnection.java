@@ -29,6 +29,7 @@ import io.debezium.relational.Tables;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Clob;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
@@ -41,6 +42,17 @@ import java.util.stream.Collectors;
 @Slf4j
 @SuppressWarnings("MagicNumber")
 public class DamengConnection extends JdbcConnection {
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
 
     private static final Field URL = Field.create("url", "Raw JDBC url");
 

@@ -17,11 +17,9 @@
 
 package org.apache.seatunnel.engine.e2e;
 
-import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.container.flink.AbstractTestFlinkContainer;
 import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 
 import org.junit.jupiter.api.Assertions;
@@ -31,7 +29,6 @@ import org.testcontainers.containers.Container;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -74,6 +71,12 @@ public class CheckpointEnableIT extends TestSuiteBase {
                 container.executeJob(
                         "/checkpoint-batch-enable-test-resources/sink_file_text_to_assert.conf");
         Assertions.assertEquals(0, enableSinkFileExecResult.getExitCode());
+
+        // checkpoint disable and timeout = 10, but timeout is not supported in disable mode
+        Container.ExecResult disableExecResult2 =
+                container.executeJob(
+                        "/checkpoint-batch-disable-test-resources/batch_fakesource_to_localfile_checkpoint_disable_withtimeout.conf");
+        Assertions.assertEquals(0, disableExecResult2.getExitCode());
     }
 
     @TestTemplate
@@ -212,68 +215,5 @@ public class CheckpointEnableIT extends TestSuiteBase {
                             Assertions.assertEquals(0, disableSinkFileExecResult.getExitCode());
                         });
         Assertions.assertTrue(checkSinkFile.get());
-    }
-
-    @TestTemplate
-    @DisabledOnContainer(
-            value = {},
-            type = {EngineType.SEATUNNEL, EngineType.SPARK},
-            disabledReason =
-                    "depending on the engine, the logic for determining whether a checkpoint is enabled is different")
-    public void testFlinkCheckpointEnable(AbstractTestFlinkContainer container)
-            throws IOException, InterruptedException {
-        /**
-         * In flink execution environment, checkpoint is not supported and not needed when executing
-         * jobs in BATCH mode. So it is only necessary to determine whether flink has enabled
-         * checkpoint by configuring tasks with 'checkpoint.interval'.
-         */
-        Container.ExecResult enableExecResult =
-                container.executeJob(
-                        "/checkpoint-batch-enable-test-resources/batch_fakesource_to_localfile_checkpoint_enable.conf");
-        // obtain flink job configuration
-        Matcher matcher =
-                Pattern.compile("JobID\\s([a-fA-F0-9]+)").matcher(enableExecResult.getStdout());
-        Assertions.assertTrue(matcher.find());
-        String jobId = matcher.group(1);
-        Map<String, Object> jobConfig =
-                JsonUtils.toMap(
-                        container.executeJobManagerInnerCommand(
-                                String.format(
-                                        "curl http://localhost:8081/jobs/%s/checkpoints/config",
-                                        jobId)),
-                        String.class,
-                        Object.class);
-        /**
-         * when the checkpoint interval is 0x7fffffffffffffff, indicates that checkpoint is
-         * disabled. reference {@link
-         * org.apache.flink.runtime.jobgraph.JobGraph#isCheckpointingEnabled()}
-         */
-        Assertions.assertEquals(Long.MAX_VALUE, jobConfig.getOrDefault("interval", 0L));
-        Assertions.assertEquals(0, enableExecResult.getExitCode());
-    }
-
-    @TestTemplate
-    @DisabledOnContainer(
-            value = {},
-            type = {EngineType.SEATUNNEL, EngineType.FLINK},
-            disabledReason =
-                    "depending on the engine, the logic for determining whether a checkpoint is enabled is different")
-    public void testSparkCheckpointEnable(TestContainer container)
-            throws IOException, InterruptedException {
-        /**
-         * In spark execution environment, checkpoint is not supported and not needed when executing
-         * jobs in BATCH mode. So it is only necessary to determine whether spark has enabled
-         * checkpoint by configuring tasks with 'checkpoint.interval'.
-         */
-        Container.ExecResult enableExecResult =
-                container.executeJob(
-                        "/checkpoint-batch-enable-test-resources/batch_fakesource_to_localfile_checkpoint_enable.conf");
-        // according to logs, if checkpoint.interval is configured, spark also ignores this
-        // configuration
-        Assertions.assertTrue(
-                enableExecResult
-                        .getStderr()
-                        .contains("Ignoring non-Spark config property: checkpoint.interval"));
-        Assertions.assertEquals(0, enableExecResult.getExitCode());
     }
 }

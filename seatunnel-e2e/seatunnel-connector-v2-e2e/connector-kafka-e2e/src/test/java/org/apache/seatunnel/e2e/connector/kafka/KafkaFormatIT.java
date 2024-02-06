@@ -31,9 +31,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.Post
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -88,10 +86,6 @@ import java.util.stream.Stream;
 import static org.awaitility.Awaitility.await;
 import static org.awaitility.Awaitility.given;
 
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK},
-        disabledReason = "Spark engine will lose the row kind of record")
 public class KafkaFormatIT extends TestSuiteBase implements TestResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaFormatIT.class);

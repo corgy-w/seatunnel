@@ -68,7 +68,7 @@ public class SqlServerSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
 
     private final SqlServerConnection dataConnection;
 
-    private final SqlServerConnection metadataConnection;
+    private SqlServerConnection metadataConnection;
 
     private final SqlServerEventMetadataProvider metadataProvider;
     private SqlServerDatabaseSchema databaseSchema;
@@ -86,7 +86,6 @@ public class SqlServerSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
         super(sourceConfig, dataSourceDialect);
 
         this.dataConnection = createSqlServerConnection(sourceConfig.getDbzConfiguration());
-        this.metadataConnection = createSqlServerConnection(sourceConfig.getDbzConfiguration());
         this.metadataProvider = new SqlServerEventMetadataProvider();
     }
 
@@ -117,7 +116,7 @@ public class SqlServerSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
         this.taskContext = new SqlServerTaskContext(connectorConfig, databaseSchema);
 
         final int queueSize =
-                sourceSplitBase.isSnapshotSplit()
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
                         : getSourceConfig().getDbzConnectorConfig().getMaxQueueSize();
 
@@ -153,13 +152,29 @@ public class SqlServerSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
                         taskContext, queue, metadataProvider);
 
         this.errorHandler = new SqlServerErrorHandler(connectorConfig.getLogicalName(), queue);
+        if (sourceSplitBase.isIncrementalSplit() || isExactlyOnce()) {
+            initMetadataConnection();
+        }
+    }
+
+    private void initMetadataConnection() {
+        if (this.metadataConnection == null) {
+            synchronized (this) {
+                if (this.metadataConnection == null) {
+                    this.metadataConnection =
+                            createSqlServerConnection(sourceConfig.getDbzConfiguration());
+                }
+            }
+        }
     }
 
     @Override
     public void close() {
         try {
             this.dataConnection.close();
-            this.metadataConnection.close();
+            if (this.metadataConnection != null) {
+                this.metadataConnection.close();
+            }
         } catch (SQLException e) {
             log.warn("Failed to close connection", e);
         }

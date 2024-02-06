@@ -1,9 +1,25 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils;
 
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 
 import io.debezium.config.Configuration;
-import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.Scn;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.RelationalTableFilters;
@@ -24,11 +40,11 @@ public class OracleConnectionUtils {
     /** show current scn sql in oracle. */
     private static final String SHOW_CURRENT_SCN = "SELECT CURRENT_SCN FROM V$DATABASE";
 
-    /** Creates a new {@link OracleConnection}, but not open the connection. */
-    public static OracleConnection createOracleConnection(Configuration dbzConfiguration) {
+    /** Creates a new {@link CustomOracleConnection}, but not open the connection. */
+    public static CustomOracleConnection createOracleConnection(Configuration dbzConfiguration) {
         Configuration configuration = dbzConfiguration.subset(DATABASE_CONFIG_PREFIX, true);
 
-        return new OracleConnection(
+        return new CustomOracleConnection(
                 configuration.isEmpty() ? dbzConfiguration : configuration,
                 OracleConnectionUtils.class::getClassLoader);
     }

@@ -65,14 +65,18 @@ public class MongodbSinkAggregatedCommitter
 
     public MongodbSinkAggregatedCommitter(CatalogTable catalogTable, MongodbWriterOptions options) {
         this.enableUpsert = options.isUpsertEnable();
-        this.upsertKeys =
-                options.getPrimaryKey() != null
-                        ? options.getPrimaryKey()
+        String[] primaryKeyInCatalogTable =
+                catalogTable.getTableSchema().getPrimaryKey() == null
+                        ? null
                         : catalogTable
                                 .getTableSchema()
                                 .getPrimaryKey()
                                 .getColumnNames()
                                 .toArray(new String[0]);
+        this.upsertKeys =
+                options.getPrimaryKey() != null
+                        ? options.getPrimaryKey()
+                        : primaryKeyInCatalogTable;
         this.collectionProvider =
                 MongodbCollectionProvider.builder()
                         .connectionString(options.getConnectString())

@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -5,10 +23,9 @@ import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.type.DecimalType;
-import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.db2.DB2TypeConverter;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,19 +34,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static net.snowflake.client.jdbc.internal.microsoft.azure.storage.core.SR.BLOB;
-import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_BINARY;
-import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_CHAR;
-import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_DECIMAL;
-import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_LONG_VARCHAR;
-import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_VARBINARY;
-import static org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2.DB2DataTypeConvertor.DB2_VARCHAR;
-
 public class DB2CreateTableSqlBuilder {
 
     private List<Column> columns;
     private PrimaryKey primaryKey;
-    private DB2DataTypeConvertor db2DataTypeConvertor;
     private String sourceCatalogName;
     private String fieldIde;
     private List<ConstraintKey> constraintKeys;
@@ -38,7 +46,6 @@ public class DB2CreateTableSqlBuilder {
     public DB2CreateTableSqlBuilder(CatalogTable catalogTable) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
-        this.db2DataTypeConvertor = new DB2DataTypeConvertor();
         this.sourceCatalogName = catalogTable.getCatalogName();
         this.fieldIde = catalogTable.getOptions().get("fieldIde");
         constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
@@ -105,7 +112,7 @@ public class DB2CreateTableSqlBuilder {
                 sourceCatalogName.equals(DatabaseIdentifier.DB_2)
                                 && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
-                        : buildColumnType(column);
+                        : DB2TypeConverter.INSTANCE.reconvert(column).getColumnType();
         columnSql.append(columnType);
 
         // Add NOT NULL if column is not nullable
@@ -119,43 +126,6 @@ public class DB2CreateTableSqlBuilder {
         }
 
         return columnSql.toString();
-    }
-
-    private String buildColumnType(Column column) {
-        SqlType sqlType = column.getDataType().getSqlType();
-        Long columnLength = column.getLongColumnLength();
-        Long bitLength = column.getBitLen();
-        switch (sqlType) {
-            case BYTES:
-                if (bitLength != null && bitLength > 0 && bitLength <= 255) {
-                    return DB2_BINARY + "(" + bitLength + ")";
-                } else if (bitLength != null && bitLength > 255 && bitLength <= 32672) {
-                    return DB2_VARBINARY + "(" + bitLength + ")";
-                } else {
-                    return BLOB;
-                }
-            case STRING:
-                if (columnLength != null && columnLength > 0 && columnLength <= 255) {
-                    return DB2_CHAR + "(" + columnLength + ")";
-                } else if (columnLength != null && columnLength > 0 && columnLength <= 32672) {
-                    return DB2_VARCHAR + "(" + columnLength + ")";
-                } else {
-                    return DB2_LONG_VARCHAR;
-                }
-            default:
-                String type =
-                        db2DataTypeConvertor.toConnectorType(
-                                column.getName(), column.getDataType(), null);
-                if (type.equals(DB2_DECIMAL)) {
-                    DecimalType decimalType = (DecimalType) column.getDataType();
-                    return "DECIMAL("
-                            + decimalType.getPrecision()
-                            + ","
-                            + decimalType.getScale()
-                            + ")";
-                }
-                return type;
-        }
     }
 
     private String buildColumnCommentSql(Column column, String tableName) {

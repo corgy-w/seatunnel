@@ -33,8 +33,9 @@ public class SqlServerURLParser {
 
     public static JdbcUrlUtil.UrlInfo parse(String url) {
         String serverName = "";
-        Integer port = DEFAULT_PORT;
+        Integer port = null;
         String dbInstance = null;
+        String instanceName = null;
         int hostIndex = url.indexOf("://");
         if (hostIndex <= 0) {
             return null;
@@ -45,12 +46,16 @@ public class SqlServerURLParser {
         if (split.length > 1) {
             props = parseQueryParams(split[1], ";");
             serverName = props.get("serverName");
+            instanceName = props.get("instanceName");
             dbInstance = props.getOrDefault("databaseName", props.get("database"));
-            if (props.containsKey("portNumber")) {
-                String portNumber = props.get("portNumber");
+            if (props.containsKey("portNumber") || props.containsKey("port")) {
+                String portNumber =
+                        props.get("portNumber") == null
+                                ? props.get("port")
+                                : props.get("portNumber");
                 try {
                     port = Integer.parseInt(portNumber);
-                } catch (NumberFormatException e) {
+                } catch (NumberFormatException ignored) {
                 }
             }
         }
@@ -68,7 +73,9 @@ public class SqlServerURLParser {
 
         int instanceLoc = serverName.indexOf("\\");
         if (instanceLoc > 1) {
-            serverName = serverName.substring(0, instanceLoc);
+            final String[] splitForInstance = serverName.split("\\\\");
+            serverName = splitForInstance[0];
+            instanceName = splitForInstance[1];
         }
 
         if (serverName.isEmpty()) {
@@ -84,13 +91,15 @@ public class SqlServerURLParser {
                         .map(e -> e.getKey() + "=" + e.getValue())
                         .collect(Collectors.joining(";", "", ""));
         suffix = Optional.ofNullable(suffix).orElse("");
+
+        String urlWithoutDatabase =
+                port != null
+                        ? String.format("jdbc:sqlserver://%s:%s", serverName, port) + ";" + suffix
+                        : String.format("jdbc:sqlserver://%s\\%s", serverName, instanceName)
+                                + ";"
+                                + suffix;
         return new JdbcUrlUtil.UrlInfo(
-                url,
-                String.format("jdbc:sqlserver://%s:%s", serverName, port) + ";" + suffix,
-                serverName,
-                port,
-                dbInstance,
-                suffix);
+                url, urlWithoutDatabase, serverName, port, dbInstance, suffix);
     }
 
     private static Map<String, String> parseQueryParams(String query, String separator) {

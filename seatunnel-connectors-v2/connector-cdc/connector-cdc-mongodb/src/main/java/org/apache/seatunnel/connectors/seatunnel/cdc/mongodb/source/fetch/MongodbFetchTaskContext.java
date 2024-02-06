@@ -90,7 +90,9 @@ public class MongodbFetchTaskContext implements FetchTask.Context {
 
     public void configure(@Nonnull SourceSplitBase sourceSplitBase) {
         final int queueSize =
-                sourceSplitBase.isSnapshotSplit() ? Integer.MAX_VALUE : sourceConfig.getBatchSize();
+                sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
+                        ? Integer.MAX_VALUE
+                        : sourceConfig.getBatchSize();
         this.changeEventQueue =
                 new ChangeEventQueue.Builder<DataChangeEvent>()
                         .pollInterval(Duration.ofMillis(sourceConfig.getPollAwaitTimeMillis()))

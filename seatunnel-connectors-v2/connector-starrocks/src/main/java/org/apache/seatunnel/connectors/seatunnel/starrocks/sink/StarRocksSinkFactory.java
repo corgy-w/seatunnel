@@ -19,7 +19,6 @@ package org.apache.seatunnel.connectors.seatunnel.starrocks.sink;
 
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.sink.DataSaveMode;
-import org.apache.seatunnel.api.sink.SchemaSaveMode;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSink;
@@ -38,7 +37,6 @@ import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATA
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 import static org.apache.seatunnel.connectors.seatunnel.starrocks.config.StarRocksSinkOptions.DATA_SAVE_MODE;
-import static org.apache.seatunnel.connectors.seatunnel.starrocks.config.StarRocksSinkOptions.SCHEMA_SAVE_MODE;
 
 @AutoService(Factory.class)
 public class StarRocksSinkFactory implements TableSinkFactory {
@@ -53,8 +51,6 @@ public class StarRocksSinkFactory implements TableSinkFactory {
                 .required(StarRocksOptions.USERNAME, StarRocksOptions.PASSWORD)
                 .required(StarRocksSinkOptions.DATABASE, StarRocksOptions.BASE_URL)
                 .required(StarRocksSinkOptions.NODE_URLS)
-                .required(SCHEMA_SAVE_MODE)
-                .required(DATA_SAVE_MODE)
                 .optional(
                         StarRocksSinkOptions.TABLE,
                         StarRocksSinkOptions.LABEL_PREFIX,
@@ -65,8 +61,10 @@ public class StarRocksSinkFactory implements TableSinkFactory {
                         StarRocksSinkOptions.RETRY_BACKOFF_MULTIPLIER_MS,
                         StarRocksSinkOptions.STARROCKS_CONFIG,
                         StarRocksSinkOptions.ENABLE_UPSERT_DELETE,
-                        StarRocksSinkOptions.HTTP_SOCKET_TIMEOUT_MS,
-                        StarRocksSinkOptions.SAVE_MODE_CREATE_TEMPLATE)
+                        StarRocksSinkOptions.SCHEMA_SAVE_MODE,
+                        StarRocksSinkOptions.DATA_SAVE_MODE,
+                        StarRocksSinkOptions.SAVE_MODE_CREATE_TEMPLATE,
+                        StarRocksSinkOptions.HTTP_SOCKET_TIMEOUT_MS)
                 .conditional(
                         DATA_SAVE_MODE,
                         DataSaveMode.CUSTOM_PROCESSING,
@@ -88,39 +86,15 @@ public class StarRocksSinkFactory implements TableSinkFactory {
         String sourceTableName = tableId.getTableName();
         // get sink table relevant information
         String sinkDatabaseName = sinkConfig.getDatabase();
-        String sinkTableNameBefore = sinkConfig.getTable();
-        if (StringUtils.isEmpty(sinkTableNameBefore)) {
-            sinkTableNameBefore = REPLACE_TABLE_NAME_KEY;
-        }
-        String[] sinkTableSplitArray = sinkTableNameBefore.split("\\.");
-        String sinkTableName = sinkTableSplitArray[sinkTableSplitArray.length - 1];
-        String sinkSchemaName;
-        if (sinkTableSplitArray.length > 1) {
-            sinkSchemaName = sinkTableSplitArray[sinkTableSplitArray.length - 2];
-        } else {
-            sinkSchemaName = null;
-        }
+        String sinkTableName = sinkConfig.getTable();
         // to replace
         String finalDatabaseName =
                 sinkDatabaseName.replace(REPLACE_DATABASE_NAME_KEY, sourceDatabaseName);
-        String finalSchemaName;
-        if (sinkSchemaName != null) {
-            if (sourceSchemaName == null) {
-                finalSchemaName = sinkSchemaName;
-            } else {
-                finalSchemaName = sinkSchemaName.replace(REPLACE_SCHEMA_NAME_KEY, sourceSchemaName);
-            }
-        } else {
-            finalSchemaName = null;
-        }
-        String finalTableName = sinkTableName.replace(REPLACE_TABLE_NAME_KEY, sourceTableName);
+        String finalTableName = this.replaceFullTableName(sinkTableName, tableId);
         // rebuild TableIdentifier and catalogTable
         TableIdentifier newTableId =
                 TableIdentifier.of(
-                        tableId.getCatalogName(),
-                        finalDatabaseName,
-                        finalSchemaName,
-                        finalTableName);
+                        tableId.getCatalogName(), finalDatabaseName, null, finalTableName);
         catalogTable =
                 CatalogTable.of(
                         newTableId,
@@ -133,15 +107,19 @@ public class StarRocksSinkFactory implements TableSinkFactory {
         // reset
         sinkConfig.setTable(finalTableName);
         sinkConfig.setDatabase(finalDatabaseName);
-        // get saveMode
-        DataSaveMode dataSaveMode = sinkConfig.getDataSaveMode();
-        SchemaSaveMode schemaSaveMode = sinkConfig.getSchemaSaveMode();
-        return () ->
-                new StarRocksSink(
-                        sinkConfig,
-                        finalCatalogTable,
-                        context.getOptions(),
-                        schemaSaveMode,
-                        dataSaveMode);
+        return () -> new StarRocksSink(sinkConfig, finalCatalogTable, context.getOptions());
+    }
+
+    private String replaceFullTableName(String original, TableIdentifier tableId) {
+        if (StringUtils.isNotBlank(tableId.getDatabaseName())) {
+            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
+        }
+        if (StringUtils.isNotBlank(tableId.getSchemaName())) {
+            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
+        }
+        if (StringUtils.isNotBlank(tableId.getTableName())) {
+            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
+        }
+        return original;
     }
 }

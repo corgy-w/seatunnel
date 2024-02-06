@@ -61,8 +61,9 @@ public class PostgresDialect implements JdbcDataSourceDialect {
     private final PostgresSourceConfig sourceConfig;
 
     private transient PostgresSchema postgresSchema;
-    private final Map<TableId, CatalogTable> tableMap;
     private PostgresWalFetchTask postgresWalFetchTask;
+
+    private final Map<TableId, CatalogTable> tableMap;
 
     public PostgresDialect(
             PostgresSourceConfigFactory configFactory, List<CatalogTable> catalogTables) {
@@ -85,7 +86,9 @@ public class PostgresDialect implements JdbcDataSourceDialect {
     public JdbcConnection openJdbcConnection(JdbcSourceConfig sourceConfig) {
         PostgresConnectorConfig conf =
                 (PostgresConnectorConfig) sourceConfig.getDbzConnectorConfig();
-        return new PostgresConnection(conf.getJdbcConfig(), newPostgresValueConverterBuilder(conf));
+        return new PostgresConnection(
+                conf.getJdbcConfig(),
+                newPostgresValueConverterBuilder(conf, sourceConfig.getServerTimeZone()));
     }
 
     @Override
@@ -128,7 +131,8 @@ public class PostgresDialect implements JdbcDataSourceDialect {
                 new PostgresConnection(
                         dbzConnectorConfig.getJdbcConfig(),
                         newPostgresValueConverterBuilder(
-                                (PostgresConnectorConfig) dbzConnectorConfig));
+                                (PostgresConnectorConfig) dbzConnectorConfig,
+                                taskSourceConfig.getServerTimeZone()));
 
         List<TableChanges.TableChange> tableChangeList = new ArrayList<>();
         // TODO: support save table schema

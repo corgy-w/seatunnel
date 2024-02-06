@@ -37,8 +37,9 @@
         <module>connector-cdc-informix-wt</module>
         <module>connector-cdc-oracle-wt</module>
         <module>connector-cdc-agent-oracle-wt</module>
-        <module>connector-cdc-postgres</module>
         <module>connector-cdc-mongodb</module>
+        <module>connector-cdc-postgres</module>
+        <!--        <module>connector-cdc-oracle</module>-->
         <module>connector-cdc-opengauss-wt</module>
     </modules>
 

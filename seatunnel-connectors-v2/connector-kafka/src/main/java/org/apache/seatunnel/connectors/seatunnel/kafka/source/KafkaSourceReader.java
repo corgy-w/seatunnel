@@ -26,14 +26,13 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormatErrorHandleWay;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorException;
+import org.apache.seatunnel.format.compatible.kafka.connect.json.CompatibleKafkaConnectDeserializationSchema;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.serialization.StringDeserializer;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import lombok.extern.slf4j.Slf4j;
 
@@ -129,12 +128,6 @@ public class KafkaSourceReader implements SourceReader<SeaTunnelRow, KafkaSource
                                                 Set<TopicPartition> partitions =
                                                         Sets.newHashSet(
                                                                 sourceSplit.getTopicPartition());
-                                                StringDeserializer stringDeserializer =
-                                                        new StringDeserializer();
-                                                stringDeserializer.configure(
-                                                        Maps.fromProperties(
-                                                                this.metadata.getProperties()),
-                                                        false);
                                                 consumer.assign(partitions);
                                                 if (sourceSplit.getStartOffset() >= 0) {
                                                     consumer.seek(
@@ -160,11 +153,18 @@ public class KafkaSourceReader implements SourceReader<SeaTunnelRow, KafkaSource
                                                                                 record.topic(),
                                                                                 record.value(),
                                                                                 output);
+                                                            } else if (deserializationSchema
+                                                                    instanceof
+                                                                    CompatibleKafkaConnectDeserializationSchema) {
+                                                                ((CompatibleKafkaConnectDeserializationSchema)
+                                                                                deserializationSchema)
+                                                                        .deserialize(
+                                                                                record, output);
                                                             } else {
                                                                 deserializationSchema.deserialize(
                                                                         record.value(), output);
                                                             }
-                                                        } catch (IOException e) {
+                                                        } catch (RuntimeException e) {
                                                             if (this.messageFormatErrorHandleWay
                                                                     == MessageFormatErrorHandleWay
                                                                             .SKIP) {

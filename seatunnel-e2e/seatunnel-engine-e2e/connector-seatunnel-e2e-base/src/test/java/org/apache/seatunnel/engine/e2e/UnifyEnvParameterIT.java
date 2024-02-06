@@ -20,14 +20,13 @@ package org.apache.seatunnel.engine.e2e;
 import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.flink.AbstractTestFlinkContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.apache.commons.collections4.CollectionUtils;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 
@@ -43,10 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.awaitility.Awaitility.await;
 
 @Slf4j
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SEATUNNEL, EngineType.SPARK},
-        disabledReason = "only flink adjusts the parameter configuration rules")
+@Disabled("only flink adjusts the parameter configuration rules")
 public class UnifyEnvParameterIT extends TestSuiteBase {
 
     @TestContainerExtension

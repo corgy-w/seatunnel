@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class InformixSourceConfigFactory extends JdbcSourceConfigFactory {
     private static final String DRIVER_CLASS_NAME = "com.informix.jdbc.IfxDriver";
+    private static final boolean SUPPORTED_EXACTLY_ONCE = false;
 
     @Override
     public InformixSourceConfig create(int subtaskId) {
@@ -83,6 +84,6 @@ public class InformixSourceConfigFactory extends JdbcSourceConfigFactory {
                 connectTimeoutMillis,
                 connectMaxRetries,
                 connectionPoolSize,
-                false);
+                SUPPORTED_EXACTLY_ONCE);
     }
 }

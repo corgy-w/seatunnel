@@ -1,10 +1,27 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.connectors.dws.guassdb.catalog;
 
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
-import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
@@ -14,7 +31,7 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseAlreadyExistExce
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
@@ -51,15 +68,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_BIT;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_BYTEA;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_CHAR;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_CHARACTER;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_CHARACTER_VARYING;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_GEOGRAPHY;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_GEOMETRY;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_INTERVAL;
-import static org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBDataTypeConvertor.PG_TEXT;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.DATABASE;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.PASSWORD;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.TABLE;
@@ -537,63 +545,34 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
         String typeName = resultSet.getString("type_name");
         String fullTypeName = resultSet.getString("full_type_name");
         long columnLength = resultSet.getLong("column_length");
-        long columnScale = resultSet.getLong("column_scale");
+        int columnScale = resultSet.getInt("column_scale");
         String columnComment = resultSet.getString("column_comment");
         Object defaultValue = resultSet.getObject("default_value");
         boolean isNullable = resultSet.getString("is_nullable").equals("YES");
 
+        // dealingSpecialNumeric
+        if (typeName.equals(DwsGaussDBTypeConverter.PG_NUMERIC) && columnLength < 1) {
+            fullTypeName = "numeric(38,10)";
+            columnLength = 38;
+            columnScale = 10;
+        }
         if (defaultValue != null && defaultValue.toString().contains("regclass")) {
             defaultValue = null;
         }
 
-        SeaTunnelDataType<?> type = fromJdbcType(columnName, typeName, columnLength, columnScale);
-        long bitLen = 0;
-        switch (typeName) {
-            case PG_BYTEA:
-                bitLen = -1;
-                break;
-            case PG_TEXT:
-                columnLength = -1;
-                break;
-            case PG_INTERVAL:
-                columnLength = 50;
-                break;
-            case PG_GEOMETRY:
-            case PG_GEOGRAPHY:
-                columnLength = 255;
-                break;
-            case PG_BIT:
-                bitLen = columnLength;
-                break;
-            case PG_CHAR:
-            case PG_CHARACTER:
-            case PG_CHARACTER_VARYING:
-            default:
-                break;
-        }
-
-        return PhysicalColumn.of(
-                columnName,
-                type,
-                0,
-                isNullable,
-                defaultValue,
-                columnComment,
-                fullTypeName,
-                false,
-                false,
-                bitLen,
-                null,
-                columnLength);
-    }
-
-    private SeaTunnelDataType<?> fromJdbcType(
-            String columnName, String typeName, long precision, long scale) {
-        Map<String, Object> dataTypeProperties = new HashMap<>();
-        dataTypeProperties.put(DwsGaussDBDataTypeConvertor.PRECISION, precision);
-        dataTypeProperties.put(DwsGaussDBDataTypeConvertor.SCALE, scale);
-        return new DwsGaussDBDataTypeConvertor()
-                .toSeaTunnelType(columnName, typeName, dataTypeProperties);
+        BasicTypeDefine typeDefine =
+                BasicTypeDefine.builder()
+                        .name(columnName)
+                        .columnType(fullTypeName)
+                        .dataType(typeName)
+                        .length(columnLength)
+                        .precision(columnLength)
+                        .scale(columnScale)
+                        .nullable(isNullable)
+                        .defaultValue(defaultValue)
+                        .comment(columnComment)
+                        .build();
+        return DwsGaussDBTypeConverter.INSTANCE.convert(typeDefine);
     }
 
     private Map<String, String> buildConnectorOptions(TablePath tablePath) {

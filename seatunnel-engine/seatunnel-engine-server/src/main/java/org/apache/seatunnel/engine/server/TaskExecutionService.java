@@ -461,7 +461,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
             try {
                 cancellationFutures.get(taskGroupLocation).cancel(false);
             } catch (CancellationException ignore) {
-                // ignore
+                logger.warning(ExceptionUtils.getMessage(ignore));
             }
         } else {
             logger.warning(
@@ -860,7 +860,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                 blockingFutures.forEach(f -> f.cancel(true));
                 currRunningTaskFuture.values().forEach(f -> f.cancel(true));
             } catch (CancellationException ignore) {
-                // ignore
+                logger.warning(ExceptionUtils.getMessage(ignore));
             }
             cancelAsyncFunction(taskGroupLocation);
         }
@@ -874,7 +874,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                             .forEach(f -> f.cancel(true));
                 }
             } catch (CancellationException ignore) {
-                // ignore
+                logger.warning(ExceptionUtils.getMessage(ignore));
             }
         }
 
@@ -886,6 +886,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                             task.getTaskID(), taskGroupLocation));
             Throwable ex = executionException.get();
             if (completionLatch.decrementAndGet() == 0) {
+                logger.info("all tasks is done");
                 // recycle classloader
                 executionContexts.get(taskGroupLocation).setClassLoader(null);
                 finishedExecutionContexts.put(
@@ -906,6 +907,10 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                 }
             }
             if (!isCancel.get() && ex != null) {
+                logger.info(
+                        String.format(
+                                "%s is done, cancel other tasks in taskGroup %s",
+                                task.getTaskID(), taskGroupLocation));
                 cancelAllTask(taskGroupLocation);
             }
         }

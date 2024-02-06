@@ -79,6 +79,11 @@ public class SelectDBConfig implements Serializable {
                     .noDefaultValue()
                     .withDescription("the jdbc password.");
 
+    public static final Option<Boolean> SINK_ENABLE_2PC =
+            Options.key("sink.enable-2pc")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription("enable 2PC while loading");
     // sink config options
     public static final Option<Integer> SINK_MAX_RETRIES =
             Options.key("sink.max-retries")
@@ -115,7 +120,7 @@ public class SelectDBConfig implements Serializable {
     public static final Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key("data_save_mode")
                     .enumType(DataSaveMode.class)
-                    .defaultValue(DataSaveMode.KEEP_SCHEMA_AND_DATA)
+                    .defaultValue(DataSaveMode.APPEND_DATA)
                     .withDescription("data_save_mode");
 
     public static final Option<String> CUSTOM_SQL =
@@ -181,6 +186,7 @@ public class SelectDBConfig implements Serializable {
     private String database;
     private Boolean enableDelete;
     private String labelPrefix;
+    private boolean enable2PC;
     private Integer maxRetries;
     private Integer bufferSize;
     private Integer bufferCount;
@@ -205,6 +211,7 @@ public class SelectDBConfig implements Serializable {
         selectdbConfig.setStageLoadProps(parseCopyIntoProperties(pluginConfig));
         selectdbConfig.setLabelPrefix(pluginConfig.get(SINK_LABEL_PREFIX));
         selectdbConfig.setMaxRetries(pluginConfig.get(SINK_MAX_RETRIES));
+        selectdbConfig.setEnable2PC(pluginConfig.get(SINK_ENABLE_2PC));
         selectdbConfig.setBufferSize(pluginConfig.get(SINK_BUFFER_SIZE));
         selectdbConfig.setBufferCount(pluginConfig.get(SINK_BUFFER_COUNT));
         selectdbConfig.setEnableDelete(pluginConfig.get(SINK_ENABLE_DELETE));

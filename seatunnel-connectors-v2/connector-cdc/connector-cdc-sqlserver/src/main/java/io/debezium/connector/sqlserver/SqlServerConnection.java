@@ -23,6 +23,7 @@ import io.debezium.schema.DatabaseSchema;
 import io.debezium.util.Clock;
 
 import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -51,6 +52,18 @@ import java.util.stream.Collectors;
  * @author Horia Chiorean (hchiorea@redhat.com), Jiri Pechanec
  */
 public class SqlServerConnection extends JdbcConnection {
+
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
 
     public static final String SERVER_TIMEZONE_PROP_NAME = "server.timezone";
     public static final String INSTANCE_NAME = "instance";

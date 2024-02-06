@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.seatunnel.connectors.seatunnel.iceberg.catalog;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -141,41 +158,75 @@ class IcebergCatalogTest {
     CatalogTable buildAllTypesTable(TableIdentifier tableIdentifier) {
         TableSchema.Builder builder = TableSchema.builder();
         builder.column(
-                PhysicalColumn.of("id", BasicType.INT_TYPE, null, true, null, "test comment"));
+                PhysicalColumn.of(
+                        "id", BasicType.INT_TYPE, (Long) null, true, null, "test comment"));
         builder.column(
                 PhysicalColumn.of(
-                        "boolean_col", BasicType.BOOLEAN_TYPE, null, true, null, "test comment"));
-        builder.column(
-                PhysicalColumn.of(
-                        "integer_col", BasicType.INT_TYPE, null, true, null, "test comment"));
-        builder.column(
-                PhysicalColumn.of(
-                        "long_col", BasicType.LONG_TYPE, null, true, null, "test comment"));
-        builder.column(
-                PhysicalColumn.of(
-                        "float_col", BasicType.FLOAT_TYPE, null, true, null, "test comment"));
-        builder.column(
-                PhysicalColumn.of(
-                        "double_col", BasicType.DOUBLE_TYPE, null, true, null, "test comment"));
-        builder.column(
-                PhysicalColumn.of("date_col", LOCAL_DATE_TYPE, null, true, null, "test comment"));
-        builder.column(
-                PhysicalColumn.of(
-                        "timestamp_col", LOCAL_DATE_TIME_TYPE, null, true, null, "test comment"));
-        builder.column(
-                PhysicalColumn.of("string_col", STRING_TYPE, null, true, null, "test comment"));
-        builder.column(
-                PhysicalColumn.of(
-                        "binary_col",
-                        PrimitiveByteArrayType.INSTANCE,
-                        null,
+                        "boolean_col",
+                        BasicType.BOOLEAN_TYPE,
+                        (Long) null,
                         true,
                         null,
                         "test comment"));
         builder.column(
                 PhysicalColumn.of(
-                        "decimal_col", new DecimalType(38, 18), null, true, null, "test comment"));
-        builder.column(PhysicalColumn.of("dt_col", STRING_TYPE, null, true, null, "test comment"));
+                        "integer_col",
+                        BasicType.INT_TYPE,
+                        (Long) null,
+                        true,
+                        null,
+                        "test comment"));
+        builder.column(
+                PhysicalColumn.of(
+                        "long_col", BasicType.LONG_TYPE, (Long) null, true, null, "test comment"));
+        builder.column(
+                PhysicalColumn.of(
+                        "float_col",
+                        BasicType.FLOAT_TYPE,
+                        (Long) null,
+                        true,
+                        null,
+                        "test comment"));
+        builder.column(
+                PhysicalColumn.of(
+                        "double_col",
+                        BasicType.DOUBLE_TYPE,
+                        (Long) null,
+                        true,
+                        null,
+                        "test comment"));
+        builder.column(
+                PhysicalColumn.of(
+                        "date_col", LOCAL_DATE_TYPE, (Long) null, true, null, "test comment"));
+        builder.column(
+                PhysicalColumn.of(
+                        "timestamp_col",
+                        LOCAL_DATE_TIME_TYPE,
+                        (Long) null,
+                        true,
+                        null,
+                        "test comment"));
+        builder.column(
+                PhysicalColumn.of(
+                        "string_col", STRING_TYPE, (Long) null, true, null, "test comment"));
+        builder.column(
+                PhysicalColumn.of(
+                        "binary_col",
+                        PrimitiveByteArrayType.INSTANCE,
+                        (Long) null,
+                        true,
+                        null,
+                        "test comment"));
+        builder.column(
+                PhysicalColumn.of(
+                        "decimal_col",
+                        new DecimalType(38, 18),
+                        (Long) null,
+                        true,
+                        null,
+                        "test comment"));
+        builder.column(
+                PhysicalColumn.of("dt_col", STRING_TYPE, (Long) null, true, null, "test comment"));
 
         TableSchema schema = builder.build();
         HashMap<String, String> options = new HashMap<>();

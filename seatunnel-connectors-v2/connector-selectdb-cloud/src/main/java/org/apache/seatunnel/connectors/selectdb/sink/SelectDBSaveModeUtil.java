@@ -20,9 +20,7 @@ package org.apache.seatunnel.connectors.selectdb.sink;
 import org.apache.seatunnel.api.sink.SaveModeConstants;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
-import org.apache.seatunnel.api.table.type.ArrayType;
-import org.apache.seatunnel.api.table.type.DecimalType;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.connectors.selectdb.catalog.SelectDBTypeConverter;
 import org.apache.seatunnel.connectors.selectdb.util.CreateTableParser;
 
 import org.apache.commons.lang3.StringUtils;
@@ -84,16 +82,7 @@ public class SelectDBSaveModeUtil {
         return String.format(
                 "`%s` %s %s ",
                 column.getName(),
-                dataTypeToSelectDBType(
-                        column.getDataType(),
-                        Math.max(
-                                        column.getColumnLength() == null
-                                                ? 0
-                                                : column.getColumnLength(),
-                                        column.getLongColumnLength() == null
-                                                ? 0
-                                                : column.getLongColumnLength())
-                                * 3),
+                SelectDBTypeConverter.INSTANCE.reconvert(column).getColumnType(),
                 column.isNullable() ? "NULL" : "NOT NULL");
     }
 
@@ -135,54 +124,5 @@ public class SelectDBSaveModeUtil {
             }
         }
         return template;
-    }
-
-    private static String dataTypeToSelectDBType(SeaTunnelDataType<?> dataType, long length) {
-        checkNotNull(dataType, "The SeaTunnel's data type is required.");
-        switch (dataType.getSqlType()) {
-            case NULL:
-            case TIME:
-                return "VARCHAR(8)";
-            case STRING:
-                if (length > 65533 || length <= 0) {
-                    return "STRING";
-                } else {
-                    return "VARCHAR(" + length + ")";
-                }
-            case BYTES:
-                return "STRING";
-            case BOOLEAN:
-                return "BOOLEAN";
-            case TINYINT:
-                return "TINYINT";
-            case SMALLINT:
-                return "SMALLINT";
-            case INT:
-                return "INT";
-            case BIGINT:
-                return "BIGINT";
-            case FLOAT:
-                return "FLOAT";
-            case DOUBLE:
-                return "DOUBLE";
-            case DATE:
-                return "DATE";
-            case TIMESTAMP:
-                return "DATETIME";
-            case ARRAY:
-                return "ARRAY<"
-                        + dataTypeToSelectDBType(
-                                ((ArrayType<?, ?>) dataType).getElementType(), Long.MAX_VALUE)
-                        + ">";
-            case DECIMAL:
-                DecimalType decimalType = (DecimalType) dataType;
-                return String.format(
-                        "Decimalv3(%d, %d)", decimalType.getPrecision(), decimalType.getScale());
-            case MAP:
-            case ROW:
-                return "JSON";
-            default:
-        }
-        throw new IllegalArgumentException("Unsupported SeaTunnel's data type: " + dataType);
     }
 }

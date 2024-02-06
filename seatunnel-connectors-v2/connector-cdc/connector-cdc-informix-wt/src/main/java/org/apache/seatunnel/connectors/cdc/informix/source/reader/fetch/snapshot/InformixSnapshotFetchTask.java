@@ -133,7 +133,7 @@ public class InformixSnapshotFetchTask implements FetchTask<SourceSplitBase> {
         return new InformixCDCLogSplitReadTask(
                 informixOffsetContext,
                 context.getSourceConfig(),
-                context.getConnection(),
+                context.getCDCEngine(),
                 context.getDispatcher(),
                 context.getErrorHandler(),
                 context.getDatabaseSchema(),
