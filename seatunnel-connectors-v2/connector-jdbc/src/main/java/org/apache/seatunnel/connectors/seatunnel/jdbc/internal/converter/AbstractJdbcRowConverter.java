@@ -230,8 +230,7 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                         statement.setDate(statementIndex, java.sql.Date.valueOf(localDate));
                         break;
                     case TIME:
-                        LocalTime localTime = (LocalTime) row.getField(fieldIndex);
-                        statement.setTime(statementIndex, java.sql.Time.valueOf(localTime));
+                        writeTime(statement, statementIndex, (LocalTime) row.getField(fieldIndex));
                         break;
                     case TIMESTAMP:
                         LocalDateTime localDateTime = (LocalDateTime) row.getField(fieldIndex);
@@ -267,5 +266,10 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
             }
         }
         return statement;
+    }
+
+    protected void writeTime(PreparedStatement statement, int index, LocalTime time)
+            throws SQLException {
+        statement.setTime(index, java.sql.Time.valueOf(time));
     }
 }
