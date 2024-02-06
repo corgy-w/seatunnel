@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.dolphindb.catalog;
 
+import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 
 public class DolphinDBSqlGenerator {
@@ -26,7 +27,11 @@ public class DolphinDBSqlGenerator {
         String deleteSql = "delete from " + table + " where ";
         String[] fieldNames = seaTunnelRowType.getFieldNames();
         for (int i = 0; i < fieldNames.length; i++) {
-            deleteSql += fieldNames[i] + " = ?";
+            if (seaTunnelRowType.getFieldType(i).equals(BasicType.FLOAT_TYPE)) {
+                deleteSql += fieldNames[i] + " = float(?)";
+            } else {
+                deleteSql += fieldNames[i] + " = ?";
+            }
             if (i != fieldNames.length - 1) {
                 deleteSql += " , ";
             }
