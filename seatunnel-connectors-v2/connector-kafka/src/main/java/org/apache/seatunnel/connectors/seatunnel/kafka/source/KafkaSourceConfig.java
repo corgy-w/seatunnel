@@ -209,15 +209,15 @@ public class KafkaSourceConfig implements Serializable {
     private DeserializationSchema<SeaTunnelRow> createDeserializationSchema(
             List<CatalogTable> catalogTables, ReadonlyConfig readonlyConfig) {
         SeaTunnelRowType seaTunnelRowType = catalogTables.get(0).getSeaTunnelRowType();
-
-        if (!readonlyConfig.getOptional(TableSchemaOptions.SCHEMA).isPresent()) {
+        MessageFormat format = readonlyConfig.get(FORMAT);
+        if (!readonlyConfig.getOptional(TableSchemaOptions.SCHEMA).isPresent()
+                && !format.equals(MessageFormat.KINGBASE_JSON)) {
             return TextDeserializationSchema.builder()
                     .seaTunnelRowType(seaTunnelRowType)
                     .delimiter(TextFormatConstant.PLACEHOLDER)
                     .build();
         }
 
-        MessageFormat format = readonlyConfig.get(FORMAT);
         switch (format) {
             case JSON:
                 return new JsonDeserializationSchema(false, false, seaTunnelRowType);
