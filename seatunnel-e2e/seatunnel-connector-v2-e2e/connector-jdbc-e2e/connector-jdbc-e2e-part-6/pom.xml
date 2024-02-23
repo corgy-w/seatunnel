@@ -47,5 +47,17 @@
             <artifactId>ojdbc8</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>com.huaweicloud.dws</groupId>
+            <artifactId>huaweicloud-dws-jdbc</artifactId>
+            <version>8.1.1.1-200</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

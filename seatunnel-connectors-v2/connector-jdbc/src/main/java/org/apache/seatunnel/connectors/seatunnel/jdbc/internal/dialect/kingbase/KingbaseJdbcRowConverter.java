@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.AbstractJdbcRowConverter;
@@ -56,6 +57,7 @@ public class KingbaseJdbcRowConverter extends AbstractJdbcRowConverter {
         Object[] fields = new Object[typeInfo.getTotalFields()];
         for (int fieldIndex = 0; fieldIndex < typeInfo.getTotalFields(); fieldIndex++) {
             SeaTunnelDataType<?> seaTunnelDataType = typeInfo.getFieldType(fieldIndex);
+            String fieldName = typeInfo.getFieldName(fieldIndex);
             int resultSetIndex = fieldIndex + 1;
             switch (seaTunnelDataType.getSqlType()) {
                 case STRING:
@@ -118,14 +120,14 @@ public class KingbaseJdbcRowConverter extends AbstractJdbcRowConverter {
                     fields[fieldIndex] = null;
                     break;
                 case ARRAY:
-                    fields[fieldIndex] = convertToArray(rs, resultSetIndex, seaTunnelDataType);
+                    fields[fieldIndex] =
+                            convertToArray(rs, resultSetIndex, seaTunnelDataType, fieldName);
                     break;
                 case ROW:
                 case MAP:
                 default:
-                    throw new JdbcConnectorException(
-                            CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
-                            "Unexpected value: " + seaTunnelDataType);
+                    throw CommonError.unsupportedDataType(
+                            converterName(), seaTunnelDataType.getSqlType().toString(), fieldName);
             }
         }
         return new SeaTunnelRow(fields);

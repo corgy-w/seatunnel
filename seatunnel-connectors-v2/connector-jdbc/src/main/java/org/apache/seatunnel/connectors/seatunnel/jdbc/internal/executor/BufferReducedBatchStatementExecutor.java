@@ -62,7 +62,6 @@ public class BufferReducedBatchStatementExecutor
         boolean changeFlag = changeFlag(record.getRowKind());
         SeaTunnelRow value = valueTransform.apply(record);
         buffer.put(key, Pair.of(changeFlag, value));
-        System.out.println(11);
     }
 
     @Override

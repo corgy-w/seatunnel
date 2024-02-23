@@ -374,12 +374,13 @@
                     <version>${postgresql.version}</version>
                     <scope>provided</scope>
                 </dependency>
-                <dependency>
-                    <groupId>net.postgis</groupId>
-                    <artifactId>postgis-jdbc</artifactId>
-                    <version>${postgis.jdbc.version}</version>
-                    <scope>provided</scope>
-                </dependency>
+                <!-- postgis and huaweicloud-dws-jdbc can not use together -->
+                <!--                <dependency>-->
+                <!--                    <groupId>net.postgis</groupId>-->
+                <!--                    <artifactId>postgis-jdbc</artifactId>-->
+                <!--                    <version>${postgis.jdbc.version}</version>-->
+                <!--                    <scope>provided</scope>-->
+                <!--                </dependency>-->
                 <dependency>
                     <groupId>com.dameng</groupId>
                     <artifactId>DmJdbcDriver18</artifactId>

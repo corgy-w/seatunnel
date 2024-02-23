@@ -40,4 +40,5 @@ public class DatabaseIdentifier {
     public static final String OCENABASE = "OceanBase";
     public static final String TIDB = "TiDB";
     public static final String OPENGAUSS = "OpenGauss";
+    public static final String DWS = "DWS";
 }
