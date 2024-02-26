@@ -25,10 +25,15 @@ import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresCatalog;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws.DwsTypeConverter;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws.DwsTypeMapper;
 
 import lombok.extern.slf4j.Slf4j;
+
+import java.sql.Connection;
+import java.sql.SQLException;
 
 @Slf4j
 public class DwsCatalog extends PostgresCatalog {
@@ -100,5 +105,11 @@ public class DwsCatalog extends PostgresCatalog {
     @Override
     public TypeConverter getTypeConverter() {
         return DwsTypeConverter.INSTANCE;
+    }
+
+    @Override
+    public CatalogTable getTable(String sqlQuery) throws SQLException {
+        Connection defaultConnection = getConnection(defaultUrl);
+        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new DwsTypeMapper());
     }
 }
