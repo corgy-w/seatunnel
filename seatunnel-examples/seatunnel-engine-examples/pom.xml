@@ -124,7 +124,7 @@
         <dependency>
             <groupId>com.huaweicloud.dws</groupId>
             <artifactId>huaweicloud-dws-jdbc</artifactId>
-            <version>8.1.1.1-200</version>
+            <version>8.2.1.300-200</version>
         </dependency>
 
         <dependency>

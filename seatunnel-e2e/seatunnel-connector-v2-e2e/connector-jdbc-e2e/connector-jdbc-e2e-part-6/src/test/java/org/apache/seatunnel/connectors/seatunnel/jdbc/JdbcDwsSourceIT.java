@@ -63,7 +63,7 @@ import java.util.stream.Collectors;
 public class JdbcDwsSourceIT extends TestSuiteBase implements TestResource {
 
     public static final String DWS_DRIVER_JAR =
-            "https://repo1.maven.org/maven2/com/huaweicloud/dws/huaweicloud-dws-jdbc/8.1.1.1-200/huaweicloud-dws-jdbc-8.1.1.1-200.jar";
+            "https://repo1.maven.org/maven2/com/huaweicloud/dws/huaweicloud-dws-jdbc/8.2.1.300-200/huaweicloud-dws-jdbc-8.2.1.300-200.jar";
 
     public static final String DWS_JDBC_URL = "jdbc:gaussdb://116.63.81.12:8000/test";
 
