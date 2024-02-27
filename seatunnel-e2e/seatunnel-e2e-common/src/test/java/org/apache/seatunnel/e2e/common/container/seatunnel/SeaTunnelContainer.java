@@ -49,9 +49,9 @@ import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PA
 @Slf4j
 @AutoService(TestContainer.class)
 public class SeaTunnelContainer extends AbstractTestContainer {
-    private static final String JDK_DOCKER_IMAGE = "openjdk:8";
+    protected static final String JDK_DOCKER_IMAGE = "openjdk:8";
     private static final String CLIENT_SHELL = "seatunnel.sh";
-    private static final String SERVER_SHELL = "seatunnel-cluster.sh";
+    protected static final String SERVER_SHELL = "seatunnel-cluster.sh";
     private static final String LICENSE_PATH = "/etc/seatunnel/whaletunnel.license";
     protected GenericContainer<?> server;
 
