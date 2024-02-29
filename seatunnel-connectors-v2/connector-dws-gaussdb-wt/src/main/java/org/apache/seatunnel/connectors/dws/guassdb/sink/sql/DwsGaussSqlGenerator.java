@@ -54,7 +54,7 @@ public class DwsGaussSqlGenerator implements Serializable {
 
     private final String delimiter = "|";
 
-    private final Map<Integer, Function<Object, String>> transformToCopyStringFunction;
+    private transient Map<Integer, Function<Object, String>> transformToCopyStringFunction;
 
     public DwsGaussSqlGenerator(
             String primaryKey,
@@ -280,9 +280,13 @@ public class DwsGaussSqlGenerator implements Serializable {
     }
 
     private String appendRowInTargetTable(SeaTunnelRow seaTunnelRow) {
+        if (transformToCopyStringFunction == null) {
+            synchronized (this) {
+                transformToCopyStringFunction = initializeTransformToCopyStringFunction();
+            }
+        }
         Object[] fields = seaTunnelRow.getFields();
         StringBuilder stringBuilder = new StringBuilder();
-        List<Column> columns = catalogTable.getTableSchema().getColumns();
         for (int i = 0; i < fields.length; i++) {
             final Object field = seaTunnelRow.getField(i);
             String fieldStr = transformToCopyStringFunction.get(i).apply(field);
