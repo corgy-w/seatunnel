@@ -26,7 +26,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.Abstrac
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcUtils;
 
-import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -91,13 +90,7 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
                     fields[fieldIndex] = JdbcUtils.getDouble(rs, resultSetIndex);
                     break;
                 case DECIMAL:
-                    if (metaDataColumnType.equalsIgnoreCase(PostgresTypeConverter.PG_MONEY)) {
-                        String moneyStr = JdbcUtils.getString(rs, resultSetIndex);
-                        String moneyValue = moneyStr.replace("$", "").replaceAll(",", "");
-                        fields[fieldIndex] = new BigDecimal(moneyValue);
-                    } else {
-                        fields[fieldIndex] = JdbcUtils.getBigDecimal(rs, resultSetIndex);
-                    }
+                    fields[fieldIndex] = JdbcUtils.getBigDecimal(rs, resultSetIndex);
                     break;
                 case DATE:
                     Date sqlDate = JdbcUtils.getDate(rs, resultSetIndex);
