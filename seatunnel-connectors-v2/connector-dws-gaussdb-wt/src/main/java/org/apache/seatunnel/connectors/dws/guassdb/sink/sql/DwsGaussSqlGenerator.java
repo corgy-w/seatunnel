@@ -89,7 +89,13 @@ public class DwsGaussSqlGenerator implements Serializable {
                 + schemaName
                 + "\".\""
                 + templateTableName
-                + "\" FROM STDIN DELIMITER '"
+                + "\""
+                + "("
+                + catalogTable.getTableSchema().getColumns().stream()
+                        .map(column -> getIDEString(column.getName()))
+                        .collect(Collectors.joining(","))
+                + ")"
+                + " FROM STDIN DELIMITER '"
                 + delimiter
                 + "'";
     }
@@ -99,7 +105,13 @@ public class DwsGaussSqlGenerator implements Serializable {
                 + schemaName
                 + "\".\""
                 + targetTableName
-                + "\" FROM STDIN DELIMITER '"
+                + "\""
+                + "("
+                + catalogTable.getTableSchema().getColumns().stream()
+                        .map(column -> getIDEString(column.getName()))
+                        .collect(Collectors.joining(","))
+                + ")"
+                + " FROM STDIN DELIMITER '"
                 + delimiter
                 + "'";
     }
