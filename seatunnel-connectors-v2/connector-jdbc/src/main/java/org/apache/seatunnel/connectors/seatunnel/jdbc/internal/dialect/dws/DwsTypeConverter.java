@@ -44,11 +44,11 @@ public class DwsTypeConverter extends PostgresTypeConverter {
     public static final String DWS_TINYINT_ARRAY = "_int1";
 
     // varchar type
-    public static final String DWS_NVARCHAR2 = "nvarchar2";
+    public static final String DWS_NVARCHAR2 = "nvarchar";
+    public static final String DWS_VARCHAR_ARRAY = "_nvarchar";
     public static final String DWS_NVARCHAR2_ARRAY = "_nvarchar2";
 
     // date type
-
     // Date and time without time zone. Accurate to the minute, the second bit is greater than or
     // equal to 30 seconds.
     public static final String DWS_SMALLDATETIME = "smalldatetime";
@@ -89,6 +89,7 @@ public class DwsTypeConverter extends PostgresTypeConverter {
                 builder.dataType(BasicType.STRING_TYPE);
                 break;
             case DWS_NVARCHAR2_ARRAY:
+            case DWS_VARCHAR_ARRAY:
                 builder.dataType(ArrayType.STRING_ARRAY_TYPE);
                 break;
             case DWS_SMALLDATETIME:

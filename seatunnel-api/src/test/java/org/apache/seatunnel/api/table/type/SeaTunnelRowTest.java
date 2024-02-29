@@ -104,4 +104,9 @@ public class SeaTunnelRowTest {
         SeaTunnelRow row = new SeaTunnelRow(new Object[] {map});
         Assertions.assertEquals(8, row.getBytesSize());
     }
+
+    public static void main(String[] args) {
+        BigDecimal bigDecimal = new BigDecimal("-70179904.95");
+        System.out.println(bigDecimal.toString());
+    }
 }
