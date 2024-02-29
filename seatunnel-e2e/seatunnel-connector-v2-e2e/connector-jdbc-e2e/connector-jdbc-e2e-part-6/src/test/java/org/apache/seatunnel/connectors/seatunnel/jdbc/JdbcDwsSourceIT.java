@@ -351,7 +351,6 @@ public class JdbcDwsSourceIT extends TestSuiteBase implements TestResource {
     @TestContainerExtension
     protected final ContainerExtendedFactory extendedFactory =
             container -> {
-                container.withNetworkMode("host");
                 Container.ExecResult extraCommands =
                         container.execInContainer(
                                 "bash",
