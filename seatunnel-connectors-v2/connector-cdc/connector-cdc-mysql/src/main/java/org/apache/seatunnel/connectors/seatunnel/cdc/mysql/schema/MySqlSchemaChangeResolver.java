@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.mysql.schema;
 
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.event.TableEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.connectors.cdc.base.schema.SchemaChangeResolver;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
@@ -75,6 +76,9 @@ public class MySqlSchemaChangeResolver implements SchemaChangeResolver {
         TablePath tablePath = SourceRecordUtils.getTablePath(record);
         SchemaChangeEvent schemaChangeEvent =
                 resolveTableChanges(ddl, tableChange, tablePath, dataType);
+        if (schemaChangeEvent instanceof TableEvent) {
+            ((TableEvent) schemaChangeEvent).setStatement(ddl);
+        }
         return schemaChangeEvent;
     }
 
