@@ -95,7 +95,7 @@ public class PhoenixCreateTableSqlBuilder {
         }
 
         createTableSql.append(String.join(",\n", columnSqls));
-        createTableSql.append("\n);");
+        createTableSql.append("\n)");
 
         List<String> commentSqls =
                 columns.stream()
@@ -108,7 +108,7 @@ public class PhoenixCreateTableSqlBuilder {
 
         if (!commentSqls.isEmpty()) {
             createTableSql.append("\n");
-            createTableSql.append(String.join(";\n", commentSqls)).append(";");
+            createTableSql.append(String.join(";\n", commentSqls));
         }
 
         return createTableSql.toString();
@@ -124,11 +124,6 @@ public class PhoenixCreateTableSqlBuilder {
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);
-
-        // Add NOT NULL if column is not nullable
-        if (!column.isNullable()) {
-            columnSql.append(" NOT NULL");
-        }
 
         // Add primary key directly after the column if it is a primary key
         if (primaryKey != null && primaryKey.getColumnNames().contains(column.getName())) {

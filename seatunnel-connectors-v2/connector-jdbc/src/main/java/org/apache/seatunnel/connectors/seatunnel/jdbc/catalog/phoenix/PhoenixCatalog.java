@@ -32,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -105,6 +106,14 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
         } catch (Exception ex) {
             throw new CatalogException(
                     String.format("Failed creating table %s", tablePath.getFullName()), ex);
+        }
+    }
+
+    @Override
+    protected boolean executeInternal(String url, String sql) throws SQLException {
+        log.info("Execute sql : {}", sql.replace("\n", " "));
+        try (Statement ps = getConnection(url).createStatement()) {
+            return ps.execute(sql);
         }
     }
 
