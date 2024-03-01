@@ -34,6 +34,7 @@ import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
+import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 
@@ -41,6 +42,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -62,6 +65,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Slf4j
 public abstract class AbstractJdbcCatalog implements Catalog {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJdbcCatalog.class);
 
@@ -180,6 +184,59 @@ public abstract class AbstractJdbcCatalog implements Catalog {
 
                 TableSchema.Builder builder = TableSchema.builder();
                 buildColumnsWithErrorCheck(tablePath, resultSet, builder);
+                // add primary key
+                primaryKey.ifPresent(builder::primaryKey);
+                // add constraint key
+                constraintKeys.forEach(builder::constraintKey);
+                TableIdentifier tableIdentifier = getTableIdentifier(tablePath);
+                return CatalogTable.of(
+                        tableIdentifier,
+                        builder.build(),
+                        buildConnectorOptions(tablePath),
+                        Collections.emptyList(),
+                        "",
+                        catalogName);
+            }
+        } catch (SeaTunnelRuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format("Failed getting table %s", tablePath.getFullName()), e);
+        }
+    }
+
+    public CatalogTable getTableIgnoreUnSupportColumn(TablePath tablePath)
+            throws CatalogException, TableNotExistException {
+        if (!tableExists(tablePath)) {
+            throw new TableNotExistException(catalogName, tablePath);
+        }
+
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        Connection conn = getConnection(dbUrl);
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
+            List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            try (PreparedStatement ps = conn.prepareStatement(getSelectColumnsSql(tablePath));
+                    ResultSet resultSet = ps.executeQuery()) {
+
+                TableSchema.Builder builder = TableSchema.builder();
+                try {
+                    buildColumnsWithErrorCheck(tablePath, resultSet, builder);
+                } catch (SeaTunnelRuntimeException e) {
+                    if (e.getSeaTunnelErrorCode() != null
+                            && CommonErrorCode.GET_CATALOG_TABLE_WITH_UNSUPPORTED_TYPE_ERROR.equals(
+                                    e.getSeaTunnelErrorCode())) {
+                        log.debug(ExceptionUtils.getMessage(e));
+                    } else {
+                        throw e;
+                    }
+                }
                 // add primary key
                 primaryKey.ifPresent(builder::primaryKey);
                 // add constraint key
