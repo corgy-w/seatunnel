@@ -103,6 +103,9 @@ public class JdbcSinkWriter
         if (jdbcSinkConfig.getJdbcConnectionConfig().getUsername().isPresent()) {
             ds.setUsername(jdbcSinkConfig.getJdbcConnectionConfig().getUsername().get());
         }
+        if (jdbcSinkConfig.getJdbcConnectionConfig().getUrl().startsWith("jdbc:phoenix:thin:")) {
+            ds.setConnectionTestQuery("select 1");
+        }
         if (jdbcSinkConfig.getJdbcConnectionConfig().getPassword().isPresent()) {
             ds.setPassword(jdbcSinkConfig.getJdbcConnectionConfig().getPassword().get());
         }
