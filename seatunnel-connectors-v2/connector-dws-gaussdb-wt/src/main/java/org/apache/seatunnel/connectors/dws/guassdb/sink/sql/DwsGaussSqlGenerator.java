@@ -288,7 +288,7 @@ public class DwsGaussSqlGenerator implements Serializable {
         stringBuilder.append(snapshotId);
         stringBuilder.append(delimiter);
         stringBuilder.append(isDeleted);
-        return stringBuilder.toString();
+        return stringBuilder.toString().replace("\n", "");
     }
 
     private String appendRowInTargetTable(SeaTunnelRow seaTunnelRow) {
@@ -310,7 +310,7 @@ public class DwsGaussSqlGenerator implements Serializable {
                 stringBuilder.append(delimiter);
             }
         }
-        return stringBuilder.toString();
+        return stringBuilder.toString().replace("\n", "");
     }
 
     private String buildColumnSql(Column column) {
