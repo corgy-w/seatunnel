@@ -198,7 +198,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.phoenix:phoenix-queryserver-client:jar</include>
+                <include>org.apache.seatunnel:seatunnel-phoenix-5.1.3:jar</include>
                 <include>mysql:mysql-connector-java:jar</include>
                 <include>org.postgresql:postgresql:jar</include>
                 <include>com.dameng:DmJdbcDriver18:jar</include>

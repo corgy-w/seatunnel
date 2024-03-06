@@ -17,19 +17,28 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.phoenix;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
+import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.IOException;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -40,13 +49,16 @@ import java.util.List;
 @Slf4j
 public class PhoenixCatalog extends AbstractJdbcCatalog {
 
-    public PhoenixCatalog(
-            String catalogName,
-            String username,
-            String pwd,
-            JdbcUrlUtil.UrlInfo urlInfo,
-            String defaultSchema) {
-        super(catalogName, username, pwd, urlInfo, defaultSchema);
+    private ReadonlyConfig options;
+
+    public PhoenixCatalog(String catalogName, JdbcUrlUtil.UrlInfo urlInfo, ReadonlyConfig options) {
+        super(
+                catalogName,
+                options.get(JdbcCatalogOptions.USERNAME),
+                options.get(JdbcCatalogOptions.PASSWORD),
+                urlInfo,
+                options.get(JdbcCatalogOptions.SCHEMA));
+        this.options = options;
     }
 
     @Override
@@ -74,6 +86,20 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
         } catch (SQLException e) {
             throw new CatalogException(
                     String.format("Failed listing database in catalog %s", catalogName), e);
+        }
+    }
+
+    protected Connection getConnection(String url) {
+        if (connectionMap.containsKey(url)) {
+            return connectionMap.get(url);
+        }
+        try {
+            this.doKerberosAuthentication();
+            Connection connection = DriverManager.getConnection(url, username, pwd);
+            connectionMap.put(url, connection);
+            return connection;
+        } catch (SQLException e) {
+            throw new CatalogException(String.format("Failed connecting to %s via JDBC.", url), e);
         }
     }
 
@@ -174,6 +200,39 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
             return listTables(defaultDatabase).contains(tablePath.getSchemaAndTableName());
         } catch (DatabaseNotExistException e) {
             return false;
+        }
+    }
+
+    @SneakyThrows
+    private void doKerberosAuthentication() {
+        String principal = options.get(JdbcOptions.KERBEROS_PRINCIPAL);
+        if (StringUtils.isEmpty(principal)) {
+            return;
+        }
+        String kerberosKrb5ConfPath = options.get(JdbcOptions.KRB5_PATH);
+        String keytabPath = options.get(JdbcOptions.KERBEROS_KEYTAB_PATH);
+        System.setProperty("java.security.krb5.conf", kerberosKrb5ConfPath);
+        System.setProperty("krb.principal", "hadoop");
+        Configuration configuration = new Configuration();
+        if (StringUtils.isBlank(principal) || StringUtils.isBlank(keytabPath)) {
+            log.warn(
+                    "Principal [{}] or keytabPath [{}] is empty, it will skip kerberos authentication",
+                    principal,
+                    keytabPath);
+        } else {
+            configuration.set("hadoop.security.authentication", "kerberos");
+            UserGroupInformation.setConfiguration(configuration);
+            try {
+                log.info(
+                        "Start Kerberos authentication using principal {} and keytab {}",
+                        principal,
+                        keytabPath);
+                UserGroupInformation.loginUserFromKeytab(principal, keytabPath);
+                log.info("Kerberos authentication successful");
+            } catch (IOException e) {
+                throw new SeaTunnelException(
+                        "check hive connectivity failed, " + e.getMessage(), e);
+            }
         }
     }
 }
