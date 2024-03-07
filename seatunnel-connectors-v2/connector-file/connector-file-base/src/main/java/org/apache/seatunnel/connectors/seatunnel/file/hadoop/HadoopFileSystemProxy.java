@@ -262,8 +262,6 @@ public class HadoopFileSystemProxy implements Serializable, Closeable {
         configuration.setBoolean(
                 String.format("fs.%s.impl.disable.cache", hadoopConf.getSchema()), true);
         configuration.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, hadoopConf.getHdfsNameKey());
-        configuration.setBoolean(
-                String.format("fs.%s.impl.disable.cache", hadoopConf.getSchema()), true);
         configuration.set(
                 String.format("fs.%s.impl", hadoopConf.getSchema()), hadoopConf.getFsHdfsImpl());
         hadoopConf.setExtraOptionsForConfiguration(configuration);
