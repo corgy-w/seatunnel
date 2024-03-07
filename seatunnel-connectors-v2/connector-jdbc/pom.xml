@@ -35,7 +35,6 @@
         <postgis.version>2.5.0</postgis.version>
         <dm-jdbc.version>8.1.2.141</dm-jdbc.version>
         <sqlserver.version>9.2.1.jre8</sqlserver.version>
-        <phoenix-queryserver.version>6.0.0</phoenix-queryserver.version>
         <oracle.version>12.2.0.1</oracle.version>
         <sqlite.version>3.39.3.0</sqlite.version>
         <db2.version>db2jcc4</db2.version>
@@ -62,12 +61,6 @@
                 <groupId>com.zaxxer</groupId>
                 <artifactId>HikariCP</artifactId>
                 <version>${hikari.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.phoenix</groupId>
-                <artifactId>phoenix-queryserver-client</artifactId>
-                <version>${phoenix-queryserver.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>mysql</groupId>
@@ -238,6 +231,12 @@
                 <version>${dws.jdbc.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.apache.seatunnel</groupId>
+                <artifactId>seatunnel-phoenix-5.1.3</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -258,18 +257,6 @@
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>${hikari.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>${hikari.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.phoenix</groupId>
-            <artifactId>phoenix-queryserver-client</artifactId>
-            <version>${phoenix-queryserver.version}</version>
         </dependency>
 
         <dependency>
@@ -364,6 +351,10 @@
         <dependency>
             <groupId>com.huaweicloud.dws</groupId>
             <artifactId>huaweicloud-dws-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>seatunnel-phoenix-5.1.3</artifactId>
         </dependency>
     </dependencies>
 

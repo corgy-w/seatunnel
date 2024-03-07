@@ -41,12 +41,7 @@ public class PhoenixCatalogFactory implements CatalogFactory {
         String urlWithDatabase = options.get(JdbcCatalogOptions.BASE_URL);
         JdbcUrlUtil.UrlInfo urlInfo =
                 new JdbcUrlUtil.UrlInfo(urlWithDatabase, urlWithDatabase, null, null, "", null);
-        return new PhoenixCatalog(
-                catalogName,
-                options.get(JdbcCatalogOptions.USERNAME),
-                options.get(JdbcCatalogOptions.PASSWORD),
-                urlInfo,
-                options.get(JdbcCatalogOptions.SCHEMA));
+        return new PhoenixCatalog(catalogName, urlInfo, options);
     }
 
     @Override
