@@ -71,8 +71,10 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
             throws CatalogException, DatabaseNotExistException {
         List<String> tableNames = new ArrayList<>();
         String querySql = "select * from system.catalog where table_type = 'u'";
-        try (Connection connection = getConnection(baseUrl);
-                ResultSet resultSet = connection.createStatement().executeQuery(querySql)) {
+        ResultSet resultSet = null;
+        try {
+            Connection connection = getConnection(baseUrl);
+            resultSet = connection.createStatement().executeQuery(querySql);
             while (resultSet.next()) {
                 String tableSchema = resultSet.getString("TABLE_SCHEM");
                 String tableName = resultSet.getString("TABLE_NAME");
@@ -86,6 +88,16 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
         } catch (SQLException e) {
             throw new CatalogException(
                     String.format("Failed listing database in catalog %s", catalogName), e);
+        } finally {
+            try {
+                if (resultSet != null) {
+                    resultSet.close();
+                }
+            } catch (SQLException throwables) {
+                throw new CatalogException(
+                        String.format("Failed listing database in catalog %s", catalogName),
+                        throwables);
+            }
         }
     }
 
@@ -212,7 +224,6 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
         String kerberosKrb5ConfPath = options.get(JdbcOptions.KRB5_PATH);
         String keytabPath = options.get(JdbcOptions.KERBEROS_KEYTAB_PATH);
         System.setProperty("java.security.krb5.conf", kerberosKrb5ConfPath);
-        System.setProperty("krb.principal", "hadoop");
         Configuration configuration = new Configuration();
         if (StringUtils.isBlank(principal) || StringUtils.isBlank(keytabPath)) {
             log.warn(
