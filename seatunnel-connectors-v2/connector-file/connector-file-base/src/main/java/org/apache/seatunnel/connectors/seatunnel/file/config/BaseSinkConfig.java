@@ -203,37 +203,6 @@ public class BaseSinkConfig {
                     .defaultValue(DEFAULT_BATCH_SIZE)
                     .withDescription("The batch size of each split file");
 
-    public static final Option<String> HDFS_SITE_PATH =
-            Options.key("hdfs_site_path")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("The path of hdfs-site.xml");
-
-    public static final Option<String> REMOTE_USER =
-            Options.key("remote_user")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("The remote user name of hdfs");
-
-    public static final Option<String> KRB5_PATH =
-            Options.key("krb5_path")
-                    .stringType()
-                    .defaultValue("/etc/krb5.conf")
-                    .withDescription(
-                            "When use kerberos, we should set krb5 path file path such as '/seatunnel/krb5.conf' or use the default path '/etc/krb5.conf");
-
-    public static final Option<String> KERBEROS_PRINCIPAL =
-            Options.key("kerberos_principal")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("Kerberos principal");
-
-    public static final Option<String> KERBEROS_KEYTAB_PATH =
-            Options.key("kerberos_keytab_path")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("Kerberos keytab file path");
-
     public static final Option<Integer> MAX_ROWS_IN_MEMORY =
             Options.key("max_rows_in_memory")
                     .intType()

@@ -20,11 +20,12 @@ package org.apache.seatunnel.connectors.seatunnel.file.config;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
-import org.apache.hadoop.fs.Path;
 
 import lombok.Data;
 
+import java.io.File;
 import java.io.Serializable;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -63,8 +64,12 @@ public class HadoopConf implements Serializable {
         if (!extraOptions.isEmpty()) {
             extraOptions.forEach(configuration::set);
         }
-        if (StringUtils.isNotBlank(hdfsSitePath)) {
-            configuration.addResource(new Path(hdfsSitePath));
+        try {
+            if (StringUtils.isNotBlank(hdfsSitePath)) {
+                configuration.addResource(new File(hdfsSitePath).toURI().toURL());
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Add hdfs site failed: ", e);
         }
     }
 

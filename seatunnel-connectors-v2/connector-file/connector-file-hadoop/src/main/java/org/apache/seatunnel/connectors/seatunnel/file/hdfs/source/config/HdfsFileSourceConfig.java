@@ -15,21 +15,32 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.file.hdfs.source;
+package org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.config.BaseFileSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
-import org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config.MultipleTableHdfsFileSourceConfig;
-import org.apache.seatunnel.connectors.seatunnel.file.source.BaseMultipleTableFileSource;
+import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HadoopConnectorConfig;
 
-public class HdfsFileSource extends BaseMultipleTableFileSource {
+import lombok.Getter;
 
-    public HdfsFileSource(ReadonlyConfig readonlyConfig) {
-        super(new MultipleTableHdfsFileSourceConfig(readonlyConfig));
+@Getter
+public class HdfsFileSourceConfig extends BaseFileSourceConfig {
+
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public HadoopConf getHadoopConfig() {
+        return HadoopConnectorConfig.buildWithConfig(getBaseFileSourceConfig());
     }
 
     @Override
     public String getPluginName() {
         return FileSystemType.HDFS.getFileSystemPluginName();
+    }
+
+    public HdfsFileSourceConfig(ReadonlyConfig readonlyConfig) {
+        super(readonlyConfig);
     }
 }
