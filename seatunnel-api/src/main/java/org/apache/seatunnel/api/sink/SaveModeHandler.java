@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.api.sink;
 
+import org.apache.seatunnel.api.table.catalog.Catalog;
+import org.apache.seatunnel.api.table.catalog.TablePath;
+
 public interface SaveModeHandler extends AutoCloseable {
 
     void handleSchemaSaveMode();
@@ -25,12 +28,16 @@ public interface SaveModeHandler extends AutoCloseable {
 
     void handleSchemaSaveModeWithRestore();
 
+    SchemaSaveMode getSchemaSaveMode();
+
+    DataSaveMode getDataSaveMode();
+
+    TablePath getHandleTablePath();
+
+    Catalog getHandleCatalog();
+
     default void handleSaveMode() {
         handleSchemaSaveMode();
         handleDataSaveMode();
     }
-
-    SchemaSaveMode getSchemaSaveMode();
-
-    DataSaveMode getDataSaveMode();
 }
