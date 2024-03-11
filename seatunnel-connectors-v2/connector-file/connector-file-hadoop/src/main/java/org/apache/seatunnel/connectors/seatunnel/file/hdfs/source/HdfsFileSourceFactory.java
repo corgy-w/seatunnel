@@ -45,9 +45,12 @@ public class HdfsFileSourceFactory implements TableSourceFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(BaseSourceConfigOptions.FILE_PATH)
-                .required(HdfsConfigOptions.DEFAULT_FS)
-                .required(BaseSourceConfigOptions.FILE_FORMAT_TYPE)
+                .optional(BaseSourceConfigOptions.FILE_PATH)
+                .optional(
+                        org.apache.seatunnel.connectors.seatunnel.file.config
+                                .BaseSourceConfigOptions.TABLE_CONFIGS)
+                .optional(HdfsConfigOptions.DEFAULT_FS)
+                .optional(BaseSourceConfigOptions.FILE_FORMAT_TYPE)
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,

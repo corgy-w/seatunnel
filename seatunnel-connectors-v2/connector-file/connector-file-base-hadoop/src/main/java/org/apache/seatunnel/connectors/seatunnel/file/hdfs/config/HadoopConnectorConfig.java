@@ -27,7 +27,7 @@ public class HadoopConnectorConfig extends HadoopConf {
     }
 
     public static HadoopConf buildWithConfig(ReadonlyConfig config) {
-        HadoopConf hadoopConf = new HadoopConnectorConfig("hdfs://");
+        HadoopConf hadoopConf = new HadoopConnectorConfig(config.get(HdfsConfigOptions.DEFAULT_FS));
         if (config.getOptional(HdfsConfigOptions.HDFS_SITE_PATH).isPresent()) {
             hadoopConf.setHdfsSitePath(config.get(HdfsConfigOptions.HDFS_SITE_PATH));
         }
