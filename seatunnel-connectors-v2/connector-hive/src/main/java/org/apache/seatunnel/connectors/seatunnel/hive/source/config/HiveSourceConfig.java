@@ -35,7 +35,7 @@ import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOpt
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
-import org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config.HdfsSourceConfigOptions;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategyFactory;
 import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
@@ -167,16 +167,16 @@ public class HiveSourceConfig implements Serializable {
                         readonlyConfig.get(HiveSourceOptions.METASTORE_URI),
                         readonlyConfig.get(HiveSourceOptions.HIVE_SITE_PATH));
         readonlyConfig
-                .getOptional(HdfsSourceConfigOptions.HDFS_SITE_PATH)
+                .getOptional(HdfsConfigOptions.HDFS_SITE_PATH)
                 .ifPresent(hiveHadoopConfig::setHdfsSitePath);
         readonlyConfig
-                .getOptional(HdfsSourceConfigOptions.KERBEROS_PRINCIPAL)
+                .getOptional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
                 .ifPresent(hiveHadoopConfig::setKerberosPrincipal);
         readonlyConfig
-                .getOptional(HdfsSourceConfigOptions.KERBEROS_KEYTAB_PATH)
+                .getOptional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
                 .ifPresent(hiveHadoopConfig::setKerberosKeytabPath);
         readonlyConfig
-                .getOptional(HdfsSourceConfigOptions.REMOTE_USER)
+                .getOptional(HdfsConfigOptions.REMOTE_USER)
                 .ifPresent(hiveHadoopConfig::setRemoteUser);
         return hiveHadoopConfig;
     }
