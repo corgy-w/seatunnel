@@ -74,7 +74,7 @@ public class HdfsFileSourceFactory implements TableSourceFactory {
                 .optional(HdfsConfigOptions.HDFS_SITE_PATH)
                 .optional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
                 .optional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
-                .optional(HdfsConfigOptions.KERBEROS_KRB5_CONF_PATH)
+                .optional(HdfsConfigOptions.KRB5_PATH)
                 .optional(HdfsConfigOptions.REMOTE_USER)
                 .build();
     }
