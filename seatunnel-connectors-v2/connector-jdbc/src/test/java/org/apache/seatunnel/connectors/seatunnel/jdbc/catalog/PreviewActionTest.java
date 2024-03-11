@@ -197,7 +197,7 @@ public class PreviewActionTest {
         assertPreviewResult(
                 catalog,
                 Catalog.ActionType.CREATE_TABLE,
-                "CREATE TABLE \"testtable\" (\n" + "\"test\" NVARCHAR2(4000)\n" + ")",
+                "CREATE TABLE \"testtable\" (\n" + "\"test\" VARCHAR2(4000)\n" + ")",
                 Optional.of(CATALOG_TABLE));
 
         Catalog catalog2 =
@@ -284,7 +284,7 @@ public class PreviewActionTest {
         assertPreviewResult(
                 catalog,
                 Catalog.ActionType.CREATE_TABLE,
-                "CREATE TABLE \"testtable\" (\n" + "\"test\" NVARCHAR2(4000)\n" + ")",
+                "CREATE TABLE \"testtable\" (\n" + "\"test\" VARCHAR2(4000)\n" + ")",
                 Optional.of(CATALOG_TABLE));
     }
 
