@@ -21,16 +21,25 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
+import org.apache.seatunnel.api.table.catalog.Catalog;
+import org.apache.seatunnel.api.table.catalog.CatalogOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.connectors.dolphindb.catalog.DolphinDBCatalog;
 import org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig;
 import org.apache.seatunnel.connectors.dolphindb.sink.writter.DolphinDBSinkWriter;
 import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSimpleSink;
 import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSinkWriter;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+
+import static org.apache.seatunnel.api.common.CommonOptions.PLUGIN_NAME;
+import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
 
 public class DolphinDBSink extends AbstractSimpleSink<SeaTunnelRow, Void>
         implements SupportSaveMode {
@@ -64,11 +73,32 @@ public class DolphinDBSink extends AbstractSimpleSink<SeaTunnelRow, Void>
 
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
+        DolphinDBCatalog catalog = createCatalog();
+        catalog.open();
         return Optional.of(
                 new DolphinDBSaveModeHandler(
                         readonlyConfig.get(DolphinDBConfig.SCHEMA_SAVE_MODE),
                         readonlyConfig.get(DolphinDBConfig.DATA_SAVE_MODE),
+                        catalog,
                         catalogTable,
                         readonlyConfig));
+    }
+
+    private DolphinDBCatalog createCatalog() {
+        Map<String, String> catalogOptions =
+                readonlyConfig.getOptional(CatalogOptions.CATALOG_OPTIONS).orElse(new HashMap<>());
+        String factoryId = readonlyConfig.get(PLUGIN_NAME);
+        CatalogFactory catalogFactory =
+                discoverFactory(
+                        Thread.currentThread().getContextClassLoader(),
+                        CatalogFactory.class,
+                        factoryId);
+        if (catalogFactory == null) {
+            return null;
+        }
+        // get catalog instance to operation database
+        Catalog catalog =
+                catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), readonlyConfig);
+        return (DolphinDBCatalog) catalog;
     }
 }
