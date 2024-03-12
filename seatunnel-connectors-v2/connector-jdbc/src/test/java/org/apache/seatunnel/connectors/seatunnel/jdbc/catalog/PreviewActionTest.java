@@ -326,9 +326,7 @@ public class PreviewActionTest {
         assertPreviewResult(
                 catalog,
                 Catalog.ActionType.CREATE_TABLE,
-                "CREATE TABLE IF NOT EXISTS \"testtable\" (\n" +
-                    "\"test\" text\n" +
-                    ");",
+                "CREATE TABLE IF NOT EXISTS \"testtable\" (\n" + "\"test\" text\n" + ");",
                 Optional.of(CATALOG_TABLE));
     }
 
