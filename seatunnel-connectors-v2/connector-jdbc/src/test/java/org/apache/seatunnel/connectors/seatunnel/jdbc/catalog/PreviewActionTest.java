@@ -322,14 +322,12 @@ public class PreviewActionTest {
                 Catalog.ActionType.DROP_TABLE,
                 "DROP TABLE \"null\".\"testtable\"",
                 Optional.empty());
-        Assertions.assertThrows(
-                UnsupportedOperationException.class,
-                () ->
-                        assertPreviewResult(
-                                catalog,
-                                Catalog.ActionType.CREATE_TABLE,
-                                "CREATE TABLE \"testtable\" (\n" + "\"test\" CLOB\n" + ")",
-                                Optional.of(CATALOG_TABLE)));
+
+        assertPreviewResult(
+                catalog,
+                Catalog.ActionType.CREATE_TABLE,
+                "CREATE TABLE \"testtable\" (\n" + "\"test\" text\n" + ");",
+                Optional.of(CATALOG_TABLE));
     }
 
     @Test
