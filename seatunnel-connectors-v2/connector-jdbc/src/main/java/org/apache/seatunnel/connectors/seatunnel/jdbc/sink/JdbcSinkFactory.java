@@ -58,6 +58,7 @@ import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.CONNECTION_CHECK_TIMEOUT_SEC;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.CUSTOM_SQL;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATABASE;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATABASE_SCHEMA;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATA_SAVE_MODE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DRIVER;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.ENABLE_UPSERT;
@@ -123,6 +124,9 @@ public class JdbcSinkFactory implements TableSinkFactory {
         }
         if (StringUtils.isNotBlank(catalogOptions.get(JdbcCatalogOptions.SCHEMA))) {
             sinkSchemaName = catalogOptions.get(JdbcCatalogOptions.SCHEMA);
+        }
+        if (config.getOptional(DATABASE_SCHEMA).isPresent()) {
+            sinkSchemaName = config.getOptional(DATABASE_SCHEMA).get();
         }
         // to add tablePrefix and tableSuffix
         String tempTableName;
