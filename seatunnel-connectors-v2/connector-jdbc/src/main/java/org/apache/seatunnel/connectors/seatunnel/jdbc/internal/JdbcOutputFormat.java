@@ -144,7 +144,10 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                             ExceptionUtils.getMessage(flushException)));
             return;
         }
-
+        if (batchCount == 0) {
+            LOG.debug("No data to flush.");
+            return;
+        }
         testOnBorrow();
 
         final int sleepMs = 1000;

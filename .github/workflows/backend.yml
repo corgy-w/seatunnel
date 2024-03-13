@@ -274,7 +274,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 0`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1C -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -297,7 +297,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 1`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1C -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -320,7 +320,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 2`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1C -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -343,7 +343,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 3`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1C -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -365,7 +365,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 4`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1C -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
