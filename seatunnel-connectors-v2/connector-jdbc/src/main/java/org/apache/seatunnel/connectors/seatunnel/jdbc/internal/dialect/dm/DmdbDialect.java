@@ -22,7 +22,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRow
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,7 +32,11 @@ import static java.lang.String.format;
 
 public class DmdbDialect implements JdbcDialect {
 
-    public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
+    public String fieldIde;
+
+    public DmdbDialect(String fieldIde) {
+        this.fieldIde = fieldIde;
+    }
 
     @Override
     public String dialectName() {
