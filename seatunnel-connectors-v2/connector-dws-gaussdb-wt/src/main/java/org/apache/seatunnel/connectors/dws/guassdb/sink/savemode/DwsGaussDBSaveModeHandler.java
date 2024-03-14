@@ -23,7 +23,6 @@ import org.apache.seatunnel.api.sink.DefaultSaveModeHandler;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBCatalog;
-import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBCatalogFactory;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.sql.DwsGaussSqlGenerator;
 
@@ -46,19 +45,18 @@ public class DwsGaussDBSaveModeHandler extends DefaultSaveModeHandler {
     public DwsGaussDBSaveModeHandler(
             ReadonlyConfig readonlyConfig,
             CatalogTable catalogTable,
+            DwsGaussDBCatalog dwsGaussDBCatalog,
             DwsGaussSqlGenerator dwsGaussSqlGenerator) {
         super(
                 readonlyConfig.get(DwsGaussDBSinkOption.SCHEMA_SAVE_MODE),
                 readonlyConfig.get(DwsGaussDBSinkOption.DATA_SAVE_MODE),
-                null,
+                dwsGaussDBCatalog,
                 catalogTable,
                 readonlyConfig.get(DwsGaussDBSinkOption.CUSTOM_SQL));
         this.readonlyConfig = readonlyConfig;
         this.catalogTable = catalogTable;
         this.dwsGaussSqlGenerator = dwsGaussSqlGenerator;
-        this.dwsGaussDBCatalog =
-                new DwsGaussDBCatalogFactory()
-                        .createCatalog(catalogTable.getCatalogName(), readonlyConfig);
+        this.dwsGaussDBCatalog = dwsGaussDBCatalog;
     }
 
     @Override
@@ -93,19 +91,7 @@ public class DwsGaussDBSaveModeHandler extends DefaultSaveModeHandler {
     @Override
     protected void createTable() {
         // We use IF NOT EXISTS to create table, so we don't need to check table exists
-        dwsGaussDBCatalog.executeUpdateSql(dwsGaussSqlGenerator.getCreateTargetTableSql());
-        log.info(
-                "Create table: {} success using: {}",
-                dwsGaussSqlGenerator.getTargetTableName(),
-                dwsGaussSqlGenerator.getCreateTargetTableSql());
-        if (readonlyConfig.get(DwsGaussDBSinkOption.WRITE_MODE)
-                == DwsGaussDBSinkOption.WriteMode.USING_TEMPORARY_TABLE) {
-            dwsGaussDBCatalog.executeUpdateSql(dwsGaussSqlGenerator.getCreateTemporaryTableSql());
-            log.info(
-                    "Create temporary table: {} success using: {}",
-                    dwsGaussSqlGenerator.getTemporaryTableName(),
-                    dwsGaussSqlGenerator.getCreateTemporaryTableSql());
-        }
+        dwsGaussDBCatalog.createTable(tablePath, catalogTable, false);
     }
 
     @Override

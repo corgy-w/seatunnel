@@ -40,10 +40,6 @@ public class SelectDBSaveModeHandler extends DefaultSaveModeHandler {
     }
 
     protected void createTable() {
-        autoCreateTable(selectDBConfig.getSaveModeCreateTemplate());
-    }
-
-    private void autoCreateTable(String template) {
         String database = tablePath.getDatabaseName();
         String tableName = tablePath.getTableName();
         SelectDBCatalog catalog = (SelectDBCatalog) this.catalog;
@@ -51,9 +47,7 @@ public class SelectDBSaveModeHandler extends DefaultSaveModeHandler {
             catalog.createDatabase(TablePath.of(database, ""), true);
         }
         if (!catalog.tableExists(TablePath.of(database, tableName))) {
-            catalog.createTable(
-                    SelectDBSaveModeUtil.fillingCreateSql(
-                            template, database, tableName, catalogTable.getTableSchema()));
+            catalog.createTable(TablePath.of(database, tableName), catalogTable, false);
         }
     }
 }

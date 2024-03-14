@@ -20,7 +20,9 @@ package org.apache.seatunnel.connectors.selectdb.catalog;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
+import org.apache.seatunnel.api.table.catalog.PreviewResult;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
+import org.apache.seatunnel.api.table.catalog.SQLPreviewResult;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
@@ -37,12 +39,14 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.selectdb.exception.SelectDBConnectorException;
+import org.apache.seatunnel.connectors.selectdb.sink.SelectDBSaveModeUtil;
 
 import org.apache.commons.lang3.StringUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.mysql.cj.MysqlType;
 
 import java.sql.Connection;
@@ -70,6 +74,7 @@ public class SelectDBCatalog implements Catalog {
     protected final String username;
     protected final String pwd;
     protected final String baseUrl;
+    private final String template;
     protected String defaultUrl;
     private final JdbcUrlUtil.UrlInfo urlInfo;
 
@@ -81,7 +86,8 @@ public class SelectDBCatalog implements Catalog {
         SYS_DATABASES.add("_statistics_");
     }
 
-    public SelectDBCatalog(String catalogName, String username, String pwd, String defaultUrl) {
+    public SelectDBCatalog(
+            String catalogName, String username, String pwd, String defaultUrl, String template) {
 
         checkArgument(StringUtils.isNotBlank(username));
         checkArgument(StringUtils.isNotBlank(pwd));
@@ -95,6 +101,7 @@ public class SelectDBCatalog implements Catalog {
         this.catalogName = catalogName;
         this.username = username;
         this.pwd = pwd;
+        this.template = template;
     }
 
     @Override
@@ -206,26 +213,35 @@ public class SelectDBCatalog implements Catalog {
 
     @Override
     public void createTable(TablePath tablePath, CatalogTable table, boolean ignoreIfExists)
-            throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {}
+            throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
+        this.createTable(
+                SelectDBSaveModeUtil.fillingCreateSql(
+                        template,
+                        tablePath.getDatabaseName(),
+                        tablePath.getTableName(),
+                        table.getTableSchema()));
+    }
 
     @Override
     public void dropTable(TablePath tablePath, boolean ignoreIfNotExists)
             throws TableNotExistException, CatalogException {
         try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            conn.createStatement()
-                    .execute(String.format("DROP TABLE IF EXISTS %s", tablePath.getFullName()));
+            conn.createStatement().execute(getDropTableSql(tablePath));
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed DROP TABLE in catalog %s", tablePath.getFullName()), e);
         }
     }
 
+    private static String getDropTableSql(TablePath tablePath) {
+        return String.format("DROP TABLE IF EXISTS %s", tablePath.getFullName());
+    }
+
     public void truncateTable(TablePath tablePath, boolean ignoreIfNotExists)
             throws TableNotExistException, CatalogException {
         try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
             if (ignoreIfNotExists) {
-                conn.createStatement()
-                        .execute(String.format("TRUNCATE TABLE  %s", tablePath.getFullName()));
+                conn.createStatement().execute(getTruncateTableSql(tablePath));
             }
         } catch (Exception e) {
             throw new CatalogException(
@@ -234,17 +250,8 @@ public class SelectDBCatalog implements Catalog {
         }
     }
 
-    public void executeSql(String sql) {
-        try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                // Will there exist concurrent drop for one table?
-                ps.execute();
-            } catch (SQLException e) {
-                throw new CatalogException(String.format("Failed executeSql error %s", sql), e);
-            }
-        } catch (Exception e) {
-            throw new CatalogException(String.format("Failed EXECUTE SQL in catalog %s", sql), e);
-        }
+    private static String getTruncateTableSql(TablePath tablePath) {
+        return String.format("TRUNCATE TABLE %s", tablePath.getFullName());
     }
 
     public boolean isExistsData(TablePath tablePath) {
@@ -266,19 +273,19 @@ public class SelectDBCatalog implements Catalog {
     public void createDatabase(TablePath tablePath, boolean ignoreIfExists)
             throws DatabaseAlreadyExistException, CatalogException {
         try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-            if (ignoreIfExists) {
-                conn.createStatement()
-                        .execute(
-                                "CREATE DATABASE IF NOT EXISTS `"
-                                        + tablePath.getDatabaseName()
-                                        + "`");
-            } else {
-                conn.createStatement()
-                        .execute("CREATE DATABASE `" + tablePath.getDatabaseName() + "`");
-            }
+
+            conn.createStatement().execute(getCreateDatabaseSql(tablePath, ignoreIfExists));
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed listing database in catalog %s", catalogName), e);
+        }
+    }
+
+    private static String getCreateDatabaseSql(TablePath tablePath, boolean ignoreIfExists) {
+        if (ignoreIfExists) {
+            return "CREATE DATABASE IF NOT EXISTS `" + tablePath.getDatabaseName() + "`";
+        } else {
+            return "CREATE DATABASE `" + tablePath.getDatabaseName() + "`";
         }
     }
 
@@ -378,7 +385,7 @@ public class SelectDBCatalog implements Catalog {
         return options;
     }
 
-    public void createTable(String sql)
+    private void createTable(String sql)
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
             conn.createStatement().execute(sql);
@@ -387,39 +394,6 @@ public class SelectDBCatalog implements Catalog {
                     String.format("Failed create table in catalog %s, sql :[%s]", catalogName, sql),
                     e);
         }
-    }
-
-    /**
-     * URL has to be without database, like "jdbc:mysql://localhost:5432/" or
-     * "jdbc:mysql://localhost:5432" rather than "jdbc:mysql://localhost:5432/db".
-     */
-    public static boolean validateJdbcUrlWithoutDatabase(String url) {
-        String[] parts = url.trim().split("\\/+");
-
-        return parts.length == 2;
-    }
-
-    /**
-     * URL has to be with database, like "jdbc:mysql://localhost:5432/db" rather than
-     * "jdbc:mysql://localhost:5432/".
-     */
-    @SuppressWarnings("MagicNumber")
-    public static boolean validateJdbcUrlWithDatabase(String url) {
-        String[] parts = url.trim().split("\\/+");
-        return parts.length == 3;
-    }
-
-    /**
-     * Ensure that the url was validated {@link #validateJdbcUrlWithDatabase}.
-     *
-     * @return The array size is fixed at 2, index 0 is base url, and index 1 is default database.
-     */
-    public static String[] splitDefaultUrl(String defaultUrl) {
-        String[] res = new String[2];
-        int index = defaultUrl.lastIndexOf("/") + 1;
-        res[0] = defaultUrl.substring(0, index);
-        res[1] = defaultUrl.substring(index);
-        return res;
     }
 
     @Override
@@ -487,6 +461,31 @@ public class SelectDBCatalog implements Catalog {
                     && listTables(tablePath.getDatabaseName()).contains(tablePath.getTableName());
         } catch (DatabaseNotExistException e) {
             return false;
+        }
+    }
+
+    @Override
+    public PreviewResult previewAction(
+            ActionType actionType, TablePath tablePath, Optional<CatalogTable> catalogTable) {
+        if (actionType == ActionType.CREATE_TABLE) {
+            Preconditions.checkArgument(catalogTable.isPresent(), "CatalogTable cannot be null");
+            return new SQLPreviewResult(
+                    SelectDBSaveModeUtil.fillingCreateSql(
+                            template,
+                            tablePath.getDatabaseName(),
+                            tablePath.getTableName(),
+                            catalogTable.get().getTableSchema()));
+        } else if (actionType == ActionType.DROP_TABLE) {
+            return new SQLPreviewResult(getDropTableSql(tablePath));
+        } else if (actionType == ActionType.TRUNCATE_TABLE) {
+            return new SQLPreviewResult(getTruncateTableSql(tablePath));
+        } else if (actionType == ActionType.CREATE_DATABASE) {
+            return new SQLPreviewResult(getCreateDatabaseSql(tablePath, true));
+        } else if (actionType == ActionType.DROP_DATABASE) {
+            return new SQLPreviewResult(
+                    "DROP DATABASE IF EXISTS `" + tablePath.getDatabaseName() + "`");
+        } else {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
         }
     }
 }
