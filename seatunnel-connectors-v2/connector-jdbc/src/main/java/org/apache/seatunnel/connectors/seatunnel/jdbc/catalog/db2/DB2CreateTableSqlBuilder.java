@@ -66,6 +66,11 @@ public class DB2CreateTableSqlBuilder {
                                                 buildColumnSql(column), fieldIde))
                         .collect(Collectors.toList());
 
+        if (primaryKey != null && !primaryKey.getColumnNames().isEmpty()) {
+            columnSqls.add(
+                    "PRIMARY KEY ( " + String.join(", ", primaryKey.getColumnNames()) + " )");
+        }
+
         if (CollectionUtils.isNotEmpty(constraintKeys)) {
             for (ConstraintKey constraintKey : constraintKeys) {
                 if (StringUtils.isBlank(constraintKey.getConstraintName())
@@ -118,11 +123,6 @@ public class DB2CreateTableSqlBuilder {
         // Add NOT NULL if column is not nullable
         if (!column.isNullable()) {
             columnSql.append(" NOT NULL");
-        }
-
-        // Add primary key directly after the column if it is a primary key
-        if (primaryKey != null && primaryKey.getColumnNames().contains(column.getName())) {
-            columnSql.append(" PRIMARY KEY");
         }
 
         return columnSql.toString();

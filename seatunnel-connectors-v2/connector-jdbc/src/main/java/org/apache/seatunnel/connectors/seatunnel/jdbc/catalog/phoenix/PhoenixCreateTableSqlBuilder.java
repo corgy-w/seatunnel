@@ -68,6 +68,20 @@ public class PhoenixCreateTableSqlBuilder {
                                                 buildColumnSql(column), fieldIde))
                         .collect(Collectors.toList());
 
+        if (primaryKey != null && primaryKey.getColumnNames().size() > 1) {
+            columnSqls.add(
+                    "CONSTRAINT "
+                            + CatalogUtils.quoteIdentifier(primaryKey.getPrimaryKey(), fieldIde)
+                            + " PRIMARY KEY ("
+                            + primaryKey.getColumnNames().stream()
+                                    .map(
+                                            column ->
+                                                    CatalogUtils.quoteIdentifier(
+                                                            column, fieldIde, "\""))
+                                    .collect(Collectors.joining(", "))
+                            + ")");
+        }
+
         if (CollectionUtils.isNotEmpty(constraintKeys)) {
             for (ConstraintKey constraintKey : constraintKeys) {
                 if (StringUtils.isBlank(constraintKey.getConstraintName())
@@ -126,7 +140,9 @@ public class PhoenixCreateTableSqlBuilder {
         columnSql.append(columnType);
 
         // Add primary key directly after the column if it is a primary key
-        if (primaryKey != null && primaryKey.getColumnNames().contains(column.getName())) {
+        if (primaryKey != null
+                && primaryKey.getColumnNames().contains(column.getName())
+                && primaryKey.getColumnNames().size() == 1) {
             columnSql.append(" PRIMARY KEY");
         }
 

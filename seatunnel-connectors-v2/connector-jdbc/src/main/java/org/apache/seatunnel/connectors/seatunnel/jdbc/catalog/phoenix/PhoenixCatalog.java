@@ -148,6 +148,11 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return new PhoenixCreateTableSqlBuilder(table).build(tablePath);
+    }
+
+    @Override
     protected boolean executeInternal(String url, String sql) throws SQLException {
         log.info("Execute sql : {}", sql.replace("\n", " "));
         try (Statement ps = getConnection(url).createStatement()) {

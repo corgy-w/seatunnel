@@ -61,6 +61,19 @@ public class InformixCreateTableSqlBuilder {
                                                 buildColumnSql(column), fieldIde))
                         .collect(Collectors.toList());
 
+        if (primaryKey != null && primaryKey.getColumnNames().size() > 1) {
+            columnSqls.add(
+                    CatalogUtils.quoteIdentifier(
+                            "PRIMARY KEY ("
+                                    + primaryKey.getColumnNames().stream()
+                                            .map(
+                                                    column ->
+                                                            CatalogUtils.quoteIdentifier(
+                                                                    column, fieldIde))
+                                            .collect(Collectors.joining(", "))
+                                    + ")",
+                            fieldIde));
+        }
         createTableSql.append(String.join(",\n", columnSqls));
         createTableSql.append("\n);");
 
@@ -102,7 +115,9 @@ public class InformixCreateTableSqlBuilder {
         }
 
         // Add primary key directly after the column if it is a primary key
-        if (primaryKey != null && primaryKey.getColumnNames().contains(column.getName())) {
+        if (primaryKey != null
+                && primaryKey.getColumnNames().contains(column.getName())
+                && primaryKey.getColumnNames().size() == 1) {
             columnSql.append(" PRIMARY KEY");
         }
 
