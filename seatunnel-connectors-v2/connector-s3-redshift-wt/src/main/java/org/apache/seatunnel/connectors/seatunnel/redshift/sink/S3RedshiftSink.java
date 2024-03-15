@@ -33,6 +33,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.config.CheckConfigUtil;
 import org.apache.seatunnel.common.config.CheckResult;
 import org.apache.seatunnel.common.constants.PluginType;
+import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.file.hdfs.sink.BaseHdfsFileSink;
 import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3ConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3HadoopConf;
@@ -41,6 +42,8 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.WriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.WriteStrategyFactory;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.redshift.RedshiftCatalog;
 import org.apache.seatunnel.connectors.seatunnel.redshift.commit.S3RedshiftSinkAggregatedCommitter;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConf;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConfig;
@@ -149,11 +152,21 @@ public class S3RedshiftSink extends BaseHdfsFileSink
         } else {
             sqlGenerator = new S3RedshiftSQLGenerator(s3RedshiftConf, seaTunnelRowType);
         }
+        JdbcUrlUtil.UrlInfo urlInfo =
+                JdbcUrlUtil.getUrlInfo(readonlyConfig.get(S3RedshiftConfig.JDBC_URL));
+        RedshiftCatalog catalog =
+                new RedshiftCatalog(
+                        "Redshift",
+                        readonlyConfig.get(S3RedshiftConfig.JDBC_USER),
+                        readonlyConfig.get(S3RedshiftConfig.JDBC_PASSWORD),
+                        urlInfo,
+                        readonlyConfig.get(JdbcCatalogOptions.SCHEMA));
+        catalog.open();
         return Optional.of(
                 new S3RedshiftSaveModeHandler(
                         s3RedshiftConf.getSchemaSaveMode(),
                         s3RedshiftConf.getDataSaveMode(),
-                        null,
+                        catalog,
                         catalogTable,
                         s3RedshiftConf.getCustomSql(),
                         sqlGenerator,
