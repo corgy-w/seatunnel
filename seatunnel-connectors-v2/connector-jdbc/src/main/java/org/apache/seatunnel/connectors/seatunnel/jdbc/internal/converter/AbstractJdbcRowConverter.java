@@ -19,7 +19,6 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter;
 
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.ArrayType;
-import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -246,13 +245,13 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                         statement.setNull(statementIndex, java.sql.Types.NULL);
                         break;
                     case ARRAY:
-                        BasicType elementType = ((ArrayType) seaTunnelDataType).getElementType();
+                        SeaTunnelDataType elementType =
+                                ((ArrayType) seaTunnelDataType).getElementType();
                         Object[] array = (Object[]) row.getField(fieldIndex);
                         if (array == null) {
                             statement.setNull(statementIndex, java.sql.Types.ARRAY);
                             break;
                         }
-
                         if (SqlType.TINYINT.equals(elementType.getSqlType())) {
                             Short[] shortArray = new Short[array.length];
                             for (int i = 0; i < array.length; i++) {

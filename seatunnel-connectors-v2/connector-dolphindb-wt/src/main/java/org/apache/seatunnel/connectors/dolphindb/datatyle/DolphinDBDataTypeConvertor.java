@@ -82,7 +82,7 @@ public class DolphinDBDataTypeConvertor implements DataTypeConvertor<Entity.DATA
         switch (sqlType) {
             case ARRAY:
                 ArrayType arrayType = (ArrayType) seaTunnelDataType;
-                BasicType elementType = arrayType.getElementType();
+                SeaTunnelDataType elementType = arrayType.getElementType();
                 switch (elementType.getSqlType()) {
                     case STRING:
                         return Entity.DATA_TYPE.DT_STRING_ARRAY;
