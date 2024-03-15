@@ -42,6 +42,8 @@ import org.apache.seatunnel.connectors.doris.datatype.DorisTypeConverterFactory;
 import org.apache.seatunnel.connectors.doris.datatype.DorisTypeConverterV2;
 import org.apache.seatunnel.connectors.doris.util.DorisCatalogUtil;
 
+import org.apache.commons.lang3.StringUtils;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -282,7 +284,7 @@ public class DorisCatalog implements Catalog {
                     keyList.add(columName);
                 } else if ("DUP".equalsIgnoreCase(columnKey)) {
                     String dupKey = options.getOrDefault(DUP_KEY, "");
-                    if (dupKey == "") {
+                    if (StringUtils.isBlank(dupKey)) {
                         dupKey = columName;
                     } else {
                         dupKey = dupKey + "," + columName;
