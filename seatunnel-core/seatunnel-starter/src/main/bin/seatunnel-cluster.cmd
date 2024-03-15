@@ -67,7 +67,7 @@ if exist "%CONF_DIR%\log4j2.properties" (
     set "JAVA_OPTS=%JAVA_OPTS% -Dseatunnel.logs.file_name=seatunnel-engine-server"
 )
 
-set "CLASS_PATH=%APP_DIR%\lib\*;%APP_JAR%"
+set "CLASS_PATH=%CONF_DIR%;%APP_DIR%\lib\*;%APP_JAR%"
 
 for /f "usebackq delims=" %%I in ("%APP_DIR%\config\jvm_options") do (
     set "line=%%I"
