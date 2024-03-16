@@ -21,7 +21,6 @@ import org.apache.seatunnel.api.sink.SaveModeConstants;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.ArrayType;
-import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
 
@@ -142,7 +141,7 @@ public class DolphinDBSaveModeUtil {
             case TIMESTAMP:
                 return Entity.DATA_TYPE.DT_TIMESTAMP.getName();
             case ARRAY:
-                BasicType<?> elementType = ((ArrayType<?, ?>) dataType).getElementType();
+                SeaTunnelDataType<?> elementType = ((ArrayType<?, ?>) dataType).getElementType();
                 if (elementType.getSqlType() == SqlType.INT) {
                     return Entity.DATA_TYPE.DT_INT_ARRAY.getName();
                 }

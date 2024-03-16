@@ -44,6 +44,7 @@ public class DolphinDBCatalogFactory implements CatalogFactory {
                 options.get(PASSWORD),
                 options.get(DATABASE),
                 options.get(TABLE),
+                options.get(DolphinDBConfig.SAVE_MODE_CREATE_TEMPLATE),
                 options.get(USE_SSL));
     }
 

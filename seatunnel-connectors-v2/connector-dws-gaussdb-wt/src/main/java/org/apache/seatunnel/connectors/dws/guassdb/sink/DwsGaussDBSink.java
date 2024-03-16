@@ -146,7 +146,11 @@ public class DwsGaussDBSink
 
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
+        DwsGaussDBCatalog dwsGaussDBCatalog =
+                new DwsGaussDBCatalogFactory()
+                        .createCatalog(catalogTable.getCatalogName(), readonlyConfig);
         return Optional.of(
-                new DwsGaussDBSaveModeHandler(readonlyConfig, catalogTable, sqlGenerator));
+                new DwsGaussDBSaveModeHandler(
+                        readonlyConfig, catalogTable, dwsGaussDBCatalog, sqlGenerator));
     }
 }

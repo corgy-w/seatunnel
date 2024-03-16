@@ -196,4 +196,8 @@ public class ServerConfigOptions {
                     .type(new TypeReference<ConnectorJarStorageConfig>() {})
                     .defaultValue(new ConnectorJarStorageConfig())
                     .withDescription("The connector jar storage configuration.");
+
+    public static final String EVENT_REPORT_HTTP = "event-report-http";
+    public static final String EVENT_REPORT_HTTP_URL = "url";
+    public static final String EVENT_REPORT_HTTP_HEADERS = "headers";
 }

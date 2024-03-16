@@ -21,6 +21,8 @@ import org.apache.seatunnel.api.configuration.util.ConfigUtil;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
+import org.apache.seatunnel.api.table.catalog.PreviewResult;
+import org.apache.seatunnel.api.table.catalog.SQLPreviewResult;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
@@ -31,8 +33,7 @@ import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistExcepti
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.connectors.dolphindb.datatyle.DolphinDBDataTypeConvertor;
 import org.apache.seatunnel.connectors.dolphindb.exception.DolphinDBConnectorException;
-
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.seatunnel.connectors.dolphindb.utils.DolphinDBSaveModeUtil;
 
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicStringVector;
@@ -42,15 +43,16 @@ import com.xxdb.data.Vector;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.seatunnel.connectors.dolphindb.exception.DolphinDBErrorCode.CHECK_DATA_ERROR;
 import static org.apache.seatunnel.connectors.dolphindb.exception.DolphinDBErrorCode.EXECUTE_CUSTOMER_SCRIPT_ERROR;
@@ -63,6 +65,7 @@ public class DolphinDBCatalog implements Catalog {
     private final String user;
     private final String password;
     private final String databaseName;
+    private final String template;
     private final String tableName;
     private final boolean useSSL;
 
@@ -75,6 +78,7 @@ public class DolphinDBCatalog implements Catalog {
             String password,
             String databaseName,
             String tableName,
+            String template,
             boolean useSSL) {
         if (catalogName == null) {
             log.warn("The catalogName is null");
@@ -85,6 +89,7 @@ public class DolphinDBCatalog implements Catalog {
         this.password = checkNotNull(password);
         this.databaseName = checkNotNull(databaseName);
         this.tableName = tableName;
+        this.template = template;
         this.useSSL = useSSL;
     }
 
@@ -152,10 +157,7 @@ public class DolphinDBCatalog implements Catalog {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         List<String> allTables = listTables(tablePath.getDatabaseName());
-        if (allTables.contains(tablePath.getTableName())) {
-            return true;
-        }
-        return false;
+        return allTables.contains(tablePath.getTableName());
     }
 
     @Override
@@ -248,10 +250,7 @@ public class DolphinDBCatalog implements Catalog {
             throw new TableNotExistException("table not exist", tablePath);
         }
         try {
-            dbConnection.run(
-                    String.format(
-                            "delete from loadTable(\"%s\", \"%s\");",
-                            tablePath.getDatabaseName(), tablePath.getTableName()));
+            dbConnection.run(getTruncateTableSql(tablePath));
             // The truncate only support after 2.0.0.8
             // dbConnection.run(String.format("truncate(\"%s\", `%s)", tablePath.getDatabaseName(),
             // tablePath.getTableName()));
@@ -261,18 +260,49 @@ public class DolphinDBCatalog implements Catalog {
         }
     }
 
+    private static String getTruncateTableSql(TablePath tablePath) {
+        return String.format(
+                "delete from loadTable(\"%s\", \"%s\");",
+                tablePath.getDatabaseName(), tablePath.getTableName());
+    }
+
+    @Override
+    public PreviewResult previewAction(
+            ActionType actionType, TablePath tablePath, Optional<CatalogTable> catalogTable) {
+        if (actionType == ActionType.CREATE_TABLE) {
+            checkArgument(catalogTable.isPresent(), "CatalogTable cannot be null");
+            return new SQLPreviewResult(getCreateTableSql(tablePath, catalogTable.get()));
+        } else if (actionType == ActionType.DROP_TABLE) {
+            return new SQLPreviewResult(getDropTableSql(tablePath));
+        } else if (actionType == ActionType.TRUNCATE_TABLE) {
+            return new SQLPreviewResult(getTruncateTableSql(tablePath));
+        } else if (actionType == ActionType.CREATE_DATABASE) {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
+        } else if (actionType == ActionType.DROP_DATABASE) {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
+        } else {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
+        }
+    }
+
     public void dropTableInternal(TablePath tablePath)
             throws DatabaseNotExistException, CatalogException {
-        StringBuilder sb = new StringBuilder();
-        sb.append("db=database(\"" + tablePath.getDatabaseName() + "\");\n");
-        sb.append("dropTable(db, \"" + tablePath.getTableName() + "\");\n");
         try {
-            Entity run = dbConnection.run(sb.toString());
+            Entity run = dbConnection.run(getDropTableSql(tablePath));
             System.out.println(run);
         } catch (IOException ioException) {
             throw new CatalogException(
                     "DolphinDB dropTableInternal for: " + tablePath + " failed", ioException);
         }
+    }
+
+    private static String getDropTableSql(TablePath tablePath) {
+        return "db=database(\""
+                + tablePath.getDatabaseName()
+                + "\");\n"
+                + "dropTable(db, \""
+                + tablePath.getTableName()
+                + "\");\n";
     }
 
     public void executeScript(String script) {
@@ -288,36 +318,7 @@ public class DolphinDBCatalog implements Catalog {
     }
 
     private boolean createTableInternal(TablePath tablePath, CatalogTable table) {
-        String createTableSql = "create table \"%s\".\"%s\"(\n" + " %s\n" + " )\n";
-        List<String> columns = new ArrayList<>();
-        DolphinDBDataTypeConvertor dolphinDBDataTypeConvertor = new DolphinDBDataTypeConvertor();
-        table.getTableSchema()
-                .getColumns()
-                .forEach(
-                        column -> {
-                            columns.add(
-                                    column.getName()
-                                            + " "
-                                            + dolphinDBDataTypeConvertor
-                                                    .toConnectorType(
-                                                            column.getName(),
-                                                            column.getDataType(),
-                                                            null)
-                                                    .name());
-                        });
-        createTableSql =
-                String.format(
-                        createTableSql,
-                        tablePath.getDatabaseName(),
-                        tablePath.getTableName(),
-                        String.join(",\n", columns));
-        if (CollectionUtils.isNotEmpty(table.getPartitionKeys())) {
-            createTableSql =
-                    createTableSql
-                            + " partitioned by "
-                            + String.join(",", table.getPartitionKeys())
-                            + " ;\n";
-        }
+        String createTableSql = getCreateTableSql(tablePath, table);
         try {
             dbConnection.run(createTableSql);
             return true;
@@ -325,6 +326,14 @@ public class DolphinDBCatalog implements Catalog {
             throw new CatalogException(
                     "DolphinDB createTableInternal for: " + tablePath + " failed", ioException);
         }
+    }
+
+    private String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return DolphinDBSaveModeUtil.fillingCreateSql(
+                template,
+                tablePath.getDatabaseName(),
+                tablePath.getTableName(),
+                table.getTableSchema());
     }
 
     private Map<String, String> buildTableOptions(TablePath tablePath) {

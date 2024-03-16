@@ -49,7 +49,7 @@ public class StarRocksCreateTableTest {
                         "update_time", LocalTimeType.LOCAL_TIME_TYPE, (Long) null, true, null, ""));
 
         String result =
-                StarRocksSaveModeUtil.fillingCreateSql(
+                StarRocksSaveModeUtil.getCreateTableSql(
                         "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (                                                                                                                                                   \n"
                                 + "${rowtype_primary_key}  ,       \n"
                                 + "`create_time` DATETIME NOT NULL ,  \n"

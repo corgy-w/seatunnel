@@ -17,24 +17,24 @@
 
 package org.apache.seatunnel.connectors.seatunnel.file.hdfs.sink;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.PrepareFailException;
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HadoopConnectorConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.sink.BaseMultipleTableFileSink;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(SeaTunnelSink.class)
-public class HdfsFileSink extends BaseHdfsFileSink {
+public class HdfsFileSink extends BaseMultipleTableFileSink {
+
+    public HdfsFileSink(ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
+        super(HadoopConnectorConfig.buildWithConfig(readonlyConfig), readonlyConfig, catalogTable);
+    }
 
     @Override
     public String getPluginName() {
         return FileSystemType.HDFS.getFileSystemPluginName();
-    }
-
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        super.prepare(pluginConfig);
     }
 }

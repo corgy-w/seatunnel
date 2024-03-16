@@ -131,7 +131,7 @@ public class DB2Catalog extends AbstractJdbcCatalog {
     @Override
     protected String getTruncateTableSql(TablePath tablePath) {
         return String.format(
-                "TRUNCATE TABLE %s.%s immediate ",
+                "ALTER TABLE %s.%s ACTIVATE NOT LOGGED INITIALLY WITH EMPTY TABLE",
                 tablePath.getSchemaName(), "\"" + tablePath.getTableName() + "\"");
     }
 

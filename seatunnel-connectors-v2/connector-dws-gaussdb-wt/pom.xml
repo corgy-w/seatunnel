@@ -29,7 +29,7 @@
     <artifactId>connector-dws-gaussdb-wt</artifactId>
 
     <properties>
-        <dws-gaussdb.version>8.1.1.1-200</dws-gaussdb.version>
+        <dws-gaussdb.version>8.2.1.300-200</dws-gaussdb.version>
     </properties>
 
     <dependencies>

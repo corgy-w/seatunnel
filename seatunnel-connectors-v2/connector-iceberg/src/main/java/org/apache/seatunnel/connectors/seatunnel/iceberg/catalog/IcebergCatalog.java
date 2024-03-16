@@ -20,7 +20,9 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.catalog;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
+import org.apache.seatunnel.api.table.catalog.InfoPreviewResult;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
+import org.apache.seatunnel.api.table.catalog.PreviewResult;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
@@ -53,7 +55,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 public class IcebergCatalog implements Catalog {
@@ -304,5 +309,24 @@ public class IcebergCatalog implements Catalog {
     public static TablePath toTablePath(
             org.apache.iceberg.catalog.TableIdentifier tableIdentifier) {
         return TablePath.of(tableIdentifier.namespace().toString(), tableIdentifier.name());
+    }
+
+    @Override
+    public PreviewResult previewAction(
+            ActionType actionType, TablePath tablePath, Optional<CatalogTable> catalogTable) {
+        if (actionType == ActionType.CREATE_TABLE) {
+            checkArgument(catalogTable.isPresent(), "CatalogTable cannot be null");
+            return new InfoPreviewResult("create table " + toIcebergTableIdentifier(tablePath));
+        } else if (actionType == ActionType.DROP_TABLE) {
+            return new InfoPreviewResult("drop table " + toIcebergTableIdentifier(tablePath));
+        } else if (actionType == ActionType.TRUNCATE_TABLE) {
+            return new InfoPreviewResult("truncate table " + toIcebergTableIdentifier(tablePath));
+        } else if (actionType == ActionType.CREATE_DATABASE) {
+            return new InfoPreviewResult("do nothing");
+        } else if (actionType == ActionType.DROP_DATABASE) {
+            return new InfoPreviewResult("do nothing");
+        } else {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
+        }
     }
 }

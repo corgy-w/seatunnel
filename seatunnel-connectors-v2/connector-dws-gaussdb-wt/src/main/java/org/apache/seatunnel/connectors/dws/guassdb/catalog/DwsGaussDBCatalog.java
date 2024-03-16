@@ -18,11 +18,14 @@
 
 package org.apache.seatunnel.connectors.dws.guassdb.catalog;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PreviewResult;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
+import org.apache.seatunnel.api.table.catalog.SQLPreviewResult;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
@@ -37,6 +40,8 @@ import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.dws.guassdb.config.DwsGaussDBConfig;
+import org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption;
+import org.apache.seatunnel.connectors.dws.guassdb.sink.sql.DwsGaussSqlGenerator;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
@@ -73,6 +78,8 @@ import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBO
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.TABLE;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.URL;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.USER;
+import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.FIELD_IDE;
+import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.PRIMARY_KEY;
 
 @Slf4j
 public class DwsGaussDBCatalog implements Catalog, Serializable {
@@ -137,7 +144,7 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
     private String baseUrl;
     private String defaultUrl;
     private JdbcUrlUtil.UrlInfo urlInfo;
-
+    private ReadonlyConfig readonlyConfig;
     private Map<String, String> jdbcProperties;
 
     private Map<String, BaseConnection> connectionMap;
@@ -148,7 +155,8 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
             String password,
             JdbcUrlUtil.UrlInfo urlInfo,
             Map<String, String> jdbcProperties,
-            String defaultSchema) {
+            String defaultSchema,
+            ReadonlyConfig readonlyConfig) {
         this.catalogName = catalogName;
         this.defaultDatabase = urlInfo.getDefaultDatabase().get();
         this.username = username;
@@ -158,6 +166,7 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
         this.urlInfo = urlInfo;
         this.jdbcProperties = jdbcProperties;
         this.connectionMap = new ConcurrentHashMap<>();
+        this.readonlyConfig = readonlyConfig;
     }
 
     @Override
@@ -342,7 +351,22 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
     @Override
     public void createTable(TablePath tablePath, CatalogTable table, boolean ignoreIfExists)
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
-        // todo:
+        DwsGaussSqlGenerator dwsGaussSqlGenerator =
+                new DwsGaussSqlGenerator(
+                        readonlyConfig.get(PRIMARY_KEY), readonlyConfig.get(FIELD_IDE), table);
+        this.executeUpdateSql(dwsGaussSqlGenerator.getCreateTargetTableSql());
+        log.info(
+                "Create table: {} success using: {}",
+                dwsGaussSqlGenerator.getTargetTableName(),
+                dwsGaussSqlGenerator.getCreateTargetTableSql());
+        if (readonlyConfig.get(DwsGaussDBSinkOption.WRITE_MODE)
+                == DwsGaussDBSinkOption.WriteMode.USING_TEMPORARY_TABLE) {
+            this.executeUpdateSql(dwsGaussSqlGenerator.getCreateTemporaryTableSql());
+            log.info(
+                    "Create temporary table: {} success using: {}",
+                    dwsGaussSqlGenerator.getTemporaryTableName(),
+                    dwsGaussSqlGenerator.getCreateTemporaryTableSql());
+        }
     }
 
     @Override
@@ -401,6 +425,35 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
                             "Failed dropping database %s in catalog %s",
                             tablePath.getDatabaseName(), this.catalogName),
                     e);
+        }
+    }
+
+    @Override
+    public PreviewResult previewAction(
+            ActionType actionType, TablePath tablePath, Optional<CatalogTable> catalogTable) {
+        if (actionType == ActionType.CREATE_TABLE) {
+            checkArgument(catalogTable.isPresent(), "CatalogTable cannot be null");
+            DwsGaussSqlGenerator dwsGaussSqlGenerator =
+                    new DwsGaussSqlGenerator(
+                            readonlyConfig.get(PRIMARY_KEY),
+                            readonlyConfig.get(FIELD_IDE),
+                            catalogTable.get());
+            String sql = dwsGaussSqlGenerator.getCreateTargetTableSql();
+            if (readonlyConfig.get(DwsGaussDBSinkOption.WRITE_MODE)
+                    == DwsGaussDBSinkOption.WriteMode.USING_TEMPORARY_TABLE) {
+                sql = sql + "\n" + dwsGaussSqlGenerator.getCreateTemporaryTableSql();
+            }
+            return new SQLPreviewResult(sql);
+        } else if (actionType == ActionType.DROP_TABLE) {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
+        } else if (actionType == ActionType.TRUNCATE_TABLE) {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
+        } else if (actionType == ActionType.CREATE_DATABASE) {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
+        } else if (actionType == ActionType.DROP_DATABASE) {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
+        } else {
+            throw new UnsupportedOperationException("Unsupported action type: " + actionType);
         }
     }
 

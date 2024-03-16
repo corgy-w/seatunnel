@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.dolphindb.catalog;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -45,6 +46,7 @@ class DolphinDBCatalogTest {
                         "123456",
                         "dfs://whalescheduler",
                         "user",
+                        DolphinDBConfig.SAVE_MODE_CREATE_TEMPLATE.defaultValue(),
                         false);
         dolphinDBCatalog.open();
     }

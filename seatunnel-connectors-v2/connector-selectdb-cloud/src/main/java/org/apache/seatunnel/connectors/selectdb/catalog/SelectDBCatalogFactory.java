@@ -36,7 +36,8 @@ public class SelectDBCatalogFactory implements CatalogFactory {
                 catalogName,
                 options.get(SelectDBConfig.USERNAME),
                 options.get(SelectDBConfig.PASSWORD),
-                options.get(SelectDBConfig.BASE_URL));
+                options.get(SelectDBConfig.BASE_URL),
+                options.get(SelectDBConfig.SAVE_MODE_CREATE_TEMPLATE));
     }
 
     @Override

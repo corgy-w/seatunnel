@@ -121,6 +121,9 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
 
     private void testOnBorrow() {
         try {
+            if (jdbcConnectionConfig.getUrl().startsWith("jdbc:phoenix:thin")) {
+                return;
+            }
             if (!connectionProvider.isConnectionValid()) {
                 LOG.debug("Connection is invalid, try to reconnect.");
                 updateExecutor(true);
@@ -141,7 +144,10 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                             ExceptionUtils.getMessage(flushException)));
             return;
         }
-
+        if (batchCount == 0) {
+            LOG.debug("No data to flush.");
+            return;
+        }
         testOnBorrow();
 
         final int sleepMs = 1000;

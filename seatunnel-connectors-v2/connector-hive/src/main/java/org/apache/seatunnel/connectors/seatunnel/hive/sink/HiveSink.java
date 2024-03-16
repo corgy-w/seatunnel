@@ -32,6 +32,7 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.config.FileSinkConfig;
@@ -224,16 +225,16 @@ public class HiveSink
                     HiveConnectorErrorCode.GET_HDFS_NAMENODE_HOST_FAILED, errorMsg, e);
         }
         readonlyConfig
-                .getOptional(HiveSourceOptions.HDFS_SITE_PATH)
+                .getOptional(HdfsConfigOptions.HDFS_SITE_PATH)
                 .ifPresent(hiveHadoopConfig::setHdfsSitePath);
         readonlyConfig
-                .getOptional(HiveSourceOptions.KERBEROS_PRINCIPAL)
+                .getOptional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
                 .ifPresent(hiveHadoopConfig::setKerberosPrincipal);
         readonlyConfig
-                .getOptional(HiveSourceOptions.KERBEROS_KEYTAB_PATH)
+                .getOptional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
                 .ifPresent(hiveHadoopConfig::setKerberosKeytabPath);
         readonlyConfig
-                .getOptional(HiveSourceOptions.REMOTE_USER)
+                .getOptional(HdfsConfigOptions.REMOTE_USER)
                 .ifPresent(hiveHadoopConfig::setRemoteUser);
         return hiveHadoopConfig;
     }

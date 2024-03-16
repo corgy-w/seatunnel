@@ -21,22 +21,13 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.DefaultSaveModeHandler;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
-import org.apache.seatunnel.api.table.catalog.Catalog;
-import org.apache.seatunnel.api.table.catalog.CatalogOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.connectors.dolphindb.catalog.DolphinDBCatalog;
 import org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig;
 import org.apache.seatunnel.connectors.dolphindb.utils.DolphinDBSaveModeUtil;
 
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.apache.seatunnel.api.common.CommonOptions.PLUGIN_NAME;
-import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
 
 @Slf4j
 public class DolphinDBSaveModeHandler extends DefaultSaveModeHandler {
@@ -48,18 +39,18 @@ public class DolphinDBSaveModeHandler extends DefaultSaveModeHandler {
     public DolphinDBSaveModeHandler(
             SchemaSaveMode schemaSaveMode,
             DataSaveMode dataSaveMode,
+            DolphinDBCatalog catalog,
             CatalogTable catalogTable,
             ReadonlyConfig readonlyConfig) {
         super(
                 schemaSaveMode,
                 dataSaveMode,
-                null,
+                catalog,
                 catalogTable,
                 readonlyConfig.get(DolphinDBConfig.CUSTOM_SQL));
         this.readonlyConfig = readonlyConfig;
+        this.catalog = catalog;
         this.catalogTable = catalogTable;
-        this.catalog = createCatalog();
-        catalog.open();
     }
 
     @Override
@@ -111,23 +102,5 @@ public class DolphinDBSaveModeHandler extends DefaultSaveModeHandler {
     @Override
     public void close() throws Exception {
         try (DolphinDBCatalog closed = catalog) {}
-    }
-
-    private DolphinDBCatalog createCatalog() {
-        Map<String, String> catalogOptions =
-                readonlyConfig.getOptional(CatalogOptions.CATALOG_OPTIONS).orElse(new HashMap<>());
-        String factoryId = readonlyConfig.get(PLUGIN_NAME);
-        CatalogFactory catalogFactory =
-                discoverFactory(
-                        Thread.currentThread().getContextClassLoader(),
-                        CatalogFactory.class,
-                        factoryId);
-        if (catalogFactory == null) {
-            return null;
-        }
-        // get catalog instance to operation database
-        Catalog catalog =
-                catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), readonlyConfig);
-        return (DolphinDBCatalog) catalog;
     }
 }

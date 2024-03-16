@@ -62,6 +62,26 @@ public class KingbaseCreateTableSqlBuilder {
                         .collect(Collectors.toList());
 
         createTableSql.append(String.join(",\n", columnSqls));
+        if (primaryKey != null && primaryKey.getColumnNames().size() > 1) {
+            createTableSql.append(",\n");
+            createTableSql
+                    .append("CONSTRAINT ")
+                    .append(
+                            tablePath.getTableName()
+                                    + "_"
+                                    + CatalogUtils.quoteIdentifier(
+                                            String.join("_", primaryKey.getColumnNames()),
+                                            fieldIde))
+                    .append(CatalogUtils.quoteIdentifier(" PRIMARY KEY (", fieldIde))
+                    .append(
+                            primaryKey.getColumnNames().stream()
+                                    .map(
+                                            column ->
+                                                    CatalogUtils.quoteIdentifier(
+                                                            column, fieldIde, "\""))
+                                    .collect(Collectors.joining(", ")))
+                    .append(")");
+        }
         createTableSql.append("\n);");
 
         List<String> commentSqls =
@@ -102,7 +122,9 @@ public class KingbaseCreateTableSqlBuilder {
         }
 
         // Add primary key directly after the column if it is a primary key
-        if (primaryKey != null && primaryKey.getColumnNames().contains(column.getName())) {
+        if (primaryKey != null
+                && primaryKey.getColumnNames().contains(column.getName())
+                && primaryKey.getColumnNames().size() == 1) {
             columnSql.append(" PRIMARY KEY");
         }
 

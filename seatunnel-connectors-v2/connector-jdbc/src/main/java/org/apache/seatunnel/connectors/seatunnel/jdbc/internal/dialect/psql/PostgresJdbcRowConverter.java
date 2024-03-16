@@ -21,12 +21,12 @@ import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.AbstractJdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcUtils;
 
+import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -53,6 +53,7 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
         Object[] fields = new Object[typeInfo.getTotalFields()];
         for (int fieldIndex = 0; fieldIndex < typeInfo.getTotalFields(); fieldIndex++) {
             SeaTunnelDataType<?> seaTunnelDataType = typeInfo.getFieldType(fieldIndex);
+            String fieldName = typeInfo.getFieldName(fieldIndex);
             int resultSetIndex = fieldIndex + 1;
             String metaDataColumnType =
                     metaData.getColumnTypeName(resultSetIndex).toUpperCase(Locale.ROOT);
@@ -90,7 +91,13 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
                     fields[fieldIndex] = JdbcUtils.getDouble(rs, resultSetIndex);
                     break;
                 case DECIMAL:
-                    fields[fieldIndex] = JdbcUtils.getBigDecimal(rs, resultSetIndex);
+                    if (metaDataColumnType.equalsIgnoreCase(PostgresTypeConverter.PG_MONEY)) {
+                        String moneyStr = JdbcUtils.getString(rs, resultSetIndex);
+                        String moneyValue = moneyStr.replace("$", "").replaceAll(",", "");
+                        fields[fieldIndex] = new BigDecimal(moneyValue);
+                    } else {
+                        fields[fieldIndex] = JdbcUtils.getBigDecimal(rs, resultSetIndex);
+                    }
                     break;
                 case DATE:
                     Date sqlDate = JdbcUtils.getDate(rs, resultSetIndex);
@@ -116,14 +123,14 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
                     fields[fieldIndex] = null;
                     break;
                 case ARRAY:
-                    fields[fieldIndex] = convertToArray(rs, resultSetIndex, seaTunnelDataType);
+                    fields[fieldIndex] =
+                            convertToArray(rs, resultSetIndex, seaTunnelDataType, fieldName);
                     break;
                 case MAP:
                 case ROW:
                 default:
-                    throw new JdbcConnectorException(
-                            CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
-                            "Unexpected value: " + seaTunnelDataType);
+                    throw CommonError.unsupportedDataType(
+                            converterName(), seaTunnelDataType.getSqlType().toString(), fieldName);
             }
         }
         return new SeaTunnelRow(fields);
