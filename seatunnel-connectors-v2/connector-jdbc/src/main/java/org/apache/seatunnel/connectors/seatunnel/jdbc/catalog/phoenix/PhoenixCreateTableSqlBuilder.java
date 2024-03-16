@@ -68,10 +68,11 @@ public class PhoenixCreateTableSqlBuilder {
                                                 buildColumnSql(column), fieldIde))
                         .collect(Collectors.toList());
 
-        if (primaryKey != null && primaryKey.getColumnNames().size() > 1) {
+        if (primaryKey != null && primaryKey.getColumnNames().size() >= 1) {
             columnSqls.add(
                     "CONSTRAINT "
                             + CatalogUtils.quoteIdentifier(primaryKey.getPrimaryKey(), fieldIde)
+                            + "_1"
                             + " PRIMARY KEY ("
                             + primaryKey.getColumnNames().stream()
                                     .map(
@@ -107,24 +108,8 @@ public class PhoenixCreateTableSqlBuilder {
                 }
             }
         }
-
         createTableSql.append(String.join(",\n", columnSqls));
         createTableSql.append("\n)");
-
-        List<String> commentSqls =
-                columns.stream()
-                        .filter(column -> StringUtils.isNotBlank(column.getComment()))
-                        .map(
-                                columns ->
-                                        buildColumnCommentSql(
-                                                columns, tablePath.getSchemaAndTableName("\"")))
-                        .collect(Collectors.toList());
-
-        if (!commentSqls.isEmpty()) {
-            createTableSql.append("\n");
-            createTableSql.append(String.join(";\n", commentSqls));
-        }
-
         return createTableSql.toString();
     }
 
@@ -138,33 +123,11 @@ public class PhoenixCreateTableSqlBuilder {
                         ? column.getSourceType()
                         : buildColumnType(column);
         columnSql.append(columnType);
-
-        // Add primary key directly after the column if it is a primary key
-        if (primaryKey != null
-                && primaryKey.getColumnNames().contains(column.getName())
-                && primaryKey.getColumnNames().size() == 1) {
-            columnSql.append(" PRIMARY KEY");
-        }
-
         return columnSql.toString();
     }
 
     private String buildColumnType(Column column) {
         return PhoenixTypeConverter.INSTANCE.reconvert(column).getColumnType();
-    }
-
-    private String buildColumnCommentSql(Column column, String tableName) {
-        StringBuilder columnCommentSql = new StringBuilder();
-        columnCommentSql
-                .append(CatalogUtils.quoteIdentifier("COMMENT ON COLUMN ", fieldIde))
-                .append(tableName)
-                .append(".");
-        columnCommentSql
-                .append(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "\""))
-                .append(CatalogUtils.quoteIdentifier(" IS '", fieldIde))
-                .append(column.getComment())
-                .append("'");
-        return columnCommentSql.toString();
     }
 
     private String buildUniqueKeySql(ConstraintKey constraintKey) {
