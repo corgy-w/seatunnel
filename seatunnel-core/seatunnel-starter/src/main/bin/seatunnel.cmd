@@ -96,7 +96,7 @@ if exist "%CONF_DIR%\log4j2_client.properties" (
     )
 )
 
-set "CLASS_PATH=%APP_DIR%\lib\*;%APP_JAR%"
+set "CLASS_PATH=%CONF_DIR%;%APP_DIR%\lib\*;%APP_JAR%"
 
 for /f "usebackq delims=" %%a in ("%APP_DIR%\config\jvm_client_options") do (
     set "line=%%a"
