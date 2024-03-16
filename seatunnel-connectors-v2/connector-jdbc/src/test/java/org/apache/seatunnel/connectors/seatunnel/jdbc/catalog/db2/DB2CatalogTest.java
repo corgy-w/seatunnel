@@ -95,7 +95,7 @@ public class DB2CatalogTest {
                         + "\"test\" VARCHAR(32672),\n"
                         + "\"test2\" VARCHAR(32672),\n"
                         + "\"test3\" VARCHAR(32672),\n"
-                        + "PRIMARY KEY ( test, test2 )\n"
+                        + "PRIMARY KEY ( \"test\", \"test2\" )\n"
                         + ");",
                 sql);
     }

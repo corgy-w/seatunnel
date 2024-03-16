@@ -92,10 +92,10 @@ public class PhoenixCatalogTest {
         String sql = catalog.getCreateTableSql(TablePath.of("test.test.test"), CATALOG_TABLE);
         Assertions.assertEquals(
                 "CREATE TABLE \"test\".\"test\" (\n"
-                        + "\"test\" VARCHAR(null),\n"
-                        + "\"test2\" VARCHAR(null),\n"
-                        + "\"test3\" VARCHAR(null),\n"
-                        + "CONSTRAINT test_primary_keys PRIMARY KEY (\"test\", \"test2\")\n"
+                        + "\"test\" VARCHAR,\n"
+                        + "\"test2\" VARCHAR,\n"
+                        + "\"test3\" VARCHAR,\n"
+                        + "CONSTRAINT test_primary_keys_1 PRIMARY KEY (\"test\", \"test2\")\n"
                         + ")",
                 sql);
     }

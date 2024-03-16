@@ -66,7 +66,12 @@ public class KingbaseCreateTableSqlBuilder {
             createTableSql.append(",\n");
             createTableSql
                     .append("CONSTRAINT ")
-                    .append(CatalogUtils.quoteIdentifier(primaryKey.getPrimaryKey(), fieldIde))
+                    .append(
+                            tablePath.getTableName()
+                                    + "_"
+                                    + CatalogUtils.quoteIdentifier(
+                                            String.join("_", primaryKey.getColumnNames()),
+                                            fieldIde))
                     .append(CatalogUtils.quoteIdentifier(" PRIMARY KEY (", fieldIde))
                     .append(
                             primaryKey.getColumnNames().stream()

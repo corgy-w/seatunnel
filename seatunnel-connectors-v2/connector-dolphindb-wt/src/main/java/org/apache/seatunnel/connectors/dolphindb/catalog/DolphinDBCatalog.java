@@ -33,8 +33,7 @@ import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistExcepti
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.connectors.dolphindb.datatyle.DolphinDBDataTypeConvertor;
 import org.apache.seatunnel.connectors.dolphindb.exception.DolphinDBConnectorException;
-
-import org.apache.commons.collections4.CollectionUtils;
+import org.apache.seatunnel.connectors.dolphindb.utils.DolphinDBSaveModeUtil;
 
 import com.xxdb.DBConnection;
 import com.xxdb.data.BasicStringVector;
@@ -44,7 +43,6 @@ import com.xxdb.data.Vector;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,6 +65,7 @@ public class DolphinDBCatalog implements Catalog {
     private final String user;
     private final String password;
     private final String databaseName;
+    private final String template;
     private final String tableName;
     private final boolean useSSL;
 
@@ -79,6 +78,7 @@ public class DolphinDBCatalog implements Catalog {
             String password,
             String databaseName,
             String tableName,
+            String template,
             boolean useSSL) {
         if (catalogName == null) {
             log.warn("The catalogName is null");
@@ -89,6 +89,7 @@ public class DolphinDBCatalog implements Catalog {
         this.password = checkNotNull(password);
         this.databaseName = checkNotNull(databaseName);
         this.tableName = tableName;
+        this.template = template;
         this.useSSL = useSSL;
     }
 
@@ -327,38 +328,12 @@ public class DolphinDBCatalog implements Catalog {
         }
     }
 
-    private static String getCreateTableSql(TablePath tablePath, CatalogTable table) {
-        String createTableSql = "create table \"%s\".\"%s\"(\n" + " %s\n" + " )\n";
-        List<String> columns = new ArrayList<>();
-        DolphinDBDataTypeConvertor dolphinDBDataTypeConvertor = new DolphinDBDataTypeConvertor();
-        table.getTableSchema()
-                .getColumns()
-                .forEach(
-                        column -> {
-                            columns.add(
-                                    column.getName()
-                                            + " "
-                                            + dolphinDBDataTypeConvertor
-                                                    .toConnectorType(
-                                                            column.getName(),
-                                                            column.getDataType(),
-                                                            null)
-                                                    .name());
-                        });
-        createTableSql =
-                String.format(
-                        createTableSql,
-                        tablePath.getDatabaseName(),
-                        tablePath.getTableName(),
-                        String.join(",\n", columns));
-        if (CollectionUtils.isNotEmpty(table.getPartitionKeys())) {
-            createTableSql =
-                    createTableSql
-                            + " partitioned by "
-                            + String.join(",", table.getPartitionKeys())
-                            + " ;\n";
-        }
-        return createTableSql;
+    private String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return DolphinDBSaveModeUtil.fillingCreateSql(
+                template,
+                tablePath.getDatabaseName(),
+                tablePath.getTableName(),
+                table.getTableSchema());
     }
 
     private Map<String, String> buildTableOptions(TablePath tablePath) {

@@ -95,7 +95,7 @@ public class KingbaseCatalogTest {
                         + "\"test\" text,\n"
                         + "\"test2\" text,\n"
                         + "\"test3\" text,\n"
-                        + "CONSTRAINT test_primary_keys PRIMARY KEY (\"test\", \"test2\")\n"
+                        + "CONSTRAINT test_test_test2 PRIMARY KEY (\"test\", \"test2\")\n"
                         + ");",
                 sql);
     }
