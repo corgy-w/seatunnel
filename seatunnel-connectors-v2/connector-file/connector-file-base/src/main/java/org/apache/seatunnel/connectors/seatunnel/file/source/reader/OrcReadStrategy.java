@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
@@ -58,6 +59,7 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -116,7 +118,15 @@ public class OrcReadStrategy extends AbstractReadStrategy {
                         if (cols[j] == null) {
                             fields[j] = null;
                         } else {
-                            fields[j] = readColumn(cols[j], children.get(j), num);
+                            fields[j] =
+                                    readColumn(
+                                            cols[j],
+                                            children.get(j),
+                                            seaTunnelRowType
+                                                    .getFieldType(j)
+                                                    .getSqlType()
+                                                    .equals(SqlType.TIME),
+                                            num);
                         }
                     }
                     SeaTunnelRow seaTunnelRow = new SeaTunnelRow(fields);
@@ -289,7 +299,8 @@ public class OrcReadStrategy extends AbstractReadStrategy {
         }
     }
 
-    private Object readColumn(ColumnVector colVec, TypeDescription colType, int rowNum) {
+    private Object readColumn(
+            ColumnVector colVec, TypeDescription colType, boolean isTime, int rowNum) {
         Object columnObj = null;
         if (!colVec.isNull[rowNum]) {
             switch (colVec.type) {
@@ -309,7 +320,7 @@ public class OrcReadStrategy extends AbstractReadStrategy {
                     columnObj = readDecimalVal(colVec, rowNum);
                     break;
                 case TIMESTAMP:
-                    columnObj = readTimestampVal(colVec, colType, rowNum);
+                    columnObj = readTimestampVal(colVec, colType, isTime, rowNum);
                     break;
                 case STRUCT:
                     columnObj = readStructVal(colVec, colType, rowNum);
@@ -374,7 +385,8 @@ public class OrcReadStrategy extends AbstractReadStrategy {
         return decimalObj;
     }
 
-    private Object readTimestampVal(ColumnVector colVec, TypeDescription colType, int rowNum) {
+    private Object readTimestampVal(
+            ColumnVector colVec, TypeDescription colType, boolean isTime, int rowNum) {
         Object timestampVal = null;
         if (!colVec.isNull[rowNum]) {
             TimestampColumnVector timestampVec = (TimestampColumnVector) colVec;
@@ -385,6 +397,8 @@ public class OrcReadStrategy extends AbstractReadStrategy {
             timestampVal = timestamp.toLocalDateTime();
             if (colType.getCategory() == TypeDescription.Category.DATE) {
                 timestampVal = LocalDate.ofEpochDay(timestamp.getTime());
+            } else if (isTime) {
+                timestampVal = LocalTime.ofNanoOfDay(timestamp.getTime() * 1000000L + nanos);
             }
         }
         return timestampVal;
@@ -398,7 +412,7 @@ public class OrcReadStrategy extends AbstractReadStrategy {
             Object[] fieldValues = new Object[fieldVec.length];
             List<TypeDescription> fieldTypes = colType.getChildren();
             for (int i = 0; i < fieldVec.length; i++) {
-                Object fieldObj = readColumn(fieldVec[i], fieldTypes.get(i), rowNum);
+                Object fieldObj = readColumn(fieldVec[i], fieldTypes.get(i), false, rowNum);
                 fieldValues[i] = fieldObj;
             }
             structObj = new SeaTunnelRow(fieldValues);
@@ -486,7 +500,7 @@ public class OrcReadStrategy extends AbstractReadStrategy {
             TypeDescription fieldType = unionFieldTypes.get(tagVal);
             if (tagVal < unionVector.fields.length) {
                 ColumnVector fieldVector = unionVector.fields[tagVal];
-                Object unionValue = readColumn(fieldVector, fieldType, rowNum);
+                Object unionValue = readColumn(fieldVector, fieldType, false, rowNum);
                 columnValuePair = Pair.of(fieldType, unionValue);
             } else {
                 throw new FileConnectorException(

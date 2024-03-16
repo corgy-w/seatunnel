@@ -416,7 +416,7 @@ public class KingbaseTypeConverterTest {
                         .build();
         Column column = KingbaseTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
-        Assertions.assertEquals(new DecimalType(38, 18), column.getDataType());
+        Assertions.assertEquals(new DecimalType(30, 2), column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toUpperCase());
     }
 

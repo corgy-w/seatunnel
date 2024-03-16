@@ -36,8 +36,8 @@
 
         <!-- drivers -->
         <dependency>
-            <groupId>com.aliyun.phoenix</groupId>
-            <artifactId>ali-phoenix-shaded-thin-client</artifactId>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>seatunnel-phoenix-5.1.3</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

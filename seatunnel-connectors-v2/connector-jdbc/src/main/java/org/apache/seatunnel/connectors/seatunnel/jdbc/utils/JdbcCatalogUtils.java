@@ -165,7 +165,7 @@ public class JdbcCatalogUtils {
             TablePath tablePath = jdbcDialect.parse(tableConfig.getTablePath());
             CatalogTable tableOfPath = null;
             try {
-                tableOfPath = jdbcCatalog.getTable(tablePath);
+                tableOfPath = jdbcCatalog.getTableIgnoreUnSupportColumn(tablePath);
             } catch (Exception e) {
                 // ignore
                 log.debug("User-defined table path: {}", tablePath);

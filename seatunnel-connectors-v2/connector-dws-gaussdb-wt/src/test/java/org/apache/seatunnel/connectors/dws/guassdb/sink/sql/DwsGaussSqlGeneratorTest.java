@@ -95,7 +95,7 @@ public class DwsGaussSqlGeneratorTest {
     void getCopyInTemporaryTableSql() {
         String copyInTemporaryTableSql = dwsGaussSqlGenerator.getCopyInTemporaryTableSql();
         Assertions.assertEquals(
-                "COPY \"public\".\"st_temporary_t_st_users\" FROM STDIN DELIMITER '|'",
+                "COPY \"public\".\"st_temporary_t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '|'",
                 copyInTemporaryTableSql);
     }
 
@@ -103,7 +103,8 @@ public class DwsGaussSqlGeneratorTest {
     void getCopyInTargetTableSql() {
         String copyInTargetTableSql = dwsGaussSqlGenerator.getCopyInTargetTableSql();
         Assertions.assertEquals(
-                "COPY \"public\".\"t_st_users\" FROM STDIN DELIMITER '|'", copyInTargetTableSql);
+                "COPY \"public\".\"t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '|'",
+                copyInTargetTableSql);
     }
 
     @Test
@@ -200,14 +201,14 @@ public class DwsGaussSqlGeneratorTest {
     @Test
     void testGetCopyInTemporaryTableSql() {
         Assertions.assertEquals(
-                "COPY \"public\".\"st_temporary_t_st_users\" FROM STDIN DELIMITER '|'",
+                "COPY \"public\".\"st_temporary_t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '|'",
                 dwsGaussSqlGenerator.getCopyInTemporaryTableSql());
     }
 
     @Test
     void testGetCopyInTargetTableSql() {
         Assertions.assertEquals(
-                "COPY \"public\".\"t_st_users\" FROM STDIN DELIMITER '|'",
+                "COPY \"public\".\"t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '|'",
                 dwsGaussSqlGenerator.getCopyInTargetTableSql());
     }
 

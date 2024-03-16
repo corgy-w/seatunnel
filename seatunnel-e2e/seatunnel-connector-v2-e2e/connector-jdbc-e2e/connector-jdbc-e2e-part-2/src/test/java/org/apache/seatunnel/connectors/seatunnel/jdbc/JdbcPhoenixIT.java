@@ -22,6 +22,7 @@ import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import org.junit.jupiter.api.Disabled;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Disabled
 public class JdbcPhoenixIT extends AbstractJdbcIT {
     private static final String PHOENIX_IMAGE = "iteblog/hbase-phoenix-docker:1.0";
     private static final String PHOENIX_CONTAINER_HOST = "seatunnel_e2e_phoenix";

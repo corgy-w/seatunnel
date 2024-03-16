@@ -19,16 +19,20 @@ package org.apache.seatunnel.connectors.seatunnel.file.hdfs.source;
 
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
+import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions;
+import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactory;
+import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
-import org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config.HdfsSourceConfigOptions;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 
 import com.google.auto.service.AutoService;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 @AutoService(Factory.class)
@@ -41,9 +45,12 @@ public class HdfsFileSourceFactory implements TableSourceFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(HdfsSourceConfigOptions.FILE_PATH)
-                .required(HdfsSourceConfigOptions.DEFAULT_FS)
-                .required(BaseSourceConfigOptions.FILE_FORMAT_TYPE)
+                .optional(BaseSourceConfigOptions.FILE_PATH)
+                .optional(
+                        org.apache.seatunnel.connectors.seatunnel.file.config
+                                .BaseSourceConfigOptions.TABLE_CONFIGS)
+                .optional(HdfsConfigOptions.DEFAULT_FS)
+                .optional(BaseSourceConfigOptions.FILE_FORMAT_TYPE)
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
@@ -64,11 +71,22 @@ public class HdfsFileSourceFactory implements TableSourceFactory {
                 .optional(BaseSourceConfigOptions.TIME_FORMAT)
                 .optional(BaseSourceConfigOptions.FILE_FILTER_PATTERN)
                 .optional(BaseSourceConfigOptions.COMPRESS_CODEC)
+                .optional(HdfsConfigOptions.HDFS_SITE_PATH)
+                .optional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
+                .optional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
+                .optional(HdfsConfigOptions.KRB5_PATH)
+                .optional(HdfsConfigOptions.REMOTE_USER)
                 .build();
     }
 
     @Override
     public Class<? extends SeaTunnelSource> getSourceClass() {
         return HdfsFileSource.class;
+    }
+
+    @Override
+    public <T, SplitT extends SourceSplit, StateT extends Serializable>
+            TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
+        return () -> (SeaTunnelSource<T, SplitT, StateT>) new HdfsFileSource(context.getOptions());
     }
 }

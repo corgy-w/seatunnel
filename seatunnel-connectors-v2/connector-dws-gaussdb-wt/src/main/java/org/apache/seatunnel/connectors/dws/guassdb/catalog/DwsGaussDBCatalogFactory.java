@@ -51,7 +51,8 @@ public class DwsGaussDBCatalogFactory implements CatalogFactory {
                 options.get(DwsGaussDBSinkOption.PASSWORD),
                 urlInfo,
                 options.get(DwsGaussDBSinkOption.PROPERTIES),
-                options.get(DwsGaussDBSinkOption.DATABASE_SCHEMA));
+                options.get(DwsGaussDBSinkOption.DATABASE_SCHEMA),
+                options);
     }
 
     @Override

@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.selectdb.sink;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
@@ -99,11 +100,11 @@ public class SelectDBSinkFactory
                         SINK_FLUSH_QUEUE_SIZE,
                         DATA_SAVE_MODE,
                         SCHEMA_SAVE_MODE,
-                        CUSTOM_SQL,
                         SAVE_MODE_CREATE_TEMPLATE,
                         SELECTDB_SINK_CONFIG_PREFIX,
                         MULTI_TABLE_SINK_REPLICA,
                         NEEDS_UNSUPPORTED_TYPE_CASTING)
+                .conditional(DATA_SAVE_MODE, DataSaveMode.CUSTOM_PROCESSING, CUSTOM_SQL)
                 .build();
     }
 

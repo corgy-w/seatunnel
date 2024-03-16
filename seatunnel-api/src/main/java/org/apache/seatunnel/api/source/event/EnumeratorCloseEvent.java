@@ -15,18 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.config;
+package org.apache.seatunnel.api.source.event;
 
-import org.apache.seatunnel.api.configuration.Option;
-import org.apache.seatunnel.api.configuration.Options;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
+import org.apache.seatunnel.api.event.EventType;
+import org.apache.seatunnel.api.event.LifecycleEvent;
 
-import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-public class HdfsSourceConfigOptions extends BaseSourceConfigOptions {
-    public static final Option<String> DEFAULT_FS =
-            Options.key(FS_DEFAULT_NAME_KEY)
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("HDFS namenode host");
+@Getter
+@Setter
+@ToString
+@AllArgsConstructor
+public class EnumeratorCloseEvent implements LifecycleEvent {
+    private long createdTime;
+    private String jobId;
+    private EventType eventType = EventType.LIFECYCLE_ENUMERATOR_CLOSE;
+
+    public EnumeratorCloseEvent() {
+        this.createdTime = System.currentTimeMillis();
+    }
 }

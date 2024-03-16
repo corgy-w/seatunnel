@@ -95,7 +95,7 @@ fi
 # port in your IDE. After that, you can happily debug your code.
 # JAVA_OPTS="${JAVA_OPTS} -Xdebug -Xrunjdwp:server=y,transport=dt_socket,address=5001,suspend=y"
 
-CLASS_PATH=${APP_DIR}/lib/*:${APP_JAR}
+CLASS_PATH=${CONF_DIR}:${APP_DIR}/lib/*:${APP_JAR}
 
 while read line
 do

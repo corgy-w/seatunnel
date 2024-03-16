@@ -99,7 +99,7 @@ if [ -e "${CONF_DIR}/log4j2_client.properties" ]; then
   fi
 fi
 
-CLASS_PATH=${APP_DIR}/lib/*:${APP_JAR}
+CLASS_PATH=${CONF_DIR}:${APP_DIR}/lib/*:${APP_JAR}
 
 while read line
 do

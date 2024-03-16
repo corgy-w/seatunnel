@@ -27,11 +27,14 @@ import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBCatalog;
 import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBCatalogFactory;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.commit.DwsGaussDBSinkCommitInfo;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption;
+import org.apache.seatunnel.connectors.dws.guassdb.sink.exception.DwsGaussDBConnectorErrorCode;
+import org.apache.seatunnel.connectors.dws.guassdb.sink.exception.DwsGaussDBConnectorException;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.sql.DwsGaussSqlGenerator;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.state.DwsGaussDBSinkState;
 
 import com.huawei.gauss200.jdbc.copy.CopyManager;
 import com.huawei.gauss200.jdbc.core.BaseConnection;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -44,6 +47,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * The writer for {@link DwsGaussDBSinkOption.WriteMode#APPEND_ONLY}, this writer will append the
  * data to the table, it will not guarantee the exactly-once.
  */
+@Slf4j
 public class DwsGaussDBAppendOnlySinkWriter
         implements SinkWriter<SeaTunnelRow, DwsGaussDBSinkCommitInfo, DwsGaussDBSinkState>,
                 SupportMultiTableSinkWriter {
@@ -112,9 +116,15 @@ public class DwsGaussDBAppendOnlySinkWriter
             return;
         }
         String targetTableRows = sqlGenerator.getTargetTableRows(appendRows);
-        try (StringReader stringReader = new StringReader(targetTableRows)) {
-            copyManager.copyIn(sqlGenerator.getCopyInTargetTableSql(), stringReader);
-            appendRows.clear();
+        try {
+            try (StringReader stringReader = new StringReader(targetTableRows)) {
+                copyManager.copyIn(sqlGenerator.getCopyInTargetTableSql(), stringReader);
+                appendRows.clear();
+            }
+        } catch (Exception ex) {
+            log.error("Flush Data to Dws-GaussDB failed: {}", targetTableRows);
+            throw new DwsGaussDBConnectorException(
+                    DwsGaussDBConnectorErrorCode.FLUSH_DATA_ERROR, ex);
         }
     }
 }

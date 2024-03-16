@@ -46,7 +46,7 @@ public class DDLTest {
         // "fs.s3a.aws.credentials.provider":
         // "com.amazonaws.auth.InstanceProfileCredentialsProvider",
         // "access_key": "AKIAYYUV5DMXNWIDLUEB",
-        // "secret_key": "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",
+        // "secret_key": "AWS_XXXX",
         // "jdbc_user": "awsuser",
         // "jdbc_password": "Whaleops123!",
         S3RedshiftConf conf =

@@ -20,7 +20,9 @@ package org.apache.seatunnel.connectors.dws.guassdb.sink.sql;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
+import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBTypeConverter;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption;
 
@@ -28,9 +30,13 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -47,6 +53,8 @@ public class DwsGaussSqlGenerator implements Serializable {
     private final String targetTableName;
 
     private final String delimiter = "|";
+
+    private transient Map<Integer, Function<Object, String>> transformToCopyStringFunction;
 
     public DwsGaussSqlGenerator(
             String primaryKey,
@@ -65,6 +73,7 @@ public class DwsGaussSqlGenerator implements Serializable {
                         .orElse("default");
         this.targetTableName = getIDEString(catalogTable.getTableId().getTableName());
         this.templateTableName = getIDEString("st_temporary_" + targetTableName);
+        this.transformToCopyStringFunction = initializeTransformToCopyStringFunction();
     }
 
     public String getTemporaryTableName() {
@@ -80,7 +89,13 @@ public class DwsGaussSqlGenerator implements Serializable {
                 + schemaName
                 + "\".\""
                 + templateTableName
-                + "\" FROM STDIN DELIMITER '"
+                + "\""
+                + "("
+                + catalogTable.getTableSchema().getColumns().stream()
+                        .map(column -> getIDEString(column.getName()))
+                        .collect(Collectors.joining(","))
+                + ")"
+                + " FROM STDIN DELIMITER '"
                 + delimiter
                 + "'";
     }
@@ -90,7 +105,13 @@ public class DwsGaussSqlGenerator implements Serializable {
                 + schemaName
                 + "\".\""
                 + targetTableName
-                + "\" FROM STDIN DELIMITER '"
+                + "\""
+                + "("
+                + catalogTable.getTableSchema().getColumns().stream()
+                        .map(column -> getIDEString(column.getName()))
+                        .collect(Collectors.joining(","))
+                + ")"
+                + " FROM STDIN DELIMITER '"
                 + delimiter
                 + "'";
     }
@@ -267,23 +288,29 @@ public class DwsGaussSqlGenerator implements Serializable {
         stringBuilder.append(snapshotId);
         stringBuilder.append(delimiter);
         stringBuilder.append(isDeleted);
-        return stringBuilder.toString();
+        return stringBuilder.toString().replace("\n", "");
     }
 
     private String appendRowInTargetTable(SeaTunnelRow seaTunnelRow) {
+        if (transformToCopyStringFunction == null) {
+            synchronized (this) {
+                transformToCopyStringFunction = initializeTransformToCopyStringFunction();
+            }
+        }
         Object[] fields = seaTunnelRow.getFields();
         StringBuilder stringBuilder = new StringBuilder();
         for (int i = 0; i < fields.length; i++) {
-            if (seaTunnelRow.getField(i) == null) {
-                // use '' represent null
-            } else {
-                stringBuilder.append(seaTunnelRow.getField(i));
+            final Object field = seaTunnelRow.getField(i);
+            String fieldStr = transformToCopyStringFunction.get(i).apply(field);
+            // use '' represent null
+            if (fieldStr != null) {
+                stringBuilder.append(fieldStr);
             }
             if (i != fields.length - 1) {
                 stringBuilder.append(delimiter);
             }
         }
-        return stringBuilder.toString();
+        return stringBuilder.toString().replace("\n", "");
     }
 
     private String buildColumnSql(Column column) {
@@ -327,5 +354,154 @@ public class DwsGaussSqlGenerator implements Serializable {
             default:
                 return originString;
         }
+    }
+
+    private Map<Integer, Function<Object, String>> initializeTransformToCopyStringFunction() {
+        Map<Integer, Function<Object, String>> map = new HashMap<>();
+        List<Column> columns = catalogTable.getTableSchema().getColumns();
+        for (int i = 0; i < columns.size(); i++) {
+            Function<Object, String> function = null;
+            Column column = columns.get(i);
+            if (column == null || column.getDataType().getSqlType() != SqlType.ARRAY) {
+                function =
+                        new Function<Object, String>() {
+                            @Override
+                            public String apply(Object input) {
+                                if (input == null) {
+                                    return null;
+                                }
+                                return input.toString();
+                            }
+                        };
+            } else {
+                ArrayType dataType = (ArrayType) column.getDataType();
+                SqlType elemantSqlType = dataType.getElementType().getSqlType();
+                switch (elemantSqlType) {
+                    case STRING:
+                        function =
+                                new Function<Object, String>() {
+                                    @Override
+                                    public String apply(Object input) {
+                                        if (input == null) {
+                                            return null;
+                                        }
+                                        String[] arr = (String[]) input;
+                                        return Arrays.stream(arr)
+                                                .collect(Collectors.joining(",", "{", "}"));
+                                    }
+                                };
+                        break;
+                    case INT:
+                        function =
+                                new Function<Object, String>() {
+                                    @Override
+                                    public String apply(Object input) {
+                                        if (input == null) {
+                                            return null;
+                                        }
+                                        Integer[] arr = (Integer[]) input;
+                                        return Arrays.stream(arr)
+                                                .map(Object::toString)
+                                                .collect(Collectors.joining(",", "{", "}"));
+                                    }
+                                };
+                        break;
+                    case SMALLINT:
+                        function =
+                                new Function<Object, String>() {
+                                    @Override
+                                    public String apply(Object input) {
+                                        if (input == null) {
+                                            return null;
+                                        }
+                                        Short[] arr = (Short[]) input;
+                                        return Arrays.stream(arr)
+                                                .map(Object::toString)
+                                                .collect(Collectors.joining(",", "{", "}"));
+                                    }
+                                };
+                        break;
+                    case BIGINT:
+                        function =
+                                new Function<Object, String>() {
+                                    @Override
+                                    public String apply(Object input) {
+                                        if (input == null) {
+                                            return null;
+                                        }
+                                        Long[] arr = (Long[]) input;
+                                        return Arrays.stream(arr)
+                                                .map(Object::toString)
+                                                .collect(Collectors.joining(",", "{", "}"));
+                                    }
+                                };
+                        break;
+                    case FLOAT:
+                        function =
+                                new Function<Object, String>() {
+                                    @Override
+                                    public String apply(Object input) {
+                                        if (input == null) {
+                                            return null;
+                                        }
+                                        Float[] arr = (Float[]) input;
+                                        return Arrays.stream(arr)
+                                                .map(Object::toString)
+                                                .collect(Collectors.joining(",", "{", "}"));
+                                    }
+                                };
+                        break;
+                    case BYTES:
+                        function =
+                                new Function<Object, String>() {
+                                    @Override
+                                    public String apply(Object input) {
+                                        if (input == null) {
+                                            return null;
+                                        }
+                                        Byte[] arr = (Byte[]) input;
+                                        return Arrays.stream(arr)
+                                                .map(Object::toString)
+                                                .collect(Collectors.joining(",", "{", "}"));
+                                    }
+                                };
+                        break;
+                    case DOUBLE:
+                        function =
+                                new Function<Object, String>() {
+                                    @Override
+                                    public String apply(Object input) {
+                                        if (input == null) {
+                                            return null;
+                                        }
+                                        Double[] arr = (Double[]) input;
+                                        return Arrays.stream(arr)
+                                                .map(Object::toString)
+                                                .collect(Collectors.joining(",", "{", "}"));
+                                    }
+                                };
+                        break;
+                    case BOOLEAN:
+                        function =
+                                new Function<Object, String>() {
+                                    @Override
+                                    public String apply(Object input) {
+                                        if (input == null) {
+                                            return null;
+                                        }
+                                        Boolean[] arr = (Boolean[]) input;
+                                        return Arrays.stream(arr)
+                                                .map(Object::toString)
+                                                .collect(Collectors.joining(",", "{", "}"));
+                                    }
+                                };
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unsupported array type: " + dataType);
+                }
+            }
+            map.put(i, function);
+        }
+        return map;
     }
 }

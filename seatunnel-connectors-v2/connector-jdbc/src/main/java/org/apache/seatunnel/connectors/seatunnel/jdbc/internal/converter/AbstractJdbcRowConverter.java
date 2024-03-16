@@ -22,7 +22,8 @@ import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
@@ -71,6 +72,7 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
         Object[] fields = new Object[typeInfo.getTotalFields()];
         for (int fieldIndex = 0; fieldIndex < typeInfo.getTotalFields(); fieldIndex++) {
             SeaTunnelDataType<?> seaTunnelDataType = typeInfo.getFieldType(fieldIndex);
+            String fieldName = typeInfo.getFieldName(fieldIndex);
             int resultSetIndex = fieldIndex + 1;
             switch (seaTunnelDataType.getSqlType()) {
                 case STRING:
@@ -122,14 +124,14 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                     fields[fieldIndex] = null;
                     break;
                 case ARRAY:
-                    fields[fieldIndex] = convertToArray(rs, resultSetIndex, seaTunnelDataType);
+                    fields[fieldIndex] =
+                            convertToArray(rs, resultSetIndex, seaTunnelDataType, fieldName);
                     break;
                 case MAP:
                 case ROW:
                 default:
-                    throw new JdbcConnectorException(
-                            CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
-                            "Unexpected value: " + seaTunnelDataType);
+                    throw CommonError.unsupportedDataType(
+                            converterName(), seaTunnelDataType.getSqlType().toString(), fieldName);
             }
         }
         return new SeaTunnelRow(fields);
@@ -141,7 +143,10 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
     }
 
     public Object[] convertToArray(
-            ResultSet rs, int resultSetIndex, SeaTunnelDataType<?> seaTunnelDataType)
+            ResultSet rs,
+            int resultSetIndex,
+            SeaTunnelDataType<?> seaTunnelDataType,
+            String fieldName)
             throws SQLException {
         Array array = rs.getArray(resultSetIndex);
         if (array != null) {
@@ -169,12 +174,8 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                 case DECIMAL:
                     return origArray.toArray(TYPE_ARRAY_BIG_DECIMAL);
                 default:
-                    String errorMsg =
-                            String.format(
-                                    "SeaTunnel array type not support this type [%s] now",
-                                    seaTunnelDataType.getSqlType());
-                    throw new JdbcConnectorException(
-                            CommonErrorCode.UNSUPPORTED_DATA_TYPE, errorMsg);
+                    String type = String.format("Array[%s]", elementType.getSqlType());
+                    throw CommonError.unsupportedDataType(converterName(), type, fieldName);
             }
         } else {
             return null;
@@ -244,12 +245,22 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                         statement.setNull(statementIndex, java.sql.Types.NULL);
                         break;
                     case ARRAY:
+                        SeaTunnelDataType elementType =
+                                ((ArrayType) seaTunnelDataType).getElementType();
                         Object[] array = (Object[]) row.getField(fieldIndex);
                         if (array == null) {
                             statement.setNull(statementIndex, java.sql.Types.ARRAY);
                             break;
                         }
-                        statement.setObject(statementIndex, array);
+                        if (SqlType.TINYINT.equals(elementType.getSqlType())) {
+                            Short[] shortArray = new Short[array.length];
+                            for (int i = 0; i < array.length; i++) {
+                                shortArray[i] = Short.valueOf(array[i].toString());
+                            }
+                            statement.setObject(statementIndex, shortArray);
+                        } else {
+                            statement.setObject(statementIndex, array);
+                        }
                         break;
                     case MAP:
                     case ROW:

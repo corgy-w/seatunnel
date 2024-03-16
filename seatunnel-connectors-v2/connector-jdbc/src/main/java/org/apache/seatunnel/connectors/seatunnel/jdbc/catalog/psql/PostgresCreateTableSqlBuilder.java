@@ -69,6 +69,10 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
                                                 buildColumnSql(column), fieldIde))
                         .collect(Collectors.toList());
 
+        if (primaryKey != null) {
+            columnSqls.add("\t" + buildPrimaryKeySql());
+        }
+
         if (CollectionUtils.isNotEmpty(constraintKeys)) {
             for (ConstraintKey constraintKey : constraintKeys) {
                 if (StringUtils.isBlank(constraintKey.getConstraintName())
@@ -116,6 +120,15 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
         return createTableSql.toString();
     }
 
+    private String buildPrimaryKeySql() {
+        String key =
+                primaryKey.getColumnNames().stream()
+                        .map(columnName -> "\"" + columnName + "\"")
+                        .collect(Collectors.joining(", "));
+        // add sort type
+        return String.format("PRIMARY KEY (%s)", CatalogUtils.quoteIdentifier(key, fieldIde));
+    }
+
     private String buildColumnSql(Column column) {
         StringBuilder columnSql = new StringBuilder();
         columnSql.append("\"").append(column.getName()).append("\" ");
@@ -131,11 +144,6 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
         // Add NOT NULL if column is not nullable
         if (!column.isNullable()) {
             columnSql.append(" NOT NULL");
-        }
-
-        // Add primary key directly after the column if it is a primary key
-        if (primaryKey != null && primaryKey.getColumnNames().contains(column.getName())) {
-            columnSql.append(" PRIMARY KEY");
         }
 
         return columnSql.toString();

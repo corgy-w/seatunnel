@@ -61,6 +61,13 @@ public interface JdbcOptions {
     Option<String> QUERY =
             Options.key("query").stringType().noDefaultValue().withDescription("query");
 
+    Option<String> DATABASE_SCHEMA =
+            Options.key("database_schema")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "for databases that support the schema parameter, give it priority.");
+
     Option<SchemaSaveMode> SCHEMA_SAVE_MODE =
             Options.key("schema_save_mode")
                     .enumType(SchemaSaveMode.class)

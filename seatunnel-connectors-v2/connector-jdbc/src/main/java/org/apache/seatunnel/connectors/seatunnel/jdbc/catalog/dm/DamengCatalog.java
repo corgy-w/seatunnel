@@ -78,7 +78,7 @@ public class DamengCatalog extends AbstractJdbcCatalog {
     @Override
     protected void createTableInternal(TablePath tablePath, CatalogTable table)
             throws CatalogException {
-        String createTableSql = new DamengCreateTableSqlBuilder(table).build(tablePath);
+        String createTableSql = getCreateTableSql(tablePath, table);
         String[] createTableSqls = createTableSql.split(";");
         Connection connection = getConnection(baseUrl);
         for (String sql : createTableSqls) {
@@ -119,7 +119,7 @@ public class DamengCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
-        throw new UnsupportedOperationException();
+        return new DamengCreateTableSqlBuilder(table).build(tablePath);
     }
 
     @Override
