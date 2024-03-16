@@ -67,8 +67,15 @@ public class DB2CreateTableSqlBuilder {
                         .collect(Collectors.toList());
 
         if (primaryKey != null && !primaryKey.getColumnNames().isEmpty()) {
-            columnSqls.add(
-                    "PRIMARY KEY ( " + String.join(", ", primaryKey.getColumnNames()) + " )");
+            String key =
+                    primaryKey.getColumnNames().stream()
+                            .map(
+                                    columnName ->
+                                            "\""
+                                                    + CatalogUtils.getFieldIde(columnName, fieldIde)
+                                                    + "\"")
+                            .collect(Collectors.joining(", "));
+            columnSqls.add("PRIMARY KEY ( " + key + " )");
         }
 
         if (CollectionUtils.isNotEmpty(constraintKeys)) {

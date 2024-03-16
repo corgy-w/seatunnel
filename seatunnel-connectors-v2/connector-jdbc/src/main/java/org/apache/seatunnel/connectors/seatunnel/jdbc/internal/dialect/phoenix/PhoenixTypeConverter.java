@@ -266,8 +266,13 @@ public class PhoenixTypeConverter implements TypeConverter<BasicTypeDefine> {
                 builder.dataType(PHOENIX_BINARY);
                 break;
             case STRING:
-                builder.columnType(
-                        String.format("%s(%s)", PHOENIX_VARCHAR, column.getColumnLength()));
+                if (column.getColumnLength() != null && column.getColumnLength() > 0) {
+                    builder.columnType(
+                            String.format("%s(%s)", PHOENIX_VARCHAR, column.getColumnLength()));
+                } else {
+                    builder.columnType(String.format("%s", PHOENIX_VARCHAR));
+                }
+
                 builder.dataType(PHOENIX_VARCHAR);
                 break;
             case DATE:
