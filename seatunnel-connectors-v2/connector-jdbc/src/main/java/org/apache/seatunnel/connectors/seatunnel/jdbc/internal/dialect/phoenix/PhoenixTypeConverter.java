@@ -266,11 +266,13 @@ public class PhoenixTypeConverter implements TypeConverter<BasicTypeDefine> {
                 builder.dataType(PHOENIX_BINARY);
                 break;
             case STRING:
-                if (column.getColumnLength() != null && column.getColumnLength() > 0) {
+                if (column.getColumnLength() == null || column.getColumnLength() <= 0) {
+                    builder.columnType(String.format("%s", PHOENIX_VARCHAR));
+                } else if (column.getColumnLength() <= Integer.MAX_VALUE) {
                     builder.columnType(
                             String.format("%s(%s)", PHOENIX_VARCHAR, column.getColumnLength()));
-                } else {
-                    builder.columnType(String.format("%s", PHOENIX_VARCHAR));
+                } else if (column.getColumnLength() > Integer.MAX_VALUE) {
+                    builder.columnType(String.format("%s(%s)", PHOENIX_VARCHAR, Integer.MAX_VALUE));
                 }
 
                 builder.dataType(PHOENIX_VARCHAR);
