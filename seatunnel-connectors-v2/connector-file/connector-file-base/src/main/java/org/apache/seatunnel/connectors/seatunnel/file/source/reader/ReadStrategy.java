@@ -45,6 +45,11 @@ public interface ReadStrategy extends Serializable {
 
     SeaTunnelRowType getSeaTunnelRowTypeInfo(String path) throws FileConnectorException;
 
+    default SeaTunnelRowType getSeaTunnelRowTypeInfoWithUserConfigRowType(
+            String path, SeaTunnelRowType rowType) throws FileConnectorException {
+        return getSeaTunnelRowTypeInfo(path);
+    }
+
     default SeaTunnelRowType getSeaTunnelRowTypeInfo(TablePath tablePath, String path)
             throws FileConnectorException {
         return getSeaTunnelRowTypeInfo(path);
