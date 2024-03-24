@@ -248,12 +248,12 @@ public class PostgresDialect implements JdbcDialect {
             final String name = column.getName();
             if (name.equals(columnName)) {
                 if (PostgresTypeConverter.PG_UUID.equals(column.getSourceType())) {
-                    return columnName + "::text";
+                    return "\"" + columnName + "\"::text";
                 } else {
-                    return columnName;
+                    return "\"" + columnName + "\"";
                 }
             }
         }
-        return columnName;
+        return "\"" + columnName + "\"";
     }
 }
