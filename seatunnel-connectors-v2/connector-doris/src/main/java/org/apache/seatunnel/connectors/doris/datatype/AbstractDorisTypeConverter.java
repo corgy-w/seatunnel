@@ -89,7 +89,7 @@ public abstract class AbstractDorisTypeConverter implements TypeConverter<BasicT
     public static final long MAX_DORIS_LARGEINT_TO_VARCHAR_LENGTH = 39L;
 
     public static final long POWER_2_8 = (long) Math.pow(2, 8);
-    public static final long POWER_2_16 = (long) Math.pow(2, 16);
+    public static final long MAX_VARCHAR_LENGTH = 65533;
     public static final long MAX_STRING_LENGTH = 2147483643;
 
     protected PhysicalColumn.PhysicalColumnBuilder getPhysicalColumnBuilder(
@@ -211,7 +211,7 @@ public abstract class AbstractDorisTypeConverter implements TypeConverter<BasicT
             return;
         }
 
-        if (column.getColumnLength() < POWER_2_16) {
+        if (column.getColumnLength() <= MAX_VARCHAR_LENGTH) {
             builder.columnType(String.format("%s(%s)", DORIS_VARCHAR, column.getColumnLength()));
             builder.dataType(DORIS_VARCHAR);
             return;
