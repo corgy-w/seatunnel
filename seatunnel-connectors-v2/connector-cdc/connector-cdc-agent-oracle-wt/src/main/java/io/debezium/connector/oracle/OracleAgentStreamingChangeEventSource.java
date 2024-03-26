@@ -131,6 +131,7 @@ public class OracleAgentStreamingChangeEventSource
                                 currentFzsFileNumber);
                         Thread.sleep(NO_DATA_AVAILABLE_SLEEP_MS);
                     }
+                    eventDispatcher.dispatchHeartbeatEvent(offsetContext);
                     continue;
                 }
                 for (OracleTransactionData data : oracleTransactionData) {
