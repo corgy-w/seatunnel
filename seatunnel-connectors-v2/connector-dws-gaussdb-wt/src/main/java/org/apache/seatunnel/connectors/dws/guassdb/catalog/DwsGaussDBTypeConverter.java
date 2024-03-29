@@ -176,7 +176,7 @@ public class DwsGaussDBTypeConverter implements TypeConverter<BasicTypeDefine> {
             case PG_CHARACTER:
                 builder.dataType(BasicType.STRING_TYPE);
                 if (typeDefine.getLength() == null || typeDefine.getLength() <= 0) {
-                    builder.columnLength(1L);
+                    builder.columnLength(TypeDefineUtils.charTo4ByteLength(1L));
                 } else {
                     builder.columnLength(typeDefine.getLength());
                 }

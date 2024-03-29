@@ -28,6 +28,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.connectors.seatunnel.common.source.TypeDefineUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -137,7 +138,7 @@ public class PhoenixTypeConverter implements TypeConverter<BasicTypeDefine> {
                     builder.columnLength(1L);
                     builder.sourceType(phoenixDataType);
                 } else {
-                    builder.columnLength(typeDefine.getLength());
+                    builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                     builder.sourceType(
                             String.format("%s(%s)", phoenixDataType, typeDefine.getLength()));
                 }

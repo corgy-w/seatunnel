@@ -191,10 +191,10 @@ public class PostgresTypeConverter implements TypeConverter<BasicTypeDefine> {
             case PG_CHARACTER:
                 builder.dataType(BasicType.STRING_TYPE);
                 if (typeDefine.getLength() == null || typeDefine.getLength() <= 0) {
-                    builder.columnLength(1L);
+                    builder.columnLength(TypeDefineUtils.charTo4ByteLength(1L));
                     builder.sourceType(pgDataType);
                 } else {
-                    builder.columnLength(typeDefine.getLength());
+                    builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                     builder.sourceType(String.format("%s(%s)", pgDataType, typeDefine.getLength()));
                 }
                 break;

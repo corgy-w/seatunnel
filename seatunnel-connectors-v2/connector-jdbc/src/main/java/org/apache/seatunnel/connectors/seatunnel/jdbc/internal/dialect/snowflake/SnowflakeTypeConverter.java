@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.connectors.seatunnel.common.source.TypeDefineUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import com.google.auto.service.AutoService;
@@ -143,6 +144,9 @@ public class SnowflakeTypeConverter implements TypeConverter<BasicTypeDefine> {
             case SNOWFLAKE_CHARACTER:
             case SNOWFLAKE_VARCHAR:
             case SNOWFLAKE_STRING:
+                builder.dataType(BasicType.STRING_TYPE);
+                builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
+                break;
             case SNOWFLAKE_TEXT:
             case SNOWFLAKE_VARIANT:
             case SNOWFLAKE_OBJECT:

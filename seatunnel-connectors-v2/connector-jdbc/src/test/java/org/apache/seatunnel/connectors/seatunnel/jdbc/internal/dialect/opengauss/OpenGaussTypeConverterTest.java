@@ -183,7 +183,7 @@ public class OpenGaussTypeConverterTest {
         Column column = OpenGaussTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
-        Assertions.assertEquals(1, column.getColumnLength());
+        Assertions.assertEquals(4, column.getColumnLength());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType());
 
         typeDefine =
@@ -196,7 +196,7 @@ public class OpenGaussTypeConverterTest {
         column = OpenGaussTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
-        Assertions.assertEquals(10, column.getColumnLength());
+        Assertions.assertEquals(40, column.getColumnLength());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType());
     }
 
