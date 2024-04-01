@@ -630,7 +630,7 @@ public class DorisTypeConvertorV1Test {
                 PhysicalColumn.builder()
                         .name("test")
                         .dataType(BasicType.STRING_TYPE)
-                        .columnLength(65535L)
+                        .columnLength(65533L)
                         .build();
 
         typeDefine = DorisTypeConverterV1.INSTANCE.reconvert(column);
