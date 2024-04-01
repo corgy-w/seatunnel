@@ -63,7 +63,7 @@ public class SinkConfig extends InfluxDBConfig {
     public static final Option<Integer> MAX_RETRIES =
             Options.key("max_retries")
                     .intType()
-                    .noDefaultValue()
+                    .defaultValue(3)
                     .withDescription("max retries of the influxdb client");
 
     public static final Option<Integer> WRITE_TIMEOUT =

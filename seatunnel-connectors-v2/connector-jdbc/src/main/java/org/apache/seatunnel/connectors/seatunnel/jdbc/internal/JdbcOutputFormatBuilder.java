@@ -166,7 +166,11 @@ public class JdbcOutputFormatBuilder {
         if (enableUpsert) {
             Optional<String> upsertSQL =
                     dialect.getUpsertStatement(
-                            database, table, tableSchema.getFieldNames(), pkNames);
+                            database,
+                            table,
+                            tableSchema.getFieldNames(),
+                            pkNames,
+                            isPrimaryKeyUpdated);
             if (upsertSQL.isPresent()) {
                 return createSimpleExecutor(
                         upsertSQL.get(), tableSchema, dialect.getRowConverter());
