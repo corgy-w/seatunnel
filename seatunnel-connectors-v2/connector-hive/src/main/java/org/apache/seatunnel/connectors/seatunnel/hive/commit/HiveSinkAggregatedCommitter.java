@@ -26,7 +26,6 @@ import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorExc
 import org.apache.seatunnel.connectors.seatunnel.hive.sink.HiveSinkOptions;
 import org.apache.seatunnel.connectors.seatunnel.hive.utils.HiveMetaStoreProxy;
 
-import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.thrift.TException;
 
@@ -72,11 +71,6 @@ public class HiveSinkAggregatedCommitter extends FileSinkAggregatedCommitter {
                 try {
                     hiveMetaStore.addPartitions(dbName, tableName, partitions);
                     log.info("Add these partitions {}", partitions);
-                } catch (AlreadyExistsException e) {
-                    hiveMetaStore.close();
-                    log.warn("These partitions {} are already exists", partitions);
-                    throw new HiveConnectorException(
-                            HiveConnectorErrorCode.AGGREGATE_COMMIT_ERROR, e);
                 } catch (TException e) {
                     hiveMetaStore.close();
                     log.error("Failed to add these partitions {}", partitions, e);

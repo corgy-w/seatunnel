@@ -186,6 +186,7 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
                                             connectorConfig.isLobEnabled());
                             if (archiveLogOnlyMode && startScn.equals(endScn)) {
                                 pauseBetweenMiningSessions();
+                                eventDispatcher.dispatchHeartbeatEvent(offsetContext);
                                 continue;
                             }
 

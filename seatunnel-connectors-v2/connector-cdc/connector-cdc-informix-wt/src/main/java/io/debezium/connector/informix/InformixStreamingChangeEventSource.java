@@ -84,6 +84,8 @@ public class InformixStreamingChangeEventSource
 
         // restore
         while (context.isRunning()) {
+            eventDispatcher.dispatchHeartbeatEvent(offsetContext);
+
             if (lastPosition.getChangeLsn() <= lastPosition.getCommitLsn()) {
                 log.info(
                         "Recover skipped, since changeLsn='{}' >= commitLsn='{}'",
