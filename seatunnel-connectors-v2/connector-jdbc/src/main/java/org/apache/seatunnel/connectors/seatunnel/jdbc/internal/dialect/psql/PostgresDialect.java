@@ -141,8 +141,8 @@ public class PostgresDialect implements JdbcDialect {
                 Arrays.stream(fieldNames)
                         .filter(
                                 fieldName ->
-                                        !isPrimaryKeyUpdated
-                                                && !Arrays.asList(uniqueKeyFields)
+                                        isPrimaryKeyUpdated
+                                                || !Arrays.asList(uniqueKeyFields)
                                                         .contains(fieldName))
                         .map(
                                 fieldName ->
