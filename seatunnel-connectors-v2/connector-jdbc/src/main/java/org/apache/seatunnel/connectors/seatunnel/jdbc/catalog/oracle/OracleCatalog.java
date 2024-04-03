@@ -33,6 +33,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oracle.Or
 
 import org.apache.commons.lang3.StringUtils;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -111,9 +112,15 @@ public class OracleCatalog extends AbstractJdbcCatalog {
         super(catalogName, username, pwd, urlInfo, defaultSchema);
     }
 
-    @Override
+    /*@Override
     protected String getListDatabaseSql() {
         return "SELECT name FROM v$database";
+    }*/
+
+    @SneakyThrows
+    @Override
+    public List<String> listDatabases() throws CatalogException {
+        return Collections.singletonList(defaultDatabase);
     }
 
     @Override
