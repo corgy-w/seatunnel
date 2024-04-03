@@ -15,24 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.engine.server.event;
+package org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils;
 
-import org.apache.seatunnel.api.event.Event;
-import org.apache.seatunnel.api.event.EventListener;
-import org.apache.seatunnel.engine.server.execution.TaskExecutionContext;
-import org.apache.seatunnel.engine.server.execution.TaskLocation;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
-import lombok.AllArgsConstructor;
+public class DateUtils {
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final ZoneOffset SYSTEM_ZONE_OFFSET =
+            ZoneOffset.of(ZoneOffset.systemDefault().getId());
 
-@AllArgsConstructor
-public class JobEventListener implements EventListener {
-    private final TaskLocation taskLocation;
-    private final TaskExecutionContext taskExecutionContext;
+    public static LocalDateTime parse(String dateTime) {
+        return LocalDateTime.parse(dateTime, DATE_TIME_FORMATTER);
+    }
 
-    @Override
-    public void onEvent(Event event) {
-        event.setJobId(String.valueOf(taskLocation.getJobId()));
-
-        taskExecutionContext.getTaskExecutionService().reportEvent(event);
+    public static Instant toInstant(String dateTime) {
+        return parse(dateTime).toInstant(SYSTEM_ZONE_OFFSET);
     }
 }

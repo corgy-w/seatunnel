@@ -144,6 +144,11 @@ public class InformixOffsetContext implements OffsetContext {
         sourceInfo.setBeginLsn(position.getBeginLsn());
     }
 
+    public void setChangePosition(TxLogPosition position, Instant sourceTime) {
+        setChangePosition(position);
+        sourceInfo.setSourceTime(sourceTime);
+    }
+
     @Override
     public boolean isSnapshotRunning() {
         return sourceInfo.isSnapshot() && !snapshotCompleted;
