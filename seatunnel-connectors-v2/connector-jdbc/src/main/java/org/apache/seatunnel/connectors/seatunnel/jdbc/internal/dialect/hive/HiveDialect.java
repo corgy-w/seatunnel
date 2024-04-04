@@ -72,11 +72,6 @@ public class HiveDialect implements JdbcDialect {
     }
 
     @Override
-    public TablePath parse(String tablePath) {
-        return TablePath.of(tablePath, true);
-    }
-
-    @Override
     public JdbcConnectionProvider getJdbcConnectionProvider(
             JdbcConnectionConfig jdbcConnectionConfig) {
         return new HiveJdbcConnectionProvider(jdbcConnectionConfig);
