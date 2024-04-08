@@ -15,25 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psqllow;
+package org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils;
 
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresDialect;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
-import java.util.Optional;
+public class DateUtils {
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final ZoneOffset SYSTEM_ZONE_OFFSET =
+            ZoneOffset.of(ZoneOffset.systemDefault().getId());
 
-public class PostgresLowDialect extends PostgresDialect {
-
-    public PostgresLowDialect(String fieldIde) {
-        this.fieldIde = fieldIde;
+    public static LocalDateTime parse(String dateTime) {
+        return LocalDateTime.parse(dateTime, DATE_TIME_FORMATTER);
     }
 
-    @Override
-    public Optional<String> getUpsertStatement(
-            String database,
-            String tableName,
-            String[] fieldNames,
-            String[] uniqueKeyFields,
-            boolean isPrimaryKeyUpdated) {
-        return Optional.empty();
+    public static Instant toInstant(String dateTime) {
+        return parse(dateTime).toInstant(SYSTEM_ZONE_OFFSET);
     }
 }

@@ -276,9 +276,6 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
                 builder.dataType(PrimitiveByteArrayType.INSTANCE);
                 builder.columnLength(POWER_2_32 - 1);
                 break;
-            case MYSQL_GEOMETRY:
-                builder.dataType(PrimitiveByteArrayType.INSTANCE);
-                break;
             case MYSQL_DATE:
                 builder.dataType(LocalTimeType.LOCAL_DATE_TYPE);
                 break;

@@ -86,7 +86,7 @@ public interface StarRocksSinkOptions {
     Option<Integer> MAX_RETRIES =
             Options.key("max_retries")
                     .intType()
-                    .noDefaultValue()
+                    .defaultValue(3)
                     .withDescription("The number of retries to flush failed");
 
     Option<Integer> RETRY_BACKOFF_MULTIPLIER_MS =
