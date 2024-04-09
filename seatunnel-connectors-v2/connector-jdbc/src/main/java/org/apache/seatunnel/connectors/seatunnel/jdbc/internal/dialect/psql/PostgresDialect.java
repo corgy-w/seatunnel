@@ -258,11 +258,10 @@ public class PostgresDialect implements JdbcDialect {
     }
 
     public String converterMinMaxColumn(JdbcSourceTable table, String columnName) {
-        columnName = columnName.replace("\"", "");
         final List<Column> columns = table.getCatalogTable().getTableSchema().getColumns();
         for (Column column : columns) {
             final String name = column.getName();
-            if (name.equals(columnName)) {
+            if (name.equals(columnName.replace("\"", ""))) {
                 if (PostgresTypeConverter.PG_UUID.equals(column.getSourceType())) {
                     return columnName + "::text";
                 } else {

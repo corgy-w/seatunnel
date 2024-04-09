@@ -447,7 +447,7 @@ public class MySqlUtils {
             SeaTunnelRowType rowType, StringBuilder sql, String predicate) {
         for (Iterator<String> fieldNamesIt = Arrays.stream(rowType.getFieldNames()).iterator();
                 fieldNamesIt.hasNext(); ) {
-            sql.append(fieldNamesIt.next()).append(predicate);
+            sql.append(quote(fieldNamesIt.next())).append(predicate);
             if (fieldNamesIt.hasNext()) {
                 sql.append(" AND ");
             }
