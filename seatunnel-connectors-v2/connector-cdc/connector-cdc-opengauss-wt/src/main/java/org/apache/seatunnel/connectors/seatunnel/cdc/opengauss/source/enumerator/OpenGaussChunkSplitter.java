@@ -27,6 +27,7 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.utils.OpenGaussUt
 
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
+import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import lombok.extern.slf4j.Slf4j;
 
@@ -80,11 +81,9 @@ public class OpenGaussChunkSplitter extends AbstractJdbcSourceChunkSplitter {
 
     @Override
     public String buildSplitScanQuery(
-            TableId tableId,
-            SeaTunnelRowType splitKeyType,
-            boolean isFirstSplit,
-            boolean isLastSplit) {
-        return OpenGaussUtils.buildSplitScanQuery(tableId, splitKeyType, isFirstSplit, isLastSplit);
+            Table table, SeaTunnelRowType splitKeyType, boolean isFirstSplit, boolean isLastSplit) {
+        return OpenGaussUtils.buildSplitScanQuery(
+                table.id(), splitKeyType, isFirstSplit, isLastSplit);
     }
 
     @Override

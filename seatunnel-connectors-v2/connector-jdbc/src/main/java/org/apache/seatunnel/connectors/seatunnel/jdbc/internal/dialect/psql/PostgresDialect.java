@@ -37,7 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -70,8 +70,17 @@ public class PostgresDialect implements JdbcDialect {
     }
 
     @Override
+    public String hashModForField(String nativeType, String fieldName, int mod) {
+        String quoteFieldName = quoteIdentifier(fieldName);
+        if (StringUtils.isNotBlank(nativeType)) {
+            quoteFieldName = convertType(quoteFieldName, nativeType);
+        }
+        return "(ABS(HASHTEXT(" + quoteFieldName + ")) % " + mod + ")";
+    }
+
+    @Override
     public String hashModForField(String fieldName, int mod) {
-        return "(ABS(HASHTEXT(" + quoteIdentifier(fieldName) + ")) % " + mod + ")";
+        return hashModForField(null, fieldName, mod);
     }
 
     @Override
@@ -82,8 +91,13 @@ public class PostgresDialect implements JdbcDialect {
             int chunkSize,
             Object includedLowerBound)
             throws SQLException {
+        Map<String, Column> columns =
+                table.getCatalogTable().getTableSchema().getColumns().stream()
+                        .collect(Collectors.toMap(c -> c.getName(), c -> c));
+        Column column = columns.get(columnName);
+
         String quotedColumn = quoteIdentifier(columnName);
-        quotedColumn = converterMinMaxColumn(table, quotedColumn);
+        quotedColumn = convertType(quotedColumn, column.getSourceType());
         String sqlQuery;
         if (StringUtils.isNotBlank(table.getQuery())) {
             sqlQuery =
@@ -257,17 +271,9 @@ public class PostgresDialect implements JdbcDialect {
         return SQLUtils.countForSubquery(connection, table.getQuery());
     }
 
-    public String converterMinMaxColumn(JdbcSourceTable table, String columnName) {
-        final List<Column> columns = table.getCatalogTable().getTableSchema().getColumns();
-        for (Column column : columns) {
-            final String name = column.getName();
-            if (name.equals(columnName.replace("\"", ""))) {
-                if (PostgresTypeConverter.PG_UUID.equals(column.getSourceType())) {
-                    return columnName + "::text";
-                } else {
-                    return columnName;
-                }
-            }
+    public String convertType(String columnName, String columnType) {
+        if (PostgresTypeConverter.PG_UUID.equals(columnType)) {
+            return columnName + "::text";
         }
         return columnName;
     }
