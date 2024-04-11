@@ -27,6 +27,7 @@ import org.apache.seatunnel.connectors.cdc.informix.utils.InformixUtils;
 
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
+import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import lombok.extern.slf4j.Slf4j;
 
@@ -79,12 +80,9 @@ public class InformixChunkSplitter extends AbstractJdbcSourceChunkSplitter {
 
     @Override
     public String buildSplitScanQuery(
-            TableId tableId,
-            SeaTunnelRowType splitKeyType,
-            boolean isFirstSplit,
-            boolean isLastSplit) {
+            Table table, SeaTunnelRowType splitKeyType, boolean isFirstSplit, boolean isLastSplit) {
         return InformixConnectionUtils.buildSplitQuery(
-                tableId, splitKeyType, isFirstSplit, isLastSplit);
+                table.id(), splitKeyType, isFirstSplit, isLastSplit);
     }
 
     @Override
