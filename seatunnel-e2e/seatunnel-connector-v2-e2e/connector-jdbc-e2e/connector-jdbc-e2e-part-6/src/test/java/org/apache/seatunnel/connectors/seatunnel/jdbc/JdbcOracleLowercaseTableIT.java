@@ -220,7 +220,7 @@ public class JdbcOracleLowercaseTableIT extends AbstractJdbcIT {
 
     @Test
     public void testCatalog() {
-        TablePath tablePathOracle = TablePath.of(SCHEMA, "TESTUSER", "E2E_TABLE_SOURCE_LOWER");
+        TablePath tablePathOracle = TablePath.of("XE", "TESTUSER", "E2E_TABLE_SOURCE_LOWER");
         OracleCatalog oracleCatalog =
                 new OracleCatalog(
                         "Oracle",
