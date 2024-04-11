@@ -50,6 +50,7 @@ public class HdfsFileStorageInstance {
             if (null != HDFS_STORAGE) {
                 return HDFS_STORAGE;
             }
+
             HDFS_STORAGE = new HdfsStorage(config);
             return HDFS_STORAGE;
         }

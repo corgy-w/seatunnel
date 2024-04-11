@@ -113,14 +113,16 @@ public class SourceExecuteProcessor extends FlinkAbstractPluginExecuteProcessor<
                     PluginIdentifier.of(
                             ENGINE_TYPE, PLUGIN_TYPE, sourceConfig.getString(PLUGIN_NAME.key()));
             jars.addAll(
-                    sourcePluginDiscovery.getPluginJarPaths(Lists.newArrayList(pluginIdentifier)));
+                    sourcePluginDiscovery.getPluginJarAndDependencyPaths(
+                            Lists.newArrayList(pluginIdentifier)));
             SourceTableInfo source =
                     PluginUtil.createSource(
                             factoryDiscovery,
                             sourcePluginDiscovery,
                             pluginIdentifier,
                             sourceConfig,
-                            jobContext);
+                            jobContext,
+                            jars);
             sources.add(source);
         }
         jarPaths.addAll(jars);

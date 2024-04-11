@@ -64,6 +64,12 @@ public class DorisSink
         this.config = config;
         this.catalogTable = catalogTable;
         this.dorisConfig = DorisConfig.of(config);
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -79,6 +85,12 @@ public class DorisSink
     @Override
     public SinkWriter<SeaTunnelRow, DorisCommitInfo, DorisSinkState> createWriter(
             SinkWriter.Context context) throws IOException {
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         return new DorisSinkWriter(
                 context, Collections.emptyList(), catalogTable, dorisConfig, jobId);
     }
@@ -86,6 +98,12 @@ public class DorisSink
     @Override
     public SinkWriter<SeaTunnelRow, DorisCommitInfo, DorisSinkState> restoreWriter(
             SinkWriter.Context context, List<DorisSinkState> states) throws IOException {
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         return new DorisSinkWriter(context, states, catalogTable, dorisConfig, jobId);
     }
 
@@ -96,6 +114,12 @@ public class DorisSink
 
     @Override
     public Optional<SinkCommitter<DorisCommitInfo>> createCommitter() throws IOException {
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         return Optional.of(new DorisCommitter(dorisConfig));
     }
 

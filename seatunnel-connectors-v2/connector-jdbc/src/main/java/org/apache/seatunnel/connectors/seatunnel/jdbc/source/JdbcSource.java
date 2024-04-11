@@ -52,6 +52,8 @@ public class JdbcSource
 
     @SneakyThrows
     public JdbcSource(JdbcSourceConfig jdbcSourceConfig) {
+        // Load the JDBC driver in to DriverManager
+        Class.forName(jdbcSourceConfig.getJdbcConnectionConfig().getDriverName());
         this.jdbcSourceConfig = jdbcSourceConfig;
         this.jdbcSourceTables =
                 JdbcCatalogUtils.getTables(
@@ -83,6 +85,8 @@ public class JdbcSource
         for (TablePath tablePath : jdbcSourceTables.keySet()) {
             tables.put(tablePath, jdbcSourceTables.get(tablePath).getCatalogTable());
         }
+        // Load the JDBC driver in to DriverManager
+        Class.forName(jdbcSourceConfig.getJdbcConnectionConfig().getDriverName());
         return new JdbcSourceReader(readerContext, jdbcSourceConfig, tables);
     }
 
@@ -94,6 +98,8 @@ public class JdbcSource
     @Override
     public SourceSplitEnumerator<JdbcSourceSplit, JdbcSourceState> createEnumerator(
             SourceSplitEnumerator.Context<JdbcSourceSplit> enumeratorContext) throws Exception {
+        // Load the JDBC driver in to DriverManager
+        Class.forName(jdbcSourceConfig.getJdbcConnectionConfig().getDriverName());
         return new JdbcSourceSplitEnumerator(
                 enumeratorContext, jdbcSourceConfig, jdbcSourceTables, null);
     }
@@ -103,6 +109,8 @@ public class JdbcSource
             SourceSplitEnumerator.Context<JdbcSourceSplit> enumeratorContext,
             JdbcSourceState checkpointState)
             throws Exception {
+        // Load the JDBC driver in to DriverManager
+        Class.forName(jdbcSourceConfig.getJdbcConnectionConfig().getDriverName());
         return new JdbcSourceSplitEnumerator(
                 enumeratorContext, jdbcSourceConfig, jdbcSourceTables, checkpointState);
     }

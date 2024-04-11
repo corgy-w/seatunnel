@@ -71,6 +71,7 @@ import scala.Tuple2;
 import java.io.Serializable;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -96,6 +97,18 @@ import static org.apache.seatunnel.engine.core.parse.ConfigParserUtil.getInputId
 
 @Slf4j
 public class MultipleTableJobConfigParser {
+
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
 
     private final IdGenerator idGenerator;
     private final JobConfig jobConfig;
@@ -161,13 +174,15 @@ public class MultipleTableJobConfigParser {
                 TypesafeConfigUtils.getConfigList(
                         seaTunnelJobConfig, "sink", Collections.emptyList());
 
-        List<URL> connectorJars = getConnectorJarList(sourceConfigs, sinkConfigs);
+        List<URL> connectorJarAndDependencies =
+                getConnectorJarAndDependencyList(sourceConfigs, sinkConfigs);
         if (!commonPluginJars.isEmpty()) {
-            connectorJars.addAll(commonPluginJars);
+            connectorJarAndDependencies.addAll(commonPluginJars);
         }
         ClassLoader classLoader =
                 new SeaTunnelChildFirstClassLoader(
-                        connectorJars, Thread.currentThread().getContextClassLoader());
+                        connectorJarAndDependencies,
+                        Thread.currentThread().getContextClassLoader());
         Thread.currentThread().setContextClassLoader(classLoader);
 
         ConfigParserUtil.checkGraph(sourceConfigs, transformConfigs, sinkConfigs);
@@ -211,7 +226,7 @@ public class MultipleTableJobConfigParser {
         return urls;
     }
 
-    private List<URL> getConnectorJarList(
+    private List<URL> getConnectorJarAndDependencyList(
             List<? extends Config> sourceConfigs, List<? extends Config> sinkConfigs) {
         List<PluginIdentifier> factoryIds =
                 Stream.concat(
@@ -234,7 +249,7 @@ public class MultipleTableJobConfigParser {
                                                                 CollectionConstants.SINK_PLUGIN,
                                                                 factory)))
                         .collect(Collectors.toList());
-        return new SeaTunnelSinkPluginDiscovery().getPluginJarPaths(factoryIds);
+        return new SeaTunnelSinkPluginDiscovery().getPluginJarAndDependencyPaths(factoryIds);
     }
 
     private void fillUsedFactoryUrls(List<Action> actions, Set<URL> result) {
@@ -707,7 +722,8 @@ public class MultipleTableJobConfigParser {
                         CollectionConstants.SOURCE_PLUGIN,
                         sourceConfig.getString(CollectionConstants.PLUGIN_NAME));
         List<URL> pluginJarPaths =
-                sourcePluginDiscovery.getPluginJarPaths(Lists.newArrayList(pluginIdentifier));
+                sourcePluginDiscovery.getPluginJarAndDependencyPaths(
+                        Lists.newArrayList(pluginIdentifier));
         return pluginJarPaths;
     }
 
@@ -732,7 +748,8 @@ public class MultipleTableJobConfigParser {
                         CollectionConstants.SINK_PLUGIN,
                         sinkConfig.getString(CollectionConstants.PLUGIN_NAME));
         List<URL> pluginJarPaths =
-                sinkPluginDiscovery.getPluginJarPaths(Lists.newArrayList(pluginIdentifier));
+                sinkPluginDiscovery.getPluginJarAndDependencyPaths(
+                        Lists.newArrayList(pluginIdentifier));
         return pluginJarPaths;
     }
 }

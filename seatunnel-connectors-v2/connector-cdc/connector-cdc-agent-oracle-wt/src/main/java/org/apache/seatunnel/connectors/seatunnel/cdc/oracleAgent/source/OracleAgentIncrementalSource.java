@@ -54,6 +54,7 @@ import lombok.NoArgsConstructor;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -137,6 +138,11 @@ public class OracleAgentIncrementalSource<T> extends IncrementalSource<T, JdbcSo
     public OffsetFactory createOffsetFactory(ReadonlyConfig config) {
         return new OracleAgentOffsetFactory(
                 getSourceConfig(), (OracleAgentDialect) dataSourceDialect);
+    }
+
+    @Override
+    public Optional<String> driverName() {
+        return Optional.of("oracle.jdbc.OracleDriver");
     }
 
     private synchronized OracleAgentSourceConfig getSourceConfig() {

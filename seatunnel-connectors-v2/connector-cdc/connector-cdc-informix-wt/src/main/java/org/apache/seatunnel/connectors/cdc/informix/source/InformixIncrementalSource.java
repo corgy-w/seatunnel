@@ -55,6 +55,7 @@ import lombok.NoArgsConstructor;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -163,5 +164,10 @@ public class InformixIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
     @Override
     public OffsetFactory createOffsetFactory(ReadonlyConfig config) {
         return new InformixOffsetFactory(sourceConfig, (InformixDialect) dataSourceDialect);
+    }
+
+    @Override
+    public Optional<String> driverName() {
+        return Optional.of("com.informix.jdbc.IfxDriver");
     }
 }

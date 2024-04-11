@@ -44,6 +44,7 @@ import org.apache.seatunnel.plugin.discovery.seatunnel.SeaTunnelTransformPluginD
 import com.google.common.collect.Lists;
 
 import java.net.URL;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,7 +62,8 @@ public class PluginUtil {
             SeaTunnelSourcePluginDiscovery sourcePluginDiscovery,
             PluginIdentifier pluginIdentifier,
             Config pluginConfig,
-            JobContext jobContext) {
+            JobContext jobContext,
+            Collection<URL> pluginJars) {
         // get current thread classloader
         ClassLoader classLoader =
                 Thread.currentThread()
@@ -70,7 +72,7 @@ public class PluginUtil {
         final ReadonlyConfig readonlyConfig = ReadonlyConfig.fromConfig(pluginConfig);
         // try to find table source factory
         final Optional<Factory> sourceFactory =
-                factoryDiscovery.createOptionalPluginInstance(pluginIdentifier);
+                factoryDiscovery.createOptionalPluginInstance(pluginIdentifier, pluginJars);
         final boolean fallback = isFallback(sourceFactory);
         SeaTunnelSource source;
         if (fallback) {
@@ -155,9 +157,10 @@ public class PluginUtil {
         PluginIdentifier pluginIdentifier =
                 PluginIdentifier.of(ENGINE_TYPE, "sink", sinkConfig.getString(PLUGIN_NAME.key()));
         pluginJars.addAll(
-                sinkPluginDiscovery.getPluginJarPaths(Lists.newArrayList(pluginIdentifier)));
+                sinkPluginDiscovery.getPluginJarAndDependencyPaths(
+                        Lists.newArrayList(pluginIdentifier)));
         try {
-            return factoryDiscovery.createOptionalPluginInstance(pluginIdentifier);
+            return factoryDiscovery.createOptionalPluginInstance(pluginIdentifier, pluginJars);
         } catch (FactoryException e) {
             return Optional.empty();
         }

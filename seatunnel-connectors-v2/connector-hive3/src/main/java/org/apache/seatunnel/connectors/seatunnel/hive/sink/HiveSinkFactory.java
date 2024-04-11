@@ -68,7 +68,7 @@ public class HiveSinkFactory
         return HiveConstants.CONNECTOR_NAME;
     }
 
-    private ReadonlyConfig generateCurrentReadonlyConfig(
+    protected ReadonlyConfig generateCurrentReadonlyConfig(
             ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
 
         Map<String, String> configMap = readonlyConfig.toMap();

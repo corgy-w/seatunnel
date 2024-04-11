@@ -185,7 +185,9 @@ public class JobMaster {
         this.seaTunnelServer = seaTunnelServer;
     }
 
-    public void init(long initializationTimestamp, boolean restart) throws Exception {
+    public void init(long initializationTimestamp, boolean restart, ClassLoader zetaClassLoader)
+            throws Exception {
+        Thread.currentThread().setContextClassLoader(zetaClassLoader);
         jobImmutableInformation =
                 nodeEngine.getSerializationService().toObject(jobImmutableInformationData);
         jobCheckpointConfig =
