@@ -5,7 +5,7 @@
  */
 package io.debezium.connector.opengauss;
 
-import org.postgresql.util.PSQLException;
+import org.opengauss.util.PSQLException;
 
 import io.debezium.annotation.Immutable;
 import io.debezium.connector.base.ChangeEventQueue;

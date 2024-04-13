@@ -22,7 +22,7 @@ import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfigFactory;
 import org.apache.seatunnel.connectors.cdc.debezium.EmbeddedDatabaseHistory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.option.OpenGaussOptions;
 
-import io.debezium.connector.postgresql.PostgresConnector;
+import io.debezium.connector.opengauss.OpengaussConnector;
 
 import java.util.Properties;
 import java.util.UUID;
@@ -34,7 +34,7 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
 
     private static final String DATABASE_SERVER_NAME = "opengauss_cdc_source";
 
-    private static final String DRIVER_CLASS_NAME = "org.postgresql.Driver";
+    private static final String DRIVER_CLASS_NAME = "org.opengauss.Driver";
     private static final boolean SUPPORTED_EXACTLY_ONCE = false;
 
     private String decodingPluginName = OpenGaussOptions.DECODING_PLUGIN_NAME.defaultValue();
@@ -52,7 +52,7 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
     @Override
     public OpenGaussSourceConfig create(int subtask) {
         Properties props = new Properties();
-        props.setProperty("connector.class", PostgresConnector.class.getCanonicalName());
+        props.setProperty("connector.class", OpengaussConnector.class.getCanonicalName());
         // hard code server name, because we don't need to distinguish it, docs:
         // Logical name that identifies and provides a namespace for the particular PostgreSQL
         // database server/cluster being monitored. The logical name should be unique across

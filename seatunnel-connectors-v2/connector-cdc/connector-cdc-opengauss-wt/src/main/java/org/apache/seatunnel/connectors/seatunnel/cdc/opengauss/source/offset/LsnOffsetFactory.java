@@ -24,9 +24,9 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.config.OpenGaussS
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.OpenGaussDialect;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.utils.OpenGaussUtils;
 
+import io.debezium.connector.opengauss.SourceInfo;
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
-import io.debezium.connector.postgresql.SourceInfo;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.jdbc.JdbcConnection;
 
 import java.util.Map;

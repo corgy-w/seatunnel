@@ -8,8 +8,6 @@ package io.debezium.connector.opengauss.connection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.debezium.connector.postgresql.connection.Lsn;
-
 import java.util.Optional;
 
 /**

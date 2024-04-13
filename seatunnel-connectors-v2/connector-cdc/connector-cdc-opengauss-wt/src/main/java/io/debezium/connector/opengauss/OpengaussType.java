@@ -5,8 +5,8 @@
  */
 package io.debezium.connector.opengauss;
 
-import org.postgresql.core.Oid;
-import org.postgresql.core.TypeInfo;
+import org.opengauss.core.Oid;
+import org.opengauss.core.TypeInfo;
 
 import java.util.List;
 import java.util.Objects;

@@ -12,8 +12,8 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.Width;
 import org.apache.kafka.common.config.ConfigValue;
 
-import org.postgresql.PGProperty;
-import org.postgresql.jdbc.PgConnection;
+import org.opengauss.PGProperty;
+import org.opengauss.jdbc.PgConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

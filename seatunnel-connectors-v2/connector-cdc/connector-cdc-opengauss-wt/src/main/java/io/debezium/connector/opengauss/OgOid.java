@@ -6,10 +6,10 @@
 
 package io.debezium.connector.opengauss;
 
-import org.postgresql.core.Oid;
+import org.opengauss.core.Oid;
 
 /**
- * Extension to the {@link org.postgresql.core.Oid} class which contains Postgres specific datatypes
+ * Extension to the {@link org.opengauss.core.Oid} class which contains Postgres specific datatypes
  * not found currently in the JDBC driver implementation classes.
  *
  * @author Horia Chiorean (hchiorea@redhat.com)

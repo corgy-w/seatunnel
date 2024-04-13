@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.connection.ReplicationStream.ReplicationMessageProcessor;
-import io.debezium.connector.postgresql.connection.Lsn;
 
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
