@@ -13,7 +13,6 @@ import org.apache.kafka.common.config.ConfigDef.Width;
 import org.apache.kafka.common.config.ConfigValue;
 
 import org.opengauss.PGProperty;
-import org.opengauss.jdbc.PgConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1485,7 +1484,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
 
     public Connection getConnection(OpengaussConnectorConfig config) {
         String sourceURL =
-                "jdbc:postgresql://" + hostname() + ":" + port() + "/" + config.databaseName();
+                "jdbc:opengauss://" + hostname() + ":" + port() + "/" + config.databaseName();
         Connection connection = null;
         try {
             Properties properties = new Properties();
@@ -1495,7 +1494,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
             PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
             PGProperty.REPLICATION.set(properties, "database");
             PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
-            connection = (PgConnection) DriverManager.getConnection(sourceURL, properties);
+            connection = DriverManager.getConnection(sourceURL, properties);
             /*Statement statement = connection.createStatement();
             statement.execute("set session_timeout = 0");
             ResultSet rs = statement.executeQuery("select version()");

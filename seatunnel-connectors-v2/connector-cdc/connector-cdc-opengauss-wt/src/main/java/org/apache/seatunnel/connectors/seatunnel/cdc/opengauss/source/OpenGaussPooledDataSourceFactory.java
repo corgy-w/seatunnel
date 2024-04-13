@@ -23,7 +23,7 @@ import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnec
 /** Factory to create {@link JdbcConnectionPoolFactory} for Postgre SQL. */
 public class OpenGaussPooledDataSourceFactory extends JdbcConnectionPoolFactory {
 
-    private static final String URL_PATTERN = "jdbc:postgresql://%s:%s/%s";
+    private static final String URL_PATTERN = "jdbc:opengauss://%s:%s/%s";
 
     @Override
     public String getJdbcUrl(JdbcSourceConfig sourceConfig) {

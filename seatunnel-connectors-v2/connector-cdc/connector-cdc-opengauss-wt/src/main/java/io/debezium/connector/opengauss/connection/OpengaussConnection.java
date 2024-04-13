@@ -73,7 +73,7 @@ public class OpengaussConnection extends JdbcConnection {
     private static Logger LOGGER = LoggerFactory.getLogger(OpengaussConnection.class);
 
     private static final String URL_PATTERN =
-            "jdbc:postgresql://${"
+            "jdbc:opengauss://${"
                     + JdbcConfiguration.HOSTNAME
                     + "}:${"
                     + JdbcConfiguration.PORT
