@@ -8,7 +8,7 @@ package io.debezium.connector.opengauss;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.core.BaseConnection;
+import org.opengauss.core.BaseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

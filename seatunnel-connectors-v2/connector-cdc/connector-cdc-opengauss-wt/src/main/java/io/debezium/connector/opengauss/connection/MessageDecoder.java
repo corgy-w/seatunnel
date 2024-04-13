@@ -6,10 +6,9 @@
 
 package io.debezium.connector.opengauss.connection;
 
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.opengauss.replication.fluent.logical.ChainedLogicalStreamBuilder;
 
 import io.debezium.connector.opengauss.TypeRegistry;
-import io.debezium.connector.postgresql.connection.Lsn;
 
 import java.nio.ByteBuffer;
 import java.sql.SQLException;

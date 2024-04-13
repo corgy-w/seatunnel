@@ -6,9 +6,7 @@
 
 package io.debezium.connector.opengauss.connection;
 
-import org.postgresql.replication.PGReplicationStream;
-
-import io.debezium.connector.postgresql.connection.Lsn;
+import org.opengauss.replication.PGReplicationStream;
 
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;

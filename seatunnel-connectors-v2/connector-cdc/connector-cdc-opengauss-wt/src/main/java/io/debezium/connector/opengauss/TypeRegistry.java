@@ -7,9 +7,9 @@ package io.debezium.connector.opengauss;
 
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.core.BaseConnection;
-import org.postgresql.core.TypeInfo;
-import org.postgresql.jdbc.PgDatabaseMetaData;
+import org.opengauss.core.BaseConnection;
+import org.opengauss.core.TypeInfo;
+import org.opengauss.jdbc.PgDatabaseMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -411,7 +411,7 @@ public class TypeRegistry {
     private static class SqlTypeMapper {
 
         /**
-         * Based on org.postgresql.jdbc.TypeInfoCache.getSQLType(String). To emulate the original
+         * Based on org.opengauss.jdbc.TypeInfoCache.getSQLType(String). To emulate the original
          * statement's behavior (which works for single types only), PG's DISTINCT ON extension is
          * used to just return the first entry should a type exist in multiple schemas.
          */

@@ -27,8 +27,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.SQLUtils;
 
 import org.apache.kafka.connect.source.SourceRecord;
 
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
 import io.debezium.relational.Table;

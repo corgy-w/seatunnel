@@ -8,11 +8,11 @@ package io.debezium.connector.opengauss.connection;
 
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.core.BaseConnection;
-import org.postgresql.core.ServerVersion;
-import org.postgresql.replication.PGReplicationStream;
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
-import org.postgresql.util.PSQLException;
+import org.opengauss.core.BaseConnection;
+import org.opengauss.core.ServerVersion;
+import org.opengauss.replication.PGReplicationStream;
+import org.opengauss.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.opengauss.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,6 @@ import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.OpengaussSchema;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.spi.SlotCreationResult;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.jdbc.JdbcConnectionException;
 import io.debezium.relational.RelationalTableFilters;

@@ -5,9 +5,9 @@
  */
 package io.debezium.connector.opengauss.connection.ogproto;
 
-import org.postgresql.geometric.PGpoint;
-import org.postgresql.jdbc.PgArray;
-import org.postgresql.util.PGmoney;
+import org.opengauss.geometric.PGpoint;
+import org.opengauss.jdbc.PgArray;
+import org.opengauss.util.PGmoney;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +18,7 @@ import io.debezium.connector.opengauss.OpengaussValueConverter;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.connection.AbstractColumnValue;
 import io.debezium.connector.opengauss.connection.wal2json.DateTimeFormat;
-import io.debezium.connector.postgresql.proto.PgProto;
+import io.debezium.connector.opengauss.proto.PgProto;
 import io.debezium.data.SpecialValueDecimal;
 import io.debezium.time.Conversions;
 

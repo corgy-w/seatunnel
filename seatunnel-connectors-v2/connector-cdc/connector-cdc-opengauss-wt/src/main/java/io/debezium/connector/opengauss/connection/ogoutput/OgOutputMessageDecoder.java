@@ -5,7 +5,7 @@
  */
 package io.debezium.connector.opengauss.connection.ogoutput;
 
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.opengauss.replication.fluent.logical.ChainedLogicalStreamBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,13 +17,13 @@ import io.debezium.connector.opengauss.UnchangedToastedReplicationMessageColumn;
 import io.debezium.connector.opengauss.connection.AbstractMessageDecoder;
 import io.debezium.connector.opengauss.connection.AbstractReplicationMessageColumn;
 import io.debezium.connector.opengauss.connection.LogicalDecodingMessage;
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.MessageDecoderContext;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.connection.ReplicationMessage;
 import io.debezium.connector.opengauss.connection.ReplicationStream;
 import io.debezium.connector.opengauss.connection.TransactionMessage;
 import io.debezium.connector.opengauss.connection.WalPositionLocator;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.relational.ColumnEditor;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;

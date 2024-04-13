@@ -6,14 +6,13 @@
 
 package io.debezium.connector.opengauss.connection;
 
-import org.postgresql.replication.PGReplicationStream;
+import org.opengauss.replication.PGReplicationStream;
 
 import io.debezium.annotation.NotThreadSafe;
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.OpengaussSchema;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.spi.SlotCreationResult;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.relational.RelationalTableFilters;
 
 import java.sql.SQLException;
@@ -56,7 +55,7 @@ public interface ReplicationConnection extends AutoCloseable {
      *     from; if the value is {@code null} or negative, this behaves exactly like {@link
      *     #startStreaming()}.
      * @return a {@link PGReplicationStream} from which data is read; never null
-     * @see org.postgresql.replication.LogSequenceNumber
+     * @see org.opengauss.replication.LogSequenceNumber
      * @throws SQLException if anything fails
      */
     ReplicationStream startStreaming(Lsn offset, WalPositionLocator walPosition)

@@ -24,8 +24,7 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.Ope
 
 import io.debezium.connector.opengauss.OpengaussOffsetContext;
 import io.debezium.connector.opengauss.OpengaussStreamingChangeEventSource;
-import io.debezium.connector.postgresql.PostgresOffsetContext;
-import io.debezium.connector.postgresql.connection.Lsn;
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.util.Clock;
 import lombok.extern.slf4j.Slf4j;
@@ -80,14 +79,17 @@ public class OpenGaussWalFetchTask implements FetchTask<SourceSplitBase> {
 
             // only extracting and storing the lsn of the last commit
             Long commitLsn =
-                    (Long) offsetContext.getOffset().get(PostgresOffsetContext.LAST_COMMIT_LSN_KEY);
+                    (Long)
+                            offsetContext
+                                    .getOffset()
+                                    .get(OpengaussOffsetContext.LAST_COMMIT_LSN_KEY);
             if (commitLsn != null
                     && (lastCommitLsn == null
                             || Lsn.valueOf(commitLsn).compareTo(Lsn.valueOf(lastCommitLsn)) > 0)) {
                 lastCommitLsn = commitLsn;
 
                 Map<String, Object> offsets = new HashMap<>();
-                offsets.put(PostgresOffsetContext.LAST_COMMIT_LSN_KEY, lastCommitLsn);
+                offsets.put(OpengaussOffsetContext.LAST_COMMIT_LSN_KEY, lastCommitLsn);
                 log.info("Committing offset {} for {}", Lsn.valueOf(lastCommitLsn), split);
                 streamingChangeEventSource.commitOffset(offsets);
             }
