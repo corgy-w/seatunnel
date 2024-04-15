@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
 import static java.lang.Math.toIntExact;
 
 /**
- * Implementation of a {@link ReplicationConnection} for Postgresql. Note that replication
+ * Implementation of a {@link ReplicationConnection} for OpenGauss. Note that replication
  * connections in PG cannot execute regular statements but only a limited number of
  * replication-related commands.
  *
@@ -111,7 +111,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
      * @param statusUpdateInterval the interval at which the replication connection should
      *     periodically send status
      * @param doSnapshot whether the connector is doing snapshot
-     * @param typeRegistry registry with PostgreSQL types
+     * @param typeRegistry registry with OpenGauss types
      * @param streamParams additional parameters to pass to the replication stream
      * @param schema the schema; must not be null
      *     <p>updates to the server
@@ -324,7 +324,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
         }
     }
 
-    // Temporary replication slots is a new feature of PostgreSQL 10
+    // Temporary replication slots is a new feature of OpenGauss 10
     private boolean useTemporarySlot() throws SQLException {
         // Temporary replication slots cannot be used due to connection restart
         // when finding WAL position
@@ -540,7 +540,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
                     .matches("(?s)ERROR: requested WAL segment .* has already been removed.*")) {
                 LOGGER.error("Cannot rewind to last processed WAL position", e);
                 throw new ConnectException(
-                        "The offset to start reading from has been removed from the database write-ahead log. Create a new snapshot and consider setting of PostgreSQL parameter wal_keep_segments = 0.");
+                        "The offset to start reading from has been removed from the database write-ahead log. Create a new snapshot and consider setting of OpenGauss parameter wal_keep_segments = 0.");
             } else {
                 throw e;
             }

@@ -96,7 +96,7 @@ public class OpengaussType {
         return name;
     }
 
-    /** @return PostgreSQL OID of this type */
+    /** @return OpenGauss OID of this type */
     public int getOid() {
         return oid;
     }

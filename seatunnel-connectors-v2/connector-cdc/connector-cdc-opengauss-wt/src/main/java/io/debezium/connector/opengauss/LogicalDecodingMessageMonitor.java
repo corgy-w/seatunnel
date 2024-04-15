@@ -78,7 +78,7 @@ public class LogicalDecodingMessageMonitor {
                 SchemaBuilder.struct()
                         .name(
                                 schemaNameAdjuster.adjust(
-                                        "io.debezium.connector.postgresql.MessageKey"))
+                                        "io.debezium.connector.opengauss.MessageKey"))
                         .field(
                                 DEBEZIUM_LOGICAL_DECODING_MESSAGE_PREFIX_KEY,
                                 Schema.OPTIONAL_STRING_SCHEMA)
@@ -90,7 +90,7 @@ public class LogicalDecodingMessageMonitor {
         // field at some point
         this.blockSchema =
                 SchemaBuilder.struct()
-                        .name(schemaNameAdjuster.adjust("io.debezium.connector.postgresql.Message"))
+                        .name(schemaNameAdjuster.adjust("io.debezium.connector.opengauss.Message"))
                         .field(
                                 DEBEZIUM_LOGICAL_DECODING_MESSAGE_PREFIX_KEY,
                                 Schema.OPTIONAL_STRING_SCHEMA)
@@ -103,7 +103,7 @@ public class LogicalDecodingMessageMonitor {
                 SchemaBuilder.struct()
                         .name(
                                 schemaNameAdjuster.adjust(
-                                        "io.debezium.connector.postgresql.MessageValue"))
+                                        "io.debezium.connector.opengauss.MessageValue"))
                         .field(Envelope.FieldName.OPERATION, Schema.STRING_SCHEMA)
                         .field(Envelope.FieldName.TIMESTAMP, Schema.OPTIONAL_INT64_SCHEMA)
                         .field(

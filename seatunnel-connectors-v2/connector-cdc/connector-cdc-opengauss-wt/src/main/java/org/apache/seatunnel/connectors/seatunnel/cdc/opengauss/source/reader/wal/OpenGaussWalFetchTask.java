@@ -68,7 +68,7 @@ public class OpenGaussWalFetchTask implements FetchTask<SourceSplitBase> {
                 new TransactionLogSplitChangeEventSourceContext();
 
         log.info(
-                "Start streaming change event source for postgres wal split: {}",
+                "Start streaming change event source for opengauss wal split: {}",
                 split.getStartupOffset().toString());
 
         streamingChangeEventSource.execute(changeEventSourceContext, offsetContext);

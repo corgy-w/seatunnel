@@ -54,7 +54,7 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
         Properties props = new Properties();
         props.setProperty("connector.class", OpengaussConnector.class.getCanonicalName());
         // hard code server name, because we don't need to distinguish it, docs:
-        // Logical name that identifies and provides a namespace for the particular PostgreSQL
+        // Logical name that identifies and provides a namespace for the particular OpenGauss
         // database server/cluster being monitored. The logical name should be unique across
         // all other connectors, since it is used as a prefix for all Kafka topic names coming
         // from this connector. Only alphanumeric characters and underscores should be used.

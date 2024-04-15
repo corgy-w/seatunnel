@@ -1040,7 +1040,7 @@ public class OpengaussValueConverter extends JdbcValueConverters {
     }
 
     private Object resolveArrayValue(Object value, OpengaussType elementType) {
-        // PostgreSQL time data types with time-zones are handled differently when included in an
+        // OpenGauss time data types with time-zones are handled differently when included in an
         // array.
         // The values are automatically translated to the local JVM time-zone and need to be
         // converted back to GMT

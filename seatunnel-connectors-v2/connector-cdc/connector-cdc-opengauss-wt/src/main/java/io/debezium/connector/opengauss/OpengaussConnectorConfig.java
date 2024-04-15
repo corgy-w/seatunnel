@@ -918,7 +918,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
                     .withWidth(Width.LONG)
                     .withImportance(Importance.MEDIUM)
                     .withDescription(
-                            "A name of class to that creates SSL Sockets. Use org.postgresql.ssl.NonValidatingFactory to disable SSL validation in development environments");
+                            "A name of class to that creates SSL Sockets. Use org.opengauss.ssl.NonValidatingFactory to disable SSL validation in development environments");
 
     public static final Field SNAPSHOT_MODE =
             Field.create("snapshot.mode")
