@@ -264,7 +264,7 @@ public class OpengaussOffsetContext implements OffsetContext {
 
     @Override
     public String toString() {
-        return "PostgresOffsetContext [sourceInfoSchema="
+        return "OpenGaussOffsetContext [sourceInfoSchema="
                 + sourceInfoSchema
                 + ", sourceInfo="
                 + sourceInfo

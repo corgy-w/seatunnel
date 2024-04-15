@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * A registry of types supported by a PostgreSQL instance. Allows lookup of the types according to
+ * A registry of types supported by a OpenGauss instance. Allows lookup of the types according to
  * type name or OID.
  *
  * @author Jiri Pechanec
@@ -57,7 +57,7 @@ public class TypeRegistry {
     public static final int NO_TYPE_MODIFIER = -1;
     public static final int UNKNOWN_LENGTH = -1;
 
-    // PostgreSQL driver reports user-defined Domain types as Types.DISTINCT
+    // OpenGauss driver reports user-defined Domain types as Types.DISTINCT
     public static final int DOMAIN_TYPE = Types.DISTINCT;
 
     private static final String CATEGORY_ARRAY = "A";
@@ -162,7 +162,7 @@ public class TypeRegistry {
     }
 
     /**
-     * @param oid - PostgreSQL OID
+     * @param oid - OpenGauss OID
      * @return type associated with the given OID
      */
     public OpengaussType get(int oid) {
@@ -214,7 +214,7 @@ public class TypeRegistry {
     }
 
     /**
-     * @param name - PostgreSQL type name
+     * @param name - OpenGauss type name
      * @return type associated with the given type name
      */
     public OpengaussType get(String name) {
@@ -247,52 +247,52 @@ public class TypeRegistry {
         return r;
     }
 
-    /** @return OID for {@code GEOMETRY} type of this PostgreSQL instance */
+    /** @return OID for {@code GEOMETRY} type of this OpenGauss instance */
     public int geometryOid() {
         return geometryOid;
     }
 
-    /** @return OID for {@code GEOGRAPHY} type of this PostgreSQL instance */
+    /** @return OID for {@code GEOGRAPHY} type of this OpenGauss instance */
     public int geographyOid() {
         return geographyOid;
     }
 
-    /** @return OID for {@code CITEXT} type of this PostgreSQL instance */
+    /** @return OID for {@code CITEXT} type of this OpenGauss instance */
     public int citextOid() {
         return citextOid;
     }
 
-    /** @return OID for {@code HSTORE} type of this PostgreSQL instance */
+    /** @return OID for {@code HSTORE} type of this OpenGauss instance */
     public int hstoreOid() {
         return hstoreOid;
     }
 
-    /** @return OID for {@code LTREE} type of this PostgreSQL instance */
+    /** @return OID for {@code LTREE} type of this OpenGauss instance */
     public int ltreeOid() {
         return ltreeOid;
     }
 
-    /** @return OID for array of {@code HSTORE} type of this PostgreSQL instance */
+    /** @return OID for array of {@code HSTORE} type of this OpenGauss instance */
     public int hstoreArrayOid() {
         return hstoreArrayOid;
     }
 
-    /** @return OID for array of {@code GEOMETRY} type of this PostgreSQL instance */
+    /** @return OID for array of {@code GEOMETRY} type of this OpenGauss instance */
     public int geometryArrayOid() {
         return geometryArrayOid;
     }
 
-    /** @return OID for array of {@code GEOGRAPHY} type of this PostgreSQL instance */
+    /** @return OID for array of {@code GEOGRAPHY} type of this OpenGauss instance */
     public int geographyArrayOid() {
         return geographyArrayOid;
     }
 
-    /** @return OID for array of {@code CITEXT} type of this PostgreSQL instance */
+    /** @return OID for array of {@code CITEXT} type of this OpenGauss instance */
     public int citextArrayOid() {
         return citextArrayOid;
     }
 
-    /** @return OID for array of {@code LTREE} type of this PostgreSQL instance */
+    /** @return OID for array of {@code LTREE} type of this OpenGauss instance */
     public int ltreeArrayOid() {
         return ltreeArrayOid;
     }

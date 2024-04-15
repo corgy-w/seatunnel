@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.OptionalLong;
 
 /**
- * An abstract representation of a replication message that is sent by a PostgreSQL logical decoding
- * plugin and is processed by the Debezium PostgreSQL connector.
+ * An abstract representation of a replication message that is sent by a OpenGauss logical decoding
+ * plugin and is processed by the Debezium OpenGauss connector.
  *
  * @author Jiri Pechanec
  */

@@ -45,12 +45,12 @@ public class OgProtoColumnValue extends AbstractColumnValue<PgProto.DatumMessage
     private static final Logger LOGGER = LoggerFactory.getLogger(OgProtoColumnValue.class);
 
     /**
-     * A number used by PostgreSQL to define minimum timestamp (inclusive). Defined in timestamp.h
+     * A number used by OpenGauss to define minimum timestamp (inclusive). Defined in timestamp.h
      */
     private static final long TIMESTAMP_MIN = -211813488000000000L;
 
     /**
-     * A number used by PostgreSQL to define maximum timestamp (exclusive). Defined in timestamp.h
+     * A number used by OpenGauss to define maximum timestamp (exclusive). Defined in timestamp.h
      */
     private static final long TIMESTAMP_MAX = 9223371331200000000L;
 

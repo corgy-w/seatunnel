@@ -25,7 +25,7 @@ public class LegacyV1OpengaussSourceInfoStructMaker
         super(connector, version, connectorConfig);
         schema =
                 commonSchemaBuilder()
-                        .name("io.debezium.connector.postgresql.Source")
+                        .name("io.debezium.connector.opengauss.Source")
                         .field(SourceInfo.SERVER_NAME_KEY, Schema.STRING_SCHEMA)
                         .field(SourceInfo.DATABASE_NAME_KEY, Schema.STRING_SCHEMA)
                         .field(SourceInfo.TIMESTAMP_USEC_KEY, Schema.OPTIONAL_INT64_SCHEMA)

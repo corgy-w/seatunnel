@@ -5040,7 +5040,7 @@ public final class PgProto {
                     + "coderbufs.TypeInfo*U\n\002Op\022\024\n\007UNKNOWN\020\377\377\377\377"
                     + "\377\377\377\377\377\001\022\n\n\006INSERT\020\000\022\n\n\006UPDATE\020\001\022\n\n\006DELETE"
                     + "\020\002\022\t\n\005BEGIN\020\003\022\n\n\006COMMIT\020\004B3\n&io.debezium"
-                    + ".connector.postgresql.protoB\007PgProtoH\001"
+                    + ".connector.opengauss.protoB\007PgProtoH\001"
         };
         descriptor =
                 com.google.protobuf.Descriptors.FileDescriptor.internalBuildGeneratedFileFrom(

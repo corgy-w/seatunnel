@@ -37,7 +37,7 @@ public interface MessageDecoder {
 
     /**
      * Allows MessageDecoder to configure options with which the replication stream is started. The
-     * messages CAN contain type metadata. See PostgreSQL command START_REPLICATION SLOT for more
+     * messages CAN contain type metadata. See OpenGauss command START_REPLICATION SLOT for more
      * details.
      *
      * @param builder
@@ -49,7 +49,7 @@ public interface MessageDecoder {
 
     /**
      * Allows MessageDecoder to configure options with which the replication stream is started. The
-     * messages MUST NOT contain type metadata. See PostgreSQL command START_REPLICATION SLOT for
+     * messages MUST NOT contain type metadata. See OpenGauss command START_REPLICATION SLOT for
      * more details.
      *
      * @param builder
