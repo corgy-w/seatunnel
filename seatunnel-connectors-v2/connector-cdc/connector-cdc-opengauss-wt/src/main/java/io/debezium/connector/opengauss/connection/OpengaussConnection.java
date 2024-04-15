@@ -350,8 +350,13 @@ public class OpengaussConnection extends JdbcConnection {
                 confirmedFlushedLsn =
                         tryParseLsn(slotName, pluginName, database, rs, "confirmed_flush");
             } catch (SQLException e2) {
-                throw new ConnectException(
-                        "Neither confirmed_flush_lsn nor restart_lsn could be found");
+                try {
+                    confirmedFlushedLsn =
+                            tryParseLsn(slotName, pluginName, database, rs, "restart_lsn");
+                } catch (SQLException e3) {
+                    throw new ConnectException(
+                            "Neither confirmed_flush_lsn nor restart_lsn could be found", e3);
+                }
             }
         }
 

@@ -6,6 +6,8 @@
 
 package io.debezium.connector.opengauss;
 
+import org.apache.seatunnel.common.utils.SeaTunnelException;
+
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -1510,6 +1512,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
             }*/
         } catch (Exception exp) {
             LOGGER.error("Create openGauss connection failed.", exp);
+            throw new SeaTunnelException("Create openGauss connection failed.", exp);
         }
         return connection;
     }
