@@ -6,10 +6,9 @@
 
 package io.debezium.connector.opengauss.connection;
 
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.opengauss.replication.fluent.logical.ChainedLogicalStreamBuilder;
 
 import io.debezium.connector.opengauss.TypeRegistry;
-import io.debezium.connector.postgresql.connection.Lsn;
 
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
@@ -38,7 +37,7 @@ public interface MessageDecoder {
 
     /**
      * Allows MessageDecoder to configure options with which the replication stream is started. The
-     * messages CAN contain type metadata. See PostgreSQL command START_REPLICATION SLOT for more
+     * messages CAN contain type metadata. See OpenGauss command START_REPLICATION SLOT for more
      * details.
      *
      * @param builder
@@ -50,7 +49,7 @@ public interface MessageDecoder {
 
     /**
      * Allows MessageDecoder to configure options with which the replication stream is started. The
-     * messages MUST NOT contain type metadata. See PostgreSQL command START_REPLICATION SLOT for
+     * messages MUST NOT contain type metadata. See OpenGauss command START_REPLICATION SLOT for
      * more details.
      *
      * @param builder

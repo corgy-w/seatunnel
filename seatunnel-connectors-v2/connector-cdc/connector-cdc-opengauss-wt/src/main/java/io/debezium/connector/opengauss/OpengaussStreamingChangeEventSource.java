@@ -7,20 +7,20 @@ package io.debezium.connector.opengauss;
 
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.core.BaseConnection;
-import org.postgresql.replication.LogSequenceNumber;
+import org.opengauss.core.BaseConnection;
+import org.opengauss.replication.LogSequenceNumber;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.debezium.DebeziumException;
 import io.debezium.connector.opengauss.connection.LogicalDecodingMessage;
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.connection.ReplicationConnection;
 import io.debezium.connector.opengauss.connection.ReplicationMessage.Operation;
 import io.debezium.connector.opengauss.connection.ReplicationStream;
 import io.debezium.connector.opengauss.connection.WalPositionLocator;
 import io.debezium.connector.opengauss.spi.Snapshotter;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;

@@ -16,7 +16,7 @@ import io.debezium.util.Collect;
 import java.util.Set;
 
 /**
- * Parser for records produced by PostgreSQL connectors.
+ * Parser for records produced by OpenGauss connectors.
  *
  * @author Chris Cranford
  */
@@ -47,6 +47,6 @@ public class OpengaussRecordParser extends RecordParser {
         throw new DataException(
                 "No such field \""
                         + name
-                        + "\" in the \"source\" field of events from PostgreSQL connector");
+                        + "\" in the \"source\" field of events from OpenGauss connector");
     }
 }

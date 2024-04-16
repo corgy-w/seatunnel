@@ -36,7 +36,7 @@ public interface OpenGaussOptions {
                     .stringType()
                     .defaultValue("seatunnel")
                     .withDescription(
-                            "The name of the PostgreSQL logical decoding slot that was created for streaming changes "
+                            "The name of the OpenGauss logical decoding slot that was created for streaming changes "
                                     + "from a particular plug-in for a particular database/schema. The server uses this slot "
                                     + "to stream events to the connector that you are configuring. Default is \"seatunnel\".");
 }

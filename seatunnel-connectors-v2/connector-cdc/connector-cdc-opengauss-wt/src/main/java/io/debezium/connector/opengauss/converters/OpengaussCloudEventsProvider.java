@@ -15,7 +15,7 @@ import io.debezium.converters.RecordParser;
 import io.debezium.converters.SerializerType;
 
 /**
- * An implementation of {@link CloudEventsProvider} for PostgreSQL.
+ * An implementation of {@link CloudEventsProvider} for OpenGauss.
  *
  * @author Chris Cranford
  */

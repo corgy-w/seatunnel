@@ -85,8 +85,9 @@
         <dependency>
             <groupId>org.opengauss</groupId>
             <artifactId>opengauss-jdbc</artifactId>
-            <version>3.1.0</version>
-            <scope>provided</scope>
+            <version>5.0.1</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/src/main/opengauss/opengauss-jdbc-5.0.1.jar</systemPath>
         </dependency>
 
         <dependency>

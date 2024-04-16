@@ -26,8 +26,8 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.offset.Lsn
 
 import org.apache.kafka.connect.source.SourceRecord;
 
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
 import io.debezium.relational.Table;
@@ -378,7 +378,9 @@ public class OpenGaussUtils {
             throws SQLException {
         final Connection connection = jdbc.connection();
         connection.setAutoCommit(false);
-        final PreparedStatement statement = connection.prepareStatement(sql);
+        final PreparedStatement statement =
+                connection.prepareStatement(
+                        sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         statement.setFetchSize(fetchSize);
         return statement;
     }

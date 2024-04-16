@@ -201,7 +201,7 @@ public class OpengaussSchema extends RelationalDatabaseSchema {
         // storage, but only as a
         // last resort.
         //
-        // Also, we cannot account for the possibility that future versions of PostgreSQL introduce
+        // Also, we cannot account for the possibility that future versions of OpenGauss introduce
         // new storage strategies
         // that include secondary storage. We should move to native decoding in PG 10 and get rid of
         // this hacky code
@@ -316,7 +316,7 @@ public class OpengaussSchema extends RelationalDatabaseSchema {
 
     @Override
     public boolean tableInformationComplete() {
-        // PostgreSQL does not support HistorizedDatabaseSchema - so no tables are recovered
+        // OpenGauss does not support HistorizedDatabaseSchema - so no tables are recovered
         return false;
     }
 
