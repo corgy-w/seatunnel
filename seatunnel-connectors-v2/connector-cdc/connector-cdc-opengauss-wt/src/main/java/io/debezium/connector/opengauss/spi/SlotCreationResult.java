@@ -6,7 +6,7 @@
 package io.debezium.connector.opengauss.spi;
 
 import io.debezium.common.annotation.Incubating;
-import io.debezium.connector.postgresql.connection.Lsn;
+import io.debezium.connector.opengauss.connection.Lsn;
 
 /** A simple data container representing the creation of a newly created replication slot. */
 @Incubating

@@ -12,12 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.debezium.DebeziumException;
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.connection.ReplicationMessage;
+import io.debezium.connector.opengauss.spi.SlotCreationResult;
 import io.debezium.connector.opengauss.spi.SlotState;
-import io.debezium.connector.postgresql.connection.Lsn;
-import io.debezium.connector.postgresql.spi.SlotCreationResult;
-import io.debezium.connector.postgresql.spi.Snapshotter;
+import io.debezium.connector.opengauss.spi.Snapshotter;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.spi.ChangeRecordEmitter;
@@ -338,7 +338,7 @@ public class OpengaussSnapshotChangeEventSource
     @Override
     protected Optional<String> getSnapshotSelect(
             RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext, TableId tableId) {
-        return snapshotter.buildSnapshotQuery(tableId);
+        return snapshotter.buildSnapshotQuery(tableId, null);
     }
 
     protected void setSnapshotTransactionIsolationLevel() throws SQLException {

@@ -8,11 +8,11 @@ package io.debezium.connector.opengauss.connection;
 
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.core.BaseConnection;
-import org.postgresql.core.ServerVersion;
-import org.postgresql.replication.PGReplicationStream;
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
-import org.postgresql.util.PSQLException;
+import org.opengauss.core.BaseConnection;
+import org.opengauss.core.ServerVersion;
+import org.opengauss.replication.PGReplicationStream;
+import org.opengauss.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.opengauss.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +22,6 @@ import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.OpengaussSchema;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.spi.SlotCreationResult;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.jdbc.JdbcConnectionException;
 import io.debezium.relational.RelationalTableFilters;
@@ -55,7 +54,7 @@ import java.util.stream.Collectors;
 import static java.lang.Math.toIntExact;
 
 /**
- * Implementation of a {@link ReplicationConnection} for Postgresql. Note that replication
+ * Implementation of a {@link ReplicationConnection} for OpenGauss. Note that replication
  * connections in PG cannot execute regular statements but only a limited number of
  * replication-related commands.
  *
@@ -112,7 +111,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
      * @param statusUpdateInterval the interval at which the replication connection should
      *     periodically send status
      * @param doSnapshot whether the connector is doing snapshot
-     * @param typeRegistry registry with PostgreSQL types
+     * @param typeRegistry registry with OpenGauss types
      * @param streamParams additional parameters to pass to the replication stream
      * @param schema the schema; must not be null
      *     <p>updates to the server
@@ -325,7 +324,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
         }
     }
 
-    // Temporary replication slots is a new feature of PostgreSQL 10
+    // Temporary replication slots is a new feature of OpenGauss 10
     private boolean useTemporarySlot() throws SQLException {
         // Temporary replication slots cannot be used due to connection restart
         // when finding WAL position
@@ -541,7 +540,7 @@ public class OpengaussReplicationConnection extends JdbcConnection
                     .matches("(?s)ERROR: requested WAL segment .* has already been removed.*")) {
                 LOGGER.error("Cannot rewind to last processed WAL position", e);
                 throw new ConnectException(
-                        "The offset to start reading from has been removed from the database write-ahead log. Create a new snapshot and consider setting of PostgreSQL parameter wal_keep_segments = 0.");
+                        "The offset to start reading from has been removed from the database write-ahead log. Create a new snapshot and consider setting of OpenGauss parameter wal_keep_segments = 0.");
             } else {
                 throw e;
             }

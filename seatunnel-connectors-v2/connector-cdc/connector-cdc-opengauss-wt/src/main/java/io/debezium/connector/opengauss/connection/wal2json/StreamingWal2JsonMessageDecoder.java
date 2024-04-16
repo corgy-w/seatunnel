@@ -7,7 +7,7 @@ package io.debezium.connector.opengauss.connection.wal2json;
 
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.opengauss.replication.fluent.logical.ChainedLogicalStreamBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

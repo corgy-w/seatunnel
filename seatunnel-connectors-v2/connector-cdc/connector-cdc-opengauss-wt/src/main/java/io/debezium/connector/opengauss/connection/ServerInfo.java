@@ -7,7 +7,6 @@
 package io.debezium.connector.opengauss.connection;
 
 import io.debezium.connector.opengauss.spi.SlotState;
-import io.debezium.connector.postgresql.connection.Lsn;
 
 import java.util.HashMap;
 import java.util.Map;

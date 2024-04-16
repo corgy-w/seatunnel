@@ -13,10 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.debezium.connector.SnapshotRecord;
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.spi.OffsetState;
 import io.debezium.connector.opengauss.utils.SignalBasedIncrementalSnapshotContext;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.pipeline.source.snapshot.incremental.IncrementalSnapshotContext;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
@@ -264,7 +264,7 @@ public class OpengaussOffsetContext implements OffsetContext {
 
     @Override
     public String toString() {
-        return "PostgresOffsetContext [sourceInfoSchema="
+        return "OpenGaussOffsetContext [sourceInfoSchema="
                 + sourceInfoSchema
                 + ", sourceInfo="
                 + sourceInfo

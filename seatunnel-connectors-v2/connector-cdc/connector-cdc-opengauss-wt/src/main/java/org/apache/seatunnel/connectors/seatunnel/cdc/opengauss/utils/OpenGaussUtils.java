@@ -27,8 +27,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.SQLUtils;
 
 import org.apache.kafka.connect.source.SourceRecord;
 
+import io.debezium.connector.opengauss.connection.Lsn;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
 import io.debezium.relational.Table;
@@ -51,6 +51,9 @@ import java.util.Optional;
 /** The utils for SqlServer data source. */
 @Slf4j
 public class OpenGaussUtils {
+
+    public static final int DEFAULT_POSTGRES_FETCH_SIZE = 128;
+
     private OpenGaussUtils() {}
 
     public static Object[] queryMinMax(JdbcConnection jdbc, TableId tableId, String columnName)
@@ -391,8 +394,14 @@ public class OpenGaussUtils {
             throws SQLException {
         final Connection connection = jdbc.connection();
         connection.setAutoCommit(false);
-        final PreparedStatement statement = connection.prepareStatement(sql);
-        statement.setFetchSize(fetchSize);
+        final PreparedStatement statement =
+                connection.prepareStatement(
+                        sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        if (fetchSize > 0) {
+            statement.setFetchSize(fetchSize);
+        } else {
+            statement.setFetchSize(DEFAULT_POSTGRES_FETCH_SIZE);
+        }
         return statement;
     }
 

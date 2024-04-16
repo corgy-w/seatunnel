@@ -6,7 +6,7 @@
 package io.debezium.connector.opengauss.spi;
 
 import io.debezium.common.annotation.Incubating;
-import io.debezium.connector.postgresql.connection.Lsn;
+import io.debezium.connector.opengauss.connection.Lsn;
 
 import java.time.Instant;
 

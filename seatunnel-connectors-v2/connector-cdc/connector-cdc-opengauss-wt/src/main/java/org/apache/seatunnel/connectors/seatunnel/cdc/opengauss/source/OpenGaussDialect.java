@@ -71,7 +71,7 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
 
     @Override
     public String getName() {
-        return DatabaseIdentifier.POSTGRESQL;
+        return DatabaseIdentifier.OPENGAUSS;
     }
 
     @Override

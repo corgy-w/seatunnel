@@ -13,7 +13,7 @@ import io.debezium.connector.opengauss.UnchangedToastedReplicationMessageColumn;
 import io.debezium.connector.opengauss.connection.AbstractReplicationMessageColumn;
 import io.debezium.connector.opengauss.connection.ReplicationMessage;
 import io.debezium.connector.opengauss.connection.ReplicationMessageColumnValueResolver;
-import io.debezium.connector.postgresql.proto.PgProto;
+import io.debezium.connector.opengauss.proto.PgProto;
 import io.debezium.util.Strings;
 
 import java.time.Instant;

@@ -8,12 +8,12 @@ package io.debezium.connector.opengauss.connection;
 
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.core.BaseConnection;
-import org.postgresql.jdbc.PgConnection;
-import org.postgresql.jdbc.TimestampUtils;
-import org.postgresql.replication.LogSequenceNumber;
-import org.postgresql.util.PGmoney;
-import org.postgresql.util.PSQLState;
+import org.opengauss.core.BaseConnection;
+import org.opengauss.jdbc.PgConnection;
+import org.opengauss.jdbc.TimestampUtils;
+import org.opengauss.replication.LogSequenceNumber;
+import org.opengauss.util.PGmoney;
+import org.opengauss.util.PSQLState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +27,6 @@ import io.debezium.connector.opengauss.OpengaussType;
 import io.debezium.connector.opengauss.OpengaussValueConverter;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.spi.SlotState;
-import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.data.SpecialValueDecimal;
 import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
@@ -74,7 +73,7 @@ public class OpengaussConnection extends JdbcConnection {
     private static Logger LOGGER = LoggerFactory.getLogger(OpengaussConnection.class);
 
     private static final String URL_PATTERN =
-            "jdbc:postgresql://${"
+            "jdbc:opengauss://${"
                     + JdbcConfiguration.HOSTNAME
                     + "}:${"
                     + JdbcConfiguration.PORT
@@ -84,7 +83,7 @@ public class OpengaussConnection extends JdbcConnection {
     protected static final ConnectionFactory FACTORY =
             JdbcConnection.patternBasedFactory(
                     URL_PATTERN,
-                    org.postgresql.Driver.class.getName(),
+                    org.opengauss.Driver.class.getName(),
                     OpengaussConnection.class.getClassLoader(),
                     JdbcConfiguration.PORT.withDefault(
                             OpengaussConnectorConfig.PORT.defaultValueAsString()));
@@ -351,8 +350,13 @@ public class OpengaussConnection extends JdbcConnection {
                 confirmedFlushedLsn =
                         tryParseLsn(slotName, pluginName, database, rs, "confirmed_flush");
             } catch (SQLException e2) {
-                throw new ConnectException(
-                        "Neither confirmed_flush_lsn nor restart_lsn could be found");
+                try {
+                    confirmedFlushedLsn =
+                            tryParseLsn(slotName, pluginName, database, rs, "restart_lsn");
+                } catch (SQLException e3) {
+                    throw new ConnectException(
+                            "Neither confirmed_flush_lsn nor restart_lsn could be found", e3);
+                }
             }
         }
 

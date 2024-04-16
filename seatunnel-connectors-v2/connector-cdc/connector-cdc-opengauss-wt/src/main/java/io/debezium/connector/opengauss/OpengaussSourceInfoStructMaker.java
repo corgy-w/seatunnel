@@ -20,7 +20,7 @@ public class OpengaussSourceInfoStructMaker extends AbstractSourceInfoStructMake
         super(connector, version, connectorConfig);
         schema =
                 commonSchemaBuilder()
-                        .name("io.debezium.connector.postgresql.Source")
+                        .name("io.debezium.connector.opengauss.Source")
                         .field(SourceInfo.SCHEMA_NAME_KEY, Schema.STRING_SCHEMA)
                         .field(SourceInfo.TABLE_NAME_KEY, Schema.STRING_SCHEMA)
                         .field(SourceInfo.TXID_KEY, Schema.OPTIONAL_INT64_SCHEMA)

@@ -6,14 +6,15 @@
 
 package io.debezium.connector.opengauss;
 
+import org.apache.seatunnel.common.utils.SeaTunnelException;
+
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.Width;
 import org.apache.kafka.common.config.ConfigValue;
 
-import org.postgresql.PGProperty;
-import org.postgresql.jdbc.PgConnection;
+import org.opengauss.PGProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -919,7 +920,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
                     .withWidth(Width.LONG)
                     .withImportance(Importance.MEDIUM)
                     .withDescription(
-                            "A name of class to that creates SSL Sockets. Use org.postgresql.ssl.NonValidatingFactory to disable SSL validation in development environments");
+                            "A name of class to that creates SSL Sockets. Use org.opengauss.ssl.NonValidatingFactory to disable SSL validation in development environments");
 
     public static final Field SNAPSHOT_MODE =
             Field.create("snapshot.mode")
@@ -1485,7 +1486,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
 
     public Connection getConnection(OpengaussConnectorConfig config) {
         String sourceURL =
-                "jdbc:postgresql://" + hostname() + ":" + port() + "/" + config.databaseName();
+                "jdbc:opengauss://" + hostname() + ":" + port() + "/" + config.databaseName();
         Connection connection = null;
         try {
             Properties properties = new Properties();
@@ -1495,7 +1496,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
             PGProperty.ASSUME_MIN_SERVER_VERSION.set(properties, "9.4");
             PGProperty.REPLICATION.set(properties, "database");
             PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
-            connection = (PgConnection) DriverManager.getConnection(sourceURL, properties);
+            connection = DriverManager.getConnection(sourceURL, properties);
             /*Statement statement = connection.createStatement();
             statement.execute("set session_timeout = 0");
             ResultSet rs = statement.executeQuery("select version()");
@@ -1511,6 +1512,7 @@ public class OpengaussConnectorConfig extends RelationalDatabaseConnectorConfig 
             }*/
         } catch (Exception exp) {
             LOGGER.error("Create openGauss connection failed.", exp);
+            throw new SeaTunnelException("Create openGauss connection failed.", exp);
         }
         return connection;
     }

@@ -12,12 +12,12 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.PGStatement;
-import org.postgresql.geometric.PGpoint;
-import org.postgresql.jdbc.PgArray;
-import org.postgresql.util.HStoreConverter;
-import org.postgresql.util.PGInterval;
-import org.postgresql.util.PGobject;
+import org.opengauss.PGStatement;
+import org.opengauss.geometric.PGpoint;
+import org.opengauss.jdbc.PgArray;
+import org.opengauss.util.HStoreConverter;
+import org.opengauss.util.PGInterval;
+import org.opengauss.util.PGobject;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -25,7 +25,7 @@ import io.debezium.config.CommonConnectorConfig.BinaryHandlingMode;
 import io.debezium.connector.opengauss.OpengaussConnectorConfig.HStoreHandlingMode;
 import io.debezium.connector.opengauss.OpengaussConnectorConfig.IntervalHandlingMode;
 import io.debezium.connector.opengauss.data.Ltree;
-import io.debezium.connector.postgresql.proto.PgProto;
+import io.debezium.connector.opengauss.proto.PgProto;
 import io.debezium.data.Bits;
 import io.debezium.data.Json;
 import io.debezium.data.SpecialValueDecimal;
@@ -671,7 +671,7 @@ public class OpengaussValueConverter extends JdbcValueConverters {
     /**
      * Returns an Hstore field as string in the form of {@code "key 1"=>"value1", "key_2"=>"val 1"};
      * i.e. the given byte array is NOT the byte representation returned by {@link
-     * HStoreConverter#toBytes(Map, org.postgresql.core.Encoding))}, but the String based
+     * HStoreConverter#toBytes(Map, org.opengauss.core.Encoding))}, but the String based
      * representation
      */
     private String asHstoreString(byte[] data) {
@@ -1040,7 +1040,7 @@ public class OpengaussValueConverter extends JdbcValueConverters {
     }
 
     private Object resolveArrayValue(Object value, OpengaussType elementType) {
-        // PostgreSQL time data types with time-zones are handled differently when included in an
+        // OpenGauss time data types with time-zones are handled differently when included in an
         // array.
         // The values are automatically translated to the local JVM time-zone and need to be
         // converted back to GMT

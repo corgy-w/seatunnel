@@ -5,7 +5,7 @@
  */
 package io.debezium.connector.opengauss.connection;
 
-import org.postgresql.util.PGmoney;
+import org.opengauss.util.PGmoney;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

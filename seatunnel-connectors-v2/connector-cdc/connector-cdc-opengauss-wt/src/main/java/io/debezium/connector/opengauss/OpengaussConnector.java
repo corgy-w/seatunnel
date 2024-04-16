@@ -25,9 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A Kafka Connect source connector that creates tasks which use Postgresql streaming replication
- * off a logical replication slot to receive incoming changes for a database and publish them to
- * Kafka.
+ * A Kafka Connect source connector that creates tasks which use OpenGauss streaming replication off
+ * a logical replication slot to receive incoming changes for a database and publish them to Kafka.
  *
  * <h2>Configuration</h2>
  *

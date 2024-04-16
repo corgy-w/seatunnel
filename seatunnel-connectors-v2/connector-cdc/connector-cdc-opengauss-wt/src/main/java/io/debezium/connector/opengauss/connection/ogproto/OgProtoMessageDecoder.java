@@ -7,7 +7,7 @@ package io.debezium.connector.opengauss.connection.ogproto;
 
 import org.apache.kafka.connect.errors.ConnectException;
 
-import org.postgresql.replication.fluent.logical.ChainedLogicalStreamBuilder;
+import org.opengauss.replication.fluent.logical.ChainedLogicalStreamBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,9 +15,9 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.connection.AbstractMessageDecoder;
 import io.debezium.connector.opengauss.connection.ReplicationStream;
-import io.debezium.connector.postgresql.proto.PgProto;
-import io.debezium.connector.postgresql.proto.PgProto.Op;
-import io.debezium.connector.postgresql.proto.PgProto.RowMessage;
+import io.debezium.connector.opengauss.proto.PgProto;
+import io.debezium.connector.opengauss.proto.PgProto.Op;
+import io.debezium.connector.opengauss.proto.PgProto.RowMessage;
 import io.debezium.util.Collect;
 
 import java.nio.ByteBuffer;

@@ -19,8 +19,8 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.offset;
 
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 
-import io.debezium.connector.postgresql.SourceInfo;
-import io.debezium.connector.postgresql.connection.Lsn;
+import io.debezium.connector.opengauss.SourceInfo;
+import io.debezium.connector.opengauss.connection.Lsn;
 
 import java.util.HashMap;
 import java.util.Map;

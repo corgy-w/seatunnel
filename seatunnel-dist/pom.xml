@@ -524,6 +524,14 @@
                 </dependency>
 
                 <dependency>
+                    <groupId>org.opengauss</groupId>
+                    <artifactId>opengauss-jdbc</artifactId>
+                    <version>5.0.1</version>
+                    <scope>system</scope>
+                    <systemPath>${basedir}/src/main/opengauss/opengauss-jdbc-5.0.1.jar</systemPath>
+                </dependency>
+
+                <dependency>
                     <groupId>com.huaweicloud.dws</groupId>
                     <artifactId>huaweicloud-dws-jdbc</artifactId>
                     <version>${dws-gaussdb.version}</version>
