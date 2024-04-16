@@ -294,7 +294,7 @@ public class MysqlDialect implements JdbcDialect {
                 && column.getSourceType() != null) {
             columnSqls.add(column.getSourceType());
         } else {
-            columnSqls.add(MySqlTypeConverter.INSTANCE.reconvert(column).getColumnType());
+            columnSqls.add(MySqlTypeConverter.DEFAULT_INSTANCE.reconvert(column).getColumnType());
         }
         // nullable
         if (column.isNullable()) {
