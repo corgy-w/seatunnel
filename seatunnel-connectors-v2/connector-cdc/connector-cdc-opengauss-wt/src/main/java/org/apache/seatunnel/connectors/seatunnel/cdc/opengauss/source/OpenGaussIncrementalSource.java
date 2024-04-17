@@ -137,7 +137,7 @@ public class OpenGaussIncrementalSource<T> extends IncrementalSource<T, JdbcSour
 
     @Override
     public Optional<String> driverName() {
-        return Optional.of("org.postgresql.Driver");
+        return Optional.of("org.opengauss.Driver");
     }
 
     private Map<TableId, Struct> tableChanges() {
