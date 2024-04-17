@@ -100,10 +100,13 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
     public static final long POWER_2_24 = (long) Math.pow(2, 24);
     public static final long POWER_2_32 = (long) Math.pow(2, 32);
     public static final long MAX_VARBINARY_LENGTH = POWER_2_16 - 4;
-    public static final MySqlTypeConverter DEFAULT_INSTANCE =
-            new MySqlTypeConverter(MySqlVersion.V_5_7);
+    public static final MySqlTypeConverter DEFAULT_INSTANCE = new MySqlTypeConverter();
 
     private final MySqlVersion version;
+
+    public MySqlTypeConverter() {
+        this(MySqlVersion.V_5_7);
+    }
 
     public MySqlTypeConverter(MySqlVersion version) {
         this.version = version;
