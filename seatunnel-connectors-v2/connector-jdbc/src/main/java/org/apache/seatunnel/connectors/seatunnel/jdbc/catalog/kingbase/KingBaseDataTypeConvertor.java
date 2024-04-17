@@ -24,7 +24,7 @@ import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase.KingbaseTypeConverter;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase8.KingbaseTypeConverter;
 
 import org.apache.commons.collections4.MapUtils;
 
