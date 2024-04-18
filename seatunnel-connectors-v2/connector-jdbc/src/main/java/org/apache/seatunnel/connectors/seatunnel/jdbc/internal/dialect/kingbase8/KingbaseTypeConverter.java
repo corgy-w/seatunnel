@@ -42,6 +42,12 @@ public class KingbaseTypeConverter extends PostgresTypeConverter {
     public static final String KB_CLOB = "CLOB";
     public static final String KB_BIT = "BIT";
 
+    // kingbase7 type
+    public static final String KB7_INTEGER = "INTEGER";
+    public static final String KB7_CHAR = "CHAR";
+    public static final String KB7_CHARACTER = "CHARACTER";
+    public static final String KB7_CHARACTER_VARYING = "CHARACTER VARYING";
+
     public static final KingbaseTypeConverter INSTANCE = new KingbaseTypeConverter();
 
     @Override
@@ -64,6 +70,22 @@ public class KingbaseTypeConverter extends PostgresTypeConverter {
 
             String kingbaseDataType = typeDefine.getDataType().toUpperCase();
             switch (kingbaseDataType) {
+                case KB7_INTEGER:
+                    builder.dataType(BasicType.INT_TYPE);
+                    break;
+                case KB7_CHAR:
+                case KB7_CHARACTER:
+                case KB7_CHARACTER_VARYING:
+                    builder.dataType(BasicType.STRING_TYPE);
+                    if (typeDefine.getLength() == null || typeDefine.getLength() <= 0) {
+                        builder.columnLength(1L);
+                        builder.sourceType(KB7_CHAR);
+                    } else {
+                        builder.columnLength(typeDefine.getLength());
+                        builder.sourceType(
+                                String.format("%s(%s)", KB7_CHAR, typeDefine.getLength()));
+                    }
+                    break;
                 case KB_TINYINT:
                     builder.dataType(BasicType.BYTE_TYPE);
                     break;
