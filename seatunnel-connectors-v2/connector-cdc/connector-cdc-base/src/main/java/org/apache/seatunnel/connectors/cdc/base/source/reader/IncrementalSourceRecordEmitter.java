@@ -97,13 +97,13 @@ public class IncrementalSourceRecordEmitter<T>
         final Iterator<SourceRecord> elementIterator = sourceRecords.iterator();
         while (elementIterator.hasNext()) {
             SourceRecord next = elementIterator.next();
-            reportMetrics(next);
+            reportMetrics(next, splitState);
             processElement(next, collector, splitState);
             markEnterPureIncrementPhase(next, splitState);
         }
     }
 
-    protected void reportMetrics(SourceRecord element) {
+    protected void reportMetrics(SourceRecord element, SourceSplitStateBase splitState) {
         long now = System.currentTimeMillis();
         // record the latest process time
         Long messageTimestamp = getMessageTimestamp(element);
@@ -120,7 +120,8 @@ public class IncrementalSourceRecordEmitter<T>
             recordEmitDelay.set(emitDelay > 0 ? emitDelay : 0);
 
             // limit the emit event frequency
-            if (delayedEventLimiter.acquire(messageTimestamp)) {
+            if (delayedEventLimiter.acquire(messageTimestamp)
+                    && splitState.isIncrementalSplitState()) {
                 eventListener.onEvent(new MessageDelayedEvent(emitDelay, element.toString()));
             }
         }
