@@ -44,6 +44,8 @@ public class NetUtils {
         throw new UnsupportedOperationException("Construct NetUtils");
     }
 
+    private static final String LOCAL_IP = "127.0.0.1";
+
     public static List<String> getAllIp() {
         List<NetworkInterface> suitableNetworkInterface = findSuitableNetworkInterface();
         List<InetAddress> suitableInetAddress = findSuitableInetAddress(suitableNetworkInterface);
@@ -52,6 +54,9 @@ public class NetUtils {
                 inetAddress -> {
                     ipList.add(inetAddress.getHostAddress());
                 });
+        if (!ipList.contains(LOCAL_IP)) {
+            ipList.add(LOCAL_IP);
+        }
         return ipList;
     }
 

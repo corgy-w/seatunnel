@@ -36,6 +36,7 @@ public class LicenseTest {
     public void testLicense() {
         Assertions.assertTrue(isPassedLicenseCheck());
         Assertions.assertTrue(isPassedLicenseCheck2());
+        Assertions.assertTrue(isPassedLicenseCheck3());
     }
 
     @Test
@@ -75,5 +76,21 @@ public class LicenseTest {
         }
         return LicenseUtil.checkLicenseServer(
                 latestValidLicenseInfo, new HashSet<>(), "172.18.22.207");
+    }
+
+    @SneakyThrows
+    private Boolean isPassedLicenseCheck3() {
+        LicenseManager licenseManager = new LicenseManager();
+        Class<?> clazz = licenseManager.getClass();
+        Field nameField = clazz.getDeclaredField("licenseService");
+        nameField.setAccessible(true);
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl());
+
+        licenseManager.init();
+        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
+        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
+            return false;
+        }
+        return LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), "127.0.0.1");
     }
 }
