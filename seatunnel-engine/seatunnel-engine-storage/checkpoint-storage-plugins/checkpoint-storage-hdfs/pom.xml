@@ -32,6 +32,8 @@
 
     <properties>
         <hadoop-aliyun.version>3.0.0</hadoop-aliyun.version>
+        <hadoop-aws.version>3.0.0</hadoop-aws.version>
+        <hadoop-aws.version>3.0.0</hadoop-aws.version>
     </properties>
 
     <dependencies>
