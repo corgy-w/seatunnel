@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase8;
 
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectFactory;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.kingbase8.KingbaseDialect;
 
 import com.google.auto.service.AutoService;
 
@@ -29,7 +28,7 @@ public class KingbaseDialectFactory implements JdbcDialectFactory {
 
     @Override
     public boolean acceptsURL(String url) {
-        return url.startsWith("jdbc:kingbase:");
+        return url.startsWith("jdbc:kingbase8:");
     }
 
     @Override

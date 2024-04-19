@@ -65,6 +65,7 @@ public class DorisSinkWriter
     private final DorisSerializer serializer;
     private final CatalogTable catalogTable;
     private final ScheduledExecutorService scheduledExecutorService;
+    private Thread executorThread;
     private volatile Exception loadException = null;
 
     public DorisSinkWriter(
@@ -120,7 +121,7 @@ public class DorisSinkWriter
 
     @Override
     public void write(SeaTunnelRow element) throws IOException {
-        checkLoadException();
+        checkLoadExceptionAndResetThread();
         byte[] serialize =
                 serializer.serialize(
                         dorisConfig.isNeedsUnsupportedTypeCasting()
@@ -199,9 +200,11 @@ public class DorisSinkWriter
         }
     }
 
-    private void checkLoadException() {
+    private void checkLoadExceptionAndResetThread() {
         if (loadException != null) {
             throw new RuntimeException("error while loading data.", loadException);
+        } else {
+            executorThread = Thread.currentThread();
         }
     }
 
