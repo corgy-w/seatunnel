@@ -103,7 +103,7 @@ public class InformixDialect implements JdbcDialect {
     @Override
     public Object[] sampleDataFromColumn(
             Connection connection, JdbcSourceTable table, String columnName, int samplingRate)
-            throws SQLException {
+            throws Exception {
         if (StringUtils.isBlank(table.getQuery())) {
             String sampleQuery =
                     String.format(
@@ -141,6 +141,9 @@ public class InformixDialect implements JdbcDialect {
                     count++;
                     if (count % samplingRate == 0) {
                         results.add(rs.getObject(1));
+                    }
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException("Thread interrupted");
                     }
                 }
                 Object[] resultsArray = results.toArray();
