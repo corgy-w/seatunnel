@@ -104,6 +104,10 @@ public class IncrementalSourceRecordEmitter<T>
     }
 
     protected void reportMetrics(SourceRecord element, SourceSplitStateBase splitState) {
+        if (splitState.isSnapshotSplitState()) {
+            return;
+        }
+
         long now = System.currentTimeMillis();
         // record the latest process time
         Long messageTimestamp = getMessageTimestamp(element);
@@ -120,8 +124,7 @@ public class IncrementalSourceRecordEmitter<T>
             recordEmitDelay.set(emitDelay > 0 ? emitDelay : 0);
 
             // limit the emit event frequency
-            if (delayedEventLimiter.acquire(messageTimestamp)
-                    && splitState.isIncrementalSplitState()) {
+            if (delayedEventLimiter.acquire(messageTimestamp)) {
                 eventListener.onEvent(new MessageDelayedEvent(emitDelay, element.toString()));
             }
         }
