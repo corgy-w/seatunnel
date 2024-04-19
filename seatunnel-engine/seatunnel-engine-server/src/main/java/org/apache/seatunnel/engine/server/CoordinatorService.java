@@ -55,6 +55,7 @@ import org.apache.seatunnel.engine.server.resourcemanager.ResourceManagerFactory
 import org.apache.seatunnel.engine.server.resourcemanager.resource.SlotProfile;
 import org.apache.seatunnel.engine.server.service.jar.ConnectorPackageService;
 import org.apache.seatunnel.engine.server.task.operation.GetMetricsOperation;
+import org.apache.seatunnel.engine.server.utils.NetUtils;
 import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -69,6 +70,7 @@ import com.hazelcast.ringbuffer.Ringbuffer;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import lombok.NonNull;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -844,5 +846,31 @@ public class CoordinatorService {
                     "The user is not configured to enable connector package service, can not get connector package service service from master node.");
         }
         return connectorPackageService;
+    }
+
+    @SneakyThrows
+    private Boolean isPassedLicenseCheck() {
+        LicenseManager licenseManager = new LicenseManager();
+        Class<?> clazz = licenseManager.getClass();
+        Field nameField = clazz.getDeclaredField("licenseService");
+        nameField.setAccessible(true);
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl());
+
+        licenseManager.init();
+        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
+        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
+            return false;
+        }
+        final List<String> allIp = NetUtils.getAllIp();
+        for (String ip : allIp) {
+            try {
+                if (LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), ip)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                logger.info(String.format("ip:%s is not in whitelist", ip), e);
+            }
+        }
+        return false;
     }
 }
