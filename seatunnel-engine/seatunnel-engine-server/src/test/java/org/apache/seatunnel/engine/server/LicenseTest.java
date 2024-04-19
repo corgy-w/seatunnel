@@ -16,7 +16,7 @@
  */
 package org.apache.seatunnel.engine.server;
 
-import org.apache.seatunnel.engine.server.service.WhaleTunnelLicenseServiceImpl;
+import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseServiceImpl;
 import org.apache.seatunnel.engine.server.utils.NetUtils;
 
 import org.junit.jupiter.api.Assertions;
@@ -29,6 +29,7 @@ import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
 import java.util.HashSet;
+import java.util.List;
 
 public class LicenseTest {
 
@@ -37,6 +38,7 @@ public class LicenseTest {
         Assertions.assertTrue(isPassedLicenseCheck());
         Assertions.assertTrue(isPassedLicenseCheck2());
         Assertions.assertTrue(isPassedLicenseCheck3());
+        Assertions.assertTrue(isPassedLicenseCheck4());
     }
 
     @Test
@@ -92,5 +94,30 @@ public class LicenseTest {
             return false;
         }
         return LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), "127.0.0.1");
+    }
+
+    @SneakyThrows
+    private Boolean isPassedLicenseCheck4() {
+        LicenseManager licenseManager = new LicenseManager();
+        Class<?> clazz = licenseManager.getClass();
+        Field nameField = clazz.getDeclaredField("licenseService");
+        nameField.setAccessible(true);
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl());
+
+        licenseManager.init();
+        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
+        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
+            return false;
+        }
+        final List<String> allIp = NetUtils.getAllIp();
+        for (String ip : allIp) {
+            try {
+                if (LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), ip)) {
+                    return true;
+                }
+            } catch (Exception e) {
+            }
+        }
+        return false;
     }
 }

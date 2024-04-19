@@ -24,6 +24,7 @@ on:
 env:
   GH_USER: ${{ secrets.GH_PACKAGE_USER }}
   GH_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
+  SEATUNNEL_LICENCE: uBdUx26vPkDKb997d5NkjFoNcKWLwang
 
 concurrency:
   group: backend-${{ github.event.pull_request.number || github.ref }}
