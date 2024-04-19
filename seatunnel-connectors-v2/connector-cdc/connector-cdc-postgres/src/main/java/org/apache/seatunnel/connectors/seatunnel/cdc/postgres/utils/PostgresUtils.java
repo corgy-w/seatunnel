@@ -24,8 +24,8 @@ import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.source.offset.LsnOffset;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.SQLUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresDialect;
 
 import org.apache.kafka.connect.source.SourceRecord;
 
