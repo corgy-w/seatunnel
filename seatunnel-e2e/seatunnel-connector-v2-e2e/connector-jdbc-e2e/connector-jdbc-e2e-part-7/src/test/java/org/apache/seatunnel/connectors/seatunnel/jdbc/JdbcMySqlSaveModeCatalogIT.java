@@ -115,7 +115,7 @@ public class JdbcMySqlSaveModeCatalogIT extends TestSuiteBase implements TestRes
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/MySQL-CDC/lib && cd /tmp/seatunnel/plugins/MySQL-CDC/lib && wget "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-cdc-mysql && cd /tmp/seatunnel/plugins/connector-cdc-mysql && wget "
                                         + MYSQL_DRIVER_JAR);
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
             };

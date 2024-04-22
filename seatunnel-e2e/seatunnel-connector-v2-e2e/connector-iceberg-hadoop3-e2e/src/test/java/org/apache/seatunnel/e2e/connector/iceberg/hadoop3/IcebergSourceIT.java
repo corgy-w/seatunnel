@@ -113,6 +113,12 @@ public class IcebergSourceIT extends TestSuiteBase implements TestResource {
     private final ContainerExtendedFactory extendedFactory =
             container -> {
                 container.copyFileToContainer(MountableFile.forHostPath(CATALOG_DIR), CATALOG_DIR);
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-iceberg/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-iceberg/");
             };
 
     @BeforeEach

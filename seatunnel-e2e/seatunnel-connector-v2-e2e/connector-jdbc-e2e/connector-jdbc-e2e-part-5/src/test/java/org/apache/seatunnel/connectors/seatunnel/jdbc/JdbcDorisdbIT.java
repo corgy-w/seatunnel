@@ -172,7 +172,7 @@ public class JdbcDorisdbIT extends TestSuiteBase implements TestResource {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/Jdbc/lib && cd /tmp/seatunnel/plugins/Jdbc/lib && curl -O "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-jdbc && cd /tmp/seatunnel/plugins/connector-jdbc && curl -O "
                                         + DRIVER_JAR);
                 Assertions.assertEquals(0, extraCommands.getExitCode());
             };

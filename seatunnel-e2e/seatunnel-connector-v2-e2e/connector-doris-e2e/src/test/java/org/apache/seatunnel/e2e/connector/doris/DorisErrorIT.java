@@ -53,7 +53,7 @@ public class DorisErrorIT extends AbstractDorisIT {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/jdbc/lib && cd /tmp/seatunnel/plugins/jdbc/lib && wget "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-doris && cd /tmp/seatunnel/plugins/connector-doris && wget "
                                         + DRIVER_JAR);
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
             };

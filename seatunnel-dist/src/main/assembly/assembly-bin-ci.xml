@@ -235,7 +235,7 @@
                 <include>org.apache.hive:hive-jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/lib</outputDirectory>
+            <outputDirectory>/plugins/connector-jdbc</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
@@ -251,6 +251,7 @@
             <scope>provided</scope>
         </dependencySet>
 
+        <!-- business -->
         <dependencySet>
             <useProjectArtifact>false</useProjectArtifact>
             <useTransitiveDependencies>true</useTransitiveDependencies>
@@ -260,7 +261,7 @@
                 <include>org.opengauss:opengauss-jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/lib</outputDirectory>
+            <outputDirectory>/plugins/connector-jdbc</outputDirectory>
             <scope>system</scope>
         </dependencySet>
 
@@ -346,6 +347,8 @@
             <includes>
                 <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar:*:optional</include>
                 <include>org.apache.hadoop:hadoop-aliyun:jar</include>
+                <include>com.aliyun.oss:aliyun-sdk-oss:jar</include>
+                <include>org.jdom:jdom2:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-oss</outputDirectory>
@@ -359,6 +362,7 @@
             <includes>
                 <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar:*:optional</include>
                 <include>org.apache.hadoop:hadoop-aws:jar</include>
+                <include>com.amazonaws:aws-java-sdk-bundle:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-s3</outputDirectory>
@@ -396,6 +400,8 @@
             <includes>
                 <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar:*:optional</include>
                 <include>org.apache.hadoop:hadoop-aws:jar</include>
+                <include>com.amazon.redshift:redshift-jdbc42:jar</include>
+                <include>com.amazonaws:aws-java-sdk-bundle:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-s3-redshift</outputDirectory>

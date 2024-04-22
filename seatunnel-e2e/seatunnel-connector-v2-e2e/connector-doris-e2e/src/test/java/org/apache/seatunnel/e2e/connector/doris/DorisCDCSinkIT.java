@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.e2e.connector.doris;
 
+import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
+import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,6 +45,8 @@ public class DorisCDCSinkIT extends AbstractDorisIT {
 
     private static final String DATABASE = "test";
     private static final String SINK_TABLE = "e2e_table_sink";
+    private static final String DRIVER_JAR =
+            "https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.0.32/mysql-connector-j-8.0.32.jar";
     private static final String CREATE_DATABASE = "CREATE DATABASE IF NOT EXISTS " + DATABASE;
     private static final String DDL_SINK =
             "CREATE TABLE IF NOT EXISTS "
@@ -59,6 +63,23 @@ public class DorisCDCSinkIT extends AbstractDorisIT {
                     + "PROPERTIES (\n"
                     + "\"replication_allocation\" = \"tag.location.default: 1\""
                     + ")";
+
+    @TestContainerExtension
+    protected final ContainerExtendedFactory extendedFactory =
+            container -> {
+                Container.ExecResult extraCommands =
+                        container.execInContainer(
+                                "bash",
+                                "-c",
+                                "mkdir -p /tmp/seatunnel/plugins/connector-doris && cd /tmp/seatunnel/plugins/connector-doris && wget "
+                                        + DRIVER_JAR);
+                container.execInContainer(
+                        "bash",
+                        "-c",
+                        "mkdir -p /tmp/seatunnel/plugins/connector-cdc-mysql && cd /tmp/seatunnel/plugins/connector-cdc-mysql && wget "
+                                + DRIVER_JAR);
+                Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
+            };
 
     @BeforeAll
     public void init() {
