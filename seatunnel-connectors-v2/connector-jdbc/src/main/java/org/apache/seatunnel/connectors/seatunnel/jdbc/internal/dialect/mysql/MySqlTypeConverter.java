@@ -275,7 +275,6 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
                 builder.columnLength(POWER_2_8 - 1);
                 break;
             case MYSQL_BLOB:
-            case MYSQL_GEOMETRY:
                 builder.dataType(PrimitiveByteArrayType.INSTANCE);
                 builder.columnLength(POWER_2_16 - 1);
                 break;
