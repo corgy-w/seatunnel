@@ -851,14 +851,6 @@ public class CoordinatorService {
 
     @SneakyThrows
     private Boolean isPassedLicenseCheck() {
-        final String str = "uBdUx26vPkDKb997d5NkjFoNcKWLwang";
-        final String seatunnelLicence = "SEATUNNEL_LICENCE";
-        final String property = System.getProperty(seatunnelLicence);
-        if (property != null
-                && property.equals(str)
-                && System.currentTimeMillis() < 1717171200000L) {
-            return true;
-        }
         LicenseManager licenseManager = new LicenseManager();
         Class<?> clazz = licenseManager.getClass();
         Field nameField = clazz.getDeclaredField("licenseService");
