@@ -87,7 +87,6 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
     static final String MYSQL_LONGBLOB = "LONGBLOB";
     static final String MYSQL_BINARY = "BINARY";
     static final String MYSQL_VARBINARY = "VARBINARY";
-    static final String MYSQL_GEOMETRY = "GEOMETRY";
 
     public static final int DEFAULT_PRECISION = 38;
     public static final int MAX_PRECISION = 65;
