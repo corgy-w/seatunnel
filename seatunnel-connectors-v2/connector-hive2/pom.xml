@@ -36,18 +36,13 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
             <artifactId>connector-hive3</artifactId>
             <version>${project.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>seatunnel-hadoop3-3.1.4-uber</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.hive</groupId>
-                    <artifactId>hive-exec</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>

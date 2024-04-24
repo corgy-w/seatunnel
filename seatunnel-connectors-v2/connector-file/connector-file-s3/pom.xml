@@ -30,7 +30,9 @@
     <name>SeaTunnel : Connectors V2 : File : S3</name>
 
     <properties>
-        <hadoop-aws.version>3.1.4</hadoop-aws.version>
+        <hadoop-aliyun.version>3.3.6</hadoop-aliyun.version>
+        <hadoop-aws.version>3.3.6</hadoop-aws.version>
+        <aws-java-sdk.version>1.12.692</aws-java-sdk.version>
         <guava.version>27.0-jre</guava.version>
     </properties>
 
@@ -54,7 +56,7 @@
 
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>seatunnel-hadoop3-3.1.4-uber</artifactId>
+            <artifactId>seatunnel-hadoop3-3.3.6-uber</artifactId>
             <version>${project.version}</version>
             <classifier>optional</classifier>
             <scope>provided</scope>

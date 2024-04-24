@@ -117,7 +117,7 @@ public class PostgresCDCIT extends TestSuiteBase implements TestResource {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/Postgres-CDC/lib && cd /tmp/seatunnel/plugins/Postgres-CDC/lib && wget "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-cdc-postgres && cd /tmp/seatunnel/plugins/connector-cdc-postgres && wget "
                                         + driverUrl());
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
             };

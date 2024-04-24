@@ -66,6 +66,12 @@ public class LocalFileWithMultipleTableIT extends TestSuiteBase {
                         container);
 
                 container.execInContainer("mkdir", "-p", "/tmp/fake_empty");
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-file-local/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-file-local/");
             };
 
     @TestTemplate
