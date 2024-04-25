@@ -39,6 +39,7 @@ import io.debezium.util.Clock;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -84,6 +85,8 @@ public class InformixStreamingChangeEventSource
 
         // restore
         while (context.isRunning()) {
+            eventDispatcher.dispatchHeartbeatEvent(offsetContext);
+
             if (lastPosition.getChangeLsn() <= lastPosition.getCommitLsn()) {
                 log.info(
                         "Recover skipped, since changeLsn='{}' >= commitLsn='{}'",
@@ -453,7 +456,8 @@ public class InformixStreamingChangeEventSource
                                 minSeqId,
                                 record.getSequenceId(),
                                 transId,
-                                TxLogPosition.LSN_NULL));
+                                TxLogPosition.LSN_NULL),
+                        Instant.ofEpochSecond(record.getTime()));
 
                 for (InformixTransactionCache.TransactionCacheRecord r :
                         transactionCacheBuffer.get().getTransactionCacheRecords()) {

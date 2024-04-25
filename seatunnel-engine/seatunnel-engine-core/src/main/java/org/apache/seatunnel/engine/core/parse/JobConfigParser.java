@@ -35,9 +35,14 @@ import org.apache.seatunnel.engine.core.dag.actions.Action;
 import org.apache.seatunnel.engine.core.dag.actions.SinkAction;
 import org.apache.seatunnel.engine.core.dag.actions.SourceAction;
 import org.apache.seatunnel.engine.core.dag.actions.TransformAction;
+import org.apache.seatunnel.plugin.discovery.PluginIdentifier;
+import org.apache.seatunnel.plugin.discovery.seatunnel.SeaTunnelSinkPluginDiscovery;
+import org.apache.seatunnel.plugin.discovery.seatunnel.SeaTunnelSourcePluginDiscovery;
+import org.apache.seatunnel.plugin.discovery.seatunnel.SeaTunnelTransformPluginDiscovery;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
+import com.google.common.collect.Lists;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.Logger;
 import lombok.Data;
@@ -77,8 +82,7 @@ public class JobConfigParser {
     public Tuple2<CatalogTable, Action> parseSource(
             Config config, JobConfig jobConfig, String tableId, int parallelism) {
         ImmutablePair<SeaTunnelSource, Set<URL>> tuple =
-                ConnectorInstanceLoader.loadSourceInstance(
-                        config, jobConfig.getJobContext(), commonPluginJars);
+                loadSourceInstance(config, commonPluginJars);
         final SeaTunnelSource source = tuple.getLeft();
         // old logic: prepare(initialization) -> set job context
         source.prepare(config);
@@ -107,8 +111,7 @@ public class JobConfigParser {
             SeaTunnelRowType rowType,
             Set<Action> inputActions) {
         final ImmutablePair<SeaTunnelTransform<?>, Set<URL>> tuple =
-                ConnectorInstanceLoader.loadTransformInstance(
-                        config, jobConfig.getJobContext(), commonPluginJars);
+                loadTransformInstance(config, commonPluginJars);
         final SeaTunnelTransform<?> transform = tuple.getLeft();
         // old logic: prepare(initialization) -> set job context -> set row type (There is a logical
         // judgment that depends on before and after, not a simple set)
@@ -190,9 +193,7 @@ public class JobConfigParser {
         final ImmutablePair<
                         SeaTunnelSink<SeaTunnelRow, Serializable, Serializable, Serializable>,
                         Set<URL>>
-                tuple =
-                        ConnectorInstanceLoader.loadSinkInstance(
-                                config, jobConfig.getJobContext(), commonPluginJars);
+                tuple = loadSinkInstance(config, commonPluginJars);
         final SeaTunnelSink<SeaTunnelRow, Serializable, Serializable, Serializable> sink =
                 tuple.getLeft();
         // old logic: prepare(initialization) -> set job context -> set row type (There is a logical
@@ -231,5 +232,58 @@ public class JobConfigParser {
 
     static String createTransformActionName(int configIndex, String pluginName) {
         return String.format("Transform[%s]-%s", configIndex, pluginName);
+    }
+
+    private static ImmutablePair<SeaTunnelSource, Set<URL>> loadSourceInstance(
+            Config sourceConfig, List<URL> pluginJars) {
+        SeaTunnelSourcePluginDiscovery sourcePluginDiscovery = new SeaTunnelSourcePluginDiscovery();
+        PluginIdentifier pluginIdentifier =
+                PluginIdentifier.of(
+                        CollectionConstants.SEATUNNEL_PLUGIN,
+                        CollectionConstants.SOURCE_PLUGIN,
+                        sourceConfig.getString(CollectionConstants.PLUGIN_NAME));
+
+        List<URL> pluginJarPaths =
+                sourcePluginDiscovery.getPluginJarAndDependencyPaths(
+                        Lists.newArrayList(pluginIdentifier));
+        SeaTunnelSource seaTunnelSource =
+                sourcePluginDiscovery.createPluginInstance(pluginIdentifier, pluginJars);
+        return new ImmutablePair<>(seaTunnelSource, new HashSet<>(pluginJarPaths));
+    }
+
+    private static ImmutablePair<
+                    SeaTunnelSink<SeaTunnelRow, Serializable, Serializable, Serializable>, Set<URL>>
+            loadSinkInstance(Config sinkConfig, List<URL> pluginJars) {
+        SeaTunnelSinkPluginDiscovery sinkPluginDiscovery = new SeaTunnelSinkPluginDiscovery();
+        PluginIdentifier pluginIdentifier =
+                PluginIdentifier.of(
+                        CollectionConstants.SEATUNNEL_PLUGIN,
+                        CollectionConstants.SINK_PLUGIN,
+                        sinkConfig.getString(CollectionConstants.PLUGIN_NAME));
+        List<URL> pluginJarPaths =
+                sinkPluginDiscovery.getPluginJarAndDependencyPaths(
+                        Lists.newArrayList(pluginIdentifier));
+
+        SeaTunnelSink<SeaTunnelRow, Serializable, Serializable, Serializable> seaTunnelSink =
+                sinkPluginDiscovery.createPluginInstance(pluginIdentifier, pluginJars);
+        return new ImmutablePair<>(seaTunnelSink, new HashSet<>(pluginJarPaths));
+    }
+
+    private static ImmutablePair<SeaTunnelTransform<?>, Set<URL>> loadTransformInstance(
+            Config transformConfig, List<URL> pluginJars) {
+        SeaTunnelTransformPluginDiscovery transformPluginDiscovery =
+                new SeaTunnelTransformPluginDiscovery();
+        PluginIdentifier pluginIdentifier =
+                PluginIdentifier.of(
+                        CollectionConstants.SEATUNNEL_PLUGIN,
+                        CollectionConstants.TRANSFORM_PLUGIN,
+                        transformConfig.getString(CollectionConstants.PLUGIN_NAME));
+
+        List<URL> pluginJarPaths =
+                transformPluginDiscovery.getPluginJarPaths(Lists.newArrayList(pluginIdentifier));
+
+        SeaTunnelTransform<?> seaTunnelTransform =
+                transformPluginDiscovery.createPluginInstance(pluginIdentifier, pluginJars);
+        return new ImmutablePair<>(seaTunnelTransform, new HashSet<>(pluginJarPaths));
     }
 }

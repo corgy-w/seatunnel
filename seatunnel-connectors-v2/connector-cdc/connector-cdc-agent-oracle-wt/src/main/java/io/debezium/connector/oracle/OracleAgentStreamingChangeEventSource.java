@@ -19,6 +19,7 @@ package io.debezium.connector.oracle;
 
 import org.apache.seatunnel.connectors.cdc.base.relational.JdbcSourceEventDispatcher;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.config.OracleAgentSourceConfig;
+import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.DateUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleAgentClientUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -131,6 +132,7 @@ public class OracleAgentStreamingChangeEventSource
                                 currentFzsFileNumber);
                         Thread.sleep(NO_DATA_AVAILABLE_SLEEP_MS);
                     }
+                    eventDispatcher.dispatchHeartbeatEvent(offsetContext);
                     continue;
                 }
                 for (OracleTransactionData data : oracleTransactionData) {
@@ -170,7 +172,7 @@ public class OracleAgentStreamingChangeEventSource
                 log.info(
                         "The DDL: {} of the OracleAgent-CDC connector is not supported, will skip it",
                         oracleOperation);
-                offsetContext.event(tableId, clock.currentTime());
+                offsetContext.event(tableId, DateUtils.toInstant(oracleOperation.getScntime()));
                 offsetContext.setScn(scn);
                 offsetContext.setFzsFileNumber(fzsFileNumber);
                 continue;
@@ -179,7 +181,7 @@ public class OracleAgentStreamingChangeEventSource
                     OracleAgentDmlEntryFactory.transformOperation(
                             oracleValueConverters, oracleOperation, table);
             for (OracleAgentDmlEntry dmlEntry : dmlEntries) {
-                offsetContext.event(tableId, clock.currentTime());
+                offsetContext.event(tableId, DateUtils.toInstant(oracleOperation.getScntime()));
                 offsetContext.setScn(scn);
                 offsetContext.setFzsFileNumber(fzsFileNumber);
                 try {

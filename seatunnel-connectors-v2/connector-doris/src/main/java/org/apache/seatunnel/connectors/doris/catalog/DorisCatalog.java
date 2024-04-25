@@ -493,7 +493,8 @@ public class DorisCatalog implements Catalog {
                             dorisConfig.getCreateTableTemplate(),
                             tablePath,
                             catalogTable.get(),
-                            DorisTypeConverterV2.INSTANCE));
+                            // used for test when typeConverter is null
+                            typeConverter != null ? typeConverter : DorisTypeConverterV2.INSTANCE));
         } else if (actionType == ActionType.DROP_TABLE) {
             return new SQLPreviewResult(DorisCatalogUtil.getDropTableQuery(tablePath, true));
         } else if (actionType == ActionType.TRUNCATE_TABLE) {

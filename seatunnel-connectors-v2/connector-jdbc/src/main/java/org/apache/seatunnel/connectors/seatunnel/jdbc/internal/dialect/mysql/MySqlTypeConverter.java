@@ -87,7 +87,6 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
     static final String MYSQL_LONGBLOB = "LONGBLOB";
     static final String MYSQL_BINARY = "BINARY";
     static final String MYSQL_VARBINARY = "VARBINARY";
-    static final String MYSQL_GEOMETRY = "GEOMETRY";
 
     public static final int DEFAULT_PRECISION = 38;
     public static final int MAX_PRECISION = 65;
@@ -285,9 +284,6 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
             case MYSQL_LONGBLOB:
                 builder.dataType(PrimitiveByteArrayType.INSTANCE);
                 builder.columnLength(POWER_2_32 - 1);
-                break;
-            case MYSQL_GEOMETRY:
-                builder.dataType(PrimitiveByteArrayType.INSTANCE);
                 break;
             case MYSQL_DATE:
                 builder.dataType(LocalTimeType.LOCAL_DATE_TYPE);

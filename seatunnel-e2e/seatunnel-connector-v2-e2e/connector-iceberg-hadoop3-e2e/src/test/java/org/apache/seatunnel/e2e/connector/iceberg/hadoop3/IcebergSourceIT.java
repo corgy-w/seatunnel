@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.e2e.connector.iceberg.hadoop3;
 
+import org.apache.seatunnel.common.utils.FileUtils;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.IcebergCatalogFactory;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType;
 import org.apache.seatunnel.e2e.common.TestResource;
@@ -117,8 +118,13 @@ public class IcebergSourceIT extends TestSuiteBase implements TestResource {
     @BeforeEach
     @Override
     public void startUp() throws Exception {
+        clearFile();
         initializeIcebergTable();
         batchInsertData();
+    }
+
+    private void clearFile() {
+        FileUtils.deleteFile(CATALOG_DIR);
     }
 
     @AfterAll

@@ -95,7 +95,11 @@ public class SqlServerDialect implements JdbcDialect {
 
     @Override
     public Optional<String> getUpsertStatement(
-            String database, String tableName, String[] fieldNames, String[] uniqueKeyFields) {
+            String database,
+            String tableName,
+            String[] fieldNames,
+            String[] uniqueKeyFields,
+            boolean isPrimaryKeyUpdated) {
         List<String> nonUniqueKeyFields =
                 Arrays.stream(fieldNames)
                         .filter(fieldName -> !Arrays.asList(uniqueKeyFields).contains(fieldName))
@@ -201,6 +205,11 @@ public class SqlServerDialect implements JdbcDialect {
                     }
                     return rs.getLong(1);
                 }
+            } catch (SQLException e) {
+                log.warn(
+                        "Failed to get approximate row count from table status, fallback to count rows",
+                        e);
+                return SQLUtils.countForTable(connection, tableIdentifier(table.getTablePath()));
             }
         }
         return SQLUtils.countForSubquery(connection, table.getQuery());

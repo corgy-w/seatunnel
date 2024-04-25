@@ -104,6 +104,8 @@ public class CoordinatorService {
      */
     private IMap<Long, JobInfo> runningJobInfoIMap;
 
+    private ClassLoader classLoader;
+
     /**
      * IMap key is one of jobId {@link
      * org.apache.seatunnel.engine.server.dag.physical.PipelineLocation} and {@link
@@ -168,7 +170,8 @@ public class CoordinatorService {
     public CoordinatorService(
             @NonNull NodeEngineImpl nodeEngine,
             @NonNull SeaTunnelServer seaTunnelServer,
-            EngineConfig engineConfig) {
+            EngineConfig engineConfig,
+            ClassLoader classLoader) {
         this.nodeEngine = nodeEngine;
         this.logger = nodeEngine.getLogger(getClass());
         this.executorService =
@@ -178,6 +181,7 @@ public class CoordinatorService {
                                 .build());
         this.seaTunnelServer = seaTunnelServer;
         this.engineConfig = engineConfig;
+        this.classLoader = classLoader;
         masterActiveListener = Executors.newSingleThreadScheduledExecutor();
         masterActiveListener.scheduleAtFixedRate(
                 this::checkNewActiveMaster, 0, 100, TimeUnit.MILLISECONDS);
@@ -337,7 +341,8 @@ public class CoordinatorService {
                         seaTunnelServer);
 
         try {
-            jobMaster.init(runningJobInfoIMap.get(jobId).getInitializationTimestamp(), true);
+            jobMaster.init(
+                    runningJobInfoIMap.get(jobId).getInitializationTimestamp(), true, classLoader);
         } catch (Exception e) {
             throw new SeaTunnelEngineException(String.format("Job id %s init failed", jobId), e);
         }
@@ -370,6 +375,7 @@ public class CoordinatorService {
     }
 
     private void checkNewActiveMaster() {
+        Thread.currentThread().setContextClassLoader(classLoader);
         try {
             if (!isActive && this.seaTunnelServer.isMasterNode()) {
                 logger.info(
@@ -473,7 +479,9 @@ public class CoordinatorService {
                                 new JobInfo(System.currentTimeMillis(), jobImmutableInformation));
                         runningJobMasterMap.put(jobId, jobMaster);
                         jobMaster.init(
-                                runningJobInfoIMap.get(jobId).getInitializationTimestamp(), false);
+                                runningJobInfoIMap.get(jobId).getInitializationTimestamp(),
+                                false,
+                                classLoader);
                         // We specify that when init is complete, the submitJob is complete
                         jobSubmitFuture.complete(null);
                     } catch (Throwable e) {

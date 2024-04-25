@@ -71,6 +71,12 @@ public class DorisSourceFactory implements TableSourceFactory {
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
         ReadonlyConfig options = context.getOptions();
         CatalogTable table;
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         DorisCatalogFactory dorisCatalogFactory = new DorisCatalogFactory();
         DorisCatalog catalog = (DorisCatalog) dorisCatalogFactory.createCatalog("doris", options);
         catalog.open();

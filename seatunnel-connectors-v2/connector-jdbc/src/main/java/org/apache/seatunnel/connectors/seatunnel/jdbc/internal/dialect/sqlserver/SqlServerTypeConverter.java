@@ -182,7 +182,8 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
             case SQLSERVER_CHAR:
                 builder.sourceType(String.format("%s(%s)", SQLSERVER_CHAR, typeDefine.getLength()));
                 builder.dataType(BasicType.STRING_TYPE);
-                builder.columnLength(typeDefine.getLength());
+                builder.columnLength(
+                        TypeDefineUtils.doubleByteTo4ByteLength(typeDefine.getLength()));
                 break;
             case SQLSERVER_NCHAR:
                 builder.sourceType(
@@ -194,18 +195,18 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
             case SQLSERVER_VARCHAR:
                 if (typeDefine.getLength() == -1) {
                     builder.sourceType(MAX_VARCHAR);
-                    builder.columnLength(POWER_2_31 - 1);
+                    builder.columnLength(TypeDefineUtils.doubleByteTo4ByteLength(POWER_2_31 - 1));
                 } else {
                     builder.sourceType(
                             String.format("%s(%s)", SQLSERVER_VARCHAR, typeDefine.getLength()));
-                    builder.columnLength(typeDefine.getLength());
+                    builder.columnLength(
+                            TypeDefineUtils.doubleByteTo4ByteLength(typeDefine.getLength()));
                 }
                 builder.dataType(BasicType.STRING_TYPE);
                 break;
             case SQLSERVER_NVARCHAR:
                 if (typeDefine.getLength() == -1) {
                     builder.sourceType(MAX_NVARCHAR);
-                    builder.columnLength(POWER_2_31 - 1);
                     builder.columnLength(TypeDefineUtils.doubleByteTo4ByteLength(POWER_2_31 - 1));
                 } else {
                     builder.sourceType(
@@ -233,7 +234,7 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
             case SQLSERVER_UNIQUEIDENTIFIER:
                 builder.sourceType(SQLSERVER_UNIQUEIDENTIFIER);
                 builder.dataType(BasicType.STRING_TYPE);
-                builder.columnLength(typeDefine.getLength() * 4);
+                builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                 break;
             case SQLSERVER_SQLVARIANT:
                 builder.sourceType(SQLSERVER_SQLVARIANT);
