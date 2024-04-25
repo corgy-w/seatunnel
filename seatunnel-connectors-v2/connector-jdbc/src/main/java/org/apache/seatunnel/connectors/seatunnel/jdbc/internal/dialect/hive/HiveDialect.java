@@ -50,7 +50,11 @@ public class HiveDialect implements JdbcDialect {
 
     @Override
     public Optional<String> getUpsertStatement(
-            String database, String tableName, String[] fieldNames, String[] uniqueKeyFields) {
+            String database,
+            String tableName,
+            String[] fieldNames,
+            String[] uniqueKeyFields,
+            boolean isPrimaryKeyUpdated) {
         return Optional.empty();
     }
 
@@ -69,11 +73,6 @@ public class HiveDialect implements JdbcDialect {
     @Override
     public String extractTableName(TablePath tablePath) {
         return tablePath.getTableName();
-    }
-
-    @Override
-    public TablePath parse(String tablePath) {
-        return TablePath.of(tablePath, true);
     }
 
     @Override

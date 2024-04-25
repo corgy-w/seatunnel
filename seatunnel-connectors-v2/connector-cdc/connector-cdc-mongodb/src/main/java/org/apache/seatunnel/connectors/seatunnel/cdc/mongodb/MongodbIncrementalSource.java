@@ -184,4 +184,9 @@ public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSou
             throw new SeaTunnelException(e);
         }
     }
+
+    @Override
+    public Optional<String> driverName() {
+        return Optional.empty();
+    }
 }

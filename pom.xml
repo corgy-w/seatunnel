@@ -54,7 +54,7 @@
 
     <properties>
         <!--todo The classification is too confusing, reclassify by type-->
-        <revision>2.6-WS-SNAPSHOT</revision>
+        <revision>2.6-WS-test-SNAPSHOT</revision>
         <seatunnel.config.shade.version>2.1.1</seatunnel.config.shade.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
@@ -115,6 +115,7 @@
         <jcommander.version>1.81</jcommander.version>
         <junit4.version>4.13.2</junit4.version>
         <junit5.version>5.9.0</junit5.version>
+        <mockito.version>4.11.0</mockito.version>
         <config.version>1.3.3</config.version>
         <maven-shade-plugin.version>3.3.0</maven-shade-plugin.version>
         <maven-helper-plugin.version>3.2.0</maven-helper-plugin.version>
@@ -136,6 +137,7 @@
         <guava.version>27.0-jre</guava.version>
         <auto-service.version>1.0.1</auto-service.version>
         <hadoop2.version>2.6.5</hadoop2.version>
+        <hive.exec.version>2.3.9</hive.exec.version>
         <seatunnel.shade.package>org.apache.seatunnel.shade</seatunnel.shade.package>
         <snappy-java.version>1.1.8.3</snappy-java.version>
         <checker.qual.version>3.10.0</checker.qual.version>
@@ -356,6 +358,13 @@
             </dependency>
 
             <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
                 <version>${jackson.version}</version>
@@ -552,6 +561,11 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -768,6 +782,94 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
                     <version>${maven-dependency-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <id>createConnectorDependencyDirectory</id>
+                            <goals>
+                                <goal>run</goal>
+                            </goals>
+                            <phase>generate-resources</phase>
+                            <configuration>
+                                <target>
+                                    <mkdir dir="src/main/resources/connector-amazondynamodb" />
+                                    <mkdir dir="src/main/resources/connector-amazonsqs" />
+                                    <mkdir dir="src/main/resources/connector-assert" />
+                                    <mkdir dir="src/main/resources/connector-cassandra" />
+                                    <mkdir dir="src/main/resources/connector-cdc-agent-oracle" />
+                                    <mkdir dir="src/main/resources/connector-cdc-dameng" />
+                                    <mkdir dir="src/main/resources/connector-cdc-informix" />
+                                    <mkdir dir="src/main/resources/connector-cdc-mongodb" />
+                                    <mkdir dir="src/main/resources/connector-cdc-mysql" />
+                                    <mkdir dir="src/main/resources/connector-cdc-opengauss" />
+                                    <mkdir dir="src/main/resources/connector-cdc-oracle" />
+                                    <mkdir dir="src/main/resources/connector-cdc-postgres" />
+                                    <mkdir dir="src/main/resources/connector-cdc-sqlserver" />
+                                    <mkdir dir="src/main/resources/connector-clickhouse" />
+                                    <mkdir dir="src/main/resources/connector-console" />
+                                    <mkdir dir="src/main/resources/connector-datahub" />
+                                    <mkdir dir="src/main/resources/connector-dingtalk" />
+                                    <mkdir dir="src/main/resources/connector-dolphindb" />
+                                    <mkdir dir="src/main/resources/connector-doris" />
+                                    <mkdir dir="src/main/resources/connector-dws-gaussdb" />
+                                    <mkdir dir="src/main/resources/connector-elasticsearch" />
+                                    <mkdir dir="src/main/resources/connector-email" />
+                                    <mkdir dir="src/main/resources/connector-fake" />
+                                    <mkdir dir="src/main/resources/connector-file-cos" />
+                                    <mkdir dir="src/main/resources/connector-file-ftp" />
+                                    <mkdir dir="src/main/resources/connector-file-hadoop" />
+                                    <mkdir dir="src/main/resources/connector-file-jindo-oss" />
+                                    <mkdir dir="src/main/resources/connector-file-local" />
+                                    <mkdir dir="src/main/resources/connector-file-oss" />
+                                    <mkdir dir="src/main/resources/connector-file-s3" />
+                                    <mkdir dir="src/main/resources/connector-file-sftp" />
+                                    <mkdir dir="src/main/resources/connector-google-firestore" />
+                                    <mkdir dir="src/main/resources/connector-google-sheets" />
+                                    <mkdir dir="src/main/resources/connector-hbase" />
+                                    <mkdir dir="src/main/resources/connector-hive2" />
+                                    <mkdir dir="src/main/resources/connector-hive3" />
+                                    <mkdir dir="src/main/resources/connector-http-base" />
+                                    <mkdir dir="src/main/resources/connector-http-feishu" />
+                                    <mkdir dir="src/main/resources/connector-http-github" />
+                                    <mkdir dir="src/main/resources/connector-http-gitlab" />
+                                    <mkdir dir="src/main/resources/connector-http-jira" />
+                                    <mkdir dir="src/main/resources/connector-http-klaviyo" />
+                                    <mkdir dir="src/main/resources/connector-http-lemlist" />
+                                    <mkdir dir="src/main/resources/connector-http-myhours" />
+                                    <mkdir dir="src/main/resources/connector-http-notion" />
+                                    <mkdir dir="src/main/resources/connector-http-onesignal" />
+                                    <mkdir dir="src/main/resources/connector-http-persistiq" />
+                                    <mkdir dir="src/main/resources/connector-hudi" />
+                                    <mkdir dir="src/main/resources/connector-iceberg" />
+                                    <mkdir dir="src/main/resources/connector-influxdb" />
+                                    <mkdir dir="src/main/resources/connector-iotdb" />
+                                    <mkdir dir="src/main/resources/connector-jdbc" />
+                                    <mkdir dir="src/main/resources/connector-kafka" />
+                                    <mkdir dir="src/main/resources/connector-kudu" />
+                                    <mkdir dir="src/main/resources/connector-maxcompute" />
+                                    <mkdir dir="src/main/resources/connector-mongodb" />
+                                    <mkdir dir="src/main/resources/connector-neo4j" />
+                                    <mkdir dir="src/main/resources/connector-openmldb" />
+                                    <mkdir dir="src/main/resources/connector-paimon" />
+                                    <mkdir dir="src/main/resources/connector-pulsar" />
+                                    <mkdir dir="src/main/resources/connector-rabbitmq" />
+                                    <mkdir dir="src/main/resources/connector-redis" />
+                                    <mkdir dir="src/main/resources/connector-rocketmq" />
+                                    <mkdir dir="src/main/resources/connector-s3-redshift" />
+                                    <mkdir dir="src/main/resources/connector-selectdb-cloud" />
+                                    <mkdir dir="src/main/resources/connector-sentry" />
+                                    <mkdir dir="src/main/resources/connector-slack" />
+                                    <mkdir dir="src/main/resources/connector-socket" />
+                                    <mkdir dir="src/main/resources/connector-starrocks" />
+                                    <mkdir dir="src/main/resources/connector-tablestore" />
+                                    <mkdir dir="src/main/resources/connector-tdengine" />
+                                </target>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

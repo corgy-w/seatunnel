@@ -53,6 +53,7 @@ import lombok.NoArgsConstructor;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -125,6 +126,11 @@ public class DamengIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
     public OffsetFactory createOffsetFactory(ReadonlyConfig config) {
         return new LogMinerOffsetFactory(
                 (DamengSourceConfigFactory) configFactory, (DamengDialect) dataSourceDialect);
+    }
+
+    @Override
+    public Optional<String> driverName() {
+        return Optional.of("dm.jdbc.driver.DmDriver");
     }
 
     private Map<TableId, Struct> tableChanges() {

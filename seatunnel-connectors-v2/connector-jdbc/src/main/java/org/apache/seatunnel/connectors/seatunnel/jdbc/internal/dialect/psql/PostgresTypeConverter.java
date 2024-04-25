@@ -169,7 +169,16 @@ public class PostgresTypeConverter implements TypeConverter<BasicTypeDefine> {
                 break;
             case PG_NUMERIC:
                 DecimalType decimalType;
-                if (typeDefine.getPrecision() != null && typeDefine.getPrecision() > 0) {
+                if (typeDefine.getScale() != null && typeDefine.getScale() > MAX_SCALE) {
+                    builder.sourceType(
+                            String.format(
+                                    "%s(%s,%s)",
+                                    PG_NUMERIC, typeDefine.getPrecision().intValue(), 0));
+                    decimalType = new DecimalType(typeDefine.getPrecision().intValue(), 0);
+                    log.warn(
+                            "The scale of decimal type is larger than {}, it will be reset to 0",
+                            MAX_SCALE);
+                } else if (typeDefine.getPrecision() != null && typeDefine.getPrecision() > 0) {
                     decimalType =
                             new DecimalType(
                                     typeDefine.getPrecision().intValue(), typeDefine.getScale());
@@ -191,10 +200,10 @@ public class PostgresTypeConverter implements TypeConverter<BasicTypeDefine> {
             case PG_CHARACTER:
                 builder.dataType(BasicType.STRING_TYPE);
                 if (typeDefine.getLength() == null || typeDefine.getLength() <= 0) {
-                    builder.columnLength(1L);
+                    builder.columnLength(TypeDefineUtils.charTo4ByteLength(1L));
                     builder.sourceType(pgDataType);
                 } else {
-                    builder.columnLength(typeDefine.getLength());
+                    builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                     builder.sourceType(String.format("%s(%s)", pgDataType, typeDefine.getLength()));
                 }
                 break;

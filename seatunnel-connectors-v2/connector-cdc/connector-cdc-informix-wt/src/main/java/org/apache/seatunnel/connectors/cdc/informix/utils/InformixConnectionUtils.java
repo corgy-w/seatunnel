@@ -140,29 +140,29 @@ public class InformixConnectionUtils {
         } else if (isFirstSplit) {
             String filterCondition =
                     Arrays.stream(rowType.getFieldNames())
-                            .map(field -> field + "  <= ? ")
+                            .map(field -> quote(field) + "  <= ? ")
                             .collect(Collectors.joining(" AND "));
             String notCondition =
                     Arrays.stream(rowType.getFieldNames())
-                            .map(field -> field + "  = ? ")
+                            .map(field -> quote(field) + "  = ? ")
                             .collect(Collectors.joining(" AND "));
             condition = String.format("%s AND NOT (%s)", filterCondition, notCondition);
         } else if (isLastSplit) {
             condition =
                     Arrays.stream(rowType.getFieldNames())
-                            .map(field -> field + "  >= ? ")
+                            .map(field -> quote(field) + "  >= ? ")
                             .collect(Collectors.joining(" AND "));
         } else {
             String filterCondition =
                     Stream.concat(
                                     Arrays.stream(rowType.getFieldNames())
-                                            .map(field -> field + "  >= ? "),
+                                            .map(field -> quote(field) + "  >= ? "),
                                     Arrays.stream(rowType.getFieldNames())
-                                            .map(field -> field + "  <= ? "))
+                                            .map(field -> quote(field) + "  <= ? "))
                             .collect(Collectors.joining(" AND "));
             String notCondition =
                     Arrays.stream(rowType.getFieldNames())
-                            .map(field -> field + "  = ? ")
+                            .map(field -> quote(field) + "  = ? ")
                             .collect(Collectors.joining(" AND "));
             condition = String.format("%s AND NOT (%s)", filterCondition, notCondition);
         }

@@ -35,21 +35,23 @@ import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.common.utils.FileUtils;
 import org.apache.seatunnel.common.utils.ReflectionUtils;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,6 +61,7 @@ import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
@@ -112,10 +115,7 @@ public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
 
     protected static Config loadConnectorPluginConfig() {
         return ConfigFactory.parseFile(Common.connectorDir().resolve(PLUGIN_MAPPING_FILE).toFile())
-                .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true))
-                .resolveWith(
-                        ConfigFactory.systemProperties(),
-                        ConfigResolveOptions.defaults().setAllowUnresolved(true));
+                .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true));
     }
 
     @Override
@@ -125,6 +125,32 @@ public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .distinct()
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<URL> getPluginJarAndDependencyPaths(List<PluginIdentifier> pluginIdentifiers) {
+        return pluginIdentifiers.stream()
+                .flatMap(
+                        pluginIdentifier -> {
+                            try {
+                                List<URL> jars = getPluginDependencyJarPaths(pluginIdentifier);
+                                getPluginJarPath(pluginIdentifier).ifPresent(jars::add);
+                                log.info(
+                                        "find connector jar and dependency for {}: {}",
+                                        pluginIdentifier,
+                                        jars);
+                                return jars.stream();
+                            } catch (IOException e) {
+                                log.warn(
+                                        "get plugin dependency jar path failed, pluginIdentifier: {}",
+                                        pluginIdentifier,
+                                        e);
+                                return Stream.empty();
+                            }
+                        })
+                .distinct()
+                .sorted(Comparator.comparing(URL::toString))
                 .collect(Collectors.toList());
     }
 
@@ -333,13 +359,7 @@ public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
      */
     protected abstract Class<T> getPluginBaseClass();
 
-    /**
-     * Find the plugin jar path;
-     *
-     * @param pluginIdentifier plugin identifier.
-     * @return plugin jar path.
-     */
-    private Optional<URL> findPluginJarPath(PluginIdentifier pluginIdentifier) {
+    private Optional<String> getPluginMappingPrefix(PluginIdentifier pluginIdentifier) {
         final String engineType = pluginIdentifier.getEngineType().toLowerCase();
         final String pluginType = pluginIdentifier.getPluginType().toLowerCase();
         final String pluginName = pluginIdentifier.getPluginName().toLowerCase();
@@ -355,23 +375,57 @@ public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
                 typeConfig.entrySet().stream()
                         .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), pluginName))
                         .findFirst();
-        if (!optional.isPresent()) {
+        return optional.map(entry -> entry.getValue().unwrapped().toString());
+    }
+
+    private List<URL> getPluginDependencyJarPaths(PluginIdentifier pluginIdentifier)
+            throws IOException {
+        Optional<String> pluginPrefix = getPluginMappingPrefix(pluginIdentifier);
+        if (!pluginPrefix.isPresent()) {
+            return Collections.emptyList();
+        }
+        List<URL> jars = new ArrayList<>();
+        Path pluginRootDir = Common.pluginRootDir();
+        if (!Files.exists(pluginRootDir) || !Files.isDirectory(pluginRootDir)) {
+            return new ArrayList<>();
+        }
+        for (File file : pluginRootDir.toFile().listFiles()) {
+            // only read current connector dependency and other common dependency
+            if (file.isDirectory()
+                    && (!file.getName().startsWith("connector-")
+                            || file.getName().equalsIgnoreCase(pluginPrefix.get()))) {
+                jars.addAll(
+                        FileUtils.searchJarFiles(
+                                Paths.get(Common.pluginRootDir().toString(), file.getName())));
+            } else if (!file.isDirectory()) {
+                jars.add(file.toURI().toURL());
+            }
+        }
+        return jars.stream()
+                .filter(path -> path.toString().endsWith(".jar"))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Find the plugin jar path;
+     *
+     * @param pluginIdentifier plugin identifier.
+     * @return plugin jar path.
+     */
+    private Optional<URL> findPluginJarPath(PluginIdentifier pluginIdentifier) {
+        Optional<String> pluginPrefix = getPluginMappingPrefix(pluginIdentifier);
+        if (!pluginPrefix.isPresent()) {
             return Optional.empty();
         }
-        String pluginJarPrefix = optional.get().getValue().unwrapped().toString();
         File[] targetPluginFiles =
                 pluginDir
                         .toFile()
                         .listFiles(
-                                new FileFilter() {
-                                    @Override
-                                    public boolean accept(File pathname) {
-                                        return pathname.getName().endsWith(".jar")
+                                pathname ->
+                                        pathname.getName().endsWith(".jar")
                                                 && StringUtils.startsWithIgnoreCase(
-                                                        pathname.getName(), pluginJarPrefix);
-                                    }
-                                });
-        if (ArrayUtils.isEmpty(targetPluginFiles)) {
+                                                        pathname.getName(), pluginPrefix.get()));
+        if (targetPluginFiles == null || targetPluginFiles.length == 0) {
             return Optional.empty();
         }
         if (targetPluginFiles.length > 1) {

@@ -58,6 +58,7 @@ import java.sql.DriverManager;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -184,5 +185,10 @@ public class SqlServerIncrementalSource<T> extends IncrementalSource<T, JdbcSour
         } catch (Exception e) {
             throw new SeaTunnelException(e);
         }
+    }
+
+    @Override
+    public Optional<String> driverName() {
+        return Optional.of("com.microsoft.sqlserver.jdbc.SQLServerDriver");
     }
 }

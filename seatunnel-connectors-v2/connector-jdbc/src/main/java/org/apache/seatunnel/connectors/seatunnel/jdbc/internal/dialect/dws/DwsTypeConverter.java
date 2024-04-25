@@ -24,6 +24,7 @@ import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
+import org.apache.seatunnel.connectors.seatunnel.common.source.TypeDefineUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresTypeConverter;
 
@@ -87,7 +88,7 @@ public class DwsTypeConverter extends PostgresTypeConverter {
             case DWS_NVARCHAR2:
             case DWS_NVARCHAR:
                 if (typeDefine.getLength() != null && typeDefine.getLength() > 0) {
-                    builder.columnLength(typeDefine.getLength() * 3);
+                    builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                 }
                 builder.dataType(BasicType.STRING_TYPE);
                 break;

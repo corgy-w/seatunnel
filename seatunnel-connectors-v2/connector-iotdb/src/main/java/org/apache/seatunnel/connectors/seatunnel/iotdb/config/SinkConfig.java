@@ -63,7 +63,7 @@ public class SinkConfig extends CommonConfig {
                     .defaultValue(DEFAULT_BATCH_SIZE)
                     .withDescription("batch size");
     public static final Option<Integer> MAX_RETRIES =
-            Options.key("max_retries").intType().noDefaultValue().withDescription("max retries");
+            Options.key("max_retries").intType().defaultValue(3).withDescription("max retries");
     public static final Option<Integer> RETRY_BACKOFF_MULTIPLIER_MS =
             Options.key("retry_backoff_multiplier_ms")
                     .intType()

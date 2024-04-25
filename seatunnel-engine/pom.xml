@@ -38,6 +38,7 @@
         <!--  SeaTunnel Engine use     -->
         <hazelcast.version>5.1</hazelcast.version>
         <disruptor.version>3.4.4</disruptor.version>
+        <okhttp.version>2.7.5</okhttp.version>
     </properties>
 
     <dependencyManagement>
@@ -52,6 +53,11 @@
                 <groupId>com.lmax</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp</groupId>
+                <artifactId>okhttp</artifactId>
+                <version>${okhttp.version}</version>
             </dependency>
 
             <!-- test dependencies -->

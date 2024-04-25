@@ -34,7 +34,7 @@ public class PostgresDialectFactoryTest {
         String[] fields = {"id", "name", "age"};
         String[] uniqueKeyField = {"id"};
         Optional<String> upsertStatement =
-                postgresLow.getUpsertStatement("test", "test_a", fields, uniqueKeyField);
+                postgresLow.getUpsertStatement("test", "test_a", fields, uniqueKeyField, true);
         Assertions.assertFalse(upsertStatement.isPresent());
     }
 }

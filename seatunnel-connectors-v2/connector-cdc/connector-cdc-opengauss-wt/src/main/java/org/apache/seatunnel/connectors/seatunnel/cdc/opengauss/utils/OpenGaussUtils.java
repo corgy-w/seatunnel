@@ -23,6 +23,7 @@ import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.offset.LsnOffset;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.SQLUtils;
 
 import org.apache.kafka.connect.source.SourceRecord;
 
@@ -77,6 +78,18 @@ public class OpenGaussUtils {
 
     public static long queryApproximateRowCnt(JdbcConnection jdbc, TableId tableId)
             throws SQLException {
+        try {
+            return analyzeRowCnt(jdbc, tableId);
+        } catch (SQLException e) {
+            log.warn(
+                    "Failed to get approximate row count for table {}. Will use exact row count instead.",
+                    tableId,
+                    e);
+            return SQLUtils.countForTable(jdbc.connection(), quote(tableId));
+        }
+    }
+
+    public static long analyzeRowCnt(JdbcConnection jdbc, TableId tableId) throws SQLException {
         // The statement used to get approximate row count which is less
         // accurate than COUNT(*), but is more efficient for large table.
         final String rowCountQuery =
@@ -448,7 +461,7 @@ public class OpenGaussUtils {
             SeaTunnelRowType rowType, StringBuilder sql, String predicate) {
         for (Iterator<String> fieldNamesIt = Arrays.stream(rowType.getFieldNames()).iterator();
                 fieldNamesIt.hasNext(); ) {
-            sql.append(fieldNamesIt.next()).append(predicate);
+            sql.append(quote(fieldNamesIt.next())).append(predicate);
             if (fieldNamesIt.hasNext()) {
                 sql.append(" AND ");
             }

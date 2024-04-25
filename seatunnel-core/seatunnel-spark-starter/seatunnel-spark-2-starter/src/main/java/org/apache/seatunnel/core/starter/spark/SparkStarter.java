@@ -113,7 +113,6 @@ public class SparkStarter implements Starter {
         setSparkConf();
         Common.setDeployMode(commandArgs.getDeployMode());
         Common.setStarter(true);
-        this.jars.addAll(Common.getPluginsJarDependencies());
         this.jars.addAll(Common.getLibJars());
         this.jars.addAll(getConnectorJarDependencies());
         this.jars.addAll(
@@ -182,13 +181,14 @@ public class SparkStarter implements Starter {
         SeaTunnelSinkPluginDiscovery seaTunnelSinkPluginDiscovery =
                 new SeaTunnelSinkPluginDiscovery();
         pluginJars.addAll(
-                seaTunnelSourcePluginDiscovery.getPluginJarPaths(
+                seaTunnelSourcePluginDiscovery.getPluginJarAndDependencyPaths(
                         getPluginIdentifiers(config, PluginType.SOURCE)));
         pluginJars.addAll(
-                seaTunnelSinkPluginDiscovery.getPluginJarPaths(
+                seaTunnelSinkPluginDiscovery.getPluginJarAndDependencyPaths(
                         getPluginIdentifiers(config, PluginType.SINK)));
         return pluginJars.stream()
                 .map(url -> new File(url.getPath()).toPath())
+                .distinct()
                 .collect(Collectors.toList());
     }
 

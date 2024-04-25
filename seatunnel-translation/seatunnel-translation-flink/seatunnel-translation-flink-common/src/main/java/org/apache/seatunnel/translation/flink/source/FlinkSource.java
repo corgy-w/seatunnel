@@ -40,6 +40,7 @@ import org.apache.flink.core.io.SimpleVersionedSerializer;
 import org.apache.flink.types.Row;
 
 import java.io.Serializable;
+import java.sql.DriverManager;
 
 /**
  * The source implementation of {@link Source}, used for proxy all {@link SeaTunnelSource} in flink.
@@ -49,6 +50,18 @@ import java.io.Serializable;
  */
 public class FlinkSource<SplitT extends SourceSplit, EnumStateT extends Serializable>
         implements Source<Row, SplitWrapper<SplitT>, EnumStateT>, ResultTypeQueryable<Row> {
+
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
 
     private final SeaTunnelSource<SeaTunnelRow, SplitT, EnumStateT> source;
 

@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.offset.RedoLogOffset;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.SQLUtils;
 
 import org.apache.kafka.connect.source.SourceRecord;
 
@@ -80,6 +81,18 @@ public class OracleUtils {
 
     public static long queryApproximateRowCnt(JdbcConnection jdbc, TableId tableId)
             throws SQLException {
+        try {
+            return analyzeRowCnt(jdbc, tableId);
+        } catch (SQLException e) {
+            log.warn(
+                    "Failed to get approximate row count for table {}. Will use exact row count instead.",
+                    tableId,
+                    e);
+            return SQLUtils.countForTable(jdbc.connection(), quoteSchemaAndTable(tableId));
+        }
+    }
+
+    public static long analyzeRowCnt(JdbcConnection jdbc, TableId tableId) throws SQLException {
         final String analyzeTable =
                 String.format(
                         "analyze table %s compute statistics for table",
@@ -87,6 +100,7 @@ public class OracleUtils {
         final String rowCountQuery =
                 String.format(
                         "select NUM_ROWS from all_tables where TABLE_NAME = '%s'", tableId.table());
+
         return jdbc.execute(analyzeTable)
                 .queryAndMap(
                         rowCountQuery,
@@ -438,7 +452,7 @@ public class OracleUtils {
             SeaTunnelRowType rowType, StringBuilder sql, String predicate) {
         for (Iterator<String> fieldNamesIt = Arrays.stream(rowType.getFieldNames()).iterator();
                 fieldNamesIt.hasNext(); ) {
-            sql.append(fieldNamesIt.next()).append(predicate);
+            sql.append(quote(fieldNamesIt.next())).append(predicate);
             if (fieldNamesIt.hasNext()) {
                 sql.append(" AND ");
             }

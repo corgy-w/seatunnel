@@ -64,12 +64,14 @@ import com.google.common.collect.Sets;
 import io.debezium.relational.TableId;
 import lombok.NoArgsConstructor;
 
+import java.sql.DriverManager;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -80,6 +82,18 @@ import java.util.stream.Stream;
 @NoArgsConstructor
 public abstract class IncrementalSource<T, C extends SourceConfig>
         implements SeaTunnelSource<T, SourceSplitBase, PendingSplitsState>, SupportCoordinate {
+
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
 
     protected ReadonlyConfig readonlyConfig;
     protected SourceConfig.Factory<C> configFactory;
@@ -158,6 +172,8 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
 
     public abstract OffsetFactory createOffsetFactory(ReadonlyConfig config);
 
+    public abstract Optional<String> driverName();
+
     @Override
     public Boundedness getBoundedness() {
         return stopMode == StopMode.NEVER ? Boundedness.UNBOUNDED : Boundedness.BOUNDED;
@@ -167,6 +183,10 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
     @Override
     public SourceReader<T, SourceSplitBase> createReader(SourceReader.Context readerContext)
             throws Exception {
+        // Load the JDBC driver in to DriverManager
+        if (driverName().isPresent()) {
+            Class.forName(driverName().get());
+        }
         // create source config for the given subtask (e.g. unique server id)
         C sourceConfig = configFactory.create(readerContext.getIndexOfSubtask());
         BlockingQueue<RecordsWithSplitIds<SourceRecords>> elementsQueue =
@@ -199,6 +219,10 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
     @Override
     public SourceSplitEnumerator<SourceSplitBase, PendingSplitsState> createEnumerator(
             SourceSplitEnumerator.Context<SourceSplitBase> enumeratorContext) throws Exception {
+        // Load the JDBC driver in to DriverManager
+        if (driverName().isPresent()) {
+            Class.forName(driverName().get());
+        }
         C sourceConfig = configFactory.create(0);
         final List<TableId> remainingTables =
                 dataSourceDialect.discoverDataCollections(sourceConfig);
@@ -240,6 +264,10 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
             SourceSplitEnumerator.Context<SourceSplitBase> enumeratorContext,
             PendingSplitsState checkpointState)
             throws Exception {
+        // Load the JDBC driver in to DriverManager
+        if (driverName().isPresent()) {
+            Class.forName(driverName().get());
+        }
         C sourceConfig = configFactory.create(0);
         Set<TableId> capturedTables =
                 new HashSet<>(dataSourceDialect.discoverDataCollections(sourceConfig));

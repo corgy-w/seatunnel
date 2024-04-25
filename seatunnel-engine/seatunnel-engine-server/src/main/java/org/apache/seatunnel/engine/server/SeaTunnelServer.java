@@ -17,6 +17,8 @@
 
 package org.apache.seatunnel.engine.server;
 
+import org.apache.seatunnel.common.config.Common;
+import org.apache.seatunnel.common.utils.FileUtils;
 import org.apache.seatunnel.common.utils.RetryUtils;
 import org.apache.seatunnel.engine.common.Constant;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
@@ -41,6 +43,11 @@ import com.hazelcast.spi.impl.operationservice.LiveOperationsTracker;
 import lombok.Getter;
 import lombok.NonNull;
 
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.sql.DriverManager;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,6 +58,18 @@ import static com.hazelcast.spi.properties.ClusterProperty.INVOCATION_RETRY_PAUS
 
 public class SeaTunnelServer
         implements ManagedService, MembershipAwareService, LiveOperationsTracker {
+
+    static {
+        // Load DriverManager first to avoid deadlock between DriverManager's
+        // static initialization block and specific driver class's static
+        // initialization block when two different driver classes are loading
+        // concurrently using Class.forName while DriverManager is uninitialized
+        // before.
+        //
+        // This could happen in JDK 8 but not above as driver loading has been
+        // moved out of DriverManager's static initialization block since JDK 9.
+        DriverManager.getDrivers();
+    }
 
     private static final ILogger LOGGER = Logger.getLogger(SeaTunnelServer.class);
 
@@ -103,8 +122,21 @@ public class SeaTunnelServer
         nodeEngine.getMetricsRegistry().registerDynamicMetricsProvider(taskExecutionService);
         taskExecutionService.start();
         getSlotService();
+
+        List<URL> jars;
+        try {
+            jars = FileUtils.searchJarFiles(Common.appStarterDir().resolve("zeta"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        ClassLoader appClassLoader = Thread.currentThread().getContextClassLoader();
+        ClassLoader classLoader = new URLClassLoader(jars.toArray(new URL[0]));
+        LOGGER.info("init seatunnel server with jars: " + jars);
+
+        Thread.currentThread().setContextClassLoader(classLoader);
         coordinatorService =
-                new CoordinatorService(nodeEngine, this, seaTunnelConfig.getEngineConfig());
+                new CoordinatorService(
+                        nodeEngine, this, seaTunnelConfig.getEngineConfig(), classLoader);
         monitorService = Executors.newSingleThreadScheduledExecutor();
         monitorService.scheduleAtFixedRate(
                 this::printExecutionInfo,
@@ -113,6 +145,7 @@ public class SeaTunnelServer
                 TimeUnit.SECONDS);
 
         seaTunnelHealthMonitor = new SeaTunnelHealthMonitor(((NodeEngineImpl) engine).getNode());
+        Thread.currentThread().setContextClassLoader(appClassLoader);
     }
 
     @Override

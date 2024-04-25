@@ -102,14 +102,7 @@ public class RowMapper {
     }
 
     public static Timestamp getChangeTime(ResultSet rs) throws SQLException {
-        // CHANGE_TIME is in the database server time zone but does not store the time zone.
-        // Without passing any calendar the timestamp is considered to be in the JVM time zone.
-        // This would lead to incorrect conversions when calling e.g. Timestamp#toInstant() if
-        // database
-        // server time zone is not the same as JVM time zone. By passing UTC calendar CHANGE_TIME is
-        // considered
-        // to be in UTC and no conversion happens on Timestamp#toInstant().
-        return rs.getTimestamp(CHANGE_TIME, UTC_CALENDAR);
+        return rs.getTimestamp(CHANGE_TIME);
     }
 
     public static Scn getScn(ResultSet rs) throws SQLException {
