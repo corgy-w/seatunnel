@@ -30,8 +30,7 @@ env:
 jobs:
   deploy:
     name: Deploy maven packages to pkg.github
-    runs-on:
-      labels: wtci_haiwai
+    runs-on: self-hosted
     permissions:
       packages: write
       contents: read
