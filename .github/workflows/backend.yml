@@ -33,7 +33,7 @@ jobs:
   license-header:
     name: License header
     runs-on:
-      labels: wtci
+      labels: wtci_haiwai
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
