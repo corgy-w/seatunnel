@@ -47,7 +47,7 @@ public interface JdbcSourceOptions {
     Option<Integer> SPLIT_SIZE =
             Options.key("split.size")
                     .intType()
-                    .defaultValue(8096)
+                    .defaultValue(100000)
                     .withDescription(
                             "The split size (number of rows) of table snapshot, captured tables are split into multiple splits when read     of table.");
 
