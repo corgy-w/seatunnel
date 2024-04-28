@@ -74,6 +74,7 @@ public class JdbcOracleIT extends AbstractJdbcIT {
                     + "    CHAR_10_COL                   char(10),\n"
                     + "    CLOB_COL                      clob,\n"
                     + "    NUMBER_3_SF_2_DP              number(3, 2),\n"
+                    + "    NUMBER_7_SF_N2_DP             number(7, -2),\n"
                     + "    INTEGER_COL                   integer,\n"
                     + "    FLOAT_COL                     float(10),\n"
                     + "    REAL_COL                      real,\n"
@@ -91,6 +92,7 @@ public class JdbcOracleIT extends AbstractJdbcIT {
                 "CHAR_10_COL",
                 "CLOB_COL",
                 "NUMBER_3_SF_2_DP",
+                "NUMBER_7_SF_N2_DP",
                 "INTEGER_COL",
                 "FLOAT_COL",
                 "REAL_COL",
@@ -171,6 +173,7 @@ public class JdbcOracleIT extends AbstractJdbcIT {
                                 String.format("f%s", i),
                                 String.format("f%s", i),
                                 BigDecimal.valueOf(1.1),
+                                BigDecimal.valueOf(2400),
                                 i,
                                 Float.parseFloat("2.2"),
                                 Float.parseFloat("2.2"),

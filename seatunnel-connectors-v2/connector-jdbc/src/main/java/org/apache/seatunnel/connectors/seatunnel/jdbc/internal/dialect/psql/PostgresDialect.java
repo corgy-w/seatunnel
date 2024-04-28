@@ -37,6 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -221,6 +222,13 @@ public class PostgresDialect implements JdbcDialect {
     @Override
     public String quoteDatabaseIdentifier(String identifier) {
         return "\"" + identifier + "\"";
+    }
+
+    @Override
+    public Map<String, String> defaultParameter() {
+        HashMap<String, String> map = new HashMap<>();
+        map.put("stringtype", "unspecified");
+        return map;
     }
 
     @Override
