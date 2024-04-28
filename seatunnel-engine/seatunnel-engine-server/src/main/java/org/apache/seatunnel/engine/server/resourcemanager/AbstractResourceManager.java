@@ -17,25 +17,35 @@
 
 package org.apache.seatunnel.engine.server.resourcemanager;
 
+import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.common.runtime.ExecutionMode;
+import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseServiceImpl;
 import org.apache.seatunnel.engine.server.resourcemanager.opeartion.ReleaseSlotOperation;
 import org.apache.seatunnel.engine.server.resourcemanager.opeartion.ResetResourceOperation;
 import org.apache.seatunnel.engine.server.resourcemanager.opeartion.SyncWorkerProfileOperation;
 import org.apache.seatunnel.engine.server.resourcemanager.resource.ResourceProfile;
 import org.apache.seatunnel.engine.server.resourcemanager.resource.SlotProfile;
 import org.apache.seatunnel.engine.server.resourcemanager.worker.WorkerProfile;
+import org.apache.seatunnel.engine.server.utils.NetUtils;
 import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
+
+import org.whaleops.license.LicenseManager;
+import org.whaleops.license.dto.LicenseInfo;
+import org.whaleops.license.utils.LicenseUtil;
 
 import com.hazelcast.cluster.Address;
 import com.hazelcast.cluster.Member;
 import com.hazelcast.internal.services.MembershipServiceEvent;
 import com.hazelcast.spi.impl.NodeEngine;
 import com.hazelcast.spi.impl.operationservice.Operation;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,9 +65,12 @@ public abstract class AbstractResourceManager implements ResourceManager {
 
     private volatile boolean isRunning = true;
 
-    public AbstractResourceManager(NodeEngine nodeEngine) {
+    private final EngineConfig engineConfig;
+
+    public AbstractResourceManager(NodeEngine nodeEngine, EngineConfig engineConfig) {
         this.registerWorker = new ConcurrentHashMap<>();
         this.nodeEngine = nodeEngine;
+        this.engineConfig = engineConfig;
     }
 
     @Override
@@ -130,6 +143,7 @@ public abstract class AbstractResourceManager implements ResourceManager {
     @Override
     public CompletableFuture<List<SlotProfile>> applyResources(
             long jobId, List<ResourceProfile> resourceProfile) throws NoEnoughResourceException {
+
         waitingWorkerRegister();
         return new ResourceRequestHandler(jobId, resourceProfile, registerWorker, this).request();
     }
@@ -215,5 +229,31 @@ public abstract class AbstractResourceManager implements ResourceManager {
             log.debug("received worker heartbeat from: " + workerProfile.getAddress());
         }
         registerWorker.put(workerProfile.getAddress(), workerProfile);
+    }
+
+    @SneakyThrows
+    private Boolean isPassedLicenseCheck() {
+        LicenseManager licenseManager = new LicenseManager();
+        Class<?> clazz = licenseManager.getClass();
+        Field nameField = clazz.getDeclaredField("licenseService");
+        nameField.setAccessible(true);
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(engineConfig));
+
+        licenseManager.init();
+        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
+        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
+            return false;
+        }
+        final List<String> allIp = NetUtils.getAllIp();
+        for (String ip : allIp) {
+            try {
+                if (LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), ip)) {
+                    return true;
+                }
+            } catch (Exception e) {
+                log.info(String.format("ip:%s is not in whitelist", ip), e);
+            }
+        }
+        return false;
     }
 }

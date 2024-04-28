@@ -18,6 +18,11 @@
 package org.apache.seatunnel.engine.server.license;
 
 import org.apache.seatunnel.common.utils.SeaTunnelException;
+import org.apache.seatunnel.engine.common.config.EngineConfig;
+import org.apache.seatunnel.engine.server.utils.HttpUtils;
+
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.stereotype.Service;
 import org.whaleops.license.dto.LicensePackageDto;
@@ -25,6 +30,9 @@ import org.whaleops.license.dto.SystemLicenseInfo;
 import org.whaleops.license.enums.LicenseVersionEnum;
 import org.whaleops.license.service.LicenseService;
 
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
 import lombok.SneakyThrows;
 
 import java.io.BufferedReader;
@@ -34,15 +42,22 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
 public class WhaleTunnelLicenseServiceImpl implements LicenseService {
 
+    private EngineConfig engineConfig;
+
     private static final String LICENSE_PATH =
             System.getProperty("SEATUNNEL_LICENCE_HOME") == null
                     ? "/etc/seatunnel/whaletunnel.license"
                     : System.getProperty("SEATUNNEL_LICENCE_HOME");
+
+    public WhaleTunnelLicenseServiceImpl(EngineConfig engineConfig) {
+        this.engineConfig = engineConfig;
+    }
 
     @SneakyThrows
     @Override
@@ -73,6 +88,27 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
         List<SystemLicenseInfo> systemLicenseInfoList = new ArrayList<>(1);
         systemLicenseInfoList.add(systemLicenseInfo);
         return systemLicenseInfoList;
+    }
+
+    private String getLicenseStringFromApi() {
+        final String licenseGetHttpApi = engineConfig.getLicenseGetHttpApi();
+        final Map<String, String> licenseGetHttpHeaders = engineConfig.getLicenseGetHttpHeaders();
+        if (StringUtils.isBlank(licenseGetHttpApi) || MapUtils.isEmpty(licenseGetHttpHeaders)) {
+            return null;
+        }
+        OkHttpClient httpClient = HttpUtils.getInstance();
+        try {
+            Request.Builder requestBuilder = new Request.Builder().url(licenseGetHttpApi).get();
+            licenseGetHttpHeaders.forEach(requestBuilder::header);
+            Response response = httpClient.newCall(requestBuilder.build()).execute();
+            if (!response.isSuccessful()) {
+
+                return null;
+            }
+        } catch (Exception e) {
+
+        }
+        return null;
     }
 
     @Override

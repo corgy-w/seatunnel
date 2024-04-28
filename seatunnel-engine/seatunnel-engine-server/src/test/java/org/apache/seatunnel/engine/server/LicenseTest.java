@@ -16,6 +16,7 @@
  */
 package org.apache.seatunnel.engine.server;
 
+import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseServiceImpl;
 import org.apache.seatunnel.engine.server.utils.NetUtils;
 
@@ -52,7 +53,7 @@ public class LicenseTest {
         Class<?> clazz = licenseManager.getClass();
         Field nameField = clazz.getDeclaredField("licenseService");
         nameField.setAccessible(true);
-        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl());
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(getEngineConfig()));
 
         licenseManager.init();
         final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
@@ -69,7 +70,7 @@ public class LicenseTest {
         Class<?> clazz = licenseManager.getClass();
         Field nameField = clazz.getDeclaredField("licenseService");
         nameField.setAccessible(true);
-        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl());
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(getEngineConfig()));
 
         licenseManager.init();
         final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
@@ -86,7 +87,7 @@ public class LicenseTest {
         Class<?> clazz = licenseManager.getClass();
         Field nameField = clazz.getDeclaredField("licenseService");
         nameField.setAccessible(true);
-        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl());
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(getEngineConfig()));
 
         licenseManager.init();
         final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
@@ -102,7 +103,7 @@ public class LicenseTest {
         Class<?> clazz = licenseManager.getClass();
         Field nameField = clazz.getDeclaredField("licenseService");
         nameField.setAccessible(true);
-        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl());
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(getEngineConfig()));
 
         licenseManager.init();
         final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
@@ -119,5 +120,10 @@ public class LicenseTest {
             }
         }
         return false;
+    }
+
+    private EngineConfig getEngineConfig() {
+        final EngineConfig engineConfig = new EngineConfig();
+        return engineConfig;
     }
 }

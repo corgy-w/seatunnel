@@ -14,16 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.seatunnel.engine.server.utils;
 
-package org.apache.seatunnel.engine.server.resourcemanager;
+import com.squareup.okhttp.OkHttpClient;
 
-import org.apache.seatunnel.engine.common.config.EngineConfig;
+import java.util.concurrent.TimeUnit;
 
-import com.hazelcast.spi.impl.NodeEngine;
+public class HttpUtils {
 
-public class StandaloneResourceManager extends AbstractResourceManager {
+    private static OkHttpClient httpClient;
 
-    public StandaloneResourceManager(NodeEngine nodeEngine, EngineConfig engineConfig) {
-        super(nodeEngine, engineConfig);
+    private HttpUtils() {}
+
+    public static OkHttpClient getInstance() {
+        if (httpClient == null) {
+            synchronized (HttpUtils.class) {
+                if (httpClient == null) {
+                    httpClient = new OkHttpClient();
+                    httpClient.setConnectTimeout(30, TimeUnit.SECONDS);
+                    httpClient.setWriteTimeout(10, TimeUnit.SECONDS);
+                }
+            }
+        }
+        return httpClient;
     }
 }
