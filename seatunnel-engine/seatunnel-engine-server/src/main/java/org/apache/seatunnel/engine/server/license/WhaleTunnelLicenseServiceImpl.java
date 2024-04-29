@@ -17,6 +17,10 @@
 
 package org.apache.seatunnel.engine.server.license;
 
+import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.JsonNode;
+import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.node.ObjectNode;
+
+import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.server.utils.HttpUtils;
@@ -24,6 +28,8 @@ import org.apache.seatunnel.engine.server.utils.HttpUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.whaleops.license.dto.LicensePackageDto;
 import org.whaleops.license.dto.SystemLicenseInfo;
@@ -48,6 +54,8 @@ import java.util.Set;
 @Service
 public class WhaleTunnelLicenseServiceImpl implements LicenseService {
 
+    private static final Logger log = LoggerFactory.getLogger(WhaleTunnelLicenseServiceImpl.class);
+
     private EngineConfig engineConfig;
 
     private static final String LICENSE_PATH =
@@ -62,28 +70,34 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
     @SneakyThrows
     @Override
     public List<SystemLicenseInfo> loadSystemLicenseList() {
-        InputStream inputStream = new FileInputStream(LICENSE_PATH);
-        StringBuilder stringBuilder = new StringBuilder();
-        if (inputStream != null) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    stringBuilder.append(line);
-                }
-            } catch (IOException e) {
-                throw new SeaTunnelException(e);
-            } finally {
-                try {
-                    inputStream.close();
+        final SystemLicenseInfo systemLicenseInfo = new SystemLicenseInfo();
+        final String licenseStringFromApi = getLicenseStringFromApi();
+        if (StringUtils.isNotEmpty(licenseStringFromApi)) {
+            systemLicenseInfo.setLicense(licenseStringFromApi);
+        } else {
+            InputStream inputStream = new FileInputStream(LICENSE_PATH);
+            StringBuilder stringBuilder = new StringBuilder();
+            if (inputStream != null) {
+                try (BufferedReader reader =
+                        new BufferedReader(new InputStreamReader(inputStream))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        stringBuilder.append(line);
+                    }
                 } catch (IOException e) {
                     throw new SeaTunnelException(e);
+                } finally {
+                    try {
+                        inputStream.close();
+                    } catch (IOException e) {
+                        throw new SeaTunnelException(e);
+                    }
                 }
+            } else {
+                throw new SeaTunnelException("inputStream is null");
             }
-        } else {
-            throw new SeaTunnelException("inputStream is null");
+            systemLicenseInfo.setLicense(stringBuilder.toString());
         }
-        final SystemLicenseInfo systemLicenseInfo = new SystemLicenseInfo();
-        systemLicenseInfo.setLicense(stringBuilder.toString());
         systemLicenseInfo.setStatus(1);
         List<SystemLicenseInfo> systemLicenseInfoList = new ArrayList<>(1);
         systemLicenseInfoList.add(systemLicenseInfo);
@@ -102,14 +116,33 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
             licenseGetHttpHeaders.forEach(requestBuilder::header);
             Response response = httpClient.newCall(requestBuilder.build()).execute();
             if (!response.isSuccessful()) {
-
+                log.info("get license fail:{}", response.toString());
                 return null;
             }
+            final String body = response.body().string();
+            final ObjectNode jsonNodes = JsonUtils.parseObject(body);
+            final JsonNode data = jsonNodes.get("data");
+            final JsonNode systemLicense = data.get("systemLicense");
+            final JsonNode licenseStrNode = systemLicense.get("license");
+            final String license = licenseStrNode.asText();
+            return license;
         } catch (Exception e) {
-
+            log.error("get license error:{}", e.getMessage());
+            e.printStackTrace();
         }
         return null;
     }
+
+    /*public static void main(String[] args) {
+        final EngineConfig engineConfig = new EngineConfig();
+        Map<String,String> header = new HashMap<>();
+        header.put("Content-Type","application/json");
+        header.put("Token","e554d577183d034b90dd47d457d58b61");
+        engineConfig.setLicenseGetHttpApi("http://localhost:12345/dolphinscheduler/license/get-valid-license");
+        engineConfig.setLicenseGetHttpHeaders(header);
+        final WhaleTunnelLicenseServiceImpl whaleTunnelLicenseService = new WhaleTunnelLicenseServiceImpl(engineConfig);
+        whaleTunnelLicenseService.getLicenseStringFromApi();
+    }*/
 
     @Override
     public SystemLicenseInfo getValidLicense() {
