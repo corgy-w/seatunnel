@@ -26,6 +26,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.testcontainers.containers.Db2Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.DockerLoggerFactory;
 
 import com.google.common.collect.Lists;
@@ -56,7 +57,7 @@ public class JdbcDb2IT extends AbstractJdbcIT {
             Lists.newArrayList("/jdbc_db2_source_and_sink.conf");
 
     /** <a href="https://hub.docker.com/r/ibmcom/db2">db2 in dockerhub</a> */
-    private static final String DB2_IMAGE = "ibmcom/db2";
+    private static final String DB2_IMAGE = "ibmoms/db2:latest";
 
     private static final int PORT = 50000;
     private static final int LOCAL_PORT = 50000;
@@ -179,8 +180,10 @@ public class JdbcDb2IT extends AbstractJdbcIT {
 
     @Override
     protected GenericContainer<?> initContainer() {
+        DockerImageName myImage =
+                DockerImageName.parse("ibmoms/db2:latest").asCompatibleSubstituteFor("ibmcom/db2");
         GenericContainer<?> container =
-                new Db2Container(DB2_IMAGE)
+                new Db2Container(myImage)
                         .withExposedPorts(PORT)
                         .withNetwork(NETWORK)
                         .withNetworkAliases(DB2_CONTAINER_HOST)

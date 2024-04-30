@@ -47,8 +47,6 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.images.PullPolicy;
 import org.testcontainers.lifecycle.Startables;
 
-import com.github.dockerjava.api.model.Image;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -272,7 +270,7 @@ public abstract class AbstractJdbcIT extends TestSuiteBase implements TestResour
     @BeforeAll
     @Override
     public void startUp() {
-        dbServer = initContainer().withImagePullPolicy(PullPolicy.alwaysPull());
+        dbServer = initContainer().withImagePullPolicy(PullPolicy.defaultPolicy());
 
         Startables.deepStart(Stream.of(dbServer)).join();
 
@@ -305,27 +303,17 @@ public abstract class AbstractJdbcIT extends TestSuiteBase implements TestResour
 
         if (dbServer != null) {
             dbServer.close();
-            String images =
-                    dockerClient.listImagesCmd().exec().stream()
-                            .map(Image::getId)
-                            .collect(Collectors.joining(","));
-            log.info(
-                    "before remove image {}, list images: {}",
-                    dbServer.getDockerImageName(),
-                    images);
-            try {
-                dockerClient.removeImageCmd(dbServer.getDockerImageName()).exec();
-            } catch (Exception ignored) {
-                log.warn("Failed to delete the image. Another container may be in use", ignored);
-            }
-            images =
-                    dockerClient.listImagesCmd().exec().stream()
-                            .map(Image::getId)
-                            .collect(Collectors.joining(","));
-            log.info(
-                    "after remove image {}, list images: {}",
-                    dbServer.getDockerImageName(),
-                    images);
+            /** do not remove image in bussness version * */
+            /**
+             * String images = dockerClient.listImagesCmd().exec().stream() .map(Image::getId)
+             * .collect(Collectors.joining(",")); log.info( "before remove image {}, list images:
+             * {}", dbServer.getDockerImageName(), images); try {
+             * dockerClient.removeImageCmd(dbServer.getDockerImageName()).exec(); } catch (Exception
+             * ignored) { log.warn("Failed to delete the image. Another container may be in use",
+             * ignored); } images = dockerClient.listImagesCmd().exec().stream() .map(Image::getId)
+             * .collect(Collectors.joining(",")); log.info( "after remove image {}, list images:
+             * {}", dbServer.getDockerImageName(), images); *
+             */
         }
     }
 

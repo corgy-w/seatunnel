@@ -37,6 +37,7 @@ import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.images.PullPolicy;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerLoggerFactory;
 
@@ -109,6 +110,7 @@ public class AmazondynamodbIT extends TestSuiteBase implements TestResource {
                         .withNetwork(NETWORK)
                         .withNetworkAliases(AMAZONDYNAMODB_CONTAINER_HOST)
                         .withExposedPorts(AMAZONDYNAMODB_CONTAINER_PORT)
+                        .withImagePullPolicy(PullPolicy.defaultPolicy())
                         .withLogConsumer(
                                 new Slf4jLogConsumer(
                                         DockerLoggerFactory.getLogger(

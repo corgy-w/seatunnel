@@ -36,7 +36,6 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.DockerLoggerFactory;
 
-import com.github.dockerjava.api.model.Image;
 import com.google.common.collect.Lists;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,7 +49,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class JdbcMysqlSaveModeHandlerIT extends AbstractJdbcIT {
@@ -329,22 +327,15 @@ public class JdbcMysqlSaveModeHandlerIT extends AbstractJdbcIT {
 
         if (dbServer != null) {
             dbServer.close();
-            String images =
-                    dockerClient.listImagesCmd().exec().stream()
-                            .map(Image::getId)
-                            .collect(Collectors.joining(","));
-            log.info(
-                    "before remove image {}, list images: {}",
-                    dbServer.getDockerImageName(),
-                    images);
-            images =
-                    dockerClient.listImagesCmd().exec().stream()
-                            .map(Image::getId)
-                            .collect(Collectors.joining(","));
-            log.info(
-                    "after remove image {}, list images: {}",
-                    dbServer.getDockerImageName(),
-                    images);
+            /** do not remove image in bussness version * */
+            /**
+             * String images = dockerClient.listImagesCmd().exec().stream() .map(Image::getId)
+             * .collect(Collectors.joining(",")); log.info( "before remove image {}, list images:
+             * {}", dbServer.getDockerImageName(), images); images =
+             * dockerClient.listImagesCmd().exec().stream() .map(Image::getId)
+             * .collect(Collectors.joining(",")); log.info( "after remove image {}, list images:
+             * {}", dbServer.getDockerImageName(), images);*
+             */
         }
     }
 }
