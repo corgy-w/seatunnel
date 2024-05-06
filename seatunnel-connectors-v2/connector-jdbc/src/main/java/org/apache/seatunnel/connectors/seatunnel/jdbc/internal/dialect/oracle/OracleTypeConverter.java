@@ -161,7 +161,7 @@ public class OracleTypeConverter implements TypeConverter<BasicTypeDefine> {
             case ORACLE_VARCHAR:
             case ORACLE_VARCHAR2:
                 builder.dataType(BasicType.STRING_TYPE);
-                builder.columnLength(typeDefine.getLength() * 4);
+                builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                 break;
             case ORACLE_NCHAR:
             case ORACLE_NVARCHAR2:
