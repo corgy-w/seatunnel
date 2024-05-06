@@ -117,21 +117,22 @@ public class OracleTypeConverter implements TypeConverter<BasicTypeDefine> {
                     scale = 127;
                 }
 
-                if (scale == 0) {
-                    if (precision == 1) {
+                if (scale <= 0) {
+                    int newPrecision = (int) (precision - scale);
+                    if (newPrecision == 1) {
                         builder.dataType(BasicType.BOOLEAN_TYPE);
-                    } else if (precision <= 9) {
+                    } else if (newPrecision <= 9) {
                         builder.dataType(BasicType.INT_TYPE);
-                    } else if (precision <= 18) {
+                    } else if (newPrecision <= 18) {
                         builder.dataType(BasicType.LONG_TYPE);
-                    } else if (precision < 38) {
-                        builder.dataType(new DecimalType(precision.intValue(), 0));
-                        builder.columnLength(precision);
+                    } else if (newPrecision < 38) {
+                        builder.dataType(new DecimalType(newPrecision, 0));
+                        builder.columnLength((long) newPrecision);
                     } else {
                         builder.dataType(new DecimalType(DEFAULT_PRECISION, 0));
                         builder.columnLength((long) DEFAULT_PRECISION);
                     }
-                } else if (scale > 0 && scale <= DEFAULT_SCALE) {
+                } else if (scale <= DEFAULT_SCALE) {
                     builder.dataType(new DecimalType(precision.intValue(), scale));
                     builder.columnLength(precision);
                     builder.scale(scale);
@@ -160,7 +161,7 @@ public class OracleTypeConverter implements TypeConverter<BasicTypeDefine> {
             case ORACLE_VARCHAR:
             case ORACLE_VARCHAR2:
                 builder.dataType(BasicType.STRING_TYPE);
-                builder.columnLength(typeDefine.getLength());
+                builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                 break;
             case ORACLE_NCHAR:
             case ORACLE_NVARCHAR2:

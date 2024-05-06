@@ -33,7 +33,7 @@ jobs:
   license-header:
     name: License header
     runs-on:
-      labels: wtci
+      labels: wtci_haiwai
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v3
@@ -182,7 +182,12 @@ jobs:
           update_files='${{ steps.filter.outputs.deleted-poms_files }}'
           modules=`python3 tools/update_modules_check/update_modules_check.py delete "$update_files"`
           echo $modules
-          echo "modules=$modules" >> $GITHUB_OUTPUT      
+          echo "modules=$modules" >> $GITHUB_OUTPUT  
+
+      - name: Build Project
+        id: build-project
+        run: |
+          ./mvnw -U -T 1C clean install -DskipTests -D"maven.test.skip"=true -D"maven.javadoc.skip"=true
 
       - name: Make unit test modules
         id: ut-modules
