@@ -39,7 +39,6 @@ import com.xxdb.DBConnection;
 import com.xxdb.data.BasicStringVector;
 import com.xxdb.data.BasicTable;
 import com.xxdb.data.Entity;
-import com.xxdb.data.Vector;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -170,7 +169,7 @@ public class DolphinDBCatalog implements Catalog {
                                     String.format(
                                             "loadTable(\"%s\",\"%s\").schema().colDefs",
                                             tablePath.getDatabaseName(), tablePath.getTableName()));
-            int columns = basicTable.columns();
+            int columns = basicTable.getColumn(0).rows();
             TableSchema.Builder builder = TableSchema.builder();
             DolphinDBDataTypeConvertor dolphinDBDataTypeConvertor =
                     new DolphinDBDataTypeConvertor();
@@ -179,9 +178,11 @@ public class DolphinDBCatalog implements Catalog {
                     builder,
                     IntStream.range(0, columns).iterator(),
                     i -> {
-                        Vector column = basicTable.getColumn(i);
-                        String columnName = basicTable.getColumnName(i);
-                        Entity.DATA_TYPE dataType = column.getDataType();
+                        String columnName = basicTable.getColumn(0).get(i).getString();
+                        Entity.DATA_TYPE dataType =
+                                Entity.DATA_TYPE.valueOf(
+                                        Integer.parseInt(
+                                                basicTable.getColumn(2).get(i).getString()));
                         return PhysicalColumn.of(
                                 columnName,
                                 dolphinDBDataTypeConvertor.toSeaTunnelType(
@@ -189,7 +190,9 @@ public class DolphinDBCatalog implements Catalog {
                                 (Long) null,
                                 true,
                                 null,
-                                null);
+                                basicTable.getColumn(3).get(i).getString(),
+                                basicTable.getColumn(1).get(i).getString(),
+                                new HashMap<>());
                     });
             return CatalogTable.of(
                     TableIdentifier.of(

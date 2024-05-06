@@ -21,7 +21,6 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
@@ -30,7 +29,6 @@ import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
@@ -113,10 +111,6 @@ public class DolphinDBSinkFactory implements TableSinkFactory<SeaTunnelRow, Void
                                 + catalogTable.getTableId().getTableName());
             } else {
                 map.put(TABLE.key(), catalogTable.getTableId().getTableName());
-            }
-            PrimaryKey primaryKey = catalogTable.getTableSchema().getPrimaryKey();
-            if (primaryKey != null && !CollectionUtils.isEmpty(primaryKey.getColumnNames())) {
-                map.put(PARTITION_COLUMN.key(), String.join(",", primaryKey.getColumnNames()));
             }
             readonlyConfig = ReadonlyConfig.fromMap(new HashMap<>(map));
         }

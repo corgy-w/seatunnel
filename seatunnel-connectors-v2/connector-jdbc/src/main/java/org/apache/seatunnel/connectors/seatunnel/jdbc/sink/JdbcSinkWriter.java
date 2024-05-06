@@ -43,6 +43,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcSinkState;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.XidInfo;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.SneakyThrows;
@@ -94,6 +95,8 @@ public class JdbcSinkWriter
         ds.setIdleTimeout(30 * 1000);
         ds.setMaximumPoolSize(queueSize);
         ds.setJdbcUrl(jdbcSinkConfig.getJdbcConnectionConfig().getUrl());
+        ds.setDataSourceProperties(
+                MapUtils.toProperties(jdbcSinkConfig.getJdbcConnectionConfig().getProperties()));
         if (jdbcSinkConfig
                 .getJdbcConnectionConfig()
                 .driverName
