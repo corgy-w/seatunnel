@@ -258,7 +258,6 @@ public class CoordinatorService {
         ownedSlotProfilesIMap =
                 nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_OWNED_SLOT_PROFILES);
         metricsImap = nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_RUNNING_JOB_METRICS);
-        logger.warning("1111111111111111");
         jobHistoryService =
                 new JobHistoryService(
                         runningJobStateIMap,
