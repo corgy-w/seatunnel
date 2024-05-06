@@ -16,9 +16,9 @@
 #
 
 hazelcast-client:
-  cluster-name: seatunnel
+  cluster-name: connector-package-service
   network:
     cluster-members:
-      - localhost:5801
-      - localhost:5802
-      - localhost:5803
+      - localhost:6801
+      - localhost:6802
+      - localhost:6803

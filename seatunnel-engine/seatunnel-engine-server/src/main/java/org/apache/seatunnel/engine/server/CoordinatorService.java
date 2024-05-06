@@ -258,7 +258,6 @@ public class CoordinatorService {
         ownedSlotProfilesIMap =
                 nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_OWNED_SLOT_PROFILES);
         metricsImap = nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_RUNNING_JOB_METRICS);
-
         jobHistoryService =
                 new JobHistoryService(
                         runningJobStateIMap,
@@ -277,14 +276,12 @@ public class CoordinatorService {
                         engineConfig.getEventReportHttpApi(),
                         engineConfig.getEventReportHttpHeaders(),
                         nodeEngine);
-
         // If the user has configured the connector package service, create it  on the master node.
         ConnectorJarStorageConfig connectorJarStorageConfig =
                 engineConfig.getConnectorJarStorageConfig();
         if (connectorJarStorageConfig.getEnable()) {
             connectorPackageService = new ConnectorPackageService(seaTunnelServer);
         }
-
         List<CompletableFuture<Void>> collect =
                 runningJobInfoIMap.entrySet().stream()
                         .map(
@@ -395,7 +392,7 @@ public class CoordinatorService {
                         "This node become leave active master node, begin clear coordinator service");
                 clearCoordinatorService();
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             isActive = false;
             logger.severe(ExceptionUtils.getMessage(e));
             throw new SeaTunnelEngineException("check new active master error, stop loop", e);
