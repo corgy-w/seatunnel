@@ -30,7 +30,8 @@ env:
 jobs:
   deploy:
     name: Deploy maven packages to pkg.github
-    runs-on: self-hosted
+    runs-on: 
+      labels: ws
     permissions:
       packages: write
       contents: read
