@@ -411,7 +411,6 @@ public class MysqlCDCIT extends TestSuiteBase implements TestResource {
         log.info("****************** container logs start ******************");
         String containerLogs = container.getServerLogs();
         log.info(containerLogs);
-        // Assertions.assertFalse(containerLogs.contains("ERROR"));
         log.info("****************** container logs end ******************");
     }
 
