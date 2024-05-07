@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.wa
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
 import org.apache.seatunnel.connectors.cdc.base.source.split.IncrementalSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
+import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.offset.LsnOffset;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.OpenGaussSourceFetchTaskContext;
 
 import io.debezium.connector.opengauss.OpengaussOffsetContext;
@@ -74,15 +75,11 @@ public class OpenGaussWalFetchTask implements FetchTask<SourceSplitBase> {
         streamingChangeEventSource.execute(changeEventSourceContext, offsetContext);
     }
 
-    public void commitCurrentOffset() {
-        if (streamingChangeEventSource != null && offsetContext != null) {
+    public void commitCurrentOffset(LsnOffset offset) {
+        if (streamingChangeEventSource != null && offset != null) {
 
-            // only extracting and storing the lsn of the last commit
-            Long commitLsn =
-                    (Long)
-                            offsetContext
-                                    .getOffset()
-                                    .get(OpengaussOffsetContext.LAST_COMMIT_LSN_KEY);
+            // only extracting and storing the lsn of the last commit checkpoint
+            Long commitLsn = offset.getLsn().asLong();
             if (commitLsn != null
                     && (lastCommitLsn == null
                             || Lsn.valueOf(commitLsn).compareTo(Lsn.valueOf(lastCommitLsn)) > 0)) {
