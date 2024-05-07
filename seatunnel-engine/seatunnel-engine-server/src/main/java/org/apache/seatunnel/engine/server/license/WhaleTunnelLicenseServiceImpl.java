@@ -133,17 +133,6 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
         return null;
     }
 
-    /*public static void main(String[] args) {
-        final EngineConfig engineConfig = new EngineConfig();
-        Map<String,String> header = new HashMap<>();
-        header.put("Content-Type","application/json");
-        header.put("Token","e554d577183d034b90dd47d457d58b61");
-        engineConfig.setLicenseGetHttpApi("http://localhost:12345/dolphinscheduler/license/get-valid-license");
-        engineConfig.setLicenseGetHttpHeaders(header);
-        final WhaleTunnelLicenseServiceImpl whaleTunnelLicenseService = new WhaleTunnelLicenseServiceImpl(engineConfig);
-        whaleTunnelLicenseService.getLicenseStringFromApi();
-    }*/
-
     @Override
     public SystemLicenseInfo getValidLicense() {
         return null;

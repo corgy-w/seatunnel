@@ -22,7 +22,7 @@ seatunnel:
       headers:
         Content-Type: application/json
         Token: 4c61c3f30444d59fe23930186139d033 # should change it when deploy engine
-    license-get-http:
+    license-service-http:
       url: http://localhost:12345/dolphinscheduler/license/get-valid-license
       headers:
         Content-Type: application/json
