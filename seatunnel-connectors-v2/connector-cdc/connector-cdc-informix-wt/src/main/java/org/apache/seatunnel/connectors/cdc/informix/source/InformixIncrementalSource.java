@@ -66,7 +66,6 @@ public class InformixIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
     static final String IDENTIFIER = "Informix-CDC";
 
     private InformixSourceConfig sourceConfig;
-    private InformixPooledDataSourceFactory connectionPoolFactory;
 
     public InformixIncrementalSource(
             ReadonlyConfig options,
