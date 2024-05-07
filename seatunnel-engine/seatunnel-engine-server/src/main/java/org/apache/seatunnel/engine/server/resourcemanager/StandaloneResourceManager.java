@@ -17,11 +17,72 @@
 
 package org.apache.seatunnel.engine.server.resourcemanager;
 
-import com.hazelcast.spi.impl.NodeEngine;
+import org.apache.seatunnel.engine.common.config.EngineConfig;
+import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseServiceImpl;
+import org.apache.seatunnel.engine.server.resourcemanager.worker.WorkerProfile;
 
+import org.apache.commons.collections4.MapUtils;
+
+import org.whaleops.license.LicenseManager;
+import org.whaleops.license.dto.LicenseInfo;
+import org.whaleops.license.utils.LicenseUtil;
+
+import com.hazelcast.cluster.Address;
+import com.hazelcast.spi.impl.NodeEngine;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
+import java.lang.reflect.Field;
+import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+@Slf4j
 public class StandaloneResourceManager extends AbstractResourceManager {
 
-    public StandaloneResourceManager(NodeEngine nodeEngine) {
+    private final EngineConfig engineConfig;
+
+    public StandaloneResourceManager(NodeEngine nodeEngine, EngineConfig engineConfig) {
         super(nodeEngine);
+        this.engineConfig = engineConfig;
+    }
+
+    protected ConcurrentMap<Address, WorkerProfile> filterRegisterWorker(
+            ConcurrentMap<Address, WorkerProfile> registerWorker) {
+        if (MapUtils.isEmpty(registerWorker)) {
+            return registerWorker;
+        }
+        ConcurrentMap<Address, WorkerProfile> afterFilteringRegisterWorker =
+                new ConcurrentHashMap<>();
+        registerWorker.forEach(
+                (address, workerProfile) -> {
+                    if (isPassedLicenseCheck(address.getHost())) {
+                        afterFilteringRegisterWorker.put(address, workerProfile);
+                    }
+                });
+        return afterFilteringRegisterWorker;
+    }
+
+    @SneakyThrows
+    private Boolean isPassedLicenseCheck(String ip) {
+        LicenseManager licenseManager = new LicenseManager();
+        Class<?> clazz = licenseManager.getClass();
+        Field nameField = clazz.getDeclaredField("licenseService");
+        nameField.setAccessible(true);
+        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(engineConfig));
+
+        licenseManager.init();
+        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
+        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
+            return false;
+        }
+        if (LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), ip)) {
+            return true;
+        }
+        // for test
+        if (LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), "127.0.0.1")) {
+            return true;
+        }
+        return false;
     }
 }

@@ -52,6 +52,7 @@ public class SeaTunnelContainer extends AbstractTestContainer {
     private static final String JDK_DOCKER_IMAGE = "openjdk:8";
     private static final String CLIENT_SHELL = "seatunnel.sh";
     private static final String SERVER_SHELL = "seatunnel-cluster.sh";
+    private static final String LICENSE_PATH = "/etc/seatunnel/whaletunnel.license";
     protected GenericContainer<?> server;
 
     @Override
@@ -87,6 +88,12 @@ public class SeaTunnelContainer extends AbstractTestContainer {
                         PROJECT_ROOT_PATH
                                 + "/seatunnel-shade/seatunnel-hadoop3-3.1.4-uber/target/seatunnel-hadoop3-3.1.4-uber.jar"),
                 Paths.get(SEATUNNEL_HOME, "lib/seatunnel-hadoop3-3.1.4-uber.jar").toString());
+
+        server.withCopyFileToContainer(
+                MountableFile.forHostPath(
+                        PROJECT_ROOT_PATH
+                                + "/seatunnel-e2e/seatunnel-engine-e2e/connector-seatunnel-e2e-base/src/test/resources/whaletunnel.license"),
+                "/etc/seatunnel/whaletunnel.license");
         // execute extra commands
         executeExtraCommands(server);
 

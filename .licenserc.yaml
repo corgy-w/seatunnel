@@ -56,5 +56,6 @@ header:
     - 'seatunnel-connectors-v2/connector-s3-redshift/**'
     - 'maven-settings.xml'
     - 'tools/build/packaging.sh'
+    - '**/*.license'
 
   comment: on-failure
