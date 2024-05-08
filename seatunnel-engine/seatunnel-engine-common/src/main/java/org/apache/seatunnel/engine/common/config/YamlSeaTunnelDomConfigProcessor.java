@@ -163,6 +163,23 @@ public class YamlSeaTunnelDomConfigProcessor extends AbstractDomConfigProcessor 
                         engineConfig.setEventReportHttpHeaders(headers);
                     }
                 }
+            } else if (ServerConfigOptions.LICENSE_GET_HTTP.equalsIgnoreCase(name)) {
+                NamedNodeMap attributes = node.getAttributes();
+                Node urlNode = attributes.getNamedItem(ServerConfigOptions.LICENSE_GET_HTTP_URL);
+                if (urlNode != null) {
+                    engineConfig.setLicenseGetHttpApi(getTextContent(urlNode));
+                    Node headersNode =
+                            attributes.getNamedItem(ServerConfigOptions.LICENSE_GET_HTTP_HEADERS);
+                    if (headersNode != null) {
+                        Map<String, String> headers = new LinkedHashMap<>();
+                        NodeList nodeList = headersNode.getChildNodes();
+                        for (int i = 0; i < nodeList.getLength(); i++) {
+                            Node item = nodeList.item(i);
+                            headers.put(cleanNodeName(item), getTextContent(item));
+                        }
+                        engineConfig.setLicenseGetHttpHeaders(headers);
+                    }
+                }
             } else {
                 LOGGER.warning("Unrecognized element: " + name);
             }

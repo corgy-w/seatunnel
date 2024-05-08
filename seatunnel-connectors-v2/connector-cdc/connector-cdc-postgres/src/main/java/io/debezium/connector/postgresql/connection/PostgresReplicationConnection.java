@@ -290,7 +290,6 @@ public class PostgresReplicationConnection extends JdbcConnection implements Rep
                     String.format(
                             "SELECT * FROM pg_publication_tables WHERE pubname = '%s'; ",
                             publicationName);
-            LOGGER.error(selectPublication);
             try (Statement stmt = pgConnection().createStatement();
                     ResultSet rs = stmt.executeQuery(selectPublication)) {
                 while (rs.next()) {

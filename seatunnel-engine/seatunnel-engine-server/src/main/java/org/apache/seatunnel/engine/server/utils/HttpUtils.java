@@ -14,22 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.seatunnel.engine.server.utils;
 
-package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source;
+import com.squareup.okhttp.OkHttpClient;
 
-import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
-import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionPoolFactory;
+import java.util.concurrent.TimeUnit;
 
-/** Factory to create {@link JdbcConnectionPoolFactory} for Postgre SQL. */
-public class OpenGaussPooledDataSourceFactory extends JdbcConnectionPoolFactory {
+public class HttpUtils {
 
-    private static final String URL_PATTERN = "jdbc:opengauss://%s:%s/%s";
+    private static OkHttpClient httpClient;
 
-    @Override
-    public String getJdbcUrl(JdbcSourceConfig sourceConfig) {
-        String hostName = sourceConfig.getHostname();
-        int port = sourceConfig.getPort();
-        String database = sourceConfig.getDatabaseList().get(0);
-        return String.format(URL_PATTERN, hostName, port, database);
+    private HttpUtils() {}
+
+    public static OkHttpClient getInstance() {
+        if (httpClient == null) {
+            synchronized (HttpUtils.class) {
+                if (httpClient == null) {
+                    httpClient = new OkHttpClient();
+                    httpClient.setConnectTimeout(30, TimeUnit.SECONDS);
+                    httpClient.setWriteTimeout(10, TimeUnit.SECONDS);
+                }
+            }
+        }
+        return httpClient;
     }
 }

@@ -23,8 +23,8 @@ import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
-import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionPoolFactory;
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter.ChunkSplitter;
+import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
 import org.apache.seatunnel.connectors.cdc.base.source.split.IncrementalSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SnapshotSplit;
@@ -33,6 +33,7 @@ import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.config.OpenGaussSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.config.OpenGaussSourceConfigFactory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.enumerator.OpenGaussChunkSplitter;
+import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.offset.LsnOffset;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.OpenGaussSourceFetchTaskContext;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.snapshot.OpenGaussSnapshotFetchTask;
 import org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source.reader.wal.OpenGaussWalFetchTask;
@@ -97,11 +98,6 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
     }
 
     @Override
-    public JdbcConnectionPoolFactory getPooledDataSourceFactory() {
-        return new OpenGaussPooledDataSourceFactory();
-    }
-
-    @Override
     public List<TableId> discoverDataCollections(JdbcSourceConfig sourceConfig) {
         OpenGaussSourceConfig postgresSourceConfig = (OpenGaussSourceConfig) sourceConfig;
         try (JdbcConnection jdbcConnection = openJdbcConnection(sourceConfig)) {
@@ -159,9 +155,9 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
     }
 
     @Override
-    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+    public void commitChangeLogOffset(Offset offset) throws Exception {
         if (openGaussWalFetchTask != null) {
-            openGaussWalFetchTask.commitCurrentOffset();
+            openGaussWalFetchTask.commitCurrentOffset((LsnOffset) offset);
         }
     }
 

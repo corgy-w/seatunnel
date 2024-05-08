@@ -44,7 +44,6 @@ import io.debezium.connector.opengauss.OpengaussTopicSelector;
 import io.debezium.connector.opengauss.TypeRegistry;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.connector.opengauss.connection.ReplicationConnection;
-import io.debezium.connector.opengauss.spi.SlotCreationResult;
 import io.debezium.connector.opengauss.spi.SlotState;
 import io.debezium.connector.opengauss.spi.Snapshotter;
 import io.debezium.pipeline.DataChangeEvent;
@@ -170,19 +169,20 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
             }
 
             if (snapshotter.shouldStream()) {
-                if (sourceSplitBase.isIncrementalSplit() || slotInfo == null) {
-                    final boolean doSnapshot = snapshotter.shouldSnapshot();
-                    createOnceReplicationConnection(
-                            doSnapshot, connectorConfig.maxRetries(), connectorConfig.retryDelay());
-                }
-
                 // we need to create the slot before we start streaming if it doesn't exist
                 // otherwise we can't stream back changes happening while the snapshot is taking
                 // place
-                if (slotInfo == null) {
+                if (replicationConnection == null) {
+                    this.replicationConnection =
+                            createReplicationConnection(
+                                    this.taskContext,
+                                    snapshotter.shouldSnapshot(),
+                                    connectorConfig.maxRetries(),
+                                    connectorConfig.retryDelay());
                     try {
-                        SlotCreationResult slotCreatedInfo =
-                                replicationConnection.createReplicationSlot().orElse(null);
+                        // create the slot if it doesn't exist, otherwise update slot to add new
+                        // table(job restore and add table)
+                        replicationConnection.createReplicationSlot().orElse(null);
                     } catch (SQLException ex) {
                         String message = "Creation of replication slot failed";
                         if (ex.getMessage().contains("already exists")) {
@@ -328,20 +328,6 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
                         ? LsnOffset.INITIAL_OFFSET
                         : split.asIncrementalSplit().getStartupOffset();
         return loader.load(offset.getOffset());
-    }
-
-    public void createOnceReplicationConnection(
-            boolean doSnapshot, int maxRetries, Duration retryDelay) {
-        if (this.replicationConnection != null) {
-            return;
-        }
-        synchronized (this) {
-            if (this.replicationConnection == null) {
-                this.replicationConnection =
-                        createReplicationConnection(
-                                this.taskContext, doSnapshot, maxRetries, retryDelay);
-            }
-        }
     }
 
     public ReplicationConnection createReplicationConnection(

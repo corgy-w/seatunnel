@@ -63,6 +63,9 @@ public class EngineConfig {
     private String eventReportHttpApi;
     private Map<String, String> eventReportHttpHeaders = Collections.emptyMap();
 
+    private String licenseGetHttpApi;
+    private Map<String, String> licenseGetHttpHeaders = Collections.emptyMap();
+
     public void setBackupCount(int newBackupCount) {
         checkBackupCount(newBackupCount, 0);
         this.backupCount = newBackupCount;
@@ -114,6 +117,16 @@ public class EngineConfig {
 
     public EngineConfig setEventReportHttpHeaders(Map<String, String> eventReportHttpHeaders) {
         this.eventReportHttpHeaders = eventReportHttpHeaders;
+        return this;
+    }
+
+    public EngineConfig setLicenseGetHttpApi(String licenseGetHttpApi) {
+        this.licenseGetHttpApi = licenseGetHttpApi;
+        return this;
+    }
+
+    public EngineConfig setLicenseGetHttpHeaders(Map<String, String> licenseGetHttpHeaders) {
+        this.licenseGetHttpHeaders = licenseGetHttpHeaders;
         return this;
     }
 }

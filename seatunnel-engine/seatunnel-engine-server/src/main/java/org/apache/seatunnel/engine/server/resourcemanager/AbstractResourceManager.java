@@ -130,8 +130,16 @@ public abstract class AbstractResourceManager implements ResourceManager {
     @Override
     public CompletableFuture<List<SlotProfile>> applyResources(
             long jobId, List<ResourceProfile> resourceProfile) throws NoEnoughResourceException {
+
         waitingWorkerRegister();
-        return new ResourceRequestHandler(jobId, resourceProfile, registerWorker, this).request();
+        return new ResourceRequestHandler(
+                        jobId, resourceProfile, filterRegisterWorker(registerWorker), this)
+                .request();
+    }
+
+    protected ConcurrentMap<Address, WorkerProfile> filterRegisterWorker(
+            ConcurrentMap<Address, WorkerProfile> registerWorker) {
+        return registerWorker;
     }
 
     protected boolean supportDynamicWorker() {

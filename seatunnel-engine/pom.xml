@@ -39,6 +39,7 @@
         <hazelcast.version>5.1</hazelcast.version>
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>2.7.5</okhttp.version>
+        <license.sdk.version>1.0.21</license.sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -58,6 +59,12 @@
                 <groupId>com.squareup.okhttp</groupId>
                 <artifactId>okhttp</artifactId>
                 <version>${okhttp.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.whaleops</groupId>
+                <artifactId>whale-license-sdk</artifactId>
+                <version>${license.sdk.version}</version>
             </dependency>
 
             <!-- test dependencies -->

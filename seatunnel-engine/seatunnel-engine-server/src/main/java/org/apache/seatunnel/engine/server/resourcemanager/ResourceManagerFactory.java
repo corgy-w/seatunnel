@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.engine.server.resourcemanager;
 
+import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.common.runtime.DeployType;
 import org.apache.seatunnel.engine.server.resourcemanager.thirdparty.kubernetes.KubernetesResourceManager;
 import org.apache.seatunnel.engine.server.resourcemanager.thirdparty.yarn.YarnResourceManager;
@@ -31,9 +32,9 @@ public class ResourceManagerFactory {
         this.nodeEngine = nodeEngine;
     }
 
-    public ResourceManager getResourceManager(DeployType type) {
+    public ResourceManager getResourceManager(DeployType type, EngineConfig engineConfig) {
         if (DeployType.STANDALONE.equals(type)) {
-            return new StandaloneResourceManager(nodeEngine);
+            return new StandaloneResourceManager(nodeEngine, engineConfig);
         } else if (DeployType.KUBERNETES.equals(type)) {
             return new KubernetesResourceManager(nodeEngine);
         } else if (DeployType.YARN.equals(type)) {
@@ -43,7 +44,7 @@ public class ResourceManagerFactory {
         }
     }
 
-    public ResourceManager getResourceManager() {
-        return this.getResourceManager(DeployType.STANDALONE);
+    public ResourceManager getResourceManager(EngineConfig engineConfig) {
+        return this.getResourceManager(DeployType.STANDALONE, engineConfig);
     }
 }
