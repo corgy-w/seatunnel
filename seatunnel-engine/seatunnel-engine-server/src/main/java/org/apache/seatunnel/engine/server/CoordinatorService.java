@@ -433,7 +433,7 @@ public class CoordinatorService {
             synchronized (this) {
                 if (resourceManager == null) {
                     ResourceManager manager =
-                            new ResourceManagerFactory(nodeEngine).getResourceManager();
+                            new ResourceManagerFactory(nodeEngine).getResourceManager(engineConfig);
                     manager.init();
                     resourceManager = manager;
                 }
