@@ -355,7 +355,7 @@ public class JdbcDwsSourceIT extends TestSuiteBase implements TestResource {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/jdbc/lib && cd /tmp/seatunnel/plugins/jdbc/lib && wget "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-jdbc && cd /tmp/seatunnel/plugins/connector-jdbc && wget "
                                         + PG_DRIVER_JAR);
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
 
@@ -365,7 +365,7 @@ public class JdbcDwsSourceIT extends TestSuiteBase implements TestResource {
                                 .toPath();
                 container.copyFileToContainer(
                         MountableFile.forHostPath(schemaPath),
-                        "/tmp/seatunnel/plugins/jdbc/lib/gsjdbc200.jar");
+                        "/tmp/seatunnel/plugins/connector-jdbc/gsjdbc200.jar");
 
                 //                extraCommands =
                 //                        container.execInContainer(

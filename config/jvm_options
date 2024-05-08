@@ -31,3 +31,6 @@
 
 # G1GC
 -XX:+UseG1GC
+-XX:GCTimeRatio=4
+-XX:G1ReservePercent=15
+-XX:ConcGCThreads=12

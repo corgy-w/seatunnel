@@ -30,7 +30,9 @@ import com.hazelcast.map.IMap;
 
 import java.io.File;
 import java.util.List;
-import java.util.Timer;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -46,8 +48,7 @@ public class SharedConnectorJarStorageStrategy extends AbstractConnectorJarStora
     /** Time interval (ms) to run the cleanup task; also used as the default TTL. */
     private final long cleanupInterval;
 
-    /** Timer task to execute the cleanup at regular intervals. */
-    private final Timer cleanupTimer;
+    protected ScheduledExecutorService executor;
 
     public SharedConnectorJarStorageStrategy(
             ConnectorJarStorageConfig connectorJarStorageConfig, SeaTunnelServer seaTunnelServer) {
@@ -56,13 +57,23 @@ public class SharedConnectorJarStorageStrategy extends AbstractConnectorJarStora
         this.connectorJarRefCounters =
                 nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_CONNECTOR_JAR_REF_COUNTERS);
         // Initializing the cleanup task
-        this.cleanupTimer = new Timer(true);
         this.cleanupInterval = connectorJarStorageConfig.getCleanupTaskInterval() * 1000;
-        this.cleanupTimer.schedule(
+        executor =
+                Executors.newScheduledThreadPool(
+                        1,
+                        runnable -> {
+                            Thread thread = new Thread(runnable);
+                            thread.setDaemon(true);
+                            thread.setName("shared-connector-jar-cleanup-task");
+                            return thread;
+                        });
+
+        executor.scheduleAtFixedRate(
                 new SharedConnectorJarCleanupTask(
                         this::deleteConnectorJar, connectorJarRefCounters),
                 cleanupInterval,
-                cleanupInterval);
+                cleanupInterval,
+                TimeUnit.MILLISECONDS);
     }
 
     @Override

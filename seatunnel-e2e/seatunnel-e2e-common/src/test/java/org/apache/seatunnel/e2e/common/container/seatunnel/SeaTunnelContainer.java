@@ -86,8 +86,9 @@ public class SeaTunnelContainer extends AbstractTestContainer {
         server.withCopyFileToContainer(
                 MountableFile.forHostPath(
                         PROJECT_ROOT_PATH
-                                + "/seatunnel-shade/seatunnel-hadoop3-3.1.4-uber/target/seatunnel-hadoop3-3.1.4-uber.jar"),
-                Paths.get(SEATUNNEL_HOME, "lib/seatunnel-hadoop3-3.1.4-uber.jar").toString());
+                                + "/seatunnel-shade/seatunnel-hadoop3-3.3.6-uber/target/seatunnel-hadoop3-3.3.6-uber.jar"),
+                Paths.get(SEATUNNEL_HOME, "starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar")
+                        .toString());
 
         server.withCopyFileToContainer(
                 MountableFile.forHostPath(
@@ -98,6 +99,7 @@ public class SeaTunnelContainer extends AbstractTestContainer {
         executeExtraCommands(server);
 
         server.start();
+        server.execInContainer("mkdir", "-p", "/tmp/seatunnel/plugins");
         return server;
     }
 
@@ -134,8 +136,9 @@ public class SeaTunnelContainer extends AbstractTestContainer {
         server.withCopyFileToContainer(
                 MountableFile.forHostPath(
                         PROJECT_ROOT_PATH
-                                + "/seatunnel-shade/seatunnel-hadoop3-3.1.4-uber/target/seatunnel-hadoop3-3.1.4-uber.jar"),
-                Paths.get(SEATUNNEL_HOME, "lib/seatunnel-hadoop3-3.1.4-uber.jar").toString());
+                                + "/seatunnel-shade/seatunnel-hadoop3-3.3.6-uber/target/seatunnel-hadoop3-3.3.6-uber.jar"),
+                Paths.get(SEATUNNEL_HOME, "starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar")
+                        .toString());
 
         server.start();
         // execute extra commands

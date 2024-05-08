@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.redshift.commit;
 
+import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftConnectorException;
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
 
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
@@ -26,7 +27,6 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggreg
 import org.apache.seatunnel.connectors.seatunnel.redshift.RedshiftJdbcClient;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftConnectorErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftJdbcConnectorException;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -77,7 +77,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                     } catch (Exception e) {
                         log.error("commit aggregatedCommitInfo error ", e);
                         errorAggregatedCommitInfoList.add(aggregatedCommitInfo);
-                        throw new S3RedshiftJdbcConnectorException(
+                        throw new S3RedshiftConnectorException(
                                 S3RedshiftConnectorErrorCode.AGGREGATE_COMMIT_ERROR, e);
                     }
                 });
@@ -110,7 +110,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
         try {
             RedshiftJdbcClient.getInstance(pluginConfig).close();
         } catch (SQLException e) {
-            throw new S3RedshiftJdbcConnectorException(
+            throw new S3RedshiftConnectorException(
                     CommonErrorCodeDeprecated.SQL_OPERATION_FAILED,
                     "close redshift jdbc client failed",
                     e);

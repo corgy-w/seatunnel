@@ -35,6 +35,11 @@
             <artifactId>hive-exec</artifactId>
             <version>${hive-exec.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.thrift</groupId>
+            <artifactId>libfb303</artifactId>
+            <version>0.9.3</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -56,11 +61,6 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <artifactSet>
-                                <includes>
-                                    <include>org.apache.hive:hive-exec</include>
-                                </includes>
-                            </artifactSet>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>

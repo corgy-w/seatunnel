@@ -34,11 +34,11 @@ import java.io.IOException;
 public class OssFileWithMultipleTableIT extends TestSuiteBase {
 
     public static final String OSS_SDK_DOWNLOAD =
-            "https://repo1.maven.org/maven2/com/aliyun/oss/aliyun-sdk-oss/3.4.1/aliyun-sdk-oss-3.4.1.jar";
+            "https://repo1.maven.org/maven2/com/aliyun/oss/aliyun-sdk-oss/3.13.2/aliyun-sdk-oss-3.13.2.jar";
     public static final String JDOM_DOWNLOAD =
-            "https://repo1.maven.org/maven2/org/jdom/jdom/1.1/jdom-1.1.jar";
+            "https://repo1.maven.org/maven2/org/jdom/jdom2/2.0.6/jdom2-2.0.6.jar";
     public static final String HADOOP_ALIYUN_DOWNLOAD =
-            "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aliyun/3.1.4/hadoop-aliyun-3.1.4.jar";
+            "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aliyun/3.3.6/hadoop-aliyun-3.3.6.jar";
 
     @TestContainerExtension
     private final ContainerExtendedFactory extendedFactory =
@@ -47,7 +47,7 @@ public class OssFileWithMultipleTableIT extends TestSuiteBase {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/oss/lib && cd /tmp/seatunnel/plugins/oss/lib && curl -O "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-file-oss/ && cd /tmp/seatunnel/plugins/connector-file-oss/ && curl -O "
                                         + OSS_SDK_DOWNLOAD);
                 Assertions.assertEquals(0, extraCommands.getExitCode());
 
@@ -55,34 +55,23 @@ public class OssFileWithMultipleTableIT extends TestSuiteBase {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "cd /tmp/seatunnel/plugins/oss/lib && curl -O " + JDOM_DOWNLOAD);
+                                "cd /tmp/seatunnel/plugins/connector-file-oss/ && curl -O "
+                                        + JDOM_DOWNLOAD);
                 Assertions.assertEquals(0, extraCommands.getExitCode());
 
                 extraCommands =
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "cd /tmp/seatunnel/plugins/oss/lib && curl -O "
+                                "cd /tmp/seatunnel/plugins/connector-file-oss/ && curl -O "
                                         + HADOOP_ALIYUN_DOWNLOAD);
                 Assertions.assertEquals(0, extraCommands.getExitCode());
 
                 extraCommands =
                         container.execInContainer(
-                                "bash",
-                                "-c",
-                                "cd /tmp/seatunnel/lib && curl -O " + OSS_SDK_DOWNLOAD);
-                Assertions.assertEquals(0, extraCommands.getExitCode());
-
-                extraCommands =
-                        container.execInContainer(
-                                "bash", "-c", "cd /tmp/seatunnel/lib && curl -O " + JDOM_DOWNLOAD);
-                Assertions.assertEquals(0, extraCommands.getExitCode());
-
-                extraCommands =
-                        container.execInContainer(
-                                "bash",
-                                "-c",
-                                "cd /tmp/seatunnel/lib && curl -O " + HADOOP_ALIYUN_DOWNLOAD);
+                                "cp",
+                                "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                                "/tmp/seatunnel/plugins/connector-file-oss/");
                 Assertions.assertEquals(0, extraCommands.getExitCode());
             };
 

@@ -114,7 +114,7 @@ public class OracleCDCIT extends TestSuiteBase implements TestResource {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/Oracle-CDC/lib && cd /tmp/seatunnel/plugins/Oracle-CDC/lib && wget "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-cdc-oracle && cd /tmp/seatunnel/plugins/connector-cdc-oracle && wget "
                                         + driverUrl());
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
             };
