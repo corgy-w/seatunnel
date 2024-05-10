@@ -123,8 +123,10 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
 
         boolean startWithSavePoint =
                 Boolean.parseBoolean(requestParams.get(RestConstant.IS_START_WITH_SAVE_POINT));
+        SeaTunnelServer seaTunnelServer = getSeaTunnelServer();
         RestJobExecutionEnvironment restJobExecutionEnvironment =
                 new RestJobExecutionEnvironment(
+                        seaTunnelServer,
                         jobConfig,
                         config,
                         textCommandService.getNode(),
@@ -134,7 +136,6 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
                                 : null);
         JobImmutableInformation jobImmutableInformation = restJobExecutionEnvironment.build();
         Long jobId = jobImmutableInformation.getJobId();
-        SeaTunnelServer seaTunnelServer = getSeaTunnelServer();
         if (seaTunnelServer == null) {
 
             NodeEngineUtil.sendOperationToMasterNode(
