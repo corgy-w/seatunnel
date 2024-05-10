@@ -57,6 +57,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -67,6 +68,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HADOOP;
+import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PATH;
 
 @Slf4j
 public class IcebergSourceIT extends TestSuiteBase implements TestResource {
@@ -119,6 +121,14 @@ public class IcebergSourceIT extends TestSuiteBase implements TestResource {
                         "cp",
                         "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
                         "/tmp/seatunnel/plugins/connector-iceberg/");
+
+                container.copyFileToContainer(
+                        MountableFile.forHostPath(
+                                PROJECT_ROOT_PATH
+                                        + "/seatunnel-shade/seatunnel-hive-exec-3.1.3/target/seatunnel-hive-exec-3.1.3.jar"),
+                        Paths.get(
+                                        "/tmp/seatunnel/plugins/connector-iceberg/seatunnel-hive-exec-3.1.3.jar")
+                                .toString());
             };
 
     @BeforeEach
