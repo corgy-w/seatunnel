@@ -30,7 +30,6 @@ import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.common.config.server.CheckpointConfig;
 import org.apache.seatunnel.engine.common.config.server.CheckpointStorageConfig;
 import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
-import org.apache.seatunnel.engine.common.loader.ClassLoaderUtil;
 import org.apache.seatunnel.engine.common.utils.ExceptionUtil;
 import org.apache.seatunnel.engine.common.utils.PassiveCompletableFuture;
 import org.apache.seatunnel.engine.core.dag.logical.LogicalDag;
@@ -223,8 +222,6 @@ public class JobMaster {
                         jobImmutableInformation.getJobId(),
                         jobImmutableInformation.getPluginJarsUrls());
 
-        ClassLoaderUtil.recycleClassLoaderFromThread(classLoader);
-
         final Tuple2<PhysicalPlan, Map<Integer, CheckpointPlan>> planTuple =
                 PlanUtils.fromLogicalDAG(
                         logicalDag,
@@ -237,6 +234,8 @@ public class JobMaster {
                         runningJobStateTimestampsIMap,
                         engineConfig.getQueueType(),
                         engineConfig);
+        // revert to app class loader, it may be changed by PlanUtils.fromLogicalDAG
+        Thread.currentThread().setContextClassLoader(appClassLoader);
         this.physicalPlan = planTuple.f0();
         this.physicalPlan.setJobMaster(this);
         this.checkpointPlanMap = planTuple.f1();

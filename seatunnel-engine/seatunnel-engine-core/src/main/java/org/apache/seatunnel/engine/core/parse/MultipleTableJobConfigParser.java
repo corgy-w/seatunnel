@@ -47,7 +47,6 @@ import org.apache.seatunnel.core.starter.execution.PluginUtil;
 import org.apache.seatunnel.core.starter.utils.ConfigBuilder;
 import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.common.exception.JobDefineCheckException;
-import org.apache.seatunnel.engine.common.loader.ClassLoaderUtil;
 import org.apache.seatunnel.engine.common.loader.SeaTunnelChildFirstClassLoader;
 import org.apache.seatunnel.engine.common.utils.IdGenerator;
 import org.apache.seatunnel.engine.core.classloader.ClassLoaderService;
@@ -185,11 +184,14 @@ public class MultipleTableJobConfigParser {
 
         ClassLoader classLoader;
         if (classLoaderService == null) {
-            classLoader = new SeaTunnelChildFirstClassLoader(connectorJarAndDependencies, parentClassLoader);
+            classLoader =
+                    new SeaTunnelChildFirstClassLoader(
+                            connectorJarAndDependencies, parentClassLoader);
         } else {
             classLoader =
                     classLoaderService.getClassLoader(
-                            Long.parseLong(jobConfig.getJobContext().getJobId()), connectorJarAndDependencies);
+                            Long.parseLong(jobConfig.getJobContext().getJobId()),
+                            connectorJarAndDependencies);
         }
         try {
             Thread.currentThread().setContextClassLoader(classLoader);
@@ -198,24 +200,29 @@ public class MultipleTableJobConfigParser {
             LinkedHashMap<String, List<Tuple2<CatalogTable, Action>>> tableWithActionMap =
                     new LinkedHashMap<>();
 
-        boolean isMultipleTableJob = false;
-        log.info("start generating all sources.");
-        for (int configIndex = 0; configIndex < sourceConfigs.size(); configIndex++) {
-            Config sourceConfig = sourceConfigs.get(configIndex);
-            Tuple2<String, List<Tuple2<CatalogTable, Action>>> tuple2 =
-                    parseSource(configIndex, sourceConfig, classLoader);
-            tableWithActionMap.put(tuple2._1(), tuple2._2());
-        }
+            boolean isMultipleTableJob = false;
+            log.info("start generating all sources.");
+            for (int configIndex = 0; configIndex < sourceConfigs.size(); configIndex++) {
+                Config sourceConfig = sourceConfigs.get(configIndex);
+                Tuple2<String, List<Tuple2<CatalogTable, Action>>> tuple2 =
+                        parseSource(configIndex, sourceConfig, classLoader);
+                tableWithActionMap.put(tuple2._1(), tuple2._2());
+            }
 
-        log.info("start generating all transforms.");
-        parseTransforms(transformConfigs, classLoader, tableWithActionMap);
+            log.info("start generating all transforms.");
+            parseTransforms(transformConfigs, classLoader, tableWithActionMap);
 
             log.info("start generating all sinks.");
             List<Action> sinkActions = new ArrayList<>();
             for (int configIndex = 0; configIndex < sinkConfigs.size(); configIndex++) {
                 Config sinkConfig = sinkConfigs.get(configIndex);
                 sinkActions.addAll(
-                        parseSink(configIndex, sinkConfig, classLoader, tableWithActionMap, isMultipleTableJob));
+                        parseSink(
+                                configIndex,
+                                sinkConfig,
+                                classLoader,
+                                tableWithActionMap,
+                                isMultipleTableJob));
             }
             Set<URL> factoryUrls = getUsedFactoryUrls(sinkActions);
             return new ImmutablePair<>(sinkActions, factoryUrls);
@@ -223,9 +230,9 @@ public class MultipleTableJobConfigParser {
             Thread.currentThread().setContextClassLoader(parentClassLoader);
             if (classLoaderService != null) {
                 classLoaderService.releaseClassLoader(
-                        Long.parseLong(jobConfig.getJobContext().getJobId()), connectorJars);
+                        Long.parseLong(jobConfig.getJobContext().getJobId()),
+                        connectorJarAndDependencies);
             }
-            ClassLoaderUtil.recycleClassLoaderFromThread(classLoader);
         }
     }
 

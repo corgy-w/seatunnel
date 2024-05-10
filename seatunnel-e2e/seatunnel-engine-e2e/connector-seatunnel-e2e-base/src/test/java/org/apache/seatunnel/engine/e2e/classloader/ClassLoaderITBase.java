@@ -224,6 +224,12 @@ public abstract class ClassLoaderITBase extends SeaTunnelContainer {
                                 + "/seatunnel-shade/seatunnel-hadoop3-3.1.4-uber/target/seatunnel-hadoop3-3.1.4-uber.jar"),
                 Paths.get(SEATUNNEL_HOME, "lib/seatunnel-hadoop3-3.1.4-uber.jar").toString());
 
+        server.withCopyFileToContainer(
+                MountableFile.forHostPath(
+                        PROJECT_ROOT_PATH
+                                + "/seatunnel-e2e/seatunnel-engine-e2e/connector-seatunnel-e2e-base/src/test/resources/whaletunnel.license"),
+                "/etc/seatunnel/whaletunnel.license");
+
         server.start();
         // execute extra commands
         executeExtraCommands(server);
