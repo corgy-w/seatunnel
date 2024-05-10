@@ -82,6 +82,11 @@ public class OpenGaussIncrementalSourceFactory implements TableSourceFactory {
     public <T, SplitT extends SourceSplit, StateT extends Serializable>
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
         return () -> {
+            try {
+                Class.forName("org.opengauss.Driver");
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("OpenGauss driver not found.", e);
+            }
             List<CatalogTable> catalogTables =
                     CatalogTableUtil.getCatalogTables(
                             context.getOptions(), context.getClassLoader());

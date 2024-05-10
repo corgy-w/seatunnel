@@ -95,6 +95,11 @@ public class DamengIncrementalSourceFactory implements TableSourceFactory {
     public <T, SplitT extends SourceSplit, StateT extends Serializable>
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
         return () -> {
+            try {
+                Class.forName("dm.jdbc.driver.DmDriver");
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Dameng JDBC driver not found", e);
+            }
             List<CatalogTable> catalogTables =
                     CatalogTableUtil.getCatalogTables(
                             context.getOptions(), context.getClassLoader());
