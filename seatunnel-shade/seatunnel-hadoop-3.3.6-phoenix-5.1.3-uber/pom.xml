@@ -22,12 +22,12 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>seatunnel-phoenix-5.1.3</artifactId>
+    <artifactId>seatunnel-hadoop-3.3.6-phoenix-5.1.3-uber</artifactId>
     <name>SeaTunnel : Shade : Phoenix</name>
 
     <properties>
         <phoenix-core.version>5.1.3</phoenix-core.version>
-        <hadoop3.version>3.3.2</hadoop3.version>
+        <hadoop3.version>3.3.6</hadoop3.version>
     </properties>
 
     <dependencies>
@@ -35,39 +35,52 @@
             <groupId>org.apache.phoenix</groupId>
             <artifactId>phoenix-core</artifactId>
             <version>${phoenix-core.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-auth</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-hdfs-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-mapreduce-client-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
             <groupId>org.apache.phoenix</groupId>
             <artifactId>phoenix-hbase-compat-2.3.0</artifactId>
-            <version>5.1.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.seatunnel</groupId>
-            <artifactId>seatunnel-hadoop3-3.3.6-uber</artifactId>
-            <version>${project.version}</version>
-            <classifier>optional</classifier>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.avro</groupId>
-                    <artifactId>avro</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>javax.xml.bind</groupId>
-                    <artifactId>jaxb-api</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>${phoenix-core.version}</version>
         </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>27.0-jre</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop3.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
     </dependencies>
@@ -84,7 +97,7 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <finalName>seatunnel-phoenix-5.1.3</finalName>
+                            <finalName>seatunnel-hadoop-3.3.6-phoenix-5.1.3-uber</finalName>
                             <createSourcesJar>true</createSourcesJar>
                             <shadeSourcesContent>true</shadeSourcesContent>
                             <shadedArtifactAttached>false</shadedArtifactAttached>
@@ -140,7 +153,7 @@
                         <configuration>
                             <artifacts>
                                 <artifact>
-                                    <file>${basedir}/target/seatunnel-phoenix-5.1.3.jar</file>
+                                    <file>${basedir}/target/seatunnel-hadoop-3.3.6-phoenix-5.1.3-uber.jar</file>
                                     <type>jar</type>
                                     <classifier>optional</classifier>
                                 </artifact>
