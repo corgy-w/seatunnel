@@ -104,6 +104,11 @@ public class OracleIncrementalSourceFactory implements TableSourceFactory {
     public <T, SplitT extends SourceSplit, StateT extends Serializable>
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
         return () -> {
+            try {
+                Class.forName("oracle.jdbc.OracleDriver");
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException("Oracle driver not found", e);
+            }
             List<CatalogTable> catalogTables =
                     CatalogTableUtil.getCatalogTables(
                             context.getOptions(), context.getClassLoader());
