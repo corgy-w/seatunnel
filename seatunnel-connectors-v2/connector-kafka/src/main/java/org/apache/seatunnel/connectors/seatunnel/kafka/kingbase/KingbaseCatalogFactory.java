@@ -30,6 +30,12 @@ import com.google.auto.service.AutoService;
 public class KingbaseCatalogFactory implements CatalogFactory {
     @Override
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.kingbase8.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Kingbase driver not found, please check the dependency");
+        }
         String url = options.get(KingbaseCatalogConfig.URL);
         return new KingbaseCatalog(
                 "Kingbase",
