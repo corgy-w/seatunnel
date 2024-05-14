@@ -106,6 +106,12 @@ public class S3RedshiftSinkFactory implements TableSinkFactory {
 
     @Override
     public TableSink createSink(TableSinkFactoryContext context) {
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.amazon.redshift.jdbc42.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         CatalogTable catalogTable = context.getCatalogTable();
         ReadonlyConfig config = context.getOptions();
         S3RedshiftConf s3RedshiftConf = S3RedshiftConf.valueOf(config);
