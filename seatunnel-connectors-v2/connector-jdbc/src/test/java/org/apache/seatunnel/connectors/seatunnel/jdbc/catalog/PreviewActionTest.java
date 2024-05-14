@@ -140,7 +140,10 @@ public class PreviewActionTest {
                 "TRUNCATE TABLE \"null\".\"testtable\"",
                 Optional.empty());
         assertPreviewResult(
-                catalog, Catalog.ActionType.DROP_TABLE, "DROP TABLE TESTTABLE", Optional.empty());
+                catalog,
+                Catalog.ActionType.DROP_TABLE,
+                "DROP TABLE \"testtable\"",
+                Optional.empty());
         assertPreviewResult(
                 catalog,
                 Catalog.ActionType.CREATE_TABLE,
