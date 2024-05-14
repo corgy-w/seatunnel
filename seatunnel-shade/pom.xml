@@ -34,12 +34,12 @@
         <module>seatunnel-guava</module>
         <module>seatunnel-arrow-5.0</module>
         <module>seatunnel-thrift-service</module>
-        <module>seatunnel-hadoop-3.3.6-phoenix-5.1.3-uber</module>
+        <module>seatunnel-phoenix-5.1.3-hadoop3.3.6-uber</module>
         <module>seatunnel-hive-exec-2.1.1-cdh6.3.2</module>
-        <module>seatunnel-hive-exec-3.1.3</module>
-        <module>seatunnel-hive-jdbc-2.1.1</module>
-        <module>seatunnel-hive-jdbc-3.1.3</module>
-        <module>seatunnel-hive-exec-2.1.1</module>
+        <module>seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber</module>
+        <module>seatunnel-hive-jdbc-2.1.1-hadoop2.6.5-uber</module>
+        <module>seatunnel-hive-jdbc-3.1.3-hadoop3.3.6-uber</module>
+        <module>seatunnel-hive-exec-2.1.1-hadoop2.6.5-uber</module>
         <module>seatunnel-hadoop3-3.3.6-uber</module>
         <module>seatunnel-hive-jdbc-2.1.1-cdh6.3.2</module>
     </modules>

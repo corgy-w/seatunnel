@@ -223,8 +223,11 @@
                 <include>com.amazon.redshift:redshift-jdbc42:jar</include>
                 <include>net.snowflake:snowflake-jdbc:jar</include>
                 <include>com.huaweicloud.dws:huaweicloud-dws-jdbc:jar</include>
-                <include>org.apache.seatunnel:seatunnel-hive-jdbc-2.1.1:jar</include>
-                <include>org.apache.seatunnel:seatunnel-hive-jdbc-3.1.3:jar</include>
+                <!-- can not use together -->
+                <!-- todo: need add connector-hive-jdbc-3.1.3-hadoop3.3.6-uber, connector-hive-jdbc-2.1.1-cdh6.3.2 -->
+<!--                <include>org.apache.seatunnel:seatunnel-hive-jdbc-2.1.1:jar</include>-->
+<!--                <include>org.apache.seatunnel:seatunnel-hive-jdbc-2.1.1-cdh6.3.2:jar</include>-->
+                <include>org.apache.seatunnel:seatunnel-hive-jdbc-3.1.3-hadoop3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-jdbc</outputDirectory>
@@ -236,7 +239,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop-3.3.6-phoenix-5.1.3-uber:jar</include>
+                <include>org.apache.seatunnel:seatunnel-phoenix-5.1.3-hadoop3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-jdbc</outputDirectory>
@@ -263,8 +266,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hive-exec-3.1.3:jar</include>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-hive3</outputDirectory>
@@ -277,8 +279,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hive-exec-2.1.1:jar</include>
-                <include>org.apache.seatunnel:seatunnel-hadoop2-2.6.5-uber:jar</include>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-2.1.1-hadoop2.6.5-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-hive2</outputDirectory>
@@ -418,9 +419,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hive-exec-3.1.3:jar:*:optional</include>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
-                <include>org.apache.thrift:libfb303:jar</include>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber:jar:*:optional</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-iceberg</outputDirectory>

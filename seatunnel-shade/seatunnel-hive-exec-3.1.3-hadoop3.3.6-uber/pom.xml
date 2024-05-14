@@ -22,11 +22,12 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>seatunnel-hive-exec-3.1.3</artifactId>
+    <artifactId>seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber</artifactId>
     <name>SeaTunnel : Shade : Hive-Exec</name>
 
     <properties>
         <hive-exec.version>3.1.3</hive-exec.version>
+        <hadoop3.version>3.3.6</hadoop3.version>
     </properties>
 
     <dependencies>
@@ -34,11 +35,36 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>${hive-exec.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-registry</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.thrift</groupId>
             <artifactId>libfb303</artifactId>
             <version>0.9.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop3.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
@@ -48,7 +74,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
-                    <finalName>seatunnel-hive-exec-${hive-exec.version}</finalName>
+                    <finalName>seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber</finalName>
                     <createSourcesJar>true</createSourcesJar>
                     <shadeSourcesContent>true</shadeSourcesContent>
                     <shadedArtifactAttached>false</shadedArtifactAttached>
@@ -101,7 +127,7 @@
                         <configuration>
                             <artifacts>
                                 <artifact>
-                                    <file>${basedir}/target/seatunnel-hive-exec-${hive-exec.version}.jar</file>
+                                    <file>${basedir}/target/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber.jar</file>
                                     <type>jar</type>
                                     <classifier>optional</classifier>
                                 </artifact>

@@ -22,10 +22,11 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>seatunnel-hive-jdbc-2.1.1</artifactId>
+    <artifactId>seatunnel-hive-jdbc-2.1.1-hadoop2.6.5-uber</artifactId>
 
     <properties>
         <hive-jdbc.version>2.1.1</hive-jdbc.version>
+        <hadoop2.version>2.6.5</hadoop2.version>
     </properties>
 
     <dependencies>
@@ -45,6 +46,22 @@
                 <exclusion>
                     <groupId>com.google.code.findbugs</groupId>
                     <artifactId>jsr305</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-hdfs</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -69,6 +86,21 @@
                     <groupId>com.google.code.findbugs</groupId>
                     <artifactId>jsr305</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-llap-server</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop2.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
     </dependencies>
@@ -79,7 +111,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <configuration>
-                    <finalName>seatunnel-hive-jdbc-${hive-jdbc.version}</finalName>
+                    <finalName>seatunnel-hive-jdbc-2.1.1-hadoop2.6.5-uber</finalName>
                     <createSourcesJar>true</createSourcesJar>
                     <shadeSourcesContent>true</shadeSourcesContent>
                     <shadedArtifactAttached>false</shadedArtifactAttached>
@@ -92,12 +124,6 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <artifactSet>
-                                <includes>
-                                    <include>org.apache.hive:hive-jdbc</include>
-                                    <include>org.apache.hive:hive-service</include>
-                                </includes>
-                            </artifactSet>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -138,7 +164,7 @@
                         <configuration>
                             <artifacts>
                                 <artifact>
-                                    <file>${basedir}/target/seatunnel-hive-jdbc-${hive-jdbc.version}.jar</file>
+                                    <file>${basedir}/target/seatunnel-hive-jdbc-2.1.1-hadoop2.6.5-uber.jar</file>
                                     <type>jar</type>
                                     <classifier>optional</classifier>
                                 </artifact>

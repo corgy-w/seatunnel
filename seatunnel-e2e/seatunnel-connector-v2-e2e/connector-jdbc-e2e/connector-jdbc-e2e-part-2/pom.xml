@@ -37,7 +37,7 @@
         <!-- drivers -->
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>seatunnel-hadoop-3.3.6-phoenix-5.1.3-uber</artifactId>
+            <artifactId>seatunnel-hive-jdbc-3.1.3-hadoop3.3.6-uber</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
