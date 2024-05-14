@@ -123,9 +123,9 @@ public class IcebergSourceIT extends TestSuiteBase implements TestResource {
                 container.copyFileToContainer(
                         MountableFile.forHostPath(
                                 PROJECT_ROOT_PATH
-                                        + "/seatunnel-shade/seatunnel-hive-exec-3.1.3/target/seatunnel-hive-exec-3.1.3.jar"),
+                                        + "/seatunnel-shade/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber/target/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber.jar"),
                         Paths.get(
-                                        "/tmp/seatunnel/plugins/connector-iceberg/seatunnel-hive-exec-3.1.3.jar")
+                                        "/tmp/seatunnel/plugins/connector-iceberg/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber.jar")
                                 .toString());
             };
 

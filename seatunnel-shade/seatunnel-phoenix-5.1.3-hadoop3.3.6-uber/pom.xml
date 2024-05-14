@@ -22,52 +22,79 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>seatunnel-hive-jdbc-3.1.3</artifactId>
-    <name>SeaTunnel : Shade : Hive-Jdbc</name>
+    <artifactId>seatunnel-phoenix-5.1.3-hadoop3.3.6-uber</artifactId>
+    <name>SeaTunnel : Shade : Phoenix</name>
 
     <properties>
-        <hive-jdbc.version>3.1.3</hive-jdbc.version>
+        <phoenix-core.version>5.1.3</phoenix-core.version>
+        <hadoop3.version>3.3.6</hadoop3.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-jdbc</artifactId>
-            <version>${hive-jdbc.version}</version>
+            <groupId>org.apache.phoenix</groupId>
+            <artifactId>phoenix-core</artifactId>
+            <version>${phoenix-core.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>jdk.tools</groupId>
-                    <artifactId>jdk.tools</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-auth</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-common</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>com.google.code.findbugs</groupId>
-                    <artifactId>jsr305</artifactId>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-hdfs-client</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-mapreduce-client-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-mapreduce</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hbase</groupId>
+                    <artifactId>hbase-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.omid</groupId>
+                    <artifactId>omid-hbase-shims-hbase2.x</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
+
         <dependency>
-            <groupId>org.apache.hive</groupId>
-            <artifactId>hive-service</artifactId>
-            <version>${hive-jdbc.version}</version>
+            <groupId>org.apache.phoenix</groupId>
+            <artifactId>phoenix-hbase-compat-2.3.0</artifactId>
+            <version>${phoenix-core.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>27.0-jre</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop3.version}</version>
             <exclusions>
                 <exclusion>
-                    <groupId>jdk.tools</groupId>
-                    <artifactId>jdk.tools</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.code.findbugs</groupId>
-                    <artifactId>jsr305</artifactId>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
+
     </dependencies>
 
     <build>
@@ -75,13 +102,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <configuration>
-                    <finalName>seatunnel-hive-jdbc-${hive-jdbc.version}</finalName>
-                    <createSourcesJar>true</createSourcesJar>
-                    <shadeSourcesContent>true</shadeSourcesContent>
-                    <shadedArtifactAttached>false</shadedArtifactAttached>
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
-                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -89,12 +109,11 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <artifactSet>
-                                <includes>
-                                    <include>org.apache.hive:hive-jdbc</include>
-                                    <include>org.apache.hive:hive-service</include>
-                                </includes>
-                            </artifactSet>
+                            <finalName>seatunnel-phoenix-5.1.3-hadoop3.3.6-uber</finalName>
+                            <createSourcesJar>true</createSourcesJar>
+                            <shadeSourcesContent>true</shadeSourcesContent>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -107,17 +126,28 @@
                             </filters>
                             <relocations>
                                 <relocation>
-                                    <pattern>com.google.common</pattern>
-                                    <shadedPattern>org.apache.hive.shade.com.google.common</shadedPattern>
+                                    <pattern>org.apache.commons.io</pattern>
+                                    <shadedPattern>shade.org.apache.commons.io</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>com.google.thirdparty</pattern>
-                                    <shadedPattern>org.apache.hive.shade.com.google.thirdparty</shadedPattern>
+                                    <pattern>org.apache.commons.lang3</pattern>
+                                    <shadedPattern>shade.org.apache.commons.lang3</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>${seatunnel.shade.package}.hadoop.com.google.common</shadedPattern>
+                                    <includes>
+                                        <include>com.google.common.base.*</include>
+                                        <include>com.google.common.cache.*</include>
+                                        <include>com.google.common.collect.*</include>
+                                        <include>com.google.common.util.*</include>
+                                    </includes>
+                                </relocation>
+                                <relocation>
+                                    <pattern>com.fasterxml.jackson</pattern>
+                                    <shadedPattern>${seatunnel.shade.package}.hadoop.com.fasterxml.jackson</shadedPattern>
                                 </relocation>
                             </relocations>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer" />
-                            </transformers>
                         </configuration>
                     </execution>
                 </executions>
@@ -135,7 +165,7 @@
                         <configuration>
                             <artifacts>
                                 <artifact>
-                                    <file>${basedir}/target/seatunnel-hive-jdbc-${hive-jdbc.version}.jar</file>
+                                    <file>${basedir}/target/seatunnel-phoenix-5.1.3-hadoop3.3.6-uber.jar</file>
                                     <type>jar</type>
                                     <classifier>optional</classifier>
                                 </artifact>
@@ -146,4 +176,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

@@ -365,7 +365,7 @@
                 <!-- jdbc driver -->
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>seatunnel-hadoop-3.3.6-phoenix-5.1.3-uber</artifactId>
+                    <artifactId>seatunnel-phoenix-5.1.3-hadoop3.3.6-uber</artifactId>
                     <version>${project.version}</version>
                     <classifier>optional</classifier>
                     <scope>provided</scope>
@@ -563,7 +563,7 @@
                 <!-- hive jar start -->
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>seatunnel-hive-exec-3.1.3</artifactId>
+                    <artifactId>seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber</artifactId>
                     <version>${project.version}</version>
                     <classifier>optional</classifier>
                     <scope>provided</scope>
@@ -571,7 +571,7 @@
                 <!-- hive2 jar -->
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>seatunnel-hive-exec-2.1.1</artifactId>
+                    <artifactId>seatunnel-hive-exec-2.1.1-hadoop2.6.5-uber</artifactId>
                     <version>${project.version}</version>
                     <classifier>optional</classifier>
                     <scope>provided</scope>
@@ -586,7 +586,7 @@
                 <!-- hive jdbc jar -->
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>seatunnel-hive-jdbc-2.1.1</artifactId>
+                    <artifactId>seatunnel-hive-jdbc-2.1.1-hadoop2.6.5-uber</artifactId>
                     <version>${project.version}</version>
                     <classifier>optional</classifier>
                     <scope>provided</scope>
@@ -600,7 +600,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>seatunnel-hive-jdbc-3.1.3</artifactId>
+                    <artifactId>seatunnel-hive-jdbc-3.1.3-hadoop3.3.6-uber</artifactId>
                     <version>${project.version}</version>
                     <classifier>optional</classifier>
                     <scope>provided</scope>
