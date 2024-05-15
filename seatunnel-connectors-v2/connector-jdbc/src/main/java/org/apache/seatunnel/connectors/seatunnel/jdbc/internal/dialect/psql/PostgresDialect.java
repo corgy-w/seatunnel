@@ -259,7 +259,7 @@ public class PostgresDialect implements JdbcDialect {
                             "SELECT reltuples FROM pg_class r WHERE relkind = 'r' AND relname = '%s';",
                             table.getTablePath().getTableName());
             try (Statement stmt = connection.createStatement()) {
-                log.error("Split Chunk, approximateRowCntStatement: {}", rowCountQuery);
+                log.info("Split Chunk, approximateRowCntStatement: {}", rowCountQuery);
                 try (ResultSet rs = stmt.executeQuery(rowCountQuery)) {
                     if (!rs.next()) {
                         throw new SQLException(
