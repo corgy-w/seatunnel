@@ -40,6 +40,12 @@ public class PaimonIT extends TestSuiteBase {
                 container.copyFileToContainer(
                         MountableFile.forHostPath(schemaPath),
                         "/tmp/paimon/default.db/st_test/schema/schema-0");
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-paimon/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-paimon/");
                 container.execInContainer("chmod", "777", "-R", "/tmp/paimon");
             };
 

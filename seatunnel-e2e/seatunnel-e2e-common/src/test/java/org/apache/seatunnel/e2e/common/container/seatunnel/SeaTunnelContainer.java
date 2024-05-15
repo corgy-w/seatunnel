@@ -49,9 +49,9 @@ import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PA
 @Slf4j
 @AutoService(TestContainer.class)
 public class SeaTunnelContainer extends AbstractTestContainer {
-    private static final String JDK_DOCKER_IMAGE = "openjdk:8";
+    protected static final String JDK_DOCKER_IMAGE = "openjdk:8";
     private static final String CLIENT_SHELL = "seatunnel.sh";
-    private static final String SERVER_SHELL = "seatunnel-cluster.sh";
+    protected static final String SERVER_SHELL = "seatunnel-cluster.sh";
     private static final String LICENSE_PATH = "/etc/seatunnel/whaletunnel.license";
     protected GenericContainer<?> server;
 
@@ -86,8 +86,9 @@ public class SeaTunnelContainer extends AbstractTestContainer {
         server.withCopyFileToContainer(
                 MountableFile.forHostPath(
                         PROJECT_ROOT_PATH
-                                + "/seatunnel-shade/seatunnel-hadoop3-3.1.4-uber/target/seatunnel-hadoop3-3.1.4-uber.jar"),
-                Paths.get(SEATUNNEL_HOME, "lib/seatunnel-hadoop3-3.1.4-uber.jar").toString());
+                                + "/seatunnel-shade/seatunnel-hadoop3-3.3.6-uber/target/seatunnel-hadoop3-3.3.6-uber.jar"),
+                Paths.get(SEATUNNEL_HOME, "starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar")
+                        .toString());
 
         server.withCopyFileToContainer(
                 MountableFile.forHostPath(
@@ -98,6 +99,7 @@ public class SeaTunnelContainer extends AbstractTestContainer {
         executeExtraCommands(server);
 
         server.start();
+        server.execInContainer("mkdir", "-p", "/tmp/seatunnel/plugins");
         return server;
     }
 
@@ -134,8 +136,9 @@ public class SeaTunnelContainer extends AbstractTestContainer {
         server.withCopyFileToContainer(
                 MountableFile.forHostPath(
                         PROJECT_ROOT_PATH
-                                + "/seatunnel-shade/seatunnel-hadoop3-3.1.4-uber/target/seatunnel-hadoop3-3.1.4-uber.jar"),
-                Paths.get(SEATUNNEL_HOME, "lib/seatunnel-hadoop3-3.1.4-uber.jar").toString());
+                                + "/seatunnel-shade/seatunnel-hadoop3-3.3.6-uber/target/seatunnel-hadoop3-3.3.6-uber.jar"),
+                Paths.get(SEATUNNEL_HOME, "starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar")
+                        .toString());
 
         server.start();
         // execute extra commands

@@ -71,6 +71,11 @@ public class DwsGaussDBSink
     private final DwsGaussSqlGenerator sqlGenerator;
 
     public DwsGaussDBSink(ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
+        try {
+            Class.forName("com.huawei.gauss200.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         this.readonlyConfig = readonlyConfig;
         this.catalogTable = catalogTable;
         this.sqlGenerator =
@@ -84,6 +89,11 @@ public class DwsGaussDBSink
     public SinkWriter<SeaTunnelRow, DwsGaussDBSinkCommitInfo, DwsGaussDBSinkState> createWriter(
             SinkWriter.Context context) {
         try {
+            try {
+                Class.forName("com.huawei.gauss200.jdbc.Driver");
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
             return DwsGaussDBSinkWriterFactory.createDwsGaussDBSinkWriter(
                     sqlGenerator, catalogTable, readonlyConfig);
         } catch (Exception ex) {
@@ -95,6 +105,11 @@ public class DwsGaussDBSink
     public SinkWriter<SeaTunnelRow, DwsGaussDBSinkCommitInfo, DwsGaussDBSinkState> restoreWriter(
             SinkWriter.Context context, List<DwsGaussDBSinkState> states) {
         try {
+            try {
+                Class.forName("com.huawei.gauss200.jdbc.Driver");
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
             if (CollectionUtils.isNotEmpty(states)) {
                 try (DwsGaussDBCatalog dwsGaussDBCatalog =
                         new DwsGaussDBCatalogFactory()
@@ -134,6 +149,11 @@ public class DwsGaussDBSink
                     SinkAggregatedCommitter<
                             DwsGaussDBSinkCommitInfo, DwsGaussDBSinkAggregatedCommitInfo>>
             createAggregatedCommitter() {
+        try {
+            Class.forName("com.huawei.gauss200.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         return Optional.of(
                 new DwsGaussDBSinkAggregatedCommitter(sqlGenerator, catalogTable, readonlyConfig));
     }

@@ -114,7 +114,7 @@ public class MongodbCDCIT extends TestSuiteBase implements TestResource {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/Jdbc/lib && cd /tmp/seatunnel/plugins/Jdbc/lib && wget "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-jdbc/ && cd /tmp/seatunnel/plugins/connector-jdbc/ && wget "
                                         + MYSQL_DRIVER_JAR);
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
             };

@@ -32,6 +32,7 @@
         <mongo.driver.version>4.7.1</mongo.driver.version>
         <avro.version>1.11.3</avro.version>
         <mongo-kafka-connect.version>1.10.1</mongo-kafka-connect.version>
+        <connector.name>connector.cdc.mongodb</connector.name>
     </properties>
 
     <dependencies>
@@ -83,4 +84,29 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.avro</pattern>
+                                    <shadedPattern>${seatunnel.shade.package}.${connector.name}.org.apache.avro</shadedPattern>
+                                </relocation>
+                            </relocations>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

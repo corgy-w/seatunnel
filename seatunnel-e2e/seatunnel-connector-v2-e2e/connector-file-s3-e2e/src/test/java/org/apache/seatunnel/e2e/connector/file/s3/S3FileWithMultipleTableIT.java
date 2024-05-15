@@ -34,9 +34,9 @@ import java.io.IOException;
 public class S3FileWithMultipleTableIT extends TestSuiteBase {
 
     public static final String S3_SDK_DOWNLOAD =
-            "https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.271/aws-java-sdk-bundle-1.11.271.jar";
+            "https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.692/aws-java-sdk-bundle-1.12.692.jar";
     public static final String HADOOP_S3_DOWNLOAD =
-            "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.1.4/hadoop-aws-3.1.4.jar";
+            "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.6/hadoop-aws-3.3.6.jar";
 
     @TestContainerExtension
     private final ContainerExtendedFactory extendedFactory =
@@ -45,7 +45,7 @@ public class S3FileWithMultipleTableIT extends TestSuiteBase {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/s3/lib && cd /tmp/seatunnel/plugins/s3/lib && curl -O "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-file-s3/ && cd /tmp/seatunnel/plugins/connector-file-s3/ && curl -O "
                                         + S3_SDK_DOWNLOAD);
                 Assertions.assertEquals(0, extraCommands.getExitCode());
 
@@ -53,22 +53,15 @@ public class S3FileWithMultipleTableIT extends TestSuiteBase {
                         container.execInContainer(
                                 "bash",
                                 "-c",
-                                "cd /tmp/seatunnel/plugins/s3/lib && curl -O "
+                                "cd /tmp/seatunnel/plugins/connector-file-s3/ && curl -O "
                                         + HADOOP_S3_DOWNLOAD);
                 Assertions.assertEquals(0, extraCommands.getExitCode());
 
                 extraCommands =
                         container.execInContainer(
-                                "bash",
-                                "-c",
-                                "cd /tmp/seatunnel/lib && curl -O " + S3_SDK_DOWNLOAD);
-                Assertions.assertEquals(0, extraCommands.getExitCode());
-
-                extraCommands =
-                        container.execInContainer(
-                                "bash",
-                                "-c",
-                                "cd /tmp/seatunnel/lib && curl -O " + HADOOP_S3_DOWNLOAD);
+                                "cp",
+                                "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                                "/tmp/seatunnel/plugins/connector-file-s3/");
                 Assertions.assertEquals(0, extraCommands.getExitCode());
             };
 

@@ -78,6 +78,12 @@ public class DwsGaussDBSinkFactory
                     DwsGaussDBSinkCommitInfo,
                     DwsGaussDBSinkAggregatedCommitInfo>
             createSink(TableSinkFactoryContext context) {
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.huawei.gauss200.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         ReadonlyConfig config = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
         Map<String, String> catalogOptions = config.get(CatalogOptions.CATALOG_OPTIONS);

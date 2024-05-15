@@ -38,14 +38,13 @@ import org.apache.seatunnel.engine.server.operation.SubmitJobOperation;
 import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
 import org.apache.seatunnel.engine.server.utils.RestUtil;
 
-import org.apache.commons.lang.StringUtils;
-
 import com.hazelcast.internal.ascii.TextCommandService;
 import com.hazelcast.internal.ascii.rest.HttpCommandProcessor;
 import com.hazelcast.internal.ascii.rest.HttpPostCommand;
 import com.hazelcast.internal.json.Json;
 import com.hazelcast.internal.json.JsonObject;
 import com.hazelcast.internal.serialization.Data;
+import shade.org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -124,8 +123,10 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
 
         boolean startWithSavePoint =
                 Boolean.parseBoolean(requestParams.get(RestConstant.IS_START_WITH_SAVE_POINT));
+        SeaTunnelServer seaTunnelServer = getSeaTunnelServer();
         RestJobExecutionEnvironment restJobExecutionEnvironment =
                 new RestJobExecutionEnvironment(
+                        seaTunnelServer,
                         jobConfig,
                         config,
                         textCommandService.getNode(),
@@ -135,7 +136,6 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
                                 : null);
         JobImmutableInformation jobImmutableInformation = restJobExecutionEnvironment.build();
         Long jobId = jobImmutableInformation.getJobId();
-        SeaTunnelServer seaTunnelServer = getSeaTunnelServer();
         if (seaTunnelServer == null) {
 
             NodeEngineUtil.sendOperationToMasterNode(

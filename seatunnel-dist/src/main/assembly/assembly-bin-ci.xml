@@ -179,18 +179,9 @@
             <unpack>false</unpack>
             <includes>
                 <include>org.apache.seatunnel:seatunnel-transforms-v2:jar</include>
-                <include>com.amazonaws:aws-java-sdk-bundle:jar</include>
-                <!--Add hadoop aliyun jar -->
-                <include>com.aliyun.oss:aliyun-sdk-oss:jar</include>
-                <include>org.jdom:jdom:jar</include>
-
                 <!--Add netty buffer jar -->
                 <include>io.netty:netty-buffer:jar</include>
                 <include>io.netty:netty-common:jar</include>
-
-                <!--Add hive exec jar -->
-                <include>org.apache.hive:hive-service:jar</include>
-                <include>org.apache.thrift:libfb303:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/lib</outputDirectory>
@@ -204,7 +195,7 @@
             <unpack>false</unpack>
             <includes>
                 <!--Add hadoop jar -->
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
                 <include>org.apache.seatunnel:checkpoint-storage-hdfs:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
@@ -232,19 +223,11 @@
                 <include>com.amazon.redshift:redshift-jdbc42:jar</include>
                 <include>net.snowflake:snowflake-jdbc:jar</include>
                 <include>com.huaweicloud.dws:huaweicloud-dws-jdbc:jar</include>
-                <include>org.apache.hive:hive-jdbc:jar</include>
-            </includes>
-            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/lib</outputDirectory>
-            <scope>provided</scope>
-        </dependencySet>
-
-        <dependencySet>
-            <useProjectArtifact>false</useProjectArtifact>
-            <useTransitiveDependencies>true</useTransitiveDependencies>
-            <unpack>false</unpack>
-            <includes>
-                <include>org.apache.seatunnel:seatunnel-phoenix-5.1.3:jar</include>
+                <!-- can not use together -->
+                <!-- todo: need add connector-hive-jdbc-3.1.3-hadoop3.3.6-uber, connector-hive-jdbc-2.1.1-cdh6.3.2 -->
+<!--                <include>org.apache.seatunnel:seatunnel-hive-jdbc-2.1.1:jar</include>-->
+<!--                <include>org.apache.seatunnel:seatunnel-hive-jdbc-2.1.1-cdh6.3.2:jar</include>-->
+                <include>org.apache.seatunnel:seatunnel-hive-jdbc-3.1.3-hadoop3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-jdbc</outputDirectory>
@@ -256,11 +239,24 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
+                <include>org.apache.seatunnel:seatunnel-phoenix-5.1.3-hadoop3.3.6-uber:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-jdbc</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <!-- business -->
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
                 <include>com.kingbase8:kingbase8:jar</include>
                 <include>org.opengauss:opengauss-jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/lib</outputDirectory>
+            <outputDirectory>/plugins/connector-jdbc</outputDirectory>
             <scope>system</scope>
         </dependencySet>
 
@@ -270,12 +266,23 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.hive:hive-exec:jar:${hive.exec.version}</include>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
-                <include>org.apache.thrift:libfb303:jar</include>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-hive3</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <!-- =================== Hive2 Connector Dependency ===================  -->
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-2.1.1-hadoop2.6.5-uber:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-hive2</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
@@ -284,7 +291,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-cos</outputDirectory>
@@ -296,7 +303,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-ftp</outputDirectory>
@@ -308,7 +315,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-hadoop</outputDirectory>
@@ -320,7 +327,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-jindo-oss</outputDirectory>
@@ -332,7 +339,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-local</outputDirectory>
@@ -344,8 +351,10 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
                 <include>org.apache.hadoop:hadoop-aliyun:jar</include>
+                <include>com.aliyun.oss:aliyun-sdk-oss:jar</include>
+                <include>org.jdom:jdom2:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-oss</outputDirectory>
@@ -357,8 +366,9 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
                 <include>org.apache.hadoop:hadoop-aws:jar</include>
+                <include>com.amazonaws:aws-java-sdk-bundle:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-s3</outputDirectory>
@@ -370,7 +380,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-file-sftp</outputDirectory>
@@ -382,7 +392,7 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-hbase</outputDirectory>
@@ -394,8 +404,10 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
                 <include>org.apache.hadoop:hadoop-aws:jar</include>
+                <include>com.amazon.redshift:redshift-jdbc42:jar</include>
+                <include>com.amazonaws:aws-java-sdk-bundle:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-s3-redshift</outputDirectory>
@@ -407,14 +419,170 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.hive:hive-exec:jar:${hive.exec.version}</include>
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.1.4-uber:jar:*:optional</include>
-                <include>org.apache.thrift:libfb303:jar</include>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber:jar:*:optional</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-iceberg</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>com.oracle.database.jdbc:ojdbc8:jar</include>
+                <include>com.oracle.database.nls:orai18n:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-agent-oracle</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>com.oracle.database.jdbc:ojdbc8:jar</include>
+                <include>com.oracle.database.nls:orai18n:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-oracle</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>com.dameng:DmJdbcDriver18:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-dameng</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>com.ibm.informix:jdbc:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-informix</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>mysql:mysql-connector-java:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-mysql</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>org.opengauss:opengauss-jdbc:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-opengauss</outputDirectory>
+            <scope>system</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>org.postgresql:postgresql:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-postgres</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>com.microsoft.sqlserver:mssql-jdbc:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-sqlserver</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>com.dolphindb:dolphindb-javaapi:jar</include>
+                <include>com.dolphindb:jdbc:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-dolphindb</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>mysql:mysql-connector-java:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-doris</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>com.huaweicloud.dws:huaweicloud-dws-jdbc:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-dws-gaussdb</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>mysql:mysql-connector-java:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-selectdb-cloud</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>mysql:mysql-connector-java:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-starrocks</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
     </dependencySets>
 </assembly>

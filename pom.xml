@@ -146,9 +146,10 @@
         <skip.spotless>false</skip.spotless>
 
         <!-- Imap storage dependency package  -->
-        <hadoop-aliyun.version>3.1.4</hadoop-aliyun.version>
+        <hadoop-aliyun.version>3.3.6</hadoop-aliyun.version>
+        <hadoop-aws.version>3.3.6</hadoop-aws.version>
+        <aws-java-sdk.version>1.12.692</aws-java-sdk.version>
         <json-smart.version>2.4.7</json-smart.version>
-        <hadoop-aws.version>3.1.4</hadoop-aws.version>
         <netty-buffer.version>4.1.60.Final</netty-buffer.version>
     </properties>
 
@@ -468,7 +469,7 @@
 
             <dependency>
                 <groupId>org.apache.seatunnel</groupId>
-                <artifactId>seatunnel-hadoop3-3.1.4-uber</artifactId>
+                <artifactId>seatunnel-hadoop3-3.3.6-uber</artifactId>
                 <version>${project.version}</version>
                 <classifier>optional</classifier>
                 <scope>provided</scope>
@@ -1070,6 +1071,10 @@
             </snapshots>
             <id>github</id>
             <url>https://maven.pkg.github.com/whaleops/*</url>
+        </repository>
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
         </repository>
     </repositories>
 

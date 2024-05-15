@@ -91,10 +91,20 @@ public class LocalFileIT extends TestSuiteBase {
                         container);
 
                 ContainerUtil.copyFileIntoContainers(
+                        "/binary/cat.png", "/seatunnel/read/binary/cat.png", container);
+
+                ContainerUtil.copyFileIntoContainers(
                         "/excel/e2e.xlsx",
                         "/seatunnel/read/excel_filter/name=tyrantlucifer/hobby=coding/e2e_filter.xlsx",
                         container);
+
                 container.execInContainer("mkdir", "-p", "/tmp/fake_empty");
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-file-local/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-file-local/");
             };
 
     @TestTemplate
@@ -141,6 +151,10 @@ public class LocalFileIT extends TestSuiteBase {
         // test read empty directory
         helper.execute("/json/local_file_to_console.conf");
         helper.execute("/parquet/local_file_to_console.conf");
+
+        // test binary file
+        helper.execute("/binary/local_file_binary_to_local_file_binary.conf");
+        helper.execute("/binary/local_file_binary_to_assert.conf");
     }
 
     private Path convertToLzoFile(File file) throws IOException {

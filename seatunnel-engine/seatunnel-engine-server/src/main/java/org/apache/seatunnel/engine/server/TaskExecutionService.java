@@ -29,8 +29,8 @@ import org.apache.seatunnel.engine.common.config.ConfigProvider;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
 import org.apache.seatunnel.engine.common.config.server.ThreadShareMode;
 import org.apache.seatunnel.engine.common.exception.JobNotFoundException;
-import org.apache.seatunnel.engine.common.loader.SeaTunnelChildFirstClassLoader;
 import org.apache.seatunnel.engine.common.utils.PassiveCompletableFuture;
+import org.apache.seatunnel.engine.core.classloader.ClassLoaderService;
 import org.apache.seatunnel.engine.core.job.ConnectorJarIdentifier;
 import org.apache.seatunnel.engine.server.event.JobEventReportOperation;
 import org.apache.seatunnel.engine.server.exception.TaskGroupContextNotFoundException;
@@ -77,6 +77,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -121,6 +122,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
 
     private final String hzInstanceName;
     private final NodeEngineImpl nodeEngine;
+    private final ClassLoaderService classLoaderService;
     private final ILogger logger;
     private volatile boolean isRunning = true;
     private final LinkedBlockingDeque<TaskTracker> threadShareTaskQueue =
@@ -149,10 +151,14 @@ public class TaskExecutionService implements DynamicMetricsProvider {
     private final BlockingQueue<Event> eventBuffer;
     private final ExecutorService eventForwardService;
 
-    public TaskExecutionService(NodeEngineImpl nodeEngine, HazelcastProperties properties) {
+    public TaskExecutionService(
+            ClassLoaderService classLoaderService,
+            NodeEngineImpl nodeEngine,
+            HazelcastProperties properties) {
         seaTunnelConfig = ConfigProvider.locateAndGetSeaTunnelConfig();
         this.hzInstanceName = nodeEngine.getHazelcastInstance().getName();
         this.nodeEngine = nodeEngine;
+        this.classLoaderService = classLoaderService;
         this.logger = nodeEngine.getLoggingService().getLogger(TaskExecutionService.class);
 
         MetricsRegistry registry = nodeEngine.getMetricsRegistry();
@@ -317,33 +323,32 @@ public class TaskExecutionService implements DynamicMetricsProvider {
         try {
             Set<ConnectorJarIdentifier> connectorJarIdentifiers =
                     taskImmutableInfo.getConnectorJarIdentifiers();
-            Set<URL> jars = taskImmutableInfo.getJars();
-            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            Set<URL> jars = new HashSet<>();
+            ClassLoader classLoader;
             if (!CollectionUtils.isEmpty(connectorJarIdentifiers)) {
                 // Prioritize obtaining the jar package file required for the current task execution
                 // from the local, if it does not exist locally, it will be downloaded from the
                 // master node.
-                Set<URL> connectorJarPath =
+                jars =
                         serverConnectorPackageClient.getConnectorJarFromLocal(
                                 connectorJarIdentifiers);
-                classLoader =
-                        new SeaTunnelChildFirstClassLoader(Lists.newArrayList(connectorJarPath));
-                taskGroup =
-                        CustomClassLoadedObject.deserializeWithCustomClassLoader(
-                                nodeEngine.getSerializationService(),
-                                classLoader,
-                                taskImmutableInfo.getGroup());
-            } else if (!CollectionUtils.isEmpty(jars)) {
-                classLoader = new SeaTunnelChildFirstClassLoader(Lists.newArrayList(jars));
-                taskGroup =
-                        CustomClassLoadedObject.deserializeWithCustomClassLoader(
-                                nodeEngine.getSerializationService(),
-                                classLoader,
-                                taskImmutableInfo.getGroup());
-            } else {
+            } else if (!CollectionUtils.isEmpty(taskImmutableInfo.getJars())) {
+                jars = taskImmutableInfo.getJars();
+            }
+            classLoader =
+                    classLoaderService.getClassLoader(
+                            taskImmutableInfo.getJobId(), Lists.newArrayList(jars));
+            if (jars.isEmpty()) {
                 taskGroup =
                         nodeEngine.getSerializationService().toObject(taskImmutableInfo.getGroup());
+            } else {
+                taskGroup =
+                        CustomClassLoadedObject.deserializeWithCustomClassLoader(
+                                nodeEngine.getSerializationService(),
+                                classLoader,
+                                taskImmutableInfo.getGroup());
             }
+
             logger.info(
                     String.format(
                             "deploying task %s, executionId [%s]",
@@ -356,7 +361,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                                     "TaskGroupLocation: %s already exists",
                                     taskGroup.getTaskGroupLocation()));
                 }
-                deployLocalTask(taskGroup, classLoader);
+                deployLocalTask(taskGroup, classLoader, jars);
                 return TaskDeployState.success();
             }
         } catch (Throwable t) {
@@ -374,11 +379,12 @@ public class TaskExecutionService implements DynamicMetricsProvider {
     @Deprecated
     public PassiveCompletableFuture<TaskExecutionState> deployLocalTask(
             @NonNull TaskGroup taskGroup) {
-        return deployLocalTask(taskGroup, Thread.currentThread().getContextClassLoader());
+        return deployLocalTask(
+                taskGroup, Thread.currentThread().getContextClassLoader(), emptyList());
     }
 
     public PassiveCompletableFuture<TaskExecutionState> deployLocalTask(
-            @NonNull TaskGroup taskGroup, @NonNull ClassLoader classLoader) {
+            @NonNull TaskGroup taskGroup, @NonNull ClassLoader classLoader, Collection<URL> jars) {
         CompletableFuture<TaskExecutionState> resultFuture = new CompletableFuture<>();
         try {
             taskGroup.init();
@@ -416,7 +422,8 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                                                 return true;
                                             }));
             executionContexts.put(
-                    taskGroup.getTaskGroupLocation(), new TaskGroupContext(taskGroup, classLoader));
+                    taskGroup.getTaskGroupLocation(),
+                    new TaskGroupContext(taskGroup, classLoader, jars));
             cancellationFutures.put(taskGroup.getTaskGroupLocation(), cancellationFuture);
             submitThreadShareTask(executionTracker, byCooperation.get(true));
             submitBlockingTask(executionTracker, byCooperation.get(false));
@@ -942,6 +949,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                             task.getTaskID(), taskGroupLocation));
             Throwable ex = executionException.get();
             if (completionLatch.decrementAndGet() == 0) {
+                recycleClassLoader(taskGroupLocation);
                 logger.info("all tasks is done");
                 // recycle classloader
                 executionContexts.get(taskGroupLocation).setClassLoader(null);
@@ -969,6 +977,12 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                                 task.getTaskID(), taskGroupLocation));
                 cancelAllTask(taskGroupLocation);
             }
+        }
+
+        private void recycleClassLoader(TaskGroupLocation taskGroupLocation) {
+            TaskGroupContext context = executionContexts.get(taskGroupLocation);
+            executionContexts.get(taskGroupLocation).setClassLoader(null);
+            classLoaderService.releaseClassLoader(taskGroupLocation.getJobId(), context.getJars());
         }
 
         boolean executionCompletedExceptionally() {

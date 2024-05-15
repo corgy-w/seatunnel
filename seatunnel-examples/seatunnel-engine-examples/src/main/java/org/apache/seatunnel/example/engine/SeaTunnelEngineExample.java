@@ -29,9 +29,13 @@ import java.nio.file.Paths;
 
 public class SeaTunnelEngineExample {
 
+    private static String SEATUNNEL_LICENCE_HOME_KEY = "SEATUNNEL_LICENCE_HOME";
+
     public static void main(String[] args)
             throws FileNotFoundException, URISyntaxException, CommandException {
         String configurePath = args.length > 0 ? args[0] : "/examples/fake_to_console.conf";
+        System.setProperty(
+                SEATUNNEL_LICENCE_HOME_KEY, getTestConfigFile("/license/whaletunnel.license"));
         String configFile = getTestConfigFile(configurePath);
         ClientCommandArgs clientCommandArgs = new ClientCommandArgs();
         clientCommandArgs.setConfigFile(configFile);

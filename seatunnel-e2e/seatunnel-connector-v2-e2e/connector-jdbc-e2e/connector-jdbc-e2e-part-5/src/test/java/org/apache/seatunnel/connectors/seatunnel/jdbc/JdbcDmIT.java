@@ -24,6 +24,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.images.PullPolicy;
 import org.testcontainers.utility.DockerLoggerFactory;
 
 import com.google.common.collect.Lists;
@@ -40,7 +41,7 @@ import java.util.Map;
 
 public class JdbcDmIT extends AbstractJdbcIT {
 
-    private static final String DM_IMAGE = "laglangyue/dmdb8";
+    private static final String DM_IMAGE = "laglangyue/dmdb8:latest";
     private static final String DM_CONTAINER_HOST = "e2e_dmdb";
 
     private static final String DM_DATABASE = "SYSDBA";
@@ -228,6 +229,7 @@ public class JdbcDmIT extends AbstractJdbcIT {
                 new GenericContainer<>(DM_IMAGE)
                         .withNetwork(NETWORK)
                         .withNetworkAliases(DM_CONTAINER_HOST)
+                        .withImagePullPolicy(PullPolicy.defaultPolicy())
                         .withLogConsumer(
                                 new Slf4jLogConsumer(DockerLoggerFactory.getLogger(DM_IMAGE)));
         container.setPortBindings(Lists.newArrayList(String.format("%s:%s", 5336, 5236)));

@@ -23,6 +23,7 @@ import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
+import io.debezium.connector.opengauss.connection.ServerInfo;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
@@ -62,6 +63,15 @@ public class OpenGaussSchema {
         OpengaussConnection postgresConnection = (OpengaussConnection) jdbc;
         Tables tables = new Tables();
         try {
+            ServerInfo.ReplicaIdentity replicaIdentity =
+                    postgresConnection.readReplicaIdentityInfo(tableId);
+            if (!ServerInfo.ReplicaIdentity.FULL.equals(replicaIdentity)) {
+                throw new SeaTunnelException(
+                        String.format(
+                                "Table %s does not have a full replica identity, please execute: ALTER TABLE %s REPLICA IDENTITY FULL;",
+                                tableId, tableId));
+            }
+
             postgresConnection.readSchema(
                     tables,
                     tableIdWithoutCatalog.catalog(),

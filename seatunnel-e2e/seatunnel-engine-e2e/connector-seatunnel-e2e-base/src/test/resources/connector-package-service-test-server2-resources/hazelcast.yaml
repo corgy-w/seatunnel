@@ -16,7 +16,7 @@
 #
 
 hazelcast:
-  cluster-name: seatunnel
+  cluster-name: connector-package-service
   network:
     rest-api:
       enabled: true
@@ -29,12 +29,12 @@ hazelcast:
       tcp-ip:
         enabled: true
         member-list:
-          - localhost:5801
-          - localhost:5802
-          - localhost:5803
+          - localhost:6801
+          - localhost:6802
+          - localhost:6803
     port:
       auto-increment: false
-      port: 5802
+      port: 6802
   properties:
     hazelcast.invocation.max.retry.count: 100
     hazelcast.invocation.retry.pause.millis: 1000

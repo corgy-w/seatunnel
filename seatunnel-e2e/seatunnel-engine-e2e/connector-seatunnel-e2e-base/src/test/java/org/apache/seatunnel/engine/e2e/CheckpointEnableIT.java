@@ -18,9 +18,11 @@
 package org.apache.seatunnel.engine.e2e;
 
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
+import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
 import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
+import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.TestTemplate;
@@ -39,6 +41,17 @@ import static org.awaitility.Awaitility.await;
 
 @Slf4j
 public class CheckpointEnableIT extends TestSuiteBase {
+
+    @TestContainerExtension
+    private final ContainerExtendedFactory extendedFactory =
+            container -> {
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-file-local/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-file-local/");
+            };
 
     @TestTemplate
     @DisabledOnContainer(

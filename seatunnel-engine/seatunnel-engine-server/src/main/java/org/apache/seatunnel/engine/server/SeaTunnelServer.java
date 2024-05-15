@@ -23,6 +23,8 @@ import org.apache.seatunnel.common.utils.RetryUtils;
 import org.apache.seatunnel.engine.common.Constant;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
 import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
+import org.apache.seatunnel.engine.core.classloader.ClassLoaderService;
+import org.apache.seatunnel.engine.core.classloader.DefaultClassLoaderService;
 import org.apache.seatunnel.engine.server.execution.ExecutionState;
 import org.apache.seatunnel.engine.server.execution.TaskGroupLocation;
 import org.apache.seatunnel.engine.server.service.jar.ConnectorPackageService;
@@ -80,6 +82,7 @@ public class SeaTunnelServer
 
     private volatile SlotService slotService;
     private TaskExecutionService taskExecutionService;
+    private ClassLoaderService classLoaderService;
     private CoordinatorService coordinatorService;
     private ScheduledExecutorService monitorService;
 
@@ -118,7 +121,12 @@ public class SeaTunnelServer
         this.nodeEngine = (NodeEngineImpl) engine;
         // TODO Determine whether to execute there method on the master node according to the deploy
         // type
-        taskExecutionService = new TaskExecutionService(nodeEngine, nodeEngine.getProperties());
+        classLoaderService =
+                new DefaultClassLoaderService(
+                        seaTunnelConfig.getEngineConfig().isClassloaderCacheMode());
+        taskExecutionService =
+                new TaskExecutionService(
+                        classLoaderService, nodeEngine, nodeEngine.getProperties());
         nodeEngine.getMetricsRegistry().registerDynamicMetricsProvider(taskExecutionService);
         taskExecutionService.start();
         getSlotService();
@@ -156,6 +164,9 @@ public class SeaTunnelServer
         isRunning = false;
         if (taskExecutionService != null) {
             taskExecutionService.shutdown();
+        }
+        if (classLoaderService != null) {
+            classLoaderService.close();
         }
         if (monitorService != null) {
             monitorService.shutdownNow();
@@ -248,6 +259,10 @@ public class SeaTunnelServer
 
     public TaskExecutionService getTaskExecutionService() {
         return taskExecutionService;
+    }
+
+    public ClassLoaderService getClassLoaderService() {
+        return classLoaderService;
     }
 
     /**

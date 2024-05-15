@@ -15,21 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.cdc.dameng.source;
+package org.apache.seatunnel.engine.e2e.classloader;
 
-import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
-import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionPoolFactory;
-
-import java.io.Serializable;
-
-public class DamengPooledDataSourceFactory extends JdbcConnectionPoolFactory
-        implements Serializable {
-
-    public static final String JDBC_URL_PATTERN =
-            "jdbc:dm://%s:%s?useUnicode=true&characterEncoding=PG_UTF8";
+public class ClassLoaderEnableCacheModeIT extends ClassLoaderITBase {
+    @Override
+    boolean cacheMode() {
+        return true;
+    }
 
     @Override
-    public String getJdbcUrl(JdbcSourceConfig sourceConfig) {
-        return String.format(JDBC_URL_PATTERN, sourceConfig.getHostname(), sourceConfig.getPort());
+    String seatunnelConfigFileName() {
+        return "seatunnel_cache_mode.yaml";
     }
 }

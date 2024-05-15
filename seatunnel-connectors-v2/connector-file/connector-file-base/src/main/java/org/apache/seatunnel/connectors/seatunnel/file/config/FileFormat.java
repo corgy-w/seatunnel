@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.file.config;
 
 import org.apache.seatunnel.connectors.seatunnel.file.sink.config.FileSinkConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.BinaryWriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.DbfWriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.DebeziumJsonWriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.ExcelWriteStrategy;
@@ -26,6 +27,7 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.OrcWriteStrate
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.ParquetWriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.TextWriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.WriteStrategy;
+import org.apache.seatunnel.connectors.seatunnel.file.source.reader.BinaryReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.DbfReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.DebeziumJsonReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ExcelReadStrategy;
@@ -127,7 +129,17 @@ public enum FileFormat implements Serializable {
             return new DbfReadStrategy();
         }
     },
-    ;
+    BINARY("") {
+        @Override
+        public WriteStrategy getWriteStrategy(FileSinkConfig fileSinkConfig) {
+            return new BinaryWriteStrategy(fileSinkConfig);
+        }
+
+        @Override
+        public ReadStrategy getReadStrategy() {
+            return new BinaryReadStrategy();
+        }
+    };
 
     private final String suffix;
 

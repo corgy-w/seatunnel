@@ -15,25 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.cdc.informix.source;
+package org.apache.seatunnel.engine.core.classloader;
 
-import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
-import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionPoolFactory;
+import java.net.URL;
+import java.util.Collection;
 
-import java.io.Serializable;
+/** ClassLoaderService is used to manage the classloader of the connector plugin. */
+public interface ClassLoaderService {
+    /**
+     * Get the classloader of the connector plugin.
+     *
+     * @param jobId the job id
+     * @param jars the jars of the connector plugin
+     * @return the classloader of the connector plugin
+     */
+    ClassLoader getClassLoader(long jobId, Collection<URL> jars);
 
-public class InformixPooledDataSourceFactory extends JdbcConnectionPoolFactory
-        implements Serializable {
+    /**
+     * Release the classloader of the connector plugin.
+     *
+     * @param jobId the job id
+     * @param jars the jars of the connector plugin
+     */
+    void releaseClassLoader(long jobId, Collection<URL> jars);
 
-    public static final String JDBC_URL_PATTERN = "jdbc:informix-sqli://%s:%s/%s";
-
-    @Override
-    public String getJdbcUrl(JdbcSourceConfig sourceConfig) {
-        // TODO support multi database
-        return String.format(
-                JDBC_URL_PATTERN,
-                sourceConfig.getHostname(),
-                sourceConfig.getDatabaseList().get(0),
-                sourceConfig.getPort());
-    }
+    /** Close the classloader service. */
+    void close();
 }

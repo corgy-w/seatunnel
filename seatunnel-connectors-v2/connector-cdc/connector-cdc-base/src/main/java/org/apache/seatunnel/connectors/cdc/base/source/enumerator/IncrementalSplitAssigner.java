@@ -293,4 +293,8 @@ public class IncrementalSplitAssigner<C extends SourceConfig> implements SplitAs
         return context.getAssignedSnapshotSplit().isEmpty()
                 && context.getSplitCompletedOffsets().isEmpty();
     }
+
+    public boolean waitingForAssignedSplits() {
+        return !(splitAssigned && noMoreSplits());
+    }
 }

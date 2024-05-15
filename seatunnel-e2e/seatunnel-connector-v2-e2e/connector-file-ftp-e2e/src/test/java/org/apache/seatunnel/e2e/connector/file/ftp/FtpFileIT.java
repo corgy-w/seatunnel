@@ -19,8 +19,10 @@ package org.apache.seatunnel.e2e.connector.file.ftp;
 
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
+import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.container.TestHelper;
+import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 import org.apache.seatunnel.e2e.common.util.ContainerUtil;
 
 import org.junit.jupiter.api.AfterAll;
@@ -50,6 +52,17 @@ public class FtpFileIT extends TestSuiteBase implements TestResource {
     private static final String PASSWORD = "pass";
 
     private GenericContainer<?> ftpContainer;
+
+    @TestContainerExtension
+    private final ContainerExtendedFactory extendedFactory =
+            container -> {
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-file-ftp/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-file-ftp/");
+            };
 
     @BeforeAll
     @Override
@@ -100,7 +113,14 @@ public class FtpFileIT extends TestSuiteBase implements TestResource {
         ContainerUtil.copyFileIntoContainers(
                 "/excel/e2e.xlsx", "/home/vsftpd/seatunnel/e2e.xlsx", ftpContainer);
 
+        ContainerUtil.copyFileIntoContainers(
+                "/binary/cat.png",
+                "/home/vsftpd/seatunnel/tmp/seatunnel/read/binary/cat.png",
+                ftpContainer);
+
+        ftpContainer.execInContainer("sh", "-c", "mkdir -p /tmp/seatunnel/");
         ftpContainer.execInContainer("sh", "-c", "chmod -R 777 /home/vsftpd/seatunnel/");
+        ftpContainer.execInContainer("sh", "-c", "chmod -R 777 /tmp/seatunnel/");
         ftpContainer.execInContainer("sh", "-c", "chown -R ftp:ftp /home/vsftpd/seatunnel/");
     }
 

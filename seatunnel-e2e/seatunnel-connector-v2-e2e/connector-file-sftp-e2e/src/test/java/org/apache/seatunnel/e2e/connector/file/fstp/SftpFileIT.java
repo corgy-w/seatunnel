@@ -19,8 +19,10 @@ package org.apache.seatunnel.e2e.connector.file.fstp;
 
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
+import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.container.TestHelper;
+import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 import org.apache.seatunnel.e2e.common.util.ContainerUtil;
 
 import org.junit.jupiter.api.AfterAll;
@@ -51,6 +53,18 @@ public class SftpFileIT extends TestSuiteBase implements TestResource {
     private static final String PASSWORD = "pass";
 
     private GenericContainer<?> sftpContainer;
+
+    @TestContainerExtension
+    private final ContainerExtendedFactory extendedFactory =
+            container -> {
+                container.execInContainer("mkdir", "-p", "/tmp/fake_empty");
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-file-sftp/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-file-sftp/");
+            };
 
     @BeforeAll
     @Override
@@ -88,6 +102,7 @@ public class SftpFileIT extends TestSuiteBase implements TestResource {
                 "/home/seatunnel/tmp/seatunnel/read/excel_filter/name=tyrantlucifer/hobby=coding/e2e_filter.xlsx",
                 sftpContainer);
 
+        sftpContainer.execInContainer("mkdir", "-p", "/home/seatunnel/tmp/");
         sftpContainer.execInContainer("sh", "-c", "chown -R seatunnel /home/seatunnel/tmp/");
     }
 

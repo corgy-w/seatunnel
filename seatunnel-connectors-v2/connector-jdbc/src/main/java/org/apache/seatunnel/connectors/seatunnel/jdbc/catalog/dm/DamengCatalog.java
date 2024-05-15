@@ -129,7 +129,7 @@ public class DamengCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getTableName(TablePath tablePath) {
-        return tablePath.getSchemaAndTableName().toUpperCase();
+        return tablePath.getSchemaAndTableName("\"");
     }
 
     @Override

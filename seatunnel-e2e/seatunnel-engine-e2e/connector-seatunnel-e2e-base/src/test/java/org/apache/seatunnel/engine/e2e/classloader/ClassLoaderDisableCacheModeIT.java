@@ -15,21 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.cdc.opengauss.source;
+package org.apache.seatunnel.engine.e2e.classloader;
 
-import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
-import org.apache.seatunnel.connectors.cdc.base.relational.connection.JdbcConnectionPoolFactory;
-
-/** Factory to create {@link JdbcConnectionPoolFactory} for Postgre SQL. */
-public class OpenGaussPooledDataSourceFactory extends JdbcConnectionPoolFactory {
-
-    private static final String URL_PATTERN = "jdbc:opengauss://%s:%s/%s";
+public class ClassLoaderDisableCacheModeIT extends ClassLoaderITBase {
+    @Override
+    boolean cacheMode() {
+        return false;
+    }
 
     @Override
-    public String getJdbcUrl(JdbcSourceConfig sourceConfig) {
-        String hostName = sourceConfig.getHostname();
-        int port = sourceConfig.getPort();
-        String database = sourceConfig.getDatabaseList().get(0);
-        return String.format(URL_PATTERN, hostName, port, database);
+    String seatunnelConfigFileName() {
+        return "seatunnel_disable_cache_mode.yaml";
     }
 }

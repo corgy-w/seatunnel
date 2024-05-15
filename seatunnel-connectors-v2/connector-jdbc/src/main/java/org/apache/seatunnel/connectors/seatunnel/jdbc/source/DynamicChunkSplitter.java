@@ -194,7 +194,8 @@ public class DynamicChunkSplitter extends ChunkSplitter {
                                 getOrEstablishConnection(),
                                 table,
                                 splitColumnName,
-                                inverseSamplingRate);
+                                inverseSamplingRate,
+                                config.getFetchSize());
                 log.info(
                         "Sample data from table {} end, the sample size is {}",
                         tablePath,

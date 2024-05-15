@@ -27,6 +27,7 @@ seatunnel:
       headers:
         Content-Type: application/json
         Token: 4c61c3f30444d59fe23930186139d033 # should change it when deploy engine
+    classloader-cache-mode: true
     history-job-expire-minutes: 1440
     backup-count: 1
     queue-type: blockingqueue

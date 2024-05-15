@@ -192,6 +192,13 @@ public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
         return pluginIdentifiers;
     }
 
+    private static Map<PluginIdentifier, String> getAllSupportedPlugins() {
+        Map<PluginIdentifier, String> pluginIdentifiers = new LinkedHashMap<>();
+        pluginIdentifiers.putAll(getAllSupportedPlugins(PluginType.SOURCE));
+        pluginIdentifiers.putAll(getAllSupportedPlugins(PluginType.SINK));
+        return pluginIdentifiers;
+    }
+
     @Override
     public T createPluginInstance(PluginIdentifier pluginIdentifier) {
         return (T) createPluginInstance(pluginIdentifier, Collections.EMPTY_LIST);
@@ -265,19 +272,35 @@ public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
     public Map<PluginType, LinkedHashMap<PluginIdentifier, OptionRule>> getAllPlugin()
             throws IOException {
         List<Factory> factories;
+        Map<PluginType, LinkedHashMap<PluginIdentifier, OptionRule>> plugins = new HashMap<>();
         if (this.pluginDir.toFile().exists()) {
             log.info("load plugin from plugin dir: {}", this.pluginDir);
-            List<URL> files = FileUtils.searchJarFiles(this.pluginDir);
-            factories =
-                    FactoryUtil.discoverFactories(new URLClassLoader(files.toArray(new URL[0])));
+            ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+            try {
+                for (PluginIdentifier pluginIdentifier : getAllSupportedPlugins().keySet()) {
+                    List<URL> files =
+                            getPluginJarAndDependencyPaths(
+                                    Collections.singletonList(pluginIdentifier));
+                    ClassLoader classLoader = new URLClassLoader(files.toArray(new URL[0]));
+                    Thread.currentThread().setContextClassLoader(classLoader);
+                    factories = FactoryUtil.discoverFactories(classLoader);
+                    updatePluginsOptionRuleByFacotry(factories, plugins);
+                }
+            } finally {
+                Thread.currentThread().setContextClassLoader(contextClassLoader);
+            }
         } else {
             log.warn("plugin dir: {} not exists, load plugin from classpath", this.pluginDir);
             factories =
                     FactoryUtil.discoverFactories(Thread.currentThread().getContextClassLoader());
+            updatePluginsOptionRuleByFacotry(factories, plugins);
         }
+        return plugins;
+    }
 
-        Map<PluginType, LinkedHashMap<PluginIdentifier, OptionRule>> plugins = new HashMap<>();
-
+    private static void updatePluginsOptionRuleByFacotry(
+            List<Factory> factories,
+            Map<PluginType, LinkedHashMap<PluginIdentifier, OptionRule>> plugins) {
         factories.forEach(
                 plugin -> {
                     if (TableSourceFactory.class.isAssignableFrom(plugin.getClass())) {
@@ -320,7 +343,6 @@ public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
                         return;
                     }
                 });
-        return plugins;
     }
 
     protected T loadPluginInstance(PluginIdentifier pluginIdentifier, ClassLoader classLoader) {

@@ -24,7 +24,6 @@ import org.apache.seatunnel.connectors.seatunnel.kudu.config.KuduSourceTableConf
 import org.apache.seatunnel.connectors.seatunnel.kudu.exception.KuduConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.kudu.exception.KuduConnectorException;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.util.KerberosName;
@@ -35,6 +34,7 @@ import org.apache.kudu.client.KuduScanToken;
 import org.apache.kudu.client.KuduTable;
 
 import lombok.extern.slf4j.Slf4j;
+import shade.org.apache.commons.lang3.StringUtils;
 import sun.security.krb5.Config;
 import sun.security.krb5.KrbException;
 
