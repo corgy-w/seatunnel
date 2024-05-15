@@ -578,7 +578,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>seatunnel-hive-exec-2.1.1-cdh6.3.2</artifactId>
+                    <artifactId>seatunnel-hive-exec-2.1.1-cdh6.3.2-hadoop3.0.0-cdh6.3.2-uber</artifactId>
                     <version>${project.version}</version>
                     <classifier>optional</classifier>
                     <scope>provided</scope>
