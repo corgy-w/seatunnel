@@ -15,26 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.hive.config;
+package org.apache.seatunnel.connectors.seatunnel.hive.storage;
 
-import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
-
-public class HiveHadoopConfig extends HadoopConf {
-
-    private final String hiveMetaStoreUris;
-    private final String hiveSitePath;
-
-    public HiveHadoopConfig(String hdfsNameKey, String hiveMetaStoreUris, String hiveSitePath) {
-        super(hdfsNameKey);
-        this.hiveMetaStoreUris = hiveMetaStoreUris;
-        this.hiveSitePath = hiveSitePath;
-    }
-
-    public String getHiveMetaStoreUris() {
-        return hiveMetaStoreUris;
-    }
-
-    public String getHiveSitePath() {
-        return hiveSitePath;
-    }
+public enum StorageType {
+    S3,
+    OSS,
+    COS,
+    HDFS
 }

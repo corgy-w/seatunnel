@@ -15,21 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.hive;
+package org.apache.seatunnel.connectors.seatunnel.hive.storage;
 
-import java.io.FileNotFoundException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.Paths;
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 
-public class BaseHiveTest {
-
-    protected String getTestConfigFile(String configFile)
-            throws FileNotFoundException, URISyntaxException {
-        URL resource = BaseHiveTest.class.getResource(configFile);
-        if (resource == null) {
-            throw new FileNotFoundException("Can't find config file: " + configFile);
-        }
-        return Paths.get(resource.toURI()).toString();
-    }
+public interface Storage {
+    HadoopConf buildHadoopConfWithReadOnlyConfig(ReadonlyConfig readonlyConfig);
 }

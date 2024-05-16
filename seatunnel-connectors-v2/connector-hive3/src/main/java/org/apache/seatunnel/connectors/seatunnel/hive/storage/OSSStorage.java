@@ -15,33 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.hive.utils;
+package org.apache.seatunnel.connectors.seatunnel.hive.storage;
 
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
-import org.apache.seatunnel.shade.com.typesafe.config.ConfigFactory;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.connectors.seatunnel.hive.BaseHiveTest;
+import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
+import org.apache.seatunnel.connectors.seatunnel.file.oss.config.OssHadoopConf;
 
-import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.conf.Configuration;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import java.util.Map;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.net.URISyntaxException;
+public class OSSStorage extends AbstractStorage {
 
-class HiveMetaStoreProxyTest extends BaseHiveTest {
-
-    @Disabled
-    @Test
-    void getTable() throws FileNotFoundException, URISyntaxException {
-        String path = getTestConfigFile("/hive.conf");
-        Config config = ConfigFactory.parseFile(new File(path));
-        ReadonlyConfig readonlyConfig = ReadonlyConfig.fromConfig(config);
-        Table table =
-                HiveMetaStoreProxy.getInstance(readonlyConfig).getTable("default", "czjtest_03");
-        System.out.println(table);
+    @Override
+    public HadoopConf buildHadoopConfWithReadOnlyConfig(ReadonlyConfig readonlyConfig) {
+        Configuration configuration = loadHiveBaseHadoopConfig(readonlyConfig);
+        Config config = fillBucket(readonlyConfig, configuration);
+        HadoopConf hadoopConf = OssHadoopConf.buildWithConfig(ReadonlyConfig.fromConfig(config));
+        Map<String, String> propsInConfiguration =
+                configuration.getPropsWithPrefix(StringUtils.EMPTY);
+        hadoopConf.setExtraOptions(propsInConfiguration);
+        return hadoopConf;
     }
 }
