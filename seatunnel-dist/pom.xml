@@ -224,10 +224,21 @@
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
-
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-assert</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-dingtalk</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-web3j</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -358,6 +369,13 @@
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-amazonsqs</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-easysearch</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>
@@ -521,12 +539,6 @@
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-client</artifactId>
-                    <version>${hadoop2.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-                <dependency>
                     <groupId>com.aliyun.oss</groupId>
                     <artifactId>aliyun-sdk-oss</artifactId>
                     <version>${aliyun.sdk.oss.version}</version>
@@ -545,6 +557,39 @@
                     <classifier>optional</classifier>
                     <scope>provided</scope>
                 </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>seatunnel-hadoop3-3.0.0-cdh6.3.2-uber</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>optional</classifier>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>seatunnel-hadoop2-2.6.5-uber</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>optional</classifier>
+                    <scope>provided</scope>
+                </dependency>
+                <!-- hadoop jar end -->
+            </dependencies>
+            <repositories>
+                <repository>
+                    <id>cloudera</id>
+                    <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+                </repository>
+            </repositories>
+        </profile>
+        <profile>
+            <id>release</id>
+            <activation>
+                <property>
+                    <name>release</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <dependencies>
+                <!-- starters -->
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
                     <artifactId>seatunnel-hadoop3-3.0.0-cdh6.3.2-uber</artifactId>

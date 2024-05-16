@@ -20,15 +20,15 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.config;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.common.config.ConfigRuntimeException;
 
 import lombok.Getter;
 import lombok.ToString;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HADOOP;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HIVE;
-import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkArgument;
 import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkNotNull;
 
 @Getter
@@ -39,19 +39,13 @@ public class CommonConfig implements Serializable {
     public static final Option<String> KEY_CATALOG_NAME =
             Options.key("catalog_name")
                     .stringType()
-                    .noDefaultValue()
+                    .defaultValue("default")
                     .withDescription(" the iceberg catalog name");
-
-    public static final Option<IcebergCatalogType> KEY_CATALOG_TYPE =
-            Options.key("catalog_type")
-                    .enumType(IcebergCatalogType.class)
-                    .noDefaultValue()
-                    .withDescription(" the iceberg catalog type");
 
     public static final Option<String> KEY_NAMESPACE =
             Options.key("namespace")
                     .stringType()
-                    .noDefaultValue()
+                    .defaultValue("default")
                     .withDescription(" the iceberg namespace");
 
     public static final Option<String> KEY_TABLE =
@@ -60,17 +54,25 @@ public class CommonConfig implements Serializable {
                     .noDefaultValue()
                     .withDescription(" the iceberg table");
 
-    public static final Option<String> KEY_URI =
-            Options.key("uri")
-                    .stringType()
+    public static final Option<Map<String, String>> CATALOG_PROPS =
+            Options.key("iceberg.catalog.config")
+                    .mapType()
                     .noDefaultValue()
-                    .withDescription(" the iceberg server uri");
+                    .withDescription(
+                            "Specify the properties for initializing the Iceberg catalog, which can be referenced in this file:'https://github.com/apache/iceberg/blob/main/core/src/main/java/org/apache/iceberg/CatalogProperties.java'");
 
-    public static final Option<String> KEY_WAREHOUSE =
-            Options.key("warehouse")
+    public static final Option<Map<String, String>> HADOOP_PROPS =
+            Options.key("hadoop.config")
+                    .mapType()
+                    .defaultValue(new HashMap<>())
+                    .withDescription("Properties passed through to the Hadoop configuration");
+
+    public static final Option<String> HADOOP_CONF_PATH_PROP =
+            Options.key("iceberg.hadoop-conf-path")
                     .stringType()
-                    .noDefaultValue()
-                    .withDescription(" the iceberg warehouse");
+                    .defaultValue(null)
+                    .withDescription(
+                            "The specified loading paths for the 'core-site.xml', 'hdfs-site.xml', 'hive-site.xml' files.");
 
     public static final Option<Boolean> KEY_CASE_SENSITIVE =
             Options.key("case_sensitive")
@@ -78,93 +80,40 @@ public class CommonConfig implements Serializable {
                     .defaultValue(false)
                     .withDescription(" the iceberg case_sensitive");
 
-    // for kerberos
-    public static final Option<String> KERBEROS_PRINCIPAL =
-            Options.key("kerberos_principal")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("jdbc kerberos_principal");
-
-    public static final Option<String> KERBEROS_KEYTAB_PATH =
-            Options.key("kerberos_keytab_path")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("jdbc kerberos_keytab_path");
-
-    public static final Option<String> KERBEROS_KRB5_CONF_PATH =
-            Options.key("kerberos_krb5_conf_path")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("jdbc kerberos_keytab_path");
-
-    public static final Option<String> HDFS_SITE_PATH =
-            Options.key("hdfs_site_path")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("jdbc hdfs_site_path");
-
-    public static final Option<String> HIVE_SITE_PATH =
-            Options.key("hive_site_path")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("jdbc hive_site_path");
-
     private String catalogName;
-    private IcebergCatalogType catalogType;
-    private String uri;
-    private String warehouse;
     private String namespace;
     private String table;
     private boolean caseSensitive;
 
-    // kerberos
-    private String kerberosPrincipal;
-    private String kerberosKeytabPath;
-    private String kerberosKrb5ConfPath;
-    private String hdfsSitePath;
-    private String hiveSitePath;
+    private Map<String, String> catalogProps;
+    private Map<String, String> hadoopProps;
+    private String hadoopConfPath;
 
     public CommonConfig(ReadonlyConfig pluginConfig) {
-        IcebergCatalogType catalogType = pluginConfig.getOptional(KEY_CATALOG_TYPE).get();
-        checkArgument(
-                HADOOP.equals(catalogType) || HIVE.equals(catalogType),
-                "Illegal catalogType: " + catalogType);
-
-        this.catalogType = catalogType;
-        this.catalogName = pluginConfig.getOptional(KEY_CATALOG_NAME).get();
-        if (pluginConfig.getOptional(KEY_URI).isPresent()) {
-            this.uri = pluginConfig.getOptional(KEY_URI).get();
+        this.catalogName = checkArgumentNotNull(pluginConfig.get(KEY_CATALOG_NAME));
+        this.namespace = pluginConfig.get(KEY_NAMESPACE);
+        this.table = pluginConfig.get(KEY_TABLE);
+        this.catalogProps = pluginConfig.get(CATALOG_PROPS);
+        this.hadoopProps = pluginConfig.get(HADOOP_PROPS);
+        this.hadoopConfPath = pluginConfig.get(HADOOP_CONF_PATH_PROP);
+        if (pluginConfig.toConfig().hasPath(KEY_CASE_SENSITIVE.key())) {
+            this.caseSensitive = pluginConfig.get(KEY_CASE_SENSITIVE);
         }
-        this.warehouse = pluginConfig.getOptional(KEY_WAREHOUSE).get();
-        this.namespace = pluginConfig.getOptional(KEY_NAMESPACE).get();
-
-        if (pluginConfig.getOptional(KEY_TABLE).isPresent()) {
-            this.table = pluginConfig.getOptional(KEY_TABLE).get();
-        }
-
-        if (pluginConfig.getOptional(KEY_CASE_SENSITIVE).isPresent()) {
-            this.caseSensitive = pluginConfig.getOptional(KEY_CASE_SENSITIVE).get();
-        }
-
-        if (pluginConfig.getOptional(KERBEROS_PRINCIPAL).isPresent()) {
-            this.kerberosPrincipal = pluginConfig.getOptional(KERBEROS_PRINCIPAL).get();
-        }
-        if (pluginConfig.getOptional(KERBEROS_KEYTAB_PATH).isPresent()) {
-            this.kerberosKeytabPath = pluginConfig.getOptional(KERBEROS_KEYTAB_PATH).get();
-        }
-        if (pluginConfig.getOptional(KERBEROS_KRB5_CONF_PATH).isPresent()) {
-            this.kerberosKrb5ConfPath = pluginConfig.getOptional(KERBEROS_KRB5_CONF_PATH).get();
-        }
-        if (pluginConfig.getOptional(HDFS_SITE_PATH).isPresent()) {
-            this.hdfsSitePath = pluginConfig.getOptional(HDFS_SITE_PATH).get();
-        }
-        if (pluginConfig.getOptional(HIVE_SITE_PATH).isPresent()) {
-            this.hiveSitePath = pluginConfig.getOptional(HIVE_SITE_PATH).get();
-        }
+        validate();
     }
 
     protected <T> T checkArgumentNotNull(T argument) {
         checkNotNull(argument);
         return argument;
+    }
+
+    private void validate() {
+        checkState(!catalogProps.isEmpty(), "Must specify iceberg catalog config");
+    }
+
+    private void checkState(boolean condition, String msg) {
+        if (!condition) {
+            throw new ConfigRuntimeException(msg);
+        }
     }
 }

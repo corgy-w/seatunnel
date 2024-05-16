@@ -17,15 +17,13 @@
 
 package org.apache.seatunnel.connectors.seatunnel.file.config;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
+import org.apache.hadoop.fs.Path;
 
 import lombok.Data;
 
-import java.io.File;
 import java.io.Serializable;
-import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,15 +60,27 @@ public class HadoopConf implements Serializable {
 
     public void setExtraOptionsForConfiguration(Configuration configuration) {
         if (!extraOptions.isEmpty()) {
+            removeUnwantedOverwritingProps(extraOptions);
             extraOptions.forEach(configuration::set);
         }
-        try {
-            if (StringUtils.isNotBlank(hdfsSitePath)) {
-                configuration.addResource(new File(hdfsSitePath).toURI().toURL());
-            }
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Add hdfs site failed: ", e);
+        if (hdfsSitePath != null) {
+            Configuration hdfsSiteConfiguration = new Configuration();
+            hdfsSiteConfiguration.addResource(new Path(hdfsSitePath));
+            unsetUnwantedOverwritingProps(hdfsSiteConfiguration);
+            configuration.addResource(hdfsSiteConfiguration);
         }
+    }
+
+    private void removeUnwantedOverwritingProps(Map extraOptions) {
+        extraOptions.remove(getFsDefaultNameKey());
+        extraOptions.remove(getHdfsImplKey());
+        extraOptions.remove(getHdfsImplDisableCacheKey());
+    }
+
+    public void unsetUnwantedOverwritingProps(Configuration hdfsSiteConfiguration) {
+        hdfsSiteConfiguration.unset(getFsDefaultNameKey());
+        hdfsSiteConfiguration.unset(getHdfsImplKey());
+        hdfsSiteConfiguration.unset(getHdfsImplDisableCacheKey());
     }
 
     public Configuration toConfiguration() {
@@ -79,9 +89,21 @@ public class HadoopConf implements Serializable {
         configuration.setBoolean(WRITE_FIXED_AS_INT96, true);
         configuration.setBoolean(ADD_LIST_ELEMENT_RECORDS, false);
         configuration.setBoolean(WRITE_OLD_LIST_STRUCTURE, true);
-        configuration.setBoolean(String.format("fs.%s.impl.disable.cache", getSchema()), true);
-        configuration.set(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY, getHdfsNameKey());
-        configuration.set(String.format("fs.%s.impl", getSchema()), getFsHdfsImpl());
+        configuration.setBoolean(getHdfsImplDisableCacheKey(), true);
+        configuration.set(getFsDefaultNameKey(), getHdfsNameKey());
+        configuration.set(getHdfsImplKey(), getFsHdfsImpl());
         return configuration;
+    }
+
+    public String getFsDefaultNameKey() {
+        return CommonConfigurationKeys.FS_DEFAULT_NAME_KEY;
+    }
+
+    public String getHdfsImplKey() {
+        return String.format("fs.%s.impl", getSchema());
+    }
+
+    public String getHdfsImplDisableCacheKey() {
+        return String.format("fs.%s.impl.disable.cache", getSchema());
     }
 }

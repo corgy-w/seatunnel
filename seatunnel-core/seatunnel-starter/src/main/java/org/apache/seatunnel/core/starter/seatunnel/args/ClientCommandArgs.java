@@ -37,7 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -103,7 +102,6 @@ public class ClientCommandArgs extends AbstractCommandArgs {
     @Override
     public Command<?> buildCommand() {
         Common.setDeployMode(getDeployMode());
-        userParamsToSysEnv();
         if (checkConfig) {
             return new SeaTunnelConfValidateCommand(this);
         }
@@ -114,25 +112,6 @@ public class ClientCommandArgs extends AbstractCommandArgs {
             return new ConfDecryptCommand(this);
         }
         return new ClientExecuteCommand(this);
-    }
-
-    private void userParamsToSysEnv() {
-        if (!this.variables.isEmpty()) {
-            variables.stream()
-                    .filter(Objects::nonNull)
-                    .map(
-                            variable -> {
-                                int indexOfFirstEquals = variable.indexOf("=");
-                                if (indexOfFirstEquals != -1) {
-                                    String key = variable.substring(0, indexOfFirstEquals);
-                                    String value = variable.substring(indexOfFirstEquals + 1);
-                                    return new String[] {key, value};
-                                }
-                                return null;
-                            })
-                    .filter(Objects::nonNull)
-                    .forEach(pair -> System.setProperty(pair[0], pair[1]));
-        }
     }
 
     public DeployMode getDeployMode() {

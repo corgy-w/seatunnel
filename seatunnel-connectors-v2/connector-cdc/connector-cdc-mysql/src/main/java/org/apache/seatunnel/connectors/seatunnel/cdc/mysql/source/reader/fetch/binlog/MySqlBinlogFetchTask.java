@@ -76,7 +76,6 @@ public class MySqlBinlogFetchTask implements FetchTask<SourceSplitBase> {
         BinlogSplitChangeEventSourceContext changeEventSourceContext =
                 new BinlogSplitChangeEventSourceContext();
 
-        sourceFetchContext.getBinaryLogClient().isConnected();
         sourceFetchContext
                 .getBinaryLogClient()
                 .registerLifecycleListener(

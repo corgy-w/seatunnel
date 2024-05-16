@@ -28,12 +28,12 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.utils.OracleUtils;
 
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
+import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import lombok.extern.slf4j.Slf4j;
 import oracle.sql.ROWID;
 
 import java.sql.SQLException;
-import java.sql.Types;
 
 /**
  * The {@code ChunkSplitter} used to split Oracle table into a set of chunks for JDBC data source.
@@ -61,7 +61,7 @@ public class OracleChunkSplitter extends AbstractJdbcSourceChunkSplitter {
     @Override
     public Object[] sampleDataFromColumn(
             JdbcConnection jdbc, TableId tableId, String columnName, int inverseSamplingRate)
-            throws SQLException {
+            throws Exception {
         return OracleUtils.skipReadAndSortSampleData(
                 jdbc, tableId, columnName, inverseSamplingRate);
     }
@@ -85,11 +85,8 @@ public class OracleChunkSplitter extends AbstractJdbcSourceChunkSplitter {
 
     @Override
     public String buildSplitScanQuery(
-            TableId tableId,
-            SeaTunnelRowType splitKeyType,
-            boolean isFirstSplit,
-            boolean isLastSplit) {
-        return OracleUtils.buildSplitScanQuery(tableId, splitKeyType, isFirstSplit, isLastSplit);
+            Table table, SeaTunnelRowType splitKeyType, boolean isFirstSplit, boolean isLastSplit) {
+        return OracleUtils.buildSplitScanQuery(table.id(), splitKeyType, isFirstSplit, isLastSplit);
     }
 
     @Override
@@ -103,22 +100,5 @@ public class OracleChunkSplitter extends AbstractJdbcSourceChunkSplitter {
         } else {
             return ObjectUtils.compare(obj1, obj2);
         }
-    }
-
-    @Override
-    protected Column getSplitColumn(
-            JdbcConnection jdbc, JdbcDataSourceDialect dialect, TableId tableId)
-            throws SQLException {
-        try {
-            Column splitColumn = super.getSplitColumn(jdbc, dialect, tableId);
-            if (splitColumn != null) {
-                return splitColumn;
-            }
-        } catch (SQLException e) {
-            log.info(
-                    "Failed to obtain the split key policy, the split key is changed to the default one",
-                    e);
-        }
-        return Column.editor().jdbcType(Types.VARCHAR).name(ROWID.class.getSimpleName()).create();
     }
 }

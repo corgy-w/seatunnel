@@ -61,9 +61,11 @@ import static org.apache.seatunnel.connectors.doris.config.DorisOptions.TABLE_ID
 @AutoService(Factory.class)
 public class DorisSinkFactory implements TableSinkFactory {
 
+    public static final String IDENTIFIER = "Doris";
+
     @Override
     public String factoryIdentifier() {
-        return DorisConfig.IDENTIFIER;
+        return IDENTIFIER;
     }
 
     @Override

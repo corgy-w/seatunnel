@@ -276,6 +276,7 @@ public class CoordinatorService {
                         engineConfig.getEventReportHttpApi(),
                         engineConfig.getEventReportHttpHeaders(),
                         nodeEngine);
+
         // If the user has configured the connector package service, create it  on the master node.
         ConnectorJarStorageConfig connectorJarStorageConfig =
                 engineConfig.getConnectorJarStorageConfig();
@@ -521,7 +522,12 @@ public class CoordinatorService {
                             CompletableFuture.supplyAsync(
                                     () -> {
                                         JobMaster runningJobMaster = runningJobMasterMap.get(jobId);
-                                        runningJobMaster.savePoint().join();
+                                        if (!runningJobMaster.savePoint().join()) {
+                                            throw new SavePointFailedException(
+                                                    "The job with id '"
+                                                            + jobId
+                                                            + "' save point failed");
+                                        }
                                         return null;
                                     },
                                     executorService));

@@ -197,7 +197,7 @@ public class SelectDBStageLoad implements Serializable {
                         fileList.add(buffer.getFileName());
                         if (!selectdbConfig.isEnable2PC()) {
                             CopySQLBuilder copySQLBuilder =
-                                    new CopySQLBuilder(selectdbConfig, catalogTable, fileList);
+                                    new CopySQLBuilder(selectdbConfig, fileList);
                             String copySql = copySQLBuilder.buildCopySQL();
                             CopySQLUtil.copyFileToDatabase(
                                     selectdbConfig,

@@ -25,38 +25,22 @@ import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
-import lombok.extern.slf4j.Slf4j;
-
-import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_REPLICA;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HDFS_SITE_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HIVE_SITE_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KEYTAB_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KRB5_CONF_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_PRINCIPAL;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_CATALOG_NAME;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_CATALOG_TYPE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_NAMESPACE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_TABLE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_URI;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_WAREHOUSE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HIVE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.DATA_SAVE_MODE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.ENABLE_UPSERT;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.PRIMARY_KEYS;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.SCHEMA_SAVE_MODE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.TARGET_FILE_SIZE_BYTES;
 
 @AutoService(Factory.class)
-@Slf4j
 public class IcebergSinkFactory implements TableSinkFactory {
+
+    public static final String REPLACE_TABLE_NAME_KEY = "${table_name}";
+
+    public static final String REPLACE_SCHEMA_NAME_KEY = "${schema_name}";
+
+    public static final String REPLACE_DATABASE_NAME_KEY = "${database_name}";
+
     @Override
     public String factoryIdentifier() {
         return "Iceberg";
@@ -65,33 +49,33 @@ public class IcebergSinkFactory implements TableSinkFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(KEY_CATALOG_NAME, KEY_CATALOG_TYPE, KEY_WAREHOUSE)
-                .conditional(KEY_CATALOG_TYPE, HIVE, KEY_URI)
+                .required(
+                        CommonConfig.KEY_CATALOG_NAME,
+                        SinkConfig.KEY_NAMESPACE,
+                        SinkConfig.KEY_TABLE,
+                        SinkConfig.CATALOG_PROPS)
                 .optional(
-                        KERBEROS_PRINCIPAL,
-                        KERBEROS_KEYTAB_PATH,
-                        KERBEROS_KRB5_CONF_PATH,
-                        HDFS_SITE_PATH,
-                        HIVE_SITE_PATH)
-                .optional(KEY_NAMESPACE, KEY_TABLE)
-                .optional(ENABLE_UPSERT)
-                .optional(DATA_SAVE_MODE, SCHEMA_SAVE_MODE)
-                .optional(PRIMARY_KEYS)
-                .optional(TARGET_FILE_SIZE_BYTES)
-                .optional(MULTI_TABLE_SINK_REPLICA)
+                        SinkConfig.TABLE_PROPS,
+                        SinkConfig.HADOOP_PROPS,
+                        SinkConfig.WRITE_PROPS,
+                        SinkConfig.AUTO_CREATE_PROPS,
+                        SinkConfig.TABLE_PRIMARY_KEYS,
+                        SinkConfig.TABLE_DEFAULT_PARTITION_KEYS,
+                        SinkConfig.TABLE_UPSERT_MODE_ENABLED_PROP,
+                        SinkConfig.TABLE_SCHEMA_EVOLUTION_ENABLED_PROP,
+                        SinkConfig.TABLES_DEFAULT_COMMIT_BRANCH)
                 .build();
     }
 
     @Override
     public TableSink createSink(TableSinkFactoryContext context) {
         ReadonlyConfig config = context.getOptions();
-        SinkConfig sinkConfig = new SinkConfig(config);
-        CatalogTable catalogTable = renameCatalogTable(sinkConfig, context.getCatalogTable());
-        return () -> new IcebergSink(catalogTable, config);
+        CatalogTable catalogTable =
+                renameCatalogTable(new SinkConfig(config), context.getCatalogTable());
+        return () -> new IcebergSink(config, catalogTable);
     }
 
     private CatalogTable renameCatalogTable(SinkConfig sinkConfig, CatalogTable catalogTable) {
-
         TableIdentifier tableId = catalogTable.getTableId();
         String tableName;
         String namespace;

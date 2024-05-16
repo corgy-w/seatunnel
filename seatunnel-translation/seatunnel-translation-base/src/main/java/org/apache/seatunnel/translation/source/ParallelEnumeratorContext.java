@@ -39,11 +39,14 @@ public class ParallelEnumeratorContext<SplitT extends SourceSplit>
     protected volatile boolean running = false;
 
     public ParallelEnumeratorContext(
-            ParallelSource<?, SplitT, ?> parallelSource, int parallelism, int subtaskId) {
+            ParallelSource<?, SplitT, ?> parallelSource,
+            int parallelism,
+            String jobId,
+            int subtaskId) {
         this.parallelSource = parallelSource;
         this.parallelism = parallelism;
         this.subtaskId = subtaskId;
-        this.eventListener = new DefaultEventProcessor();
+        this.eventListener = new DefaultEventProcessor(jobId);
     }
 
     @Override

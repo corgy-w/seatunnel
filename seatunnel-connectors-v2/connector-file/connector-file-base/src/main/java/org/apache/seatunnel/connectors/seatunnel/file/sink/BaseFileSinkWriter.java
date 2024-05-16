@@ -153,5 +153,9 @@ public class BaseFileSinkWriter<T>
     }
 
     @Override
-    public void close() throws IOException {}
+    public void close() throws IOException {
+        if (writeStrategy != null) {
+            writeStrategy.close();
+        }
+    }
 }

@@ -46,6 +46,7 @@ public class TiDBDataTypeConvertor implements DataTypeConvertor<MysqlType> {
     public static final Integer DEFAULT_PRECISION = 10;
 
     public static final Integer DEFAULT_SCALE = 0;
+    private static final MysqlDataTypeConvertor MYSQL_CONVERTOR = new MysqlDataTypeConvertor();
 
     private static final MysqlDataTypeConvertor MYSQL_CONVERTOR = new MysqlDataTypeConvertor();
 

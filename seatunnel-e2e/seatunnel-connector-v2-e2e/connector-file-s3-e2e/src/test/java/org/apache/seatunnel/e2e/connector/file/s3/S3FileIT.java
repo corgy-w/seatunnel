@@ -38,13 +38,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-@Disabled("run error")
+@Disabled("have no s3 environment to run this test")
 public class S3FileIT extends TestSuiteBase {
 
     public static final String S3_SDK_DOWNLOAD =
-            "https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.692/aws-java-sdk-bundle-1.12.692.jar";
+            "https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.271/aws-java-sdk-bundle-1.11.271.jar";
     public static final String HADOOP_S3_DOWNLOAD =
-            "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.6/hadoop-aws-3.3.6.jar";
+            "https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.1.4/hadoop-aws-3.1.4.jar";
 
     @TestContainerExtension
     private final ContainerExtendedFactory extendedFactory =

@@ -24,7 +24,6 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
-import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
@@ -132,6 +131,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
         String columnComment = resultSet.getString("column_comment");
         Object defaultValue = resultSet.getObject("default_value");
         boolean isNullable = resultSet.getString("is_nullable").equals("YES");
+
         // dealingSpecialNumeric
         if (typeName.equals(PostgresTypeConverter.PG_NUMERIC) && columnLength < 1) {
             fullTypeName = "numeric(38,10)";
@@ -154,11 +154,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
                         .defaultValue(defaultValue)
                         .comment(columnComment)
                         .build();
-        return getTypeConverter().convert(typeDefine);
-    }
-
-    public TypeConverter getTypeConverter() {
-        return PostgresTypeConverter.INSTANCE;
+        return PostgresTypeConverter.INSTANCE.convert(typeDefine);
     }
 
     @Override

@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.iceberg.catalog;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.InfoPreviewResult;
@@ -26,13 +27,12 @@ import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.BasicType;
-import org.apache.seatunnel.connectors.seatunnel.iceberg.IcebergCatalogFactory;
-import org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Optional;
 
 public class PreviewActionTest {
@@ -55,20 +55,27 @@ public class PreviewActionTest {
                     "comment");
 
     @Test
-    public void testIcebergPreviewAction() {
-        IcebergCatalogFactory catalogFactory =
-                new IcebergCatalogFactory(
-                        "iceberg",
-                        IcebergCatalogType.HIVE,
-                        "warehouse",
-                        "thrift://datasource01:9083",
-                        "hadoop/liuli@SILENCE.COM",
-                        "/Users/liliu/krb5.conf",
-                        "/Users/liliu/liuli.keytab",
-                        "/Users/liliu/hdfs-site.xml",
-                        "/Users/liliu/hive-site.xml");
-
-        IcebergCatalog catalog = new IcebergCatalog(catalogFactory, "iceberg");
+    public void testElasticSearchPreviewAction() {
+        IcebergCatalogFactory factory = new IcebergCatalogFactory();
+        Catalog catalog =
+                factory.createCatalog(
+                        "test",
+                        ReadonlyConfig.fromMap(
+                                new HashMap<String, Object>() {
+                                    {
+                                        put("catalog_name", "seatunnel_test");
+                                        put(
+                                                "iceberg.catalog.config",
+                                                new HashMap<String, Object>() {
+                                                    {
+                                                        put("type", "hadoop");
+                                                        put(
+                                                                "warehouse",
+                                                                "file:///tmp/seatunnel/iceberg/hadoop-sink/");
+                                                    }
+                                                });
+                                    }
+                                }));
         assertPreviewResult(
                 catalog, Catalog.ActionType.CREATE_DATABASE, "do nothing", Optional.empty());
         assertPreviewResult(

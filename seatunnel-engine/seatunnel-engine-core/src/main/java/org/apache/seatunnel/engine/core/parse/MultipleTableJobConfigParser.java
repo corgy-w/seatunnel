@@ -34,9 +34,7 @@ import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.FactoryUtil;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactory;
-import org.apache.seatunnel.api.table.factory.TableTransformFactory;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.common.Constants;
 import org.apache.seatunnel.common.config.TypesafeConfigUtils;
@@ -138,11 +136,27 @@ public class MultipleTableJobConfigParser {
             JobConfig jobConfig,
             List<URL> commonPluginJars,
             boolean isStartWithSavePoint) {
+        this(
+                jobDefineFilePath,
+                null,
+                idGenerator,
+                jobConfig,
+                commonPluginJars,
+                isStartWithSavePoint);
+    }
+
+    public MultipleTableJobConfigParser(
+            String jobDefineFilePath,
+            List<String> variables,
+            IdGenerator idGenerator,
+            JobConfig jobConfig,
+            List<URL> commonPluginJars,
+            boolean isStartWithSavePoint) {
         this.idGenerator = idGenerator;
         this.jobConfig = jobConfig;
         this.commonPluginJars = commonPluginJars;
         this.isStartWithSavePoint = isStartWithSavePoint;
-        this.seaTunnelJobConfig = ConfigBuilder.of(Paths.get(jobDefineFilePath));
+        this.seaTunnelJobConfig = ConfigBuilder.of(Paths.get(jobDefineFilePath), variables);
         this.envOptions = ReadonlyConfig.fromConfig(seaTunnelJobConfig.getConfig("env"));
         this.fallbackParser =
                 new JobConfigParser(idGenerator, commonPluginJars, isStartWithSavePoint);
@@ -288,7 +302,8 @@ public class MultipleTableJobConfigParser {
     private void fillJobConfig() {
         jobConfig.getJobContext().setJobMode(envOptions.get(EnvCommonOptions.JOB_MODE));
         if (StringUtils.isEmpty(jobConfig.getName())
-                || jobConfig.getName().equals(Constants.LOGO)) {
+                || jobConfig.getName().equals(Constants.LOGO)
+                || jobConfig.getName().equals(EnvCommonOptions.JOB_NAME.defaultValue())) {
             jobConfig.setName(envOptions.get(EnvCommonOptions.JOB_NAME));
         }
         envOptions
@@ -420,13 +435,6 @@ public class MultipleTableJobConfigParser {
 
         final String tableId =
                 readonlyConfig.getOptional(CommonOptions.RESULT_TABLE_NAME).orElse(DEFAULT_ID);
-
-        boolean fallback =
-                isFallback(
-                        classLoader,
-                        TableTransformFactory.class,
-                        factoryId,
-                        (factory) -> factory.createTransform(null));
 
         Set<Action> inputActions =
                 inputs.stream()

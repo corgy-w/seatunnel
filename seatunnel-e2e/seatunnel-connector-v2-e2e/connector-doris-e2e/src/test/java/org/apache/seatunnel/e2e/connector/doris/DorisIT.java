@@ -218,6 +218,7 @@ public class DorisIT extends AbstractDorisIT {
             String sinkSql =
                     String.format("select * from %s.%s order by F_ID", sinkDB, DUPLICATE_TABLE);
             checkSourceAndSinkTableDate(sourceSql, sinkSql, DUPLICATE_TABLE_COLUMN_STRING);
+            clearDuplicateTable();
         } catch (Exception e) {
             throw new RuntimeException("Doris connection error", e);
         }
@@ -300,7 +301,7 @@ public class DorisIT extends AbstractDorisIT {
             String sinkSql =
                     String.format("select * from %s.%s order by F_ID", sinkDB, UNIQUE_TABLE);
             checkSourceAndSinkTableDate(sourceSql, sinkSql, UNIQUE_TABLE_COLUMN_STRING);
-            clearSinkTable();
+            clearUniqueTable();
         } catch (Exception e) {
             throw new RuntimeException("Doris connection error", e);
         }
@@ -352,10 +353,19 @@ public class DorisIT extends AbstractDorisIT {
         }
     }
 
-    private void clearSinkTable() {
+    private void clearUniqueTable() {
         try (Statement statement = conn.createStatement()) {
             statement.execute(String.format("TRUNCATE TABLE %s.%s", sourceDB, UNIQUE_TABLE));
             statement.execute(String.format("TRUNCATE TABLE %s.%s", sinkDB, UNIQUE_TABLE));
+        } catch (SQLException e) {
+            throw new RuntimeException("test doris server image error", e);
+        }
+    }
+
+    private void clearDuplicateTable() {
+        try (Statement statement = conn.createStatement()) {
+            statement.execute(String.format("TRUNCATE TABLE %s.%s", sourceDB, DUPLICATE_TABLE));
+            statement.execute(String.format("TRUNCATE TABLE %s.%s", sinkDB, DUPLICATE_TABLE));
         } catch (SQLException e) {
             throw new RuntimeException("test doris server image error", e);
         }

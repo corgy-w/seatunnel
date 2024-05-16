@@ -72,7 +72,6 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
             default:
                 break;
         }
-
         BasicTypeDefine typeDefine =
                 BasicTypeDefine.builder()
                         .name(field)
