@@ -40,10 +40,12 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.utility.MountableFile;
 
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +53,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HADOOP;
+import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PATH;
 import static org.awaitility.Awaitility.given;
 
 @Slf4j
@@ -75,10 +78,27 @@ public class IcebergSinkIT extends TestSuiteBase {
                 container.execInContainer("sh", "-c", "mkdir -p " + CATALOG_DIR);
                 container.execInContainer("sh", "-c", "chmod -R 777  " + CATALOG_DIR);
                 container.execInContainer(
-                        "sh",
-                        "-c",
-                        "mkdir -p /tmp/seatunnel/plugins/Iceberg/lib && cd /tmp/seatunnel/plugins/Iceberg/lib && wget "
-                                + zstdUrl());
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-iceberg/");
+                Container.ExecResult extraCommandsZSTD =
+                        container.execInContainer(
+                                "sh",
+                                "-c",
+                                "mkdir -p /tmp/seatunnel/plugins/connector-iceberg/ && cd /tmp/seatunnel/plugins/connector-iceberg/ && wget "
+                                        + zstdUrl());
+                Assertions.assertEquals(
+                        0, extraCommandsZSTD.getExitCode(), extraCommandsZSTD.getStderr());
+
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-iceberg/");
+                container.copyFileToContainer(
+                        MountableFile.forHostPath(
+                                PROJECT_ROOT_PATH
+                                        + "/seatunnel-shade/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber/target/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber.jar"),
+                        Paths.get(
+                                        "/tmp/seatunnel/plugins/connector-iceberg/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber.jar")
+                                .toString());
             };
 
     private final String NAMESPACE_TAR = NAMESPACE + ".tar.gz";

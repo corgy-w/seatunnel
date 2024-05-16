@@ -17,7 +17,6 @@
 
 package org.apache.seatunnel.engine.e2e.classloader;
 
-import org.apache.seatunnel.common.utils.FileUtils;
 import org.apache.seatunnel.e2e.common.util.ContainerUtil;
 import org.apache.seatunnel.engine.e2e.SeaTunnelContainer;
 import org.apache.seatunnel.engine.server.rest.RestConstant;
@@ -34,20 +33,6 @@ import io.restassured.response.Response;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.utility.DockerLoggerFactory;
-import org.testcontainers.utility.MountableFile;
-
-import io.restassured.response.Response;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;

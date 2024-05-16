@@ -59,7 +59,8 @@ public class StarRocksSource
     public SourceReader createReader(SourceReader.Context readerContext) throws Exception {
         // Load the JDBC driver in to DriverManager
         Class.forName("com.mysql.cj.jdbc.Driver");
-        return new StarRocksSourceReader(readerContext, catalogTable.getSeaTunnelRowType(), sourceConfig);
+        return new StarRocksSourceReader(
+                readerContext, catalogTable.getSeaTunnelRowType(), sourceConfig);
     }
 
     @Override
@@ -81,6 +82,7 @@ public class StarRocksSource
             throws Exception {
         // Load the JDBC driver in to DriverManager
         Class.forName("com.mysql.cj.jdbc.Driver");
-        return new StartRocksSourceSplitEnumerator(enumeratorContext, sourceConfig, catalogTable.getSeaTunnelRowType());
+        return new StartRocksSourceSplitEnumerator(
+                enumeratorContext, sourceConfig, catalogTable.getSeaTunnelRowType());
     }
 }

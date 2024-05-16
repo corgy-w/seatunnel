@@ -18,10 +18,9 @@
 package org.apache.seatunnel.e2e.connector.iceberg.hadoop3;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.common.utils.FileUtils;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.IcebergCatalogLoader;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig;
-import org.apache.seatunnel.common.utils.FileUtils;
-import org.apache.seatunnel.connectors.seatunnel.iceberg.IcebergCatalogFactory;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig;
 import org.apache.seatunnel.e2e.common.TestResource;

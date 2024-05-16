@@ -52,10 +52,12 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.lifecycle.Startables;
 import org.testcontainers.utility.DockerLoggerFactory;
+import org.testcontainers.utility.MountableFile;
 
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -70,6 +72,7 @@ import java.util.stream.Stream;
 
 import static java.lang.Thread.sleep;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HADOOP;
+import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PATH;
 import static org.awaitility.Awaitility.given;
 
 @Slf4j
@@ -121,11 +124,13 @@ public class IcebergSinkCDCIT extends TestSuiteBase implements TestResource {
             container -> {
                 container.execInContainer("sh", "-c", "mkdir -p " + CATALOG_DIR);
                 container.execInContainer("sh", "-c", "chmod -R 777 " + CATALOG_DIR);
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-iceberg/");
                 Container.ExecResult extraCommandsZSTD =
                         container.execInContainer(
                                 "sh",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/Iceberg/lib && cd /tmp/seatunnel/plugins/Iceberg/lib && wget "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-iceberg/ && cd /tmp/seatunnel/plugins/connector-iceberg/ && wget "
                                         + zstdUrl());
                 Assertions.assertEquals(
                         0, extraCommandsZSTD.getExitCode(), extraCommandsZSTD.getStderr());
@@ -133,9 +138,21 @@ public class IcebergSinkCDCIT extends TestSuiteBase implements TestResource {
                         container.execInContainer(
                                 "sh",
                                 "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/MySQL-CDC/lib && cd /tmp/seatunnel/plugins/MySQL-CDC/lib && wget "
+                                "mkdir -p /tmp/seatunnel/plugins/connector-cdc-mysql && cd /tmp/seatunnel/plugins/connector-cdc-mysql && wget "
                                         + driverUrl());
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
+
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-iceberg/");
+                container.copyFileToContainer(
+                        MountableFile.forHostPath(
+                                PROJECT_ROOT_PATH
+                                        + "/seatunnel-shade/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber/target/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber.jar"),
+                        Paths.get(
+                                        "/tmp/seatunnel/plugins/connector-iceberg/seatunnel-hive-exec-3.1.3-hadoop3.3.6-uber.jar")
+                                .toString());
             };
 
     private final String NAMESPACE_TAR = NAMESPACE + ".tar.gz";
