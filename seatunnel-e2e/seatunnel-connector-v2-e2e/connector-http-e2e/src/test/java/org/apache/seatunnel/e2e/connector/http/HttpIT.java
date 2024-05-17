@@ -40,13 +40,15 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class HttpIT extends TestSuiteBase implements TestResource {
 
     private static final String TMP_DIR = "/tmp";
 
-    private static final String successCount = "Total Write Count         :                   2";
+    private static final Pattern successCountPattern =
+            Pattern.compile("Total Write Count\\s*:\\s*2");
 
     private static final String IMAGE = "mockserver/mockserver:5.14.0";
 
@@ -176,7 +178,7 @@ public class HttpIT extends TestSuiteBase implements TestResource {
             throws IOException, InterruptedException {
         Container.ExecResult execResult = container.executeJob("/fake_to_multitable.conf");
         Assertions.assertEquals(0, execResult.getExitCode());
-        Assertions.assertTrue(execResult.getStdout().contains(successCount));
+        Assertions.assertTrue(successCountPattern.matcher(execResult.getStdout()).find());
     }
 
     public String getMockServerConfig() {
