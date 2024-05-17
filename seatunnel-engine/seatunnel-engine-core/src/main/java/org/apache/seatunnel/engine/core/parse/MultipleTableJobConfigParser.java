@@ -446,23 +446,10 @@ public class MultipleTableJobConfigParser {
                         .map(Tuple2::_1)
                         .collect(Collectors.toCollection(LinkedHashSet::new));
 
-        SeaTunnelDataType<?> expectedType = getProducedType(inputs.get(0)._2());
         checkProducedTypeEquals(inputActions);
         int spareParallelism = inputs.get(0)._2().getParallelism();
         int parallelism =
                 readonlyConfig.getOptional(CommonOptions.PARALLELISM).orElse(spareParallelism);
-        if (fallback) {
-            Tuple2<CatalogTable, Action> tuple =
-                    fallbackParser.parseTransform(
-                            config,
-                            jobConfig,
-                            tableId,
-                            parallelism,
-                            (SeaTunnelRowType) expectedType,
-                            inputActions);
-            tableWithActionMap.put(tableId, Collections.singletonList(tuple));
-            return;
-        }
 
         SeaTunnelTransform<?> transform =
                 FactoryUtil.createAndPrepareMultiTableTransform(
@@ -504,16 +491,11 @@ public class MultipleTableJobConfigParser {
                 return ((SourceAction<?, ?, ?>) action).getSource().getProducedType();
             }
         } else if (action instanceof TransformAction) {
-            try {
-                return ((TransformAction) action)
-                        .getTransform()
-                        .getProducedCatalogTables()
-                        .get(0)
-                        .getSeaTunnelRowType();
-            } catch (UnsupportedOperationException e) {
-                // TODO remove it when all connector use `getProducedCatalogTables`
-                return ((TransformAction) action).getTransform().getProducedType();
-            }
+            return ((TransformAction) action)
+                    .getTransform()
+                    .getProducedCatalogTables()
+                    .get(0)
+                    .getSeaTunnelRowType();
         }
         throw new UnsupportedOperationException();
     }

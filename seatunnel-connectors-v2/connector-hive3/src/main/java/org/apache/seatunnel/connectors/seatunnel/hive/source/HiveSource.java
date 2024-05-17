@@ -19,23 +19,28 @@ package org.apache.seatunnel.connectors.seatunnel.hive.source;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.Boundedness;
+import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.SupportColumnProjection;
+import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.connectors.seatunnel.file.hdfs.source.BaseHdfsFileSource;
-import org.apache.seatunnel.connectors.seatunnel.file.source.split.FileSourceSplit;
-import org.apache.seatunnel.connectors.seatunnel.file.source.state.FileSourceState;
-import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
+import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.config.HiveSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.config.MultipleTableHiveSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.reader.MultipleTableHiveSourceReader;
+import org.apache.seatunnel.connectors.seatunnel.hive.source.split.HiveSourceSplit;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.split.MultipleTableHiveSourceSplitEnumerator;
+import org.apache.seatunnel.connectors.seatunnel.hive.source.state.HiveSourceState;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class HiveSource extends BaseHdfsFileSource {
+public class HiveSource
+        implements SeaTunnelSource<SeaTunnelRow, HiveSourceSplit, HiveSourceState>,
+                SupportParallelism,
+                SupportColumnProjection {
 
     private final MultipleTableHiveSourceConfig multipleTableHiveSourceConfig;
 
@@ -45,7 +50,7 @@ public class HiveSource extends BaseHdfsFileSource {
 
     @Override
     public String getPluginName() {
-        return HiveConstants.CONNECTOR_NAME;
+        return FileSystemType.LOCAL.getFileSystemPluginName();
     }
 
     @Override
@@ -61,22 +66,22 @@ public class HiveSource extends BaseHdfsFileSource {
     }
 
     @Override
-    public SourceReader<SeaTunnelRow, FileSourceSplit> createReader(
+    public SourceReader<SeaTunnelRow, HiveSourceSplit> createReader(
             SourceReader.Context readerContext) {
         return new MultipleTableHiveSourceReader(readerContext, multipleTableHiveSourceConfig);
     }
 
     @Override
-    public SourceSplitEnumerator<FileSourceSplit, FileSourceState> createEnumerator(
-            SourceSplitEnumerator.Context<FileSourceSplit> enumeratorContext) {
+    public SourceSplitEnumerator<HiveSourceSplit, HiveSourceState> createEnumerator(
+            SourceSplitEnumerator.Context<HiveSourceSplit> enumeratorContext) {
         return new MultipleTableHiveSourceSplitEnumerator(
                 enumeratorContext, multipleTableHiveSourceConfig);
     }
 
     @Override
-    public SourceSplitEnumerator<FileSourceSplit, FileSourceState> restoreEnumerator(
-            SourceSplitEnumerator.Context<FileSourceSplit> enumeratorContext,
-            FileSourceState checkpointState) {
+    public SourceSplitEnumerator<HiveSourceSplit, HiveSourceState> restoreEnumerator(
+            SourceSplitEnumerator.Context<HiveSourceSplit> enumeratorContext,
+            HiveSourceState checkpointState) {
         return new MultipleTableHiveSourceSplitEnumerator(
                 enumeratorContext, multipleTableHiveSourceConfig, checkpointState);
     }

@@ -127,10 +127,6 @@ public abstract class AbstractJdbcRowConverter implements JdbcRowConverter {
                     fields[fieldIndex] =
                             convertToArray(rs, resultSetIndex, seaTunnelDataType, fieldName);
                     break;
-                case ARRAY:
-                    fields[fieldIndex] =
-                            convertToArray(rs, resultSetIndex, seaTunnelDataType, fieldName);
-                    break;
                 case MAP:
                 case ROW:
                 default:

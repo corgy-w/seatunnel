@@ -26,7 +26,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.sqlserver.SqlServerTypeConverter;
 
 import org.apache.commons.collections.MapUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import com.google.auto.service.AutoService;

@@ -1,19 +1,7 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
 
 package org.apache.seatunnel.connectors.seatunnel.redshift.sink;
 
@@ -59,7 +47,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
-public class S3RedshiftChangelogWriter extends BaseFileSinkWriter<WriterResource> {
+public class S3RedshiftChangelogWriter extends BaseFileSinkWriter {
     private final S3RedshiftConf s3RedshiftConf;
     private WriterResource resource;
     private final DataTypeChangeEventDispatcher dataTypeChangeEventDispatcher =
@@ -144,8 +132,8 @@ public class S3RedshiftChangelogWriter extends BaseFileSinkWriter<WriterResource
 
     @Override
     public void setMultiTableResourceManager(
-            MultiTableResourceManager<WriterResource> multiTableResourceManager, int queueIndex) {
-        this.resource = multiTableResourceManager.getSharedResource().get();
+            MultiTableResourceManager multiTableResourceManager, int queueIndex) {
+        this.resource = (WriterResource) multiTableResourceManager.getSharedResource().get();
     }
 
     private synchronized SeaTunnelRowType enhanceRowType(SeaTunnelRowType rowType) {

@@ -17,9 +17,6 @@
 
 package org.apache.seatunnel.transform.dmleventfilter;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.RowKind;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -72,11 +69,6 @@ public class DMLEventFilterTransform implements SeaTunnelTransform<SeaTunnelRow>
     }
 
     @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    @Override
     public void setTypeInfo(SeaTunnelDataType<SeaTunnelRow> inputDataType) {
         throw new UnsupportedOperationException("Not supported");
     }
@@ -84,10 +76,5 @@ public class DMLEventFilterTransform implements SeaTunnelTransform<SeaTunnelRow>
     @Override
     public CatalogTable getProducedCatalogTable() {
         return inputCatalogTable.get(0);
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getProducedType() {
-        return getProducedCatalogTable().getTableSchema().toPhysicalRowDataType();
     }
 }

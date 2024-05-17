@@ -94,7 +94,7 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
                     break;
                 case DECIMAL:
                     if (metaDataColumnType.equalsIgnoreCase(PostgresTypeConverter.PG_MONEY)) {
-                        String moneyStr = JdbcUtils.getString(rs, resultSetIndex);
+                        String moneyStr = JdbcFieldTypeUtils.getString(rs, resultSetIndex);
                         String moneyValue = moneyStr.replace("$", "").replaceAll(",", "");
                         fields[fieldIndex] = new BigDecimal(moneyValue);
                     } else {
@@ -137,9 +137,10 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
                             .equals(arrayObject.getClass())) {
                         fields[fieldIndex] = arrayObject;
                     } else {
-                        throw new JdbcConnectorException(
-                                CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
-                                "Unexpected value: " + seaTunnelDataType.getTypeClass());
+                        throw CommonError.unsupportedDataType(
+                                converterName(),
+                                seaTunnelDataType.getTypeClass().toString(),
+                                fieldName);
                     }
                     break;
                 case MAP:

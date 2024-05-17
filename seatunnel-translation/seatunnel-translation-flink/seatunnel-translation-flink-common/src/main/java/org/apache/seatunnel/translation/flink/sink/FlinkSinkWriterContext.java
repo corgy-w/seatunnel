@@ -80,9 +80,4 @@ public class FlinkSinkWriterContext implements SinkWriter.Context {
             throw new IllegalStateException("Initialize flink context failed", e);
         }
     }
-
-    @Override
-    public EventListener getEventListener() {
-        return eventListener;
-    }
 }

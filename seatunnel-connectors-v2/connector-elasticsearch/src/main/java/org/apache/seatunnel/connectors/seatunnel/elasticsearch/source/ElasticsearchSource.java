@@ -118,11 +118,6 @@ public class ElasticsearchSource
     }
 
     @Override
-    public String getPluginName() {
-        return "Elasticsearch";
-    }
-
-    @Override
     public Boundedness getBoundedness() {
         return Boundedness.BOUNDED;
     }

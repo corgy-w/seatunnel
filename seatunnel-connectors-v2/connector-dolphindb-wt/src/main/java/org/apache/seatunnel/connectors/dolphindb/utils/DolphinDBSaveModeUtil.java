@@ -17,7 +17,7 @@
 
 package org.apache.seatunnel.connectors.dolphindb.utils;
 
-import org.apache.seatunnel.api.sink.SaveModeConstants;
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.ArrayType;
@@ -46,7 +46,7 @@ public class DolphinDBSaveModeUtil {
         }
         template =
                 template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_PRIMARY_KEY),
+                        String.format("\\$\\{%s\\}", SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY),
                         primaryKey);
         Map<String, CreateTableParser.ColumnInfo> columnInTemplate =
                 CreateTableParser.getColumnList(template);
@@ -58,10 +58,10 @@ public class DolphinDBSaveModeUtil {
                         .map(DolphinDBSaveModeUtil::columnToDolphinDBType)
                         .collect(Collectors.joining(",\n"));
         return template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.DATABASE), database)
-                .replaceAll(String.format("\\$\\{%s\\}", SaveModeConstants.TABLE_NAME), table)
+                        String.format("\\$\\{%s\\}", SaveModePlaceHolder.DATABASE), database)
+                .replaceAll(String.format("\\$\\{%s\\}", SaveModePlaceHolder.TABLE_NAME), table)
                 .replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_FIELDS),
+                        String.format("\\$\\{%s\\}", SaveModePlaceHolder.ROWTYPE_FIELDS),
                         rowTypeFields);
     }
 

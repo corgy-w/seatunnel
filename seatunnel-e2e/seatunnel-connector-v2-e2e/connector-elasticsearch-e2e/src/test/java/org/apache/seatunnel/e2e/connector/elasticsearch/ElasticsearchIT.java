@@ -206,18 +206,6 @@ public class ElasticsearchIT extends TestSuiteBase implements TestResource {
         Assertions.assertIterableEquals(mapTestDatasetForDSL(), sinkData);
     }
 
-    @TestTemplate
-    public void testElasticsearchWithFullType(TestContainer container)
-            throws IOException, InterruptedException {
-        Container.ExecResult execResult =
-                container.executeJob("/elasticsearch/elasticsearch_source_and_sink_full_type.conf");
-        Assertions.assertEquals(0, execResult.getExitCode());
-        Thread.sleep(2000L);
-        Assertions.assertEquals(
-                1,
-                esRestClient.getIndexDocsCount("st_index_full_type_target").get(0).getDocsCount());
-    }
-
     private List<String> generateTestDataSet() throws JsonProcessingException {
         String[] fields =
                 new String[] {

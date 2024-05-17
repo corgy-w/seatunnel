@@ -53,7 +53,9 @@ public class SQLTransformTest {
 
     @Test
     public void testScaleSupport() {
-        SQLTransform sqlTransform = new SQLTransform(READONLY_CONFIG, getCatalogTable());
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        SQLTransformConfig.of(READONLY_CONFIG), READONLY_CONFIG, getCatalogTable());
         TableSchema tableSchema = sqlTransform.transformTableSchema();
         tableSchema
                 .getColumns()

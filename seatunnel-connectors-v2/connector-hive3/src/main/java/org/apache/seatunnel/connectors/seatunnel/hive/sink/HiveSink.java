@@ -33,6 +33,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.config.FileSinkConfig;
@@ -43,7 +44,6 @@ import org.apache.seatunnel.connectors.seatunnel.hive.commit.HiveSinkAggregatedC
 import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.hive.sink.writter.HiveSinkWriter;
-import org.apache.seatunnel.connectors.seatunnel.hive.source.config.HiveSourceOptions;
 import org.apache.seatunnel.connectors.seatunnel.hive.storage.StorageFactory;
 import org.apache.seatunnel.connectors.seatunnel.hive.utils.HiveTableUtils;
 
@@ -218,16 +218,16 @@ public class HiveSink
                 StorageFactory.getStorageType(hdfsLocation)
                         .buildHadoopConfWithReadOnlyConfig(readonlyConfig);
         readonlyConfig
-                .getOptional(HiveSourceOptions.HDFS_SITE_PATH)
+                .getOptional(HdfsConfigOptions.HDFS_SITE_PATH)
                 .ifPresent(hadoopConf::setHdfsSitePath);
         readonlyConfig
-                .getOptional(HiveSourceOptions.REMOTE_USER)
+                .getOptional(HdfsConfigOptions.REMOTE_USER)
                 .ifPresent(hadoopConf::setRemoteUser);
         readonlyConfig
-                .getOptional(HiveSourceOptions.KERBEROS_PRINCIPAL)
+                .getOptional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
                 .ifPresent(hadoopConf::setKerberosPrincipal);
         readonlyConfig
-                .getOptional(HiveSourceOptions.KERBEROS_KEYTAB_PATH)
+                .getOptional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
                 .ifPresent(hadoopConf::setKerberosKeytabPath);
         return hadoopConf;
     }

@@ -48,8 +48,6 @@ public class TiDBDataTypeConvertor implements DataTypeConvertor<MysqlType> {
     public static final Integer DEFAULT_SCALE = 0;
     private static final MysqlDataTypeConvertor MYSQL_CONVERTOR = new MysqlDataTypeConvertor();
 
-    private static final MysqlDataTypeConvertor MYSQL_CONVERTOR = new MysqlDataTypeConvertor();
-
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
         checkNotNull(connectorDataType, "connectorDataType can not be null");

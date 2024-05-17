@@ -31,7 +31,6 @@ import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.transform.exception.FieldRenamerError;
@@ -287,11 +286,6 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
     @Override
     public CatalogTable getProducedCatalogTable() {
         return getProducedCatalogTables().get(0);
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getProducedType() {
-        return getProducedCatalogTable().getSeaTunnelRowType();
     }
 
     @Override

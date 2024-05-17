@@ -27,7 +27,7 @@ import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
@@ -50,9 +50,9 @@ public class HiveSinkFactory
                 .required(HiveConfig.TABLE_NAME)
                 .required(HiveConfig.METASTORE_URI)
                 .optional(HiveConfig.ABORT_DROP_PARTITION_METADATA)
-                .optional(BaseSinkConfig.KERBEROS_PRINCIPAL)
-                .optional(BaseSinkConfig.KERBEROS_KEYTAB_PATH)
-                .optional(BaseSinkConfig.REMOTE_USER)
+                .optional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
+                .optional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
+                .optional(HdfsConfigOptions.REMOTE_USER)
                 .optional(HiveConfig.HADOOP_CONF)
                 .optional(HiveConfig.HADOOP_CONF_PATH)
                 .build();
@@ -74,7 +74,7 @@ public class HiveSinkFactory
         return HiveConstants.CONNECTOR_NAME;
     }
 
-    private ReadonlyConfig generateCurrentReadonlyConfig(
+    public ReadonlyConfig generateCurrentReadonlyConfig(
             ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
 
         Map<String, String> configMap = readonlyConfig.toMap();

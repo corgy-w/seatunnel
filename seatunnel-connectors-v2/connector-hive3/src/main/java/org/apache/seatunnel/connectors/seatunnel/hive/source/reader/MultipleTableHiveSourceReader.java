@@ -22,9 +22,9 @@ import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategy;
-import org.apache.seatunnel.connectors.seatunnel.file.source.split.FileSourceSplit;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.config.HiveSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.config.MultipleTableHiveSourceConfig;
+import org.apache.seatunnel.connectors.seatunnel.hive.source.split.HiveSourceSplit;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,12 +40,12 @@ import static org.apache.seatunnel.connectors.seatunnel.file.exception.FileConne
 import static org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErrorCode.FILE_READ_STRATEGY_NOT_SUPPORT;
 
 @Slf4j
-public class MultipleTableHiveSourceReader implements SourceReader<SeaTunnelRow, FileSourceSplit> {
+public class MultipleTableHiveSourceReader implements SourceReader<SeaTunnelRow, HiveSourceSplit> {
 
     private final SourceReader.Context context;
     private volatile boolean noMoreSplit;
 
-    private final Deque<FileSourceSplit> sourceSplits = new ConcurrentLinkedDeque<>();
+    private final Deque<HiveSourceSplit> sourceSplits = new ConcurrentLinkedDeque<>();
 
     private final Map<String, ReadStrategy> readStrategyMap;
 
@@ -69,7 +69,7 @@ public class MultipleTableHiveSourceReader implements SourceReader<SeaTunnelRow,
     @Override
     public void pollNext(Collector<SeaTunnelRow> output) {
         synchronized (output.getCheckpointLock()) {
-            FileSourceSplit split = sourceSplits.poll();
+            HiveSourceSplit split = sourceSplits.poll();
             if (null != split) {
                 ReadStrategy readStrategy = readStrategyMap.get(split.getTableId());
                 if (readStrategy == null) {
@@ -96,12 +96,12 @@ public class MultipleTableHiveSourceReader implements SourceReader<SeaTunnelRow,
     }
 
     @Override
-    public List<FileSourceSplit> snapshotState(long checkpointId) {
+    public List<HiveSourceSplit> snapshotState(long checkpointId) {
         return new ArrayList<>(sourceSplits);
     }
 
     @Override
-    public void addSplits(List<FileSourceSplit> splits) {
+    public void addSplits(List<HiveSourceSplit> splits) {
         sourceSplits.addAll(splits);
     }
 

@@ -18,8 +18,8 @@
 package org.apache.seatunnel.connectors.seatunnel.hive.utils;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopLoginFactory;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.config.HiveSourceOptions;
@@ -59,9 +59,9 @@ public class HiveMetaStoreProxy {
                 this.hiveMetaStoreClient =
                         HadoopLoginFactory.loginWithKerberos(
                                 new Configuration(),
-                                readonlyConfig.get(BaseSourceConfigOptions.KRB5_PATH),
-                                readonlyConfig.get(BaseSourceConfigOptions.KERBEROS_PRINCIPAL),
-                                readonlyConfig.get(BaseSourceConfigOptions.KERBEROS_KEYTAB_PATH),
+                                readonlyConfig.get(HdfsConfigOptions.KRB5_PATH),
+                                readonlyConfig.get(HdfsConfigOptions.KERBEROS_PRINCIPAL),
+                                readonlyConfig.get(HdfsConfigOptions.KERBEROS_KEYTAB_PATH),
                                 (configuration, userGroupInformation) ->
                                         new HiveMetaStoreClient(hiveConf));
                 return;
@@ -70,7 +70,7 @@ public class HiveMetaStoreProxy {
                 this.hiveMetaStoreClient =
                         HadoopLoginFactory.loginWithRemoteUser(
                                 new Configuration(),
-                                readonlyConfig.get(BaseSourceConfigOptions.REMOTE_USER),
+                                readonlyConfig.get(HdfsConfigOptions.REMOTE_USER),
                                 (configuration, userGroupInformation) ->
                                         new HiveMetaStoreClient(hiveConf));
                 return;

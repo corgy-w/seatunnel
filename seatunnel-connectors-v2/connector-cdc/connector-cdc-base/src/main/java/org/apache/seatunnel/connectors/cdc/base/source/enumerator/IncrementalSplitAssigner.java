@@ -297,27 +297,4 @@ public class IncrementalSplitAssigner<C extends SourceConfig> implements SplitAs
     public boolean waitingForAssignedSplits() {
         return !(splitAssigned && noMoreSplits());
     }
-
-    @VisibleForTesting
-    void setSplitAssigned(boolean assigned) {
-        this.splitAssigned = assigned;
-    }
-
-    public boolean completedSnapshotPhase(List<TableId> tableIds) {
-        checkArgument(splitAssigned && noMoreSplits());
-
-        for (String splitKey : new ArrayList<>(context.getAssignedSnapshotSplit().keySet())) {
-            SnapshotSplit assignedSplit = context.getAssignedSnapshotSplit().get(splitKey);
-            if (tableIds.contains(assignedSplit.getTableId())) {
-                context.getAssignedSnapshotSplit().remove(splitKey);
-                context.getSplitCompletedOffsets().remove(assignedSplit.splitId());
-            }
-        }
-        return context.getAssignedSnapshotSplit().isEmpty()
-                && context.getSplitCompletedOffsets().isEmpty();
-    }
-
-    public boolean waitingForAssignedSplits() {
-        return !(splitAssigned && noMoreSplits());
-    }
 }

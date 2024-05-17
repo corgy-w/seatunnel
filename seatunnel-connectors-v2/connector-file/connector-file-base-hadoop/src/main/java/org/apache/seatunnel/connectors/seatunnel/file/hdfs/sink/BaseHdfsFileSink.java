@@ -51,8 +51,9 @@ public abstract class BaseHdfsFileSink extends BaseFileSink {
         if (Objects.isNull(hadoopConf)) {
             hadoopConf = new HadoopConf(pluginConfig.getString(FS_DEFAULT_NAME_KEY));
         }
-        if (pluginConfig.hasPath(BaseSinkConfig.HDFS_SITE_PATH.key())) {
-            hadoopConf.setHdfsSitePath(pluginConfig.getString(BaseSinkConfig.HDFS_SITE_PATH.key()));
+        if (pluginConfig.hasPath(HdfsConfigOptions.HDFS_SITE_PATH.key())) {
+            hadoopConf.setHdfsSitePath(
+                    pluginConfig.getString(HdfsConfigOptions.HDFS_SITE_PATH.key()));
         }
 
         if (pluginConfig.hasPath(HdfsConfigOptions.REMOTE_USER.key())) {

@@ -31,10 +31,6 @@ import java.util.List;
 public class SelectDBCommitter implements SinkCommitter<SelectDBCommitInfo> {
     private final SelectDBConfig selectdbConfig;
 
-    public SelectDBCommitter(Config pluginConfig) {
-        this(SelectDBConfig.loadConfig(pluginConfig));
-    }
-
     public SelectDBCommitter(SelectDBConfig selectdbConfig) {
         this.selectdbConfig = selectdbConfig;
     }

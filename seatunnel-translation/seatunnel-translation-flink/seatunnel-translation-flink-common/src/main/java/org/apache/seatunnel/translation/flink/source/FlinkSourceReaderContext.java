@@ -128,8 +128,4 @@ public class FlinkSourceReaderContext implements SourceReader.Context {
             throw new IllegalStateException("Initialize flink context failed", e);
         }
     }
-
-    public boolean isSendNoMoreElementEvent() {
-        return isSendNoMoreElementEvent.get();
-    }
 }

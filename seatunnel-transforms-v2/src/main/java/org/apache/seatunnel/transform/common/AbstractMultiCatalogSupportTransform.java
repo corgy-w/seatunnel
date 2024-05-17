@@ -17,9 +17,6 @@
 
 package org.apache.seatunnel.transform.common;
 
-import org.apache.seatunnel.shade.com.typesafe.config.Config;
-
-import org.apache.seatunnel.api.common.PrepareFailException;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -88,15 +85,7 @@ public abstract class AbstractMultiCatalogSupportTransform
     }
 
     @Override
-    public SeaTunnelDataType<SeaTunnelRow> getProducedType() {
-        return outputCatalogTables.get(0).getTableSchema().toPhysicalRowDataType();
-    }
-
-    @Override
     public void setTypeInfo(SeaTunnelDataType<SeaTunnelRow> inputDataType) {}
-
-    @Override
-    public void prepare(Config pluginConfig) throws PrepareFailException {}
 
     public static class IdentityTransform implements SeaTunnelTransform<SeaTunnelRow> {
         private CatalogTable catalogTable;
@@ -126,14 +115,6 @@ public abstract class AbstractMultiCatalogSupportTransform
         }
 
         @Override
-        public SeaTunnelDataType<SeaTunnelRow> getProducedType() {
-            return catalogTable.getTableSchema().toPhysicalRowDataType();
-        }
-
-        @Override
         public void setTypeInfo(SeaTunnelDataType<SeaTunnelRow> inputDataType) {}
-
-        @Override
-        public void prepare(Config pluginConfig) throws PrepareFailException {}
     }
 }

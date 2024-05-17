@@ -84,14 +84,6 @@ public class PostgresChunkSplitter extends AbstractJdbcSourceChunkSplitter {
     }
 
     @Override
-    public Object[] sampleDataFromColumn(
-            JdbcConnection jdbc, TableId tableId, Column column, int inverseSamplingRate)
-            throws SQLException {
-        return PostgresUtils.skipReadAndSortSampleData(
-                jdbc, tableId, column.name(), column, inverseSamplingRate);
-    }
-
-    @Override
     public Object queryNextChunkMax(
             JdbcConnection jdbc,
             TableId tableId,
