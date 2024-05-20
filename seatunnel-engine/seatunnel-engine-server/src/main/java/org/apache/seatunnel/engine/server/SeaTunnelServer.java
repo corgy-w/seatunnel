@@ -31,8 +31,6 @@ import org.apache.seatunnel.engine.server.service.jar.ConnectorPackageService;
 import org.apache.seatunnel.engine.server.service.slot.DefaultSlotService;
 import org.apache.seatunnel.engine.server.service.slot.SlotService;
 
-import org.apache.hadoop.fs.FileSystem;
-
 import com.hazelcast.internal.services.ManagedService;
 import com.hazelcast.internal.services.MembershipAwareService;
 import com.hazelcast.internal.services.MembershipServiceEvent;
@@ -156,9 +154,6 @@ public class SeaTunnelServer
 
         seaTunnelHealthMonitor = new SeaTunnelHealthMonitor(((NodeEngineImpl) engine).getNode());
 
-        // a trick way to fix StatisticsDataReferenceCleaner thread class loader leak.
-        // see https://issues.apache.org/jira/browse/HADOOP-19049
-        FileSystem.Statistics statistics = new FileSystem.Statistics("SeaTunnel");
         Thread.currentThread().setContextClassLoader(appClassLoader);
     }
 
