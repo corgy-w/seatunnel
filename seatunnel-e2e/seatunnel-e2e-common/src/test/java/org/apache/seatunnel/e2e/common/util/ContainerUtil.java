@@ -24,6 +24,7 @@ import org.apache.seatunnel.shade.com.typesafe.config.ConfigResolveOptions;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.factory.FactoryException;
 import org.apache.seatunnel.common.constants.PluginType;
+import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 
 import org.apache.commons.lang3.StringUtils;
@@ -122,11 +123,17 @@ public final class ContainerUtil {
                                                 connectors.getConfig(pluginType.getType()))));
         File module = new File(PROJECT_ROOT_PATH + File.separator + connectorsRootPath);
         List<File> connectorFiles = getConnectorFiles(module, connectorNames, connectorPrefix);
-        connectorFiles.forEach(
-                jar ->
+        try {
+            connectorFiles.forEach(
+                    jar -> {
+                        log.error("Copy connector jar: {}", jar.getName());
                         container.copyFileToContainer(
                                 MountableFile.forHostPath(jar.getAbsolutePath()),
-                                Paths.get(seatunnelHome, "connectors", jar.getName()).toString()));
+                                Paths.get(seatunnelHome, "connectors", jar.getName()).toString());
+                    });
+        } catch (Throwable e) {
+            log.error(ExceptionUtils.getMessage(e));
+        }
     }
 
     public static Set<String> getConnectorNames(Config config) {

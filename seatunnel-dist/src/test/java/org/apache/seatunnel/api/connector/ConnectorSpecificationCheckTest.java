@@ -64,7 +64,9 @@ public class ConnectorSpecificationCheckTest {
         // hive-exec.jar. We need to check manually.
         List<String> blockList = new ArrayList<>();
         blockList.add("HiveSourceFactory");
+        blockList.add("Hive2SourceFactory");
         blockList.add("HiveSinkFactory");
+        blockList.add("Hive2SinkFactory");
         blockList.add("S3RedshiftSinkFactory");
 
         for (TableSourceFactory factory : sourceFactories) {

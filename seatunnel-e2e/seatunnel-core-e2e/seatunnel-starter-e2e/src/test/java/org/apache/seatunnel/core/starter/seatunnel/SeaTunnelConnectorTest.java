@@ -25,15 +25,14 @@ import org.apache.seatunnel.connectors.seatunnel.paimon.sink.PaimonSinkFactory;
 import org.apache.seatunnel.connectors.seatunnel.paimon.source.PaimonSourceFactory;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.util.ContainerUtil;
 import org.apache.seatunnel.transform.sql.SQLTransformFactory;
 
 import org.apache.commons.lang3.StringUtils;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -51,11 +50,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK, EngineType.FLINK},
-        disabledReason = "Only support for seatunnel")
 @DisabledOnOs(OS.WINDOWS)
+@Disabled("can not add connector plugin dir")
 @Slf4j
 public class SeaTunnelConnectorTest extends TestSuiteBase implements TestResource {
 

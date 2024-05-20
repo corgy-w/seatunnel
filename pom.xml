@@ -811,22 +811,22 @@
                                     <mkdir dir="src/main/resources/connector-amazonsqs" />
                                     <mkdir dir="src/main/resources/connector-assert" />
                                     <mkdir dir="src/main/resources/connector-cassandra" />
-                                    <mkdir dir="src/main/resources/connector-cdc-agent-oracle" />
-                                    <mkdir dir="src/main/resources/connector-cdc-dameng" />
-                                    <mkdir dir="src/main/resources/connector-cdc-informix" />
+                                    <mkdir dir="src/main/resources/connector-cdc-agent-oracle-wt" />
+                                    <mkdir dir="src/main/resources/connector-cdc-dameng-wt" />
+                                    <mkdir dir="src/main/resources/connector-cdc-informix-wt" />
                                     <mkdir dir="src/main/resources/connector-cdc-mongodb" />
                                     <mkdir dir="src/main/resources/connector-cdc-mysql" />
-                                    <mkdir dir="src/main/resources/connector-cdc-opengauss" />
-                                    <mkdir dir="src/main/resources/connector-cdc-oracle" />
+                                    <mkdir dir="src/main/resources/connector-cdc-opengauss-wt" />
+                                    <mkdir dir="src/main/resources/connector-cdc-oracle-wt" />
                                     <mkdir dir="src/main/resources/connector-cdc-postgres" />
                                     <mkdir dir="src/main/resources/connector-cdc-sqlserver" />
                                     <mkdir dir="src/main/resources/connector-clickhouse" />
                                     <mkdir dir="src/main/resources/connector-console" />
                                     <mkdir dir="src/main/resources/connector-datahub" />
                                     <mkdir dir="src/main/resources/connector-dingtalk" />
-                                    <mkdir dir="src/main/resources/connector-dolphindb" />
+                                    <mkdir dir="src/main/resources/connector-dolphindb-wt" />
                                     <mkdir dir="src/main/resources/connector-doris" />
-                                    <mkdir dir="src/main/resources/connector-dws-gaussdb" />
+                                    <mkdir dir="src/main/resources/connector-dws-gaussdb-wt" />
                                     <mkdir dir="src/main/resources/connector-elasticsearch" />
                                     <mkdir dir="src/main/resources/connector-email" />
                                     <mkdir dir="src/main/resources/connector-fake" />
@@ -870,7 +870,7 @@
                                     <mkdir dir="src/main/resources/connector-rabbitmq" />
                                     <mkdir dir="src/main/resources/connector-redis" />
                                     <mkdir dir="src/main/resources/connector-rocketmq" />
-                                    <mkdir dir="src/main/resources/connector-s3-redshift" />
+                                    <mkdir dir="src/main/resources/connector-s3-redshift-wt" />
                                     <mkdir dir="src/main/resources/connector-selectdb-cloud" />
                                     <mkdir dir="src/main/resources/connector-sentry" />
                                     <mkdir dir="src/main/resources/connector-slack" />
@@ -878,6 +878,8 @@
                                     <mkdir dir="src/main/resources/connector-starrocks" />
                                     <mkdir dir="src/main/resources/connector-tablestore" />
                                     <mkdir dir="src/main/resources/connector-tdengine" />
+                                    <mkdir dir="src/main/resources/connector-web3j" />
+                                    <mkdir dir="src/main/resources/connector-easysearch" />
                                 </target>
                             </configuration>
                         </execution>
