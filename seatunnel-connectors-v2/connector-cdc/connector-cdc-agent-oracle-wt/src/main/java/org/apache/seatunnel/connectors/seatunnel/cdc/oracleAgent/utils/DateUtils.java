@@ -25,14 +25,12 @@ import java.time.format.DateTimeFormatter;
 public class DateUtils {
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    private static final ZoneOffset SYSTEM_ZONE_OFFSET =
-            ZoneOffset.of(ZoneOffset.systemDefault().getId());
 
     public static LocalDateTime parse(String dateTime) {
         return LocalDateTime.parse(dateTime, DATE_TIME_FORMATTER);
     }
 
     public static Instant toInstant(String dateTime) {
-        return parse(dateTime).toInstant(SYSTEM_ZONE_OFFSET);
+        return parse(dateTime).toInstant(ZoneOffset.UTC);
     }
 }
