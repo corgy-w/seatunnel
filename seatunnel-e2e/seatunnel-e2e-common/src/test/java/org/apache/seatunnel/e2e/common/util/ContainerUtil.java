@@ -32,9 +32,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.shaded.org.apache.commons.lang3.tuple.Pair;
 import org.testcontainers.utility.MountableFile;
 
-import groovy.lang.Tuple2;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -326,7 +326,7 @@ public final class ContainerUtil {
 
     public static List<String> getJVMThreadNames(GenericContainer<?> container)
             throws IOException, InterruptedException {
-        return getJVMThreads(container).stream().map(Tuple2::getV1).collect(Collectors.toList());
+        return getJVMThreads(container).stream().map(Pair::getLeft).collect(Collectors.toList());
     }
 
     public static Map<String, Integer> getJVMLiveObject(GenericContainer<?> container)
@@ -350,7 +350,7 @@ public final class ContainerUtil {
                                 (a, b) -> a));
     }
 
-    public static List<Tuple2<String, String>> getJVMThreads(GenericContainer<?> container)
+    public static List<Pair<String, String>> getJVMThreads(GenericContainer<?> container)
             throws IOException, InterruptedException {
         Container.ExecResult threads =
                 container.execInContainer("jstack", getJVMProcessId(container));
@@ -362,7 +362,7 @@ public final class ContainerUtil {
                 .filter(s -> s.startsWith("\""))
                 .map(
                         threadStr ->
-                                new Tuple2<>(
+                                Pair.of(
                                         Arrays.stream(threadStr.split("\n"))
                                                 .filter(s -> s.startsWith("\""))
                                                 .map(s -> s.substring(1, s.lastIndexOf("\"")))

@@ -24,9 +24,11 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.connectors.seatunnel.paimon.catalog.PaimonCatalogLoader;
 import org.apache.seatunnel.connectors.seatunnel.paimon.config.PaimonSinkConfig;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
+import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
 import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
+import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.catalog.Identifier;
@@ -58,6 +60,17 @@ import static org.awaitility.Awaitility.given;
         "HDFS is not available in CI, if you want to run this test, please set up your own HDFS environment in the test case file and the below setup")
 public class PaimonSinkHdfsIT extends TestSuiteBase {
     private Map<String, Object> PAIMON_SINK_PROPERTIES;
+
+    @TestContainerExtension
+    private final ContainerExtendedFactory extendedFactory =
+            container -> {
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-paimon/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-paimon/");
+            };
 
     @BeforeAll
     public void setup() {

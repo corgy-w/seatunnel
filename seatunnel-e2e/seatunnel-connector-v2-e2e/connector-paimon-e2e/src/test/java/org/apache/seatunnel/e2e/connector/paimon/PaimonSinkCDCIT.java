@@ -24,6 +24,7 @@ import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
 import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
+import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.paimon.CoreOptions;
@@ -85,6 +86,17 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
     @AfterAll
     @Override
     public void tearDown() throws Exception {}
+
+    @TestContainerExtension
+    private final ContainerExtendedFactory extendedFactory =
+            container -> {
+                container.execInContainer(
+                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-paimon/");
+                container.execInContainer(
+                        "cp",
+                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
+                        "/tmp/seatunnel/plugins/connector-paimon/");
+            };
 
     @TestTemplate
     public void testFakeCDCSinkPaimon(TestContainer container) throws Exception {
@@ -438,12 +450,6 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
                                 + NAMESPACE);
                 container.copyFileFromContainer(
                         CATALOG_ROOT_DIR + NAMESPACE_TAR, CATALOG_ROOT_DIR + NAMESPACE_TAR);
-                container.execInContainer(
-                        "mkdir", "-p", "/tmp/seatunnel/plugins/connector-paimon/");
-                container.execInContainer(
-                        "cp",
-                        "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
-                        "/tmp/seatunnel/plugins/connector-paimon/");
                 container.execInContainer("chmod", "777", "-R", "/tmp/paimon");
                 extractFiles();
             };

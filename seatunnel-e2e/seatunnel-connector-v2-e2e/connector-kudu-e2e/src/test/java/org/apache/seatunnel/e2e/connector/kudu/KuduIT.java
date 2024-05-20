@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.e2e.connector.kudu;
 
+import org.apache.seatunnel.common.utils.DateTimeUtils;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.EngineType;
@@ -62,6 +63,7 @@ import java.net.Inet4Address;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -349,6 +351,11 @@ public class KuduIT extends TestSuiteBase implements TestResource {
         Container.ExecResult execResult = container.executeJob("/write-cdc-changelog-to-kudu.conf");
         Assertions.assertEquals(0, execResult.getExitCode());
 
+        String timeStr = "2020-02-02 02:02:02.0";
+        long utcTime =
+                DateTimeUtils.parse(timeStr).atZone(ZoneId.of("UTC")).toInstant().toEpochMilli();
+        String systemTime = DateTimeUtils.toString(utcTime, "yyyy-MM-dd HH:mm:ss.S");
+
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .untilAsserted(
                         () -> {
@@ -365,7 +372,7 @@ public class KuduIT extends TestSuiteBase implements TestResource {
                                                             "5.3",
                                                             "6.30000",
                                                             "NEW",
-                                                            "2020-02-02 02:02:02.0"),
+                                                            systemTime),
                                                     Arrays.asList(
                                                             "1",
                                                             "true",
@@ -377,7 +384,7 @@ public class KuduIT extends TestSuiteBase implements TestResource {
                                                             "5.3",
                                                             "6.30000",
                                                             "NEW",
-                                                            "2020-02-02 02:02:02.0"))
+                                                            systemTime))
                                             .collect(Collectors.toList()),
                                     readData("kudu_cdc_sink_table"));
                         });
@@ -415,7 +422,10 @@ public class KuduIT extends TestSuiteBase implements TestResource {
         Container.ExecResult execResult =
                 container.executeJob("/fake_to_kudu_with_multipletable.conf");
         Assertions.assertEquals(0, execResult.getExitCode());
-
+        String timeStr = "2020-02-02 02:02:02.0";
+        long utcTime =
+                DateTimeUtils.parse(timeStr).atZone(ZoneId.of("UTC")).toInstant().toEpochMilli();
+        String systemTime = DateTimeUtils.toString(utcTime, "yyyy-MM-dd HH:mm:ss.S");
         await().atMost(60000, TimeUnit.MILLISECONDS)
                 .untilAsserted(
                         () ->
@@ -434,7 +444,7 @@ public class KuduIT extends TestSuiteBase implements TestResource {
                                                                             "5.3",
                                                                             "6.30000",
                                                                             "NEW",
-                                                                            "2020-02-02 02:02:02.0"))
+                                                                            systemTime))
                                                             .collect(Collectors.toList()),
                                                     readData("kudu_sink_1"));
                                         },
@@ -452,7 +462,7 @@ public class KuduIT extends TestSuiteBase implements TestResource {
                                                                             "5.3",
                                                                             "6.30000",
                                                                             "NEW",
-                                                                            "2020-02-02 02:02:02.0"))
+                                                                            systemTime))
                                                             .collect(Collectors.toList()),
                                                     readData("kudu_sink_2"));
                                         }));
@@ -519,5 +529,14 @@ public class KuduIT extends TestSuiteBase implements TestResource {
         }
         throw new IllegalStateException(
                 "Could not find site local ipv4 address, failed to launch kudu");
+    }
+
+    public static void main(String[] args) {
+        String timeStr = "2020-02-02 02:02:02.0";
+        // 将timeStr转成UTC时间
+        long utcTime =
+                DateTimeUtils.parse(timeStr).atZone(ZoneId.of("UTC")).toInstant().toEpochMilli();
+        String systemTime = DateTimeUtils.toString(utcTime, "yyyy-MM-dd HH:mm:ss.S");
+        System.out.println(systemTime);
     }
 }

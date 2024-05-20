@@ -242,6 +242,15 @@ public class DateTimeUtils {
         return toString(LocalDateTime.ofInstant(instant, ZoneId.systemDefault()), formatter);
     }
 
+    public static String toString(LocalDateTime dateTime, String formatter) {
+        return dateTime.format(DateTimeFormatter.ofPattern(formatter));
+    }
+
+    public static String toString(long timestamp, String formatter) {
+        Instant instant = Instant.ofEpochMilli(timestamp);
+        return toString(LocalDateTime.ofInstant(instant, ZoneId.systemDefault()), formatter);
+    }
+
     public enum Formatter {
         YYYY_MM_DD_HH_MM_SS("yyyy-MM-dd HH:mm:ss"),
         YYYY_MM_DD_HH_MM_SS_SSSSSS("yyyy-MM-dd HH:mm:ss.SSSSSS"),

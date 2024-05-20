@@ -36,13 +36,13 @@ import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.shaded.org.apache.commons.lang3.tuple.Pair;
 import org.testcontainers.utility.DockerLoggerFactory;
 import org.testcontainers.utility.MountableFile;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auto.service.AutoService;
-import groovy.lang.Tuple2;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -312,8 +312,8 @@ public class SeaTunnelContainer extends AbstractTestContainer {
                                                         .filter(
                                                                 tuple2 ->
                                                                         finalAfterThreads.contains(
-                                                                                tuple2.getV1()))
-                                                        .map(Tuple2::getV2)
+                                                                                tuple2.getLeft()))
+                                                        .map(Pair::getRight)
                                                         .map(str -> str + "\n")
                                                         .collect(Collectors.joining()));
                             });
