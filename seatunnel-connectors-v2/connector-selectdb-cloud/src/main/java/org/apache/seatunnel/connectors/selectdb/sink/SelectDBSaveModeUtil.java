@@ -20,7 +20,9 @@ package org.apache.seatunnel.connectors.selectdb.sink;
 import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.connectors.seatunnel.common.sql.template.SqlTemplate;
 import org.apache.seatunnel.connectors.selectdb.catalog.SelectDBTypeConverter;
+import org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig;
 import org.apache.seatunnel.connectors.selectdb.util.CreateTableParser;
 
 import org.apache.commons.lang3.StringUtils;
@@ -37,6 +39,7 @@ public class SelectDBSaveModeUtil {
 
     public static String fillingCreateSql(
             String template, String database, String table, TableSchema tableSchema) {
+        String tablePath = database + "." + table;
         String primaryKey = "";
         if (tableSchema.getPrimaryKey() != null) {
             primaryKey =
@@ -52,14 +55,28 @@ public class SelectDBSaveModeUtil {
                             .map(r -> "`" + r.getColumnName() + "`")
                             .collect(Collectors.joining(","));
         }
+        // TODO: support duplicate key
+
+        SqlTemplate.canHandledByTemplateWithPlaceholder(
+                template,
+                SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder(),
+                primaryKey,
+                tablePath,
+                SelectDBConfig.SAVE_MODE_CREATE_TEMPLATE.key());
         template =
                 template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY),
+                        SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getReplacePlaceHolder(),
                         primaryKey);
+        SqlTemplate.canHandledByTemplateWithPlaceholder(
+                template,
+                SaveModePlaceHolder.ROWTYPE_UNIQUE_KEY.getPlaceHolder(),
+                uniqueKey,
+                tablePath,
+                SelectDBConfig.SAVE_MODE_CREATE_TEMPLATE.key());
         template =
                 template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModePlaceHolder.ROWTYPE_UNIQUE_KEY),
-                        uniqueKey);
+                        SaveModePlaceHolder.ROWTYPE_UNIQUE_KEY.getReplacePlaceHolder(), uniqueKey);
+
         Map<String, CreateTableParser.ColumnInfo> columnInTemplate =
                 CreateTableParser.getColumnList(template);
         template = mergeColumnInTemplate(columnInTemplate, tableSchema, template);
@@ -69,12 +86,10 @@ public class SelectDBSaveModeUtil {
                         .filter(column -> !columnInTemplate.containsKey(column.getName()))
                         .map(SelectDBSaveModeUtil::columnToSelectDBType)
                         .collect(Collectors.joining(",\n"));
-        return template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModePlaceHolder.DATABASE), database)
-                .replaceAll(String.format("\\$\\{%s\\}", SaveModePlaceHolder.TABLE_NAME), table)
+        return template.replaceAll(SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(), database)
+                .replaceAll(SaveModePlaceHolder.TABLE_NAME.getReplacePlaceHolder(), table)
                 .replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModePlaceHolder.ROWTYPE_FIELDS),
-                        rowTypeFields);
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields);
     }
 
     public static String columnToSelectDBType(Column column) {
