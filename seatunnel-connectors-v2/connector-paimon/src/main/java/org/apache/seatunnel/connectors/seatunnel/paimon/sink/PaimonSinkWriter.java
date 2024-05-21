@@ -182,5 +182,12 @@ public class PaimonSinkWriter
     public void abortPrepare() {}
 
     @Override
-    public void close() throws IOException {}
+    public void close() throws IOException {
+        try {
+            tableWrite.close();
+        } catch (Exception e) {
+            throw new PaimonConnectorException(
+                    PaimonConnectorErrorCode.TABLE_WRITE_CLOSE_FAILED, e);
+        }
+    }
 }

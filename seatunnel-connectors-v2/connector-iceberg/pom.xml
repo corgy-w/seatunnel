@@ -226,6 +226,16 @@
                         <configuration>
                             <relocations>
                                 <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>${seatunnel.shade.package}.iceberg.com.google.common</shadedPattern>
+                                    <includes>
+                                        <include>com.google.common.base.*</include>
+                                        <include>com.google.common.cache.*</include>
+                                        <include>com.google.common.collect.*</include>
+                                        <include>com.google.common.util.*</include>
+                                    </includes>
+                                </relocation>
+                                <relocation>
                                     <pattern>org.apache.avro</pattern>
                                     <!--suppress UnresolvedMavenProperty, this property is added by submodule-->
                                     <shadedPattern>${seatunnel.shade.package}.${connector.name}.org.apache.avro</shadedPattern>
