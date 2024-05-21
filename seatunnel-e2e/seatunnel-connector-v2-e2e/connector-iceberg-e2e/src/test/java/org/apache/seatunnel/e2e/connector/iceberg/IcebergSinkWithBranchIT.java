@@ -25,8 +25,6 @@ import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.container.TestContainerId;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.apache.hadoop.conf.Configuration;
@@ -64,10 +62,6 @@ import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PA
 import static org.awaitility.Awaitility.given;
 
 @Slf4j
-@DisabledOnContainer(
-        value = {TestContainerId.SPARK_2_4},
-        type = {},
-        disabledReason = "")
 @DisabledOnOs(OS.WINDOWS)
 public class IcebergSinkWithBranchIT extends TestSuiteBase {
 

@@ -20,9 +20,7 @@ package org.apache.seatunnel.e2e.connector.starrocks;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.junit.jupiter.api.AfterAll;
@@ -133,10 +131,6 @@ public class StarRocksCDCSinkIT extends TestSuiteBase implements TestResource {
     }
 
     @TestTemplate
-    @DisabledOnContainer(
-            value = {},
-            type = {EngineType.SPARK},
-            disabledReason = "Currently Spark engine unsupported DELETE operation")
     public void testStarRocksSink(TestContainer container) throws Exception {
         Container.ExecResult execResult =
                 container.executeJob("/write-cdc-changelog-to-starrocks.conf");

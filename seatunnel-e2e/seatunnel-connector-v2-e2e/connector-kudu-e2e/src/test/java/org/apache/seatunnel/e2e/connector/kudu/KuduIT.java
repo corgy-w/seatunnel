@@ -341,10 +341,6 @@ public class KuduIT extends TestSuiteBase implements TestResource {
         kuduClient.deleteTable(KUDU_SINK_TABLE);
     }
 
-    @DisabledOnContainer(
-            value = {},
-            type = {EngineType.SPARK},
-            disabledReason = "Currently SPARK do not support cdc")
     @TestTemplate
     public void testCdcKudu(TestContainer container) throws IOException, InterruptedException {
         this.initializeKuduTable("kudu_cdc_sink_table");

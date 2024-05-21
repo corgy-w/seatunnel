@@ -28,9 +28,7 @@ import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.apache.iceberg.Schema;
@@ -76,10 +74,6 @@ import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PA
 import static org.awaitility.Awaitility.given;
 
 @Slf4j
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK},
-        disabledReason = "Currently SPARK do not support cdc")
 @DisabledOnOs(OS.WINDOWS)
 public class IcebergSinkCDCIT extends TestSuiteBase implements TestResource {
 
@@ -381,6 +375,7 @@ public class IcebergSinkCDCIT extends TestSuiteBase implements TestResource {
     // Execute SQL
     private void executeSql(String sql) {
         try (Connection connection = getJdbcConnection()) {
+            log.info("Execute SQL: {}", sql);
             connection.createStatement().execute(sql);
         } catch (SQLException e) {
             throw new RuntimeException(e);

@@ -18,9 +18,7 @@
 package org.apache.seatunnel.e2e.connector.assertion;
 
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.TestTemplate;
@@ -47,10 +45,6 @@ public class FakeSourceToAssertIT extends TestSuiteBase {
     }
 
     @TestTemplate
-    @DisabledOnContainer(
-            value = {},
-            type = {EngineType.FLINK},
-            disabledReason = "Currently FLINK engine unsupported NULL type")
     public void testFakeFullTypesToAssertSink(TestContainer container)
             throws IOException, InterruptedException {
         Container.ExecResult execResult =
