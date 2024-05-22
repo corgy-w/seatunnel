@@ -31,11 +31,11 @@
     <properties>
         <hive-jdbc.version>2.3.9</hive-jdbc.version>
         <hadoop.version>3.1.4</hadoop.version>
-        <guava.version>31.1-jre</guava.version>
+        <guava.version>14.0.1</guava.version>
     </properties>
 
     <dependencyManagement>
-        <!--  Hive need to use this version  -->
+        <!--  Keep same with hive  -->
         <dependencies>
             <dependency>
                 <groupId>com.google.guava</groupId>
