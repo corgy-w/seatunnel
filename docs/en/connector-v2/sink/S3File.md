@@ -23,7 +23,6 @@ By default, we use 2PC commit to ensure `exactly-once`
   - [x] json
   - [x] excel
   - [x] xml
-  - [x] binary
 
 ## Description
 
@@ -173,7 +172,7 @@ When the format in the `file_name_expression` parameter is `xxxx-${now}` , `file
 
 We supported as the following file types:
 
-`text` `csv` `parquet` `orc` `json` `excel` `xml` `binary`
+`text` `json` `csv` `orc` `parquet` `excel` `xml`
 
 Please note that, The final file name will end with the file_format_type's suffix, the suffix of the text file is `txt`.
 
@@ -475,7 +474,7 @@ transform {
 sink {
 S3File {
     bucket = "s3a://seatunnel-test"
-    tmp_path = "/tmp/seatunnel"
+    tmp_path = "/tmp/seatunnel/${table_name}"
     path="/test/${table_name}"
     fs.s3a.endpoint="s3.cn-north-1.amazonaws.com.cn"
     fs.s3a.aws.credentials.provider="org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider"

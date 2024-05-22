@@ -27,9 +27,11 @@ import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
+import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConfig;
 import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
 
 import com.google.auto.service.AutoService;
@@ -45,10 +47,14 @@ public class HiveSinkFactory
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(HiveSinkOptions.TABLE_NAME)
-                .required(HiveSinkOptions.METASTORE_URI)
-                .optional(HiveSinkOptions.HIVE_SITE_PATH)
-                .optional(HiveSinkOptions.ABORT_DROP_PARTITION_METADATA)
+                .required(HiveConfig.TABLE_NAME)
+                .required(HiveConfig.METASTORE_URI)
+                .optional(HiveConfig.ABORT_DROP_PARTITION_METADATA)
+                .optional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
+                .optional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
+                .optional(HdfsConfigOptions.REMOTE_USER)
+                .optional(HiveConfig.HADOOP_CONF)
+                .optional(HiveConfig.HADOOP_CONF_PATH)
                 .build();
     }
 
@@ -68,7 +74,7 @@ public class HiveSinkFactory
         return HiveConstants.CONNECTOR_NAME;
     }
 
-    protected ReadonlyConfig generateCurrentReadonlyConfig(
+    public ReadonlyConfig generateCurrentReadonlyConfig(
             ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
 
         Map<String, String> configMap = readonlyConfig.toMap();

@@ -181,7 +181,6 @@ public class CheckpointCoordinator {
                         2,
                         runnable -> {
                             Thread thread = new Thread(runnable);
-                            thread.setDaemon(true);
                             thread.setName(
                                     String.format(
                                             "checkpoint-coordinator-%s/%s", pipelineId, jobId));
@@ -795,7 +794,6 @@ public class CheckpointCoordinator {
                             2,
                             runnable -> {
                                 Thread thread = new Thread(runnable);
-                                thread.setDaemon(true);
                                 thread.setName(
                                         String.format(
                                                 "checkpoint-coordinator-%s/%s", pipelineId, jobId));
@@ -845,14 +843,16 @@ public class CheckpointCoordinator {
         final long checkpointId = completedCheckpoint.getCheckpointId();
         completedCheckpointIds.addLast(String.valueOf(completedCheckpoint.getCheckpointId()));
         try {
-            byte[] states = serializer.serialize(completedCheckpoint);
-            checkpointStorage.storeCheckPoint(
-                    PipelineState.builder()
-                            .checkpointId(checkpointId)
-                            .jobId(String.valueOf(jobId))
-                            .pipelineId(pipelineId)
-                            .states(states)
-                            .build());
+            if (completedCheckpoint.getCheckpointType().notCompletedCheckpoint()) {
+                byte[] states = serializer.serialize(completedCheckpoint);
+                checkpointStorage.storeCheckPoint(
+                        PipelineState.builder()
+                                .checkpointId(checkpointId)
+                                .jobId(String.valueOf(jobId))
+                                .pipelineId(pipelineId)
+                                .states(states)
+                                .build());
+            }
             if (completedCheckpointIds.size()
                                     % coordinatorConfig.getStorage().getMaxRetainedCheckpoints()
                             == 0

@@ -132,6 +132,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
         String columnComment = resultSet.getString("column_comment");
         Object defaultValue = resultSet.getObject("default_value");
         boolean isNullable = resultSet.getString("is_nullable").equals("YES");
+
         // dealingSpecialNumeric
         if (typeName.equals(PostgresTypeConverter.PG_NUMERIC) && columnLength < 1) {
             fullTypeName = "numeric(38,10)";
@@ -154,7 +155,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
                         .defaultValue(defaultValue)
                         .comment(columnComment)
                         .build();
-        return getTypeConverter().convert(typeDefine);
+        return PostgresTypeConverter.INSTANCE.convert(typeDefine);
     }
 
     public TypeConverter getTypeConverter() {

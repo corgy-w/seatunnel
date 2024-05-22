@@ -33,7 +33,7 @@
         <iceberg.version>1.4.2</iceberg.version>
         <parquet-avro.version>1.13.1</parquet-avro.version>
         <avro.version>1.11.3</avro.version>
-        <hive.version>2.3.9</hive.version>
+        <hive.version>3.1.3</hive.version>
         <connector.name>connector-iceberg</connector.name>
     </properties>
 
@@ -75,6 +75,10 @@
             <groupId>org.apache.iceberg</groupId>
             <artifactId>iceberg-data</artifactId>
             <version>${iceberg.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.iceberg</groupId>
@@ -225,6 +229,10 @@
                         <phase>package</phase>
                         <configuration>
                             <relocations>
+                                <relocation>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>${seatunnel.shade.package}.${connector.name}.com.google.common</shadedPattern>
+                                </relocation>
                                 <relocation>
                                     <pattern>org.apache.avro</pattern>
                                     <!--suppress UnresolvedMavenProperty, this property is added by submodule-->

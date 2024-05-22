@@ -41,6 +41,21 @@
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-file-s3</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-file-oss</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-file-cos</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
             <artifactId>connector-file-base-hadoop</artifactId>
             <version>${project.version}</version>
             <exclusions>

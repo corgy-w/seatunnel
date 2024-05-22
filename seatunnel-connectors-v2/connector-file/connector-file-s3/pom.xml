@@ -30,7 +30,6 @@
     <name>SeaTunnel : Connectors V2 : File : S3</name>
 
     <properties>
-        <hadoop-aliyun.version>3.3.6</hadoop-aliyun.version>
         <hadoop-aws.version>3.3.6</hadoop-aws.version>
         <aws-java-sdk.version>1.12.692</aws-java-sdk.version>
         <guava.version>27.0-jre</guava.version>

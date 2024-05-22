@@ -18,15 +18,17 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql;
 
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.AbstractJdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcFieldTypeUtils;
 
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -66,65 +68,80 @@ public class PostgresJdbcRowConverter extends AbstractJdbcRowConverter {
                                         ? null
                                         : rs.getObject(resultSetIndex).toString();
                     } else {
-                        fields[fieldIndex] = JdbcUtils.getString(rs, resultSetIndex);
+                        fields[fieldIndex] = JdbcFieldTypeUtils.getString(rs, resultSetIndex);
                     }
                     break;
                 case BOOLEAN:
-                    fields[fieldIndex] = JdbcUtils.getBoolean(rs, resultSetIndex);
+                    fields[fieldIndex] = JdbcFieldTypeUtils.getBoolean(rs, resultSetIndex);
                     break;
                 case TINYINT:
-                    fields[fieldIndex] = JdbcUtils.getByte(rs, resultSetIndex);
+                    fields[fieldIndex] = JdbcFieldTypeUtils.getByte(rs, resultSetIndex);
                     break;
                 case SMALLINT:
-                    fields[fieldIndex] = JdbcUtils.getShort(rs, resultSetIndex);
+                    fields[fieldIndex] = JdbcFieldTypeUtils.getShort(rs, resultSetIndex);
                     break;
                 case INT:
-                    fields[fieldIndex] = JdbcUtils.getInt(rs, resultSetIndex);
+                    fields[fieldIndex] = JdbcFieldTypeUtils.getInt(rs, resultSetIndex);
                     break;
                 case BIGINT:
-                    fields[fieldIndex] = JdbcUtils.getLong(rs, resultSetIndex);
+                    fields[fieldIndex] = JdbcFieldTypeUtils.getLong(rs, resultSetIndex);
                     break;
                 case FLOAT:
-                    fields[fieldIndex] = JdbcUtils.getFloat(rs, resultSetIndex);
+                    fields[fieldIndex] = JdbcFieldTypeUtils.getFloat(rs, resultSetIndex);
                     break;
                 case DOUBLE:
-                    fields[fieldIndex] = JdbcUtils.getDouble(rs, resultSetIndex);
+                    fields[fieldIndex] = JdbcFieldTypeUtils.getDouble(rs, resultSetIndex);
                     break;
                 case DECIMAL:
                     if (metaDataColumnType.equalsIgnoreCase(PostgresTypeConverter.PG_MONEY)) {
-                        String moneyStr = JdbcUtils.getString(rs, resultSetIndex);
+                        String moneyStr = JdbcFieldTypeUtils.getString(rs, resultSetIndex);
                         String moneyValue = moneyStr.replace("$", "").replaceAll(",", "");
                         fields[fieldIndex] = new BigDecimal(moneyValue);
                     } else {
-                        fields[fieldIndex] = JdbcUtils.getBigDecimal(rs, resultSetIndex);
+                        fields[fieldIndex] = JdbcFieldTypeUtils.getBigDecimal(rs, resultSetIndex);
                     }
                     break;
                 case DATE:
-                    Date sqlDate = JdbcUtils.getDate(rs, resultSetIndex);
+                    Date sqlDate = JdbcFieldTypeUtils.getDate(rs, resultSetIndex);
                     fields[fieldIndex] =
                             Optional.ofNullable(sqlDate).map(e -> e.toLocalDate()).orElse(null);
                     break;
                 case TIME:
-                    Time sqlTime = JdbcUtils.getTime(rs, resultSetIndex);
+                    Time sqlTime = JdbcFieldTypeUtils.getTime(rs, resultSetIndex);
                     fields[fieldIndex] =
                             Optional.ofNullable(sqlTime).map(e -> e.toLocalTime()).orElse(null);
                     break;
                 case TIMESTAMP:
-                    Timestamp sqlTimestamp = JdbcUtils.getTimestamp(rs, resultSetIndex);
+                    Timestamp sqlTimestamp = JdbcFieldTypeUtils.getTimestamp(rs, resultSetIndex);
                     fields[fieldIndex] =
                             Optional.ofNullable(sqlTimestamp)
                                     .map(e -> e.toLocalDateTime())
                                     .orElse(null);
                     break;
                 case BYTES:
-                    fields[fieldIndex] = JdbcUtils.getBytes(rs, resultSetIndex);
+                    fields[fieldIndex] = JdbcFieldTypeUtils.getBytes(rs, resultSetIndex);
                     break;
                 case NULL:
                     fields[fieldIndex] = null;
                     break;
                 case ARRAY:
-                    fields[fieldIndex] =
-                            convertToArray(rs, resultSetIndex, seaTunnelDataType, fieldName);
+                    Array jdbcArray = rs.getArray(resultSetIndex);
+                    if (jdbcArray == null) {
+                        fields[fieldIndex] = null;
+                        break;
+                    }
+
+                    Object arrayObject = jdbcArray.getArray();
+                    if (((ArrayType) seaTunnelDataType)
+                            .getTypeClass()
+                            .equals(arrayObject.getClass())) {
+                        fields[fieldIndex] = arrayObject;
+                    } else {
+                        throw CommonError.unsupportedDataType(
+                                converterName(),
+                                seaTunnelDataType.getTypeClass().toString(),
+                                fieldName);
+                    }
                     break;
                 case MAP:
                 case ROW:

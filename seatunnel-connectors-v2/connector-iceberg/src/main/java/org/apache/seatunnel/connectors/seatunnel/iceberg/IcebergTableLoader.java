@@ -27,40 +27,49 @@ import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.TableIdentifier;
 
+import com.google.common.annotations.VisibleForTesting;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
-
-import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkArgument;
+import java.util.Objects;
 
 @Slf4j
 public class IcebergTableLoader implements Closeable, Serializable {
 
     private static final long serialVersionUID = 9061073826700804273L;
 
-    private final IcebergCatalogFactory icebergCatalogFactory;
+    private final IcebergCatalogLoader icebergCatalogFactory;
     private final String tableIdentifierStr;
-
-    private Catalog catalog;
+    private transient Catalog catalog;
 
     public IcebergTableLoader(
-            @NonNull IcebergCatalogFactory icebergCatalogFactory,
+            @NonNull IcebergCatalogLoader icebergCatalogFactory,
             @NonNull TableIdentifier tableIdentifier) {
         this.icebergCatalogFactory = icebergCatalogFactory;
         this.tableIdentifierStr = tableIdentifier.toString();
     }
 
-    public void open() {
-        catalog = CachingCatalog.wrap(icebergCatalogFactory.create());
+    public Catalog getCatalog() {
+        return catalog;
+    }
+
+    public TableIdentifier getTableIdentifier() {
+        return TableIdentifier.parse(tableIdentifierStr);
+    }
+
+    public IcebergTableLoader open() {
+        catalog = CachingCatalog.wrap(icebergCatalogFactory.loadCatalog());
+        return this;
     }
 
     public Table loadTable() {
         TableIdentifier tableIdentifier = TableIdentifier.parse(tableIdentifierStr);
-        checkArgument(
-                catalog.tableExists(tableIdentifier), "Illegal source table: " + tableIdentifier);
+        if (catalog == null) {
+            open();
+        }
         return catalog.loadTable(tableIdentifier);
     }
 
@@ -71,46 +80,26 @@ public class IcebergTableLoader implements Closeable, Serializable {
         }
     }
 
+    @VisibleForTesting
     public static IcebergTableLoader create(CommonConfig config) {
-        IcebergCatalogFactory catalogFactory =
-                new IcebergCatalogFactory(
-                        config.getCatalogName(),
-                        config.getCatalogType(),
-                        config.getWarehouse(),
-                        config.getUri(),
-                        config.getKerberosPrincipal(),
-                        config.getKerberosKrb5ConfPath(),
-                        config.getKerberosKeytabPath(),
-                        config.getHdfsSitePath(),
-                        config.getHiveSitePath());
-        return new IcebergTableLoader(
-                catalogFactory,
-                TableIdentifier.of(Namespace.of(config.getNamespace()), config.getTable()));
+        return create(config, null);
     }
 
     public static IcebergTableLoader create(CommonConfig config, CatalogTable catalogTable) {
-        IcebergCatalogFactory catalogFactory =
-                new IcebergCatalogFactory(
-                        config.getCatalogName(),
-                        config.getCatalogType(),
-                        config.getWarehouse(),
-                        config.getUri(),
-                        config.getKerberosPrincipal(),
-                        config.getKerberosKrb5ConfPath(),
-                        config.getKerberosKeytabPath(),
-                        config.getHdfsSitePath(),
-                        config.getHiveSitePath());
+        IcebergCatalogLoader catalogFactory = new IcebergCatalogLoader(config);
         String table;
-        if (catalogTable != null
+        if (Objects.nonNull(catalogTable)
                 && StringUtils.isNotEmpty(catalogTable.getTableId().getTableName())) {
             log.info(
-                    "conf table name is empty, use catalog table name: {}",
+                    "Config table name is empty, use catalog table name: {}",
                     catalogTable.getTableId().getTableName());
             table = catalogTable.getTableId().getTableName();
+        } else if (StringUtils.isNotEmpty(config.getTable())) {
+            // for test in sink
+            table = config.getTable();
         } else {
-            throw new IllegalArgumentException("table name is empty");
+            throw new IllegalArgumentException("Table name is empty");
         }
-
         return new IcebergTableLoader(
                 catalogFactory, TableIdentifier.of(Namespace.of(config.getNamespace()), table));
     }

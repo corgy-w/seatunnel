@@ -139,7 +139,7 @@ public class SelectDBSinkWriter
     }
 
     @Override
-    public Optional<SelectDBCommitInfo> prepareCommit() {
+    public synchronized Optional<SelectDBCommitInfo> prepareCommit() {
         checkState(selectDBStageLoad != null);
         log.info("checkpoint arrived, upload buffer to storage");
         try {
@@ -160,7 +160,7 @@ public class SelectDBSinkWriter
     }
 
     @Override
-    public List<SelectDBSinkState> snapshotState(long checkpointId) {
+    public synchronized List<SelectDBSinkState> snapshotState(long checkpointId) {
         checkState(selectDBStageLoad != null);
         if (selectdbConfig.isEnable2PC()) {
             log.info("clear the file list {}", selectDBStageLoad.getFileList());

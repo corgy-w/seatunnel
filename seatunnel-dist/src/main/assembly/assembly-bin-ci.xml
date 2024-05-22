@@ -228,17 +228,7 @@
 <!--                <include>org.apache.seatunnel:seatunnel-hive-jdbc-2.1.1:jar</include>-->
 <!--                <include>org.apache.seatunnel:seatunnel-hive-jdbc-2.1.1-cdh6.3.2:jar</include>-->
                 <include>org.apache.seatunnel:seatunnel-hive-jdbc-3.1.3-hadoop3.3.6-uber:jar</include>
-            </includes>
-            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-jdbc</outputDirectory>
-            <scope>provided</scope>
-        </dependencySet>
-
-        <dependencySet>
-            <useProjectArtifact>false</useProjectArtifact>
-            <useTransitiveDependencies>true</useTransitiveDependencies>
-            <unpack>false</unpack>
-            <includes>
+                <include>com.xugudb:xugu-jdbc:jar</include>
                 <include>org.apache.seatunnel:seatunnel-phoenix-5.1.3-hadoop3.3.6-uber:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
@@ -410,7 +400,7 @@
                 <include>com.amazonaws:aws-java-sdk-bundle:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-s3-redshift</outputDirectory>
+            <outputDirectory>/plugins/connector-s3-redshift-wt</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
@@ -435,7 +425,7 @@
                 <include>com.oracle.database.nls:orai18n:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-cdc-agent-oracle</outputDirectory>
+            <outputDirectory>/plugins/connector-cdc-agent-oracle-wt</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
@@ -448,7 +438,7 @@
                 <include>com.oracle.database.nls:orai18n:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-cdc-oracle</outputDirectory>
+            <outputDirectory>/plugins/connector-cdc-oracle-wt</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
@@ -460,7 +450,7 @@
                 <include>com.dameng:DmJdbcDriver18:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-cdc-dameng</outputDirectory>
+            <outputDirectory>/plugins/connector-cdc-dameng-wt</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
@@ -472,7 +462,7 @@
                 <include>com.ibm.informix:jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-cdc-informix</outputDirectory>
+            <outputDirectory>/plugins/connector-cdc-informix-wt</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
@@ -496,7 +486,7 @@
                 <include>org.opengauss:opengauss-jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-cdc-opengauss</outputDirectory>
+            <outputDirectory>/plugins/connector-cdc-opengauss-wt</outputDirectory>
             <scope>system</scope>
         </dependencySet>
 
@@ -533,7 +523,7 @@
                 <include>com.dolphindb:jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-dolphindb</outputDirectory>
+            <outputDirectory>/plugins/connector-dolphindb-wt</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 
@@ -557,7 +547,7 @@
                 <include>com.huaweicloud.dws:huaweicloud-dws-jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-dws-gaussdb</outputDirectory>
+            <outputDirectory>/plugins/connector-dws-gaussdb-wt</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 

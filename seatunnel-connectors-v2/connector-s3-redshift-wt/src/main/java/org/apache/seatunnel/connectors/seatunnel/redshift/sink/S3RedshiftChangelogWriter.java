@@ -59,7 +59,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
-public class S3RedshiftChangelogWriter extends BaseFileSinkWriter<WriterResource> {
+public class S3RedshiftChangelogWriter extends BaseFileSinkWriter {
     private final S3RedshiftConf s3RedshiftConf;
     private WriterResource resource;
     private final DataTypeChangeEventDispatcher dataTypeChangeEventDispatcher =
@@ -144,8 +144,8 @@ public class S3RedshiftChangelogWriter extends BaseFileSinkWriter<WriterResource
 
     @Override
     public void setMultiTableResourceManager(
-            MultiTableResourceManager<WriterResource> multiTableResourceManager, int queueIndex) {
-        this.resource = multiTableResourceManager.getSharedResource().get();
+            MultiTableResourceManager multiTableResourceManager, int queueIndex) {
+        this.resource = (WriterResource) multiTableResourceManager.getSharedResource().get();
     }
 
     private synchronized SeaTunnelRowType enhanceRowType(SeaTunnelRowType rowType) {

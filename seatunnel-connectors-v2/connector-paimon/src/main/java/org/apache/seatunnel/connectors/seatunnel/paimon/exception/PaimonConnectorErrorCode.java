@@ -24,7 +24,10 @@ public enum PaimonConnectorErrorCode implements SeaTunnelErrorCode {
     TABLE_WRITE_COMMIT_FAILED("PAIMON-01", "Paimon write commit failed"),
     TABLE_WRITE_RECORD_FAILED("PAIMON-02", "Write record to paimon failed"),
     TABLE_PRE_COMMIT_FAILED("PAIMON-03", "Paimon pre commit failed"),
-    GET_TABLE_FAILED("PAIMON-04", "Get table from database failed");
+    GET_TABLE_FAILED("PAIMON-04", "Get table from database failed"),
+    AUTHENTICATE_KERBEROS_FAILED("PAIMON-05", "Authenticate kerberos failed"),
+    LOAD_CATALOG("PAIMON-06", "Load catalog failed"),
+    TABLE_WRITE_CLOSE_FAILED("PAIMON-07", "Paimon write close failed");
 
     private final String code;
     private final String description;

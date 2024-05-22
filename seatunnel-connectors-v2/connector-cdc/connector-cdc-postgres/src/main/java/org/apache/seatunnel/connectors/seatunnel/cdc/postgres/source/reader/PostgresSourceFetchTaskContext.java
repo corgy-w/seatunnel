@@ -139,6 +139,9 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                 loadStartingOffsetState(
                         new PostgresOffsetContext.Loader(connectorConfig), sourceSplitBase);
 
+        // If in the snapshot read phase and enable exactly-once, the queue needs to be set to a
+        // maximum size of `Integer.MAX_VALUE` (buffered a current snapshot all data). otherwise,
+        // use the configuration queue size.
         final int queueSize =
                 sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
                         ? Integer.MAX_VALUE
@@ -182,7 +185,6 @@ public class PostgresSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                                     snapshotter.shouldSnapshot(),
                                     connectorConfig.maxRetries(),
                                     connectorConfig.retryDelay());
-
                     try {
                         // create the slot if it doesn't exist, otherwise update slot to add new
                         // table(job restore and add table)

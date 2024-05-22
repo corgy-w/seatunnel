@@ -55,7 +55,6 @@ public class SqlServerDataTypeConvertor implements DataTypeConvertor<SqlServerTy
             String field,
             @NonNull SqlServerType connectorDataType,
             Map<String, Object> dataTypeProperties) {
-
         int precision =
                 Integer.parseInt(
                         dataTypeProperties.getOrDefault(PRECISION, DEFAULT_PRECISION).toString());

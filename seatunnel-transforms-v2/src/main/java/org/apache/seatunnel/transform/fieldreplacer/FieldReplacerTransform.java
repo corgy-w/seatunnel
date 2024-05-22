@@ -23,7 +23,6 @@ import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventDispatcher;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
@@ -107,11 +106,6 @@ public class FieldReplacerTransform implements SeaTunnelTransform<SeaTunnelRow> 
     @Override
     public CatalogTable getProducedCatalogTable() {
         return inputCatalogTable.get(0);
-    }
-
-    @Override
-    public SeaTunnelDataType<SeaTunnelRow> getProducedType() {
-        return getProducedCatalogTable().getTableSchema().toPhysicalRowDataType();
     }
 
     @Override

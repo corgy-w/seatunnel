@@ -30,7 +30,7 @@ import org.testcontainers.containers.Container;
 
 import java.io.IOException;
 
-@Disabled("run error")
+@Disabled("have no s3 environment to run this test")
 public class S3FileWithMultipleTableIT extends TestSuiteBase {
 
     public static final String S3_SDK_DOWNLOAD =

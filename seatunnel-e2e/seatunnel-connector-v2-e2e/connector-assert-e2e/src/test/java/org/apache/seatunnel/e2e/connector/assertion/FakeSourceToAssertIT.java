@@ -35,4 +35,20 @@ public class FakeSourceToAssertIT extends TestSuiteBase {
                 container.executeJob("/assertion/fakesource_to_assert.conf");
         Assertions.assertEquals(0, execResult.getExitCode());
     }
+
+    @TestTemplate
+    public void testFakeSourceToAssertRowSink(TestContainer container)
+            throws IOException, InterruptedException {
+        Container.ExecResult execResult =
+                container.executeJob("/assertion/fake_row_to_assert.conf");
+        Assertions.assertEquals(0, execResult.getExitCode());
+    }
+
+    @TestTemplate
+    public void testFakeFullTypesToAssertSink(TestContainer container)
+            throws IOException, InterruptedException {
+        Container.ExecResult execResult =
+                container.executeJob("/assertion/fake_full_types_to_assert.conf");
+        Assertions.assertEquals(0, execResult.getExitCode());
+    }
 }

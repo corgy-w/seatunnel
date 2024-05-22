@@ -196,9 +196,13 @@ public class HadoopFileSystemProxy implements Serializable, Closeable {
 
     @Override
     public void close() throws IOException {
-        try (FileSystem closedFileSystem = fileSystem) {
+        try {
             if (userGroupInformation != null && enableKerberos()) {
                 userGroupInformation.logoutUserFromKeytab();
+            }
+        } finally {
+            if (fileSystem != null) {
+                fileSystem.close();
             }
         }
     }

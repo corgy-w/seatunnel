@@ -99,12 +99,7 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
     private SeaTunnelServer getSeaTunnelServer() {
         Map<String, Object> extensionServices =
                 this.textCommandService.getNode().getNodeExtension().createExtensionServices();
-        SeaTunnelServer seaTunnelServer =
-                (SeaTunnelServer) extensionServices.get(Constant.SEATUNNEL_SERVICE_NAME);
-        if (!seaTunnelServer.isMasterNode()) {
-            return null;
-        }
-        return seaTunnelServer;
+        return (SeaTunnelServer) extensionServices.get(Constant.SEATUNNEL_SERVICE_NAME);
     }
 
     private void handleSubmitJob(HttpPostCommand httpPostCommand, String uri)
@@ -136,7 +131,7 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
                                 : null);
         JobImmutableInformation jobImmutableInformation = restJobExecutionEnvironment.build();
         Long jobId = jobImmutableInformation.getJobId();
-        if (seaTunnelServer == null) {
+        if (!seaTunnelServer.isMasterNode()) {
 
             NodeEngineUtil.sendOperationToMasterNode(
                             getNode().nodeEngine,
@@ -170,7 +165,7 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
         }
 
         SeaTunnelServer seaTunnelServer = getSeaTunnelServer();
-        if (seaTunnelServer == null) {
+        if (!seaTunnelServer.isMasterNode()) {
             if (isStopWithSavePoint) {
                 NodeEngineUtil.sendOperationToMasterNode(
                                 getNode().nodeEngine, new SavePointJobOperation(jobId))
@@ -182,7 +177,7 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
             }
 
         } else {
-            CoordinatorService coordinatorService = getSeaTunnelServer().getCoordinatorService();
+            CoordinatorService coordinatorService = seaTunnelServer.getCoordinatorService();
 
             if (isStopWithSavePoint) {
                 coordinatorService.savePoint(jobId);

@@ -69,7 +69,6 @@
         <log4j.version>1.2.17</log4j.version>
         <logback.version>1.2.3</logback.version>
         <commons-logging.version>1.2</commons-logging.version>
-        <iceberg.version>0.13.1</iceberg.version>
         <flink.1.13.6.version>1.13.6</flink.1.13.6.version>
         <flink.1.15.3.version>1.15.3</flink.1.15.3.version>
         <spark.2.4.0.version>2.4.0</spark.2.4.0.version>
@@ -86,6 +85,7 @@
         <jackson.version>2.13.3</jackson.version>
         <lombok.version>1.18.24</lombok.version>
         <commons-compress.version>1.20</commons-compress.version>
+        <avro.version>1.11.1</avro.version>
         <skip.pmd.check>false</skip.pmd.check>
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.skip>false</maven.javadoc.skip>
@@ -103,8 +103,8 @@
         <commons-lang3.version>3.5</commons-lang3.version>
         <commons-io.version>2.11.0</commons-io.version>
         <commons-collections4.version>4.4</commons-collections4.version>
+        <commons-csv.version>1.10.0</commons-csv.version>
         <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
-        <commons-compress.version>1.20</commons-compress.version>
         <protostuff.version>1.8.0</protostuff.version>
         <spark.scope>provided</spark.scope>
         <flink.scope>provided</flink.scope>
@@ -125,7 +125,7 @@
         <docker-maven-plugin.version>0.38.0</docker-maven-plugin.version>
         <maven-dependency-plugin.version>3.1.1</maven-dependency-plugin.version>
         <p3c-pmd.version>1.3.0</p3c-pmd.version>
-        <maven-scm-provider-jgit.version>1.9.5</maven-scm-provider-jgit.version>
+        <maven-scm-provider-jgit.version>2.0.0</maven-scm-provider-jgit.version>
         <testcontainer.version>1.17.6</testcontainer.version>
         <spotless.version>2.29.0</spotless.version>
         <jsqlparser.version>4.5</jsqlparser.version>
@@ -336,6 +336,11 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-collections4</artifactId>
                 <version>${commons-collections4.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>${commons-csv.version}</version>
             </dependency>
 
             <dependency>
@@ -559,6 +564,12 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
 
@@ -800,22 +811,22 @@
                                     <mkdir dir="src/main/resources/connector-amazonsqs" />
                                     <mkdir dir="src/main/resources/connector-assert" />
                                     <mkdir dir="src/main/resources/connector-cassandra" />
-                                    <mkdir dir="src/main/resources/connector-cdc-agent-oracle" />
-                                    <mkdir dir="src/main/resources/connector-cdc-dameng" />
-                                    <mkdir dir="src/main/resources/connector-cdc-informix" />
+                                    <mkdir dir="src/main/resources/connector-cdc-agent-oracle-wt" />
+                                    <mkdir dir="src/main/resources/connector-cdc-dameng-wt" />
+                                    <mkdir dir="src/main/resources/connector-cdc-informix-wt" />
                                     <mkdir dir="src/main/resources/connector-cdc-mongodb" />
                                     <mkdir dir="src/main/resources/connector-cdc-mysql" />
-                                    <mkdir dir="src/main/resources/connector-cdc-opengauss" />
-                                    <mkdir dir="src/main/resources/connector-cdc-oracle" />
+                                    <mkdir dir="src/main/resources/connector-cdc-opengauss-wt" />
+                                    <mkdir dir="src/main/resources/connector-cdc-oracle-wt" />
                                     <mkdir dir="src/main/resources/connector-cdc-postgres" />
                                     <mkdir dir="src/main/resources/connector-cdc-sqlserver" />
                                     <mkdir dir="src/main/resources/connector-clickhouse" />
                                     <mkdir dir="src/main/resources/connector-console" />
                                     <mkdir dir="src/main/resources/connector-datahub" />
                                     <mkdir dir="src/main/resources/connector-dingtalk" />
-                                    <mkdir dir="src/main/resources/connector-dolphindb" />
+                                    <mkdir dir="src/main/resources/connector-dolphindb-wt" />
                                     <mkdir dir="src/main/resources/connector-doris" />
-                                    <mkdir dir="src/main/resources/connector-dws-gaussdb" />
+                                    <mkdir dir="src/main/resources/connector-dws-gaussdb-wt" />
                                     <mkdir dir="src/main/resources/connector-elasticsearch" />
                                     <mkdir dir="src/main/resources/connector-email" />
                                     <mkdir dir="src/main/resources/connector-fake" />
@@ -859,7 +870,7 @@
                                     <mkdir dir="src/main/resources/connector-rabbitmq" />
                                     <mkdir dir="src/main/resources/connector-redis" />
                                     <mkdir dir="src/main/resources/connector-rocketmq" />
-                                    <mkdir dir="src/main/resources/connector-s3-redshift" />
+                                    <mkdir dir="src/main/resources/connector-s3-redshift-wt" />
                                     <mkdir dir="src/main/resources/connector-selectdb-cloud" />
                                     <mkdir dir="src/main/resources/connector-sentry" />
                                     <mkdir dir="src/main/resources/connector-slack" />
@@ -867,6 +878,8 @@
                                     <mkdir dir="src/main/resources/connector-starrocks" />
                                     <mkdir dir="src/main/resources/connector-tablestore" />
                                     <mkdir dir="src/main/resources/connector-tdengine" />
+                                    <mkdir dir="src/main/resources/connector-web3j" />
+                                    <mkdir dir="src/main/resources/connector-easysearch" />
                                 </target>
                             </configuration>
                         </execution>

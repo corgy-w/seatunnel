@@ -18,15 +18,12 @@
 package org.apache.seatunnel.connectors.seatunnel.hive.commit;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggregatedCommitter;
-import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveHadoopConfig;
-import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.hive.sink.HiveSinkOptions;
 import org.apache.seatunnel.connectors.seatunnel.hive.utils.HiveMetaStoreProxy;
 
-import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.thrift.TException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -45,11 +42,11 @@ public class HiveSinkAggregatedCommitter extends FileSinkAggregatedCommitter {
     private final ReadonlyConfig readonlyConfig;
 
     public HiveSinkAggregatedCommitter(
-            ReadonlyConfig readonlyConfig, Table table, HiveHadoopConfig hiveHadoopConfig) {
-        super(hiveHadoopConfig);
+            ReadonlyConfig readonlyConfig, String dbName, String tableName, HadoopConf hadoopConf) {
+        super(hadoopConf);
         this.readonlyConfig = readonlyConfig;
-        this.dbName = table.getDbName();
-        this.tableName = table.getTableName();
+        this.dbName = dbName;
+        this.tableName = tableName;
         this.abortDropPartitionMetadata =
                 readonlyConfig.get(HiveSinkOptions.ABORT_DROP_PARTITION_METADATA);
     }
@@ -57,30 +54,30 @@ public class HiveSinkAggregatedCommitter extends FileSinkAggregatedCommitter {
     @Override
     public List<FileAggregatedCommitInfo> commit(
             List<FileAggregatedCommitInfo> aggregatedCommitInfos) throws IOException {
-        HiveMetaStoreProxy hiveMetaStore = HiveMetaStoreProxy.getInstance(readonlyConfig);
 
         List<FileAggregatedCommitInfo> errorCommitInfos = super.commit(aggregatedCommitInfos);
         if (errorCommitInfos.isEmpty()) {
-            for (FileAggregatedCommitInfo aggregatedCommitInfo : aggregatedCommitInfos) {
-                Map<String, List<String>> partitionDirAndValuesMap =
-                        aggregatedCommitInfo.getPartitionDirAndValuesMap();
-                List<String> partitions =
-                        partitionDirAndValuesMap.keySet().stream()
-                                .map(partition -> partition.replaceAll("\\\\", "/"))
-                                .collect(Collectors.toList());
-                try {
-                    hiveMetaStore.addPartitions(dbName, tableName, partitions);
-                    log.info("Add these partitions {}", partitions);
-                } catch (TException e) {
-                    hiveMetaStore.close();
-                    log.error("Failed to add these partitions {}", partitions, e);
-                    errorCommitInfos.add(aggregatedCommitInfo);
-                    throw new HiveConnectorException(
-                            HiveConnectorErrorCode.AGGREGATE_COMMIT_ERROR, e);
+            HiveMetaStoreProxy hiveMetaStore = HiveMetaStoreProxy.getInstance(readonlyConfig);
+            try {
+                for (FileAggregatedCommitInfo aggregatedCommitInfo : aggregatedCommitInfos) {
+                    Map<String, List<String>> partitionDirAndValuesMap =
+                            aggregatedCommitInfo.getPartitionDirAndValuesMap();
+                    List<String> partitions =
+                            partitionDirAndValuesMap.keySet().stream()
+                                    .map(partition -> partition.replaceAll("\\\\", "/"))
+                                    .collect(Collectors.toList());
+                    try {
+                        hiveMetaStore.addPartitions(dbName, tableName, partitions);
+                        log.info("Add these partitions {}", partitions);
+                    } catch (TException e) {
+                        log.error("Failed to add these partitions {}", partitions, e);
+                        errorCommitInfos.add(aggregatedCommitInfo);
+                    }
                 }
+            } finally {
+                hiveMetaStore.close();
             }
         }
-        hiveMetaStore.close();
         return errorCommitInfos;
     }
 

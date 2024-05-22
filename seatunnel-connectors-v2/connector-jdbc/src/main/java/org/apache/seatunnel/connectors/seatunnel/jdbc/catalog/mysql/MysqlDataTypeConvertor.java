@@ -110,6 +110,7 @@ public class MysqlDataTypeConvertor implements DataTypeConvertor<MysqlType> {
             String field,
             SeaTunnelDataType<?> seaTunnelDataType,
             Map<String, Object> dataTypeProperties) {
+
         Long precision = MapUtils.getLong(dataTypeProperties, PRECISION);
         Integer scale = MapUtils.getInteger(dataTypeProperties, SCALE);
         Column column =

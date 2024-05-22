@@ -47,10 +47,6 @@ public class PostgresDataTypeConvertor implements DataTypeConvertor<String> {
 
     public static final Integer DEFAULT_SCALE = 18;
 
-    public static final String PG_BYTEA = "bytea";
-
-    public static final String PG_NUMERIC = "numeric";
-
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(String field, String connectorDataType) {
         return toSeaTunnelType(field, connectorDataType, new HashMap<>(0));
@@ -64,7 +60,7 @@ public class PostgresDataTypeConvertor implements DataTypeConvertor<String> {
         Integer precision = null;
         Integer scale = null;
         switch (connectorDataType) {
-            case PG_NUMERIC:
+            case PostgresTypeConverter.PG_NUMERIC:
                 precision = MapUtils.getInteger(dataTypeProperties, PRECISION, DEFAULT_PRECISION);
                 scale = MapUtils.getInteger(dataTypeProperties, SCALE, DEFAULT_SCALE);
                 break;

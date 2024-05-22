@@ -98,7 +98,7 @@ public class PhoenixTypeConverter implements TypeConverter<BasicTypeDefine> {
                         .defaultValue(typeDefine.getDefaultValue())
                         .comment(typeDefine.getComment());
 
-        String phoenixDataType = typeDefine.getDataType().toLowerCase();
+        String phoenixDataType = typeDefine.getDataType().toUpperCase();
         switch (phoenixDataType) {
             case PHOENIX_BOOLEAN:
                 builder.dataType(BasicType.BOOLEAN_TYPE);

@@ -30,6 +30,7 @@ import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.common.utils.DateTimeUtils;
 import org.apache.seatunnel.common.utils.DateUtils;
+import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.format.json.exception.SeaTunnelJsonFormatException;
 
 import org.apache.commons.lang3.StringUtils;
@@ -252,7 +253,7 @@ public class JsonToRowConverters implements Serializable {
         String dateStr = jsonNode.asText();
         DateTimeFormatter dateFormatter = fieldFormatterMap.get(fieldName);
         if (dateFormatter == null) {
-            dateFormatter = DateUtils.matchDateTimeFormatter(dateStr);
+            dateFormatter = DateUtils.matchDateFormatter(dateStr);
             fieldFormatterMap.put(fieldName, dateFormatter);
         }
 
@@ -374,6 +375,7 @@ public class JsonToRowConverters implements Serializable {
     }
 
     private JsonToObjectConverter createMapConverter(MapType<?, ?> type) {
+        JsonToObjectConverter keyConverter = createConverter(type.getKeyType());
         JsonToObjectConverter valueConverter = createConverter(type.getValueType());
         return new JsonToObjectConverter() {
             @Override
@@ -384,10 +386,19 @@ public class JsonToRowConverters implements Serializable {
                                 new Consumer<Map.Entry<String, JsonNode>>() {
                                     @Override
                                     public void accept(Map.Entry<String, JsonNode> entry) {
+                                        JsonNode keyNode;
+                                        try {
+                                            keyNode =
+                                                    JsonUtils.stringToJsonNode(
+                                                            JsonUtils.toJsonString(entry.getKey()));
+                                        } catch (Exception e) {
+                                            throw CommonError.jsonOperationError(
+                                                    FORMAT, entry.getKey(), e);
+                                        }
                                         value.put(
-                                                entry.getKey(),
+                                                keyConverter.convert(keyNode, fieldName + ".key"),
                                                 valueConverter.convert(
-                                                        entry.getValue(), fieldName));
+                                                        entry.getValue(), fieldName + ".value"));
                                     }
                                 });
                 return value;

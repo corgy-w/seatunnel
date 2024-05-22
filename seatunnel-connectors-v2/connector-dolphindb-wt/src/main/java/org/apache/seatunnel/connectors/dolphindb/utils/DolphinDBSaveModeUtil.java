@@ -17,12 +17,14 @@
 
 package org.apache.seatunnel.connectors.dolphindb.utils;
 
-import org.apache.seatunnel.api.sink.SaveModeConstants;
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig;
+import org.apache.seatunnel.connectors.seatunnel.common.sql.template.SqlTemplate;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -41,12 +43,20 @@ public class DolphinDBSaveModeUtil {
     public static String fillingCreateSql(
             String template, String database, String table, TableSchema tableSchema) {
         String primaryKey = "";
+        String tablePath = database + "." + table;
         if (tableSchema.getPrimaryKey() != null) {
             primaryKey = String.join(",", tableSchema.getPrimaryKey().getColumnNames());
         }
+
+        SqlTemplate.canHandledByTemplateWithPlaceholder(
+                template,
+                SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder(),
+                primaryKey,
+                tablePath,
+                DolphinDBConfig.SAVE_MODE_CREATE_TEMPLATE.key());
         template =
                 template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_PRIMARY_KEY),
+                        SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getReplacePlaceHolder(),
                         primaryKey);
         Map<String, CreateTableParser.ColumnInfo> columnInTemplate =
                 CreateTableParser.getColumnList(template);
@@ -57,12 +67,10 @@ public class DolphinDBSaveModeUtil {
                         .filter(column -> !columnInTemplate.containsKey(column.getName()))
                         .map(DolphinDBSaveModeUtil::columnToDolphinDBType)
                         .collect(Collectors.joining(",\n"));
-        return template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.DATABASE), database)
-                .replaceAll(String.format("\\$\\{%s\\}", SaveModeConstants.TABLE_NAME), table)
+        return template.replaceAll(SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(), database)
+                .replaceAll(SaveModePlaceHolder.TABLE_NAME.getReplacePlaceHolder(), table)
                 .replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_FIELDS),
-                        rowTypeFields);
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields);
     }
 
     private static String columnToDolphinDBType(Column column) {

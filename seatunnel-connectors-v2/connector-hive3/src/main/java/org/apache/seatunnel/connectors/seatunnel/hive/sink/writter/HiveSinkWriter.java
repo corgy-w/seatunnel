@@ -17,33 +17,25 @@
 
 package org.apache.seatunnel.connectors.seatunnel.hive.sink.writter;
 
-import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.BaseFileSinkWriter;
-import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.WriteStrategy;
 
-import java.util.Collections;
 import java.util.List;
 
-public class HiveSinkWriter extends BaseFileSinkWriter<WriteStrategy> {
+public class HiveSinkWriter extends BaseFileSinkWriter {
 
     public HiveSinkWriter(
             WriteStrategy writeStrategy,
             HadoopConf hadoopConf,
             Context context,
             String jobId,
-            List<FileSinkState> fileSinkStates) {
-        // todo: do we need to set writeStrategy as share resource? then how to deal with the pre
-        // fileSinkStates?
-        super(writeStrategy, hadoopConf, context, jobId, fileSinkStates);
+            List list) {
+        super(writeStrategy, hadoopConf, context, jobId, list);
     }
 
     public HiveSinkWriter(
-            WriteStrategy writeStrategy,
-            HadoopConf hadoopConf,
-            SinkWriter.Context context,
-            String jobId) {
-        this(writeStrategy, hadoopConf, context, jobId, Collections.emptyList());
+            WriteStrategy writeStrategy, HadoopConf hadoopConf, Context context, String jobId) {
+        super(writeStrategy, hadoopConf, context, jobId);
     }
 }

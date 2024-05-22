@@ -22,7 +22,6 @@
   - [x] json
   - [x] excel
   - [x] xml
-  - [x] binary
 
 ## Description
 
@@ -98,7 +97,7 @@ The File does not have a specific type list, and we can indicate which SeaTunnel
 ### file_format_type [string]
 
 File type, supported as the following file types:
-`text` `csv` `parquet` `orc` `json` `excel` `xml` `binary`
+`text` `csv` `parquet` `orc` `json` `excel` `xml`
 If you assign file type to `json`, you should also assign schema option to tell connector how to parse data to the row you want.
 For example:
 upstream data is the following:
@@ -160,11 +159,6 @@ connector will generate data as the following:
 |     name      | age | gender |
 |---------------|-----|--------|
 | tyrantlucifer | 26  | male   |
-
-If you assign file type to `binary`, SeaTunnel can synchronize files in any format,
-such as compressed packages, pictures, etc. In short, any files can be synchronized to the target place.
-Under this requirement, you need to ensure that the source and sink use `binary` format for file synchronization
-at the same time.
 
 ### compress_codec [string]
 

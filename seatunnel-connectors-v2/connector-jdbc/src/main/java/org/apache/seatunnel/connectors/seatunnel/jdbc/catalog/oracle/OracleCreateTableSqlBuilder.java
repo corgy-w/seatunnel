@@ -132,7 +132,6 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
                                 && StringUtils.isNotBlank(column.getSourceType())
                         ? column.getSourceType()
                         : OracleTypeConverter.INSTANCE.reconvert(column).getColumnType();
-        ;
         columnSql.append(columnType);
 
         if (!column.isNullable()) {

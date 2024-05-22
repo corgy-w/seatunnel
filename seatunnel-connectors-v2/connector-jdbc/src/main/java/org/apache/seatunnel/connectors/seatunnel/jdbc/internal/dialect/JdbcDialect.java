@@ -421,6 +421,13 @@ public interface JdbcDialect extends Serializable {
         return new SimpleJdbcConnectionProvider(jdbcConnectionConfig);
     }
 
+    /**
+     * Cast column type e.g. CAST(column AS type)
+     *
+     * @param columnName
+     * @param columnType
+     * @return the text of converted column type.
+     */
     default String convertType(String columnName, String columnType) {
         return columnName;
     }

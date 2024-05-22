@@ -101,6 +101,7 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
         String comment = resultSet.getString("comment");
         Object defaultValue = resultSet.getObject("default_value");
         boolean isNullable = resultSet.getBoolean("is_nullable");
+
         BasicTypeDefine typeDefine =
                 BasicTypeDefine.builder()
                         .name(columnName)

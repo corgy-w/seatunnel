@@ -34,7 +34,7 @@
         <!-- SeaTunnel connectors -->
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-cdc-oracle</artifactId>
+            <artifactId>connector-cdc-oracle-wt</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>oracle-xe</artifactId>
-            <version>1.15.3</version>
+            <version>${testcontainer.version}</version>
             <scope>test</scope>
         </dependency>
 

@@ -30,7 +30,6 @@ import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.connectors.doris.config.DorisConfig;
 import org.apache.seatunnel.connectors.doris.config.DorisOptions;
 import org.apache.seatunnel.connectors.doris.sink.committer.DorisCommitInfo;
 import org.apache.seatunnel.connectors.doris.sink.writer.DorisSinkState;
@@ -61,9 +60,11 @@ import static org.apache.seatunnel.connectors.doris.config.DorisOptions.TABLE_ID
 @AutoService(Factory.class)
 public class DorisSinkFactory implements TableSinkFactory {
 
+    public static final String IDENTIFIER = "Doris";
+
     @Override
     public String factoryIdentifier() {
-        return DorisConfig.IDENTIFIER;
+        return IDENTIFIER;
     }
 
     @Override

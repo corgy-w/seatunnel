@@ -19,7 +19,6 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.sqlserver.source.source;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -45,12 +44,10 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.sqlserver.SqlServe
 
 import org.apache.kafka.connect.data.Struct;
 
-import com.google.auto.service.AutoService;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
-import lombok.NoArgsConstructor;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -63,8 +60,6 @@ import java.util.Properties;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@NoArgsConstructor
-@AutoService(SeaTunnelSource.class)
 public class SqlServerIncrementalSource<T> extends IncrementalSource<T, JdbcSourceConfig>
         implements SupportParallelism {
 

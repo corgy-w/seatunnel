@@ -53,6 +53,7 @@ import java.util.Optional;
 /** The utils for SqlServer data source. */
 @Slf4j
 public class PostgresUtils {
+    private static final int DEFAULT_FETCH_SIZE = 1024;
     private static final JdbcDialect JDBC_DIALECT = new PostgresDialect();
 
     private PostgresUtils() {}
@@ -173,7 +174,7 @@ public class PostgresUtils {
             String columnName,
             Column column,
             int inverseSamplingRate)
-            throws SQLException {
+            throws Exception {
         columnName = quote(columnName);
         if (column != null) {
             columnName = JDBC_DIALECT.convertType(columnName, column.typeName());
@@ -198,6 +199,9 @@ public class PostgresUtils {
                 count++;
                 if (count % 100000 == 0) {
                     log.info("Processing row index: {}", count);
+                }
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterruptedException("Thread interrupted");
                 }
                 if (count % inverseSamplingRate == 0) {
                     results.add(rs.getObject(1));

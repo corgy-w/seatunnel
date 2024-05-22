@@ -107,8 +107,6 @@ public class JobMaster {
 
     private CompletableFuture<JobResult> jobMasterCompleteFuture;
 
-    private ClassLoader classLoader;
-
     private JobImmutableInformation jobImmutableInformation;
 
     private LogicalDag logicalDag;
@@ -126,8 +124,6 @@ public class JobMaster {
     private final IMap<Object, Object> runningJobStateIMap;
 
     private final IMap<Object, Object> runningJobStateTimestampsIMap;
-
-    private CompletableFuture<Void> scheduleFuture;
 
     // TODO add config to change value
     private boolean isPhysicalDAGIInfo = true;
@@ -216,12 +212,6 @@ public class JobMaster {
                         nodeEngine.getSerializationService(),
                         classLoader,
                         jobImmutableInformation.getLogicalDag());
-        seaTunnelServer
-                .getClassLoaderService()
-                .releaseClassLoader(
-                        jobImmutableInformation.getJobId(),
-                        jobImmutableInformation.getPluginJarsUrls());
-
         final Tuple2<PhysicalPlan, Map<Integer, CheckpointPlan>> planTuple =
                 PlanUtils.fromLogicalDAG(
                         logicalDag,
@@ -234,6 +224,12 @@ public class JobMaster {
                         runningJobStateTimestampsIMap,
                         engineConfig.getQueueType(),
                         engineConfig);
+
+        seaTunnelServer
+                .getClassLoaderService()
+                .releaseClassLoader(
+                        jobImmutableInformation.getJobId(),
+                        jobImmutableInformation.getPluginJarsUrls());
         // revert to app class loader, it may be changed by PlanUtils.fromLogicalDAG
         Thread.currentThread().setContextClassLoader(appClassLoader);
         this.physicalPlan = planTuple.f0();
@@ -496,10 +492,6 @@ public class JobMaster {
                 "can't find task group address from taskGroupLocation: " + taskGroupLocation);
     }
 
-    public ClassLoader getClassLoader() {
-        return classLoader;
-    }
-
     public void cancelJob() {
         physicalPlan.cancelJob();
     }
@@ -725,7 +717,7 @@ public class JobMaster {
     }
 
     /** Execute savePoint, which will cause the job to end. */
-    public CompletableFuture<Void> savePoint() {
+    public CompletableFuture<Boolean> savePoint() {
         LOGGER.info(
                 String.format(
                         "Begin do save point for Job %s (%s) ",
@@ -734,7 +726,17 @@ public class JobMaster {
         physicalPlan.savepointJob();
         PassiveCompletableFuture<CompletedCheckpoint>[] passiveCompletableFutures =
                 checkpointManager.triggerSavePoints();
-        return CompletableFuture.allOf(passiveCompletableFutures);
+        return CompletableFuture.supplyAsync(
+                () ->
+                        Arrays.stream(passiveCompletableFutures)
+                                .allMatch(
+                                        future -> {
+                                            try {
+                                                return future.get() != null;
+                                            } catch (Exception e) {
+                                                throw new SeaTunnelEngineException(e);
+                                            }
+                                        }));
     }
 
     public void setOwnedSlotProfiles(

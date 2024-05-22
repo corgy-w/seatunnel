@@ -29,6 +29,7 @@ import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
@@ -37,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public interface ReadStrategy extends Serializable {
+public interface ReadStrategy extends Serializable, Closeable {
     void init(HadoopConf conf);
 
     void read(String path, String tableId, Collector<SeaTunnelRow> output)
@@ -45,13 +46,13 @@ public interface ReadStrategy extends Serializable {
 
     SeaTunnelRowType getSeaTunnelRowTypeInfo(String path) throws FileConnectorException;
 
-    default SeaTunnelRowType getSeaTunnelRowTypeInfoWithUserConfigRowType(
-            String path, SeaTunnelRowType rowType) throws FileConnectorException {
+    default SeaTunnelRowType getSeaTunnelRowTypeInfo(TablePath tablePath, String path)
+            throws FileConnectorException {
         return getSeaTunnelRowTypeInfo(path);
     }
 
-    default SeaTunnelRowType getSeaTunnelRowTypeInfo(TablePath tablePath, String path)
-            throws FileConnectorException {
+    default SeaTunnelRowType getSeaTunnelRowTypeInfoWithUserConfigRowType(
+            String path, SeaTunnelRowType rowType) throws FileConnectorException {
         return getSeaTunnelRowTypeInfo(path);
     }
 

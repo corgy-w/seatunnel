@@ -27,7 +27,6 @@ Read all the data in a split in a pollNext call. What splits are read will be sa
   - [x] json
   - [x] excel
   - [x] xml
-  - [x] binary
 
 ## Description
 
@@ -77,7 +76,7 @@ The source file path.
 
 File type, supported as the following file types:
 
-`text` `csv` `parquet` `orc` `json` `excel` `xml` `binary`
+`text` `csv` `parquet` `orc` `json` `excel` `xml`
 
 If you assign file type to `json`, you should also assign schema option to tell connector how to parse data to the row you want.
 
@@ -160,11 +159,6 @@ connector will generate data as the following:
 |     name      | age | gender |
 |---------------|-----|--------|
 | tyrantlucifer | 26  | male   |
-
-If you assign file type to `binary`, SeaTunnel can synchronize files in any format,
-such as compressed packages, pictures, etc. In short, any files can be synchronized to the target place.
-Under this requirement, you need to ensure that the source and sink use `binary` format for file synchronization
-at the same time. You can find the specific usage in the example below.
 
 ### bucket [string]
 
@@ -324,39 +318,6 @@ Source plugin common parameters, please refer to [Source Common Options](common-
       }
     }
   }
-
-```
-
-### Transfer Binary File
-
-```hocon
-
-env {
-  parallelism = 1
-  job.mode = "BATCH"
-}
-
-source {
-  CosFile {
-    bucket = "cosn://seatunnel-test-1259587829"
-    secret_id = "xxxxxxxxxxxxxxxxxxx"
-    secret_key = "xxxxxxxxxxxxxxxxxxx"
-    region = "ap-chengdu"
-    path = "/seatunnel/read/binary/"
-    file_format_type = "binary"
-  }
-}
-sink {
-  // you can transfer local file to s3/hdfs/oss etc.
-  CosFile {
-    bucket = "cosn://seatunnel-test-1259587829"
-    secret_id = "xxxxxxxxxxxxxxxxxxx"
-    secret_key = "xxxxxxxxxxxxxxxxxxx"
-    region = "ap-chengdu"
-    path = "/seatunnel/read/binary2/"
-    file_format_type = "binary"
-  }
-}
 
 ```
 

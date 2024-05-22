@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.file.source.reader;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.BasicType;
@@ -29,6 +30,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
+import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 
@@ -59,6 +61,8 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -431,12 +435,27 @@ public class OrcReadStrategy extends AbstractReadStrategy {
             TypeDescription typeDescription,
             SeaTunnelDataType<?> dataType,
             int rowNum) {
+        Charset charset = StandardCharsets.UTF_8;
+        if (pluginConfig != null) {
+            charset =
+                    ReadonlyConfig.fromConfig(pluginConfig)
+                            .getOptional(BaseSourceConfigOptions.ENCODING)
+                            .map(Charset::forName)
+                            .orElse(StandardCharsets.UTF_8);
+        }
+
         Object bytesObj = null;
         if (!colVec.isNull[rowNum]) {
             BytesColumnVector bytesVector = (BytesColumnVector) colVec;
-            bytesObj = bytesVector.toString(rowNum);
-            if (typeDescription.getCategory() == TypeDescription.Category.BINARY) {
-                bytesObj = ((String) bytesObj).getBytes();
+            bytesObj = this.bytesVectorToString(bytesVector, rowNum, charset);
+            if (typeDescription.getCategory() == TypeDescription.Category.BINARY
+                    && bytesObj != null) {
+                bytesObj = ((String) bytesObj).getBytes(charset);
+            }
+            if (dataType != null
+                    && dataType.getSqlType().equals(SqlType.STRING)
+                    && bytesObj != null) {
+                bytesObj = bytesObj.toString();
             }
             if (dataType != null
                     && dataType.getSqlType().equals(SqlType.STRING)
@@ -445,6 +464,27 @@ public class OrcReadStrategy extends AbstractReadStrategy {
             }
         }
         return bytesObj;
+    }
+
+    /**
+     * copied from {@link BytesColumnVector#toString(int)}
+     *
+     * @param bytesVector the BytesColumnVector
+     * @param row rowNum
+     * @param charset read charset
+     */
+    private Object bytesVectorToString(BytesColumnVector bytesVector, int row, Charset charset) {
+        if (bytesVector.isRepeating) {
+            row = 0;
+        }
+
+        return !bytesVector.noNulls && bytesVector.isNull[row]
+                ? null
+                : new String(
+                        bytesVector.vector[row],
+                        bytesVector.start[row],
+                        bytesVector.length[row],
+                        charset);
     }
 
     private Object readDecimalVal(ColumnVector colVec, SeaTunnelDataType<?> dataType, int rowNum) {

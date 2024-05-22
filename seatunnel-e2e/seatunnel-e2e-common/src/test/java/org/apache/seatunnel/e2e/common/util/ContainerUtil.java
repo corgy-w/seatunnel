@@ -24,6 +24,7 @@ import org.apache.seatunnel.shade.com.typesafe.config.ConfigResolveOptions;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.factory.FactoryException;
 import org.apache.seatunnel.common.constants.PluginType;
+import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
 
 import org.apache.commons.lang3.StringUtils;
@@ -31,9 +32,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.shaded.org.apache.commons.lang3.tuple.Pair;
 import org.testcontainers.utility.MountableFile;
 
-import groovy.lang.Tuple2;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -122,11 +123,17 @@ public final class ContainerUtil {
                                                 connectors.getConfig(pluginType.getType()))));
         File module = new File(PROJECT_ROOT_PATH + File.separator + connectorsRootPath);
         List<File> connectorFiles = getConnectorFiles(module, connectorNames, connectorPrefix);
-        connectorFiles.forEach(
-                jar ->
+        try {
+            connectorFiles.forEach(
+                    jar -> {
+                        log.error("Copy connector jar: {}", jar.getName());
                         container.copyFileToContainer(
                                 MountableFile.forHostPath(jar.getAbsolutePath()),
-                                Paths.get(seatunnelHome, "connectors", jar.getName()).toString()));
+                                Paths.get(seatunnelHome, "connectors", jar.getName()).toString());
+                    });
+        } catch (Throwable e) {
+            log.error(ExceptionUtils.getMessage(e));
+        }
     }
 
     public static Set<String> getConnectorNames(Config config) {
@@ -282,7 +289,7 @@ public final class ContainerUtil {
     }
 
     private static Config getConfig(File file) {
-        return ConfigFactory.parseFile(file)
+        return ConfigBuilder.of(file.toPath())
                 .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true))
                 .resolveWith(
                         ConfigFactory.systemProperties(),
@@ -319,7 +326,7 @@ public final class ContainerUtil {
 
     public static List<String> getJVMThreadNames(GenericContainer<?> container)
             throws IOException, InterruptedException {
-        return getJVMThreads(container).stream().map(Tuple2::getV1).collect(Collectors.toList());
+        return getJVMThreads(container).stream().map(Pair::getLeft).collect(Collectors.toList());
     }
 
     public static Map<String, Integer> getJVMLiveObject(GenericContainer<?> container)
@@ -343,7 +350,7 @@ public final class ContainerUtil {
                                 (a, b) -> a));
     }
 
-    public static List<Tuple2<String, String>> getJVMThreads(GenericContainer<?> container)
+    public static List<Pair<String, String>> getJVMThreads(GenericContainer<?> container)
             throws IOException, InterruptedException {
         Container.ExecResult threads =
                 container.execInContainer("jstack", getJVMProcessId(container));
@@ -355,7 +362,7 @@ public final class ContainerUtil {
                 .filter(s -> s.startsWith("\""))
                 .map(
                         threadStr ->
-                                new Tuple2<>(
+                                Pair.of(
                                         Arrays.stream(threadStr.split("\n"))
                                                 .filter(s -> s.startsWith("\""))
                                                 .map(s -> s.substring(1, s.lastIndexOf("\"")))
