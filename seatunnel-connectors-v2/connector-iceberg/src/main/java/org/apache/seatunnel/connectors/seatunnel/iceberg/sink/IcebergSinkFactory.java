@@ -32,6 +32,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
 
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HADOOP_CONF_PATH_PROP;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KEYTAB_PATH;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KRB5_CONF_PATH;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_PRINCIPAL;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.REMOTE_USER;
+
 @AutoService(Factory.class)
 public class IcebergSinkFactory implements TableSinkFactory {
 
@@ -63,7 +69,12 @@ public class IcebergSinkFactory implements TableSinkFactory {
                         SinkConfig.TABLE_DEFAULT_PARTITION_KEYS,
                         SinkConfig.TABLE_UPSERT_MODE_ENABLED_PROP,
                         SinkConfig.TABLE_SCHEMA_EVOLUTION_ENABLED_PROP,
-                        SinkConfig.TABLES_DEFAULT_COMMIT_BRANCH)
+                        SinkConfig.TABLES_DEFAULT_COMMIT_BRANCH,
+                        HADOOP_CONF_PATH_PROP,
+                        KERBEROS_KRB5_CONF_PATH,
+                        KERBEROS_PRINCIPAL,
+                        KERBEROS_KEYTAB_PATH,
+                        REMOTE_USER)
                 .build();
     }
 

@@ -73,6 +73,10 @@ libfb303-xxx.jar
 | schema_save_mode                       | Enum    | no       | CREATE_SCHEMA_WHEN_NOT_EXIST | the schema save mode, please refer to `schema_save_mode` below                                                                                                                                                                                                                                                            |
 | data_save_mode                         | Enum    | no       | APPEND_DATA                  | the data save mode, please refer to `data_save_mode` below                                                                                                                                                                                                                                                                |
 | iceberg.table.commit-branch            | string  | no       | -                            | Default branch for commits                                                                                                                                                                                                                                                                                                |
+| kerberos_krb5_conf_path                | String  | no       | -                            | kerberos krb5 conf path.                                                                                                                                                                                                                                                                                                  |
+| kerberos_principal                     | String  | no       | -                            | kerberos principal.                                                                                                                                                                                                                                                                                                       |
+| kerberos_keytab_path                   | String  | no       | -                            | The kerberos keytab file path for kerberos principal.                                                                                                                                                                                                                                                                     |
+| remote_user                            | String  | no       | -                            | Use specified user authentication to access files on HDFS.                                                                                                                                                                                                                                                                |
 
 ## Task Example
 
@@ -168,6 +172,62 @@ sink {
     iceberg.table.upsert-mode-enabled=true
     iceberg.table.schema-evolution-enabled=true
     case_sensitive=true
+  }
+}
+
+```
+
+### Hadoop catalog With Kerberos:
+
+```hocon
+sink {
+  Iceberg {
+    catalog_name="seatunnel_test"
+    iceberg.catalog.config={
+      type = "hadoop"
+      warehouse = "hdfs://your_cluster/tmp/seatunnel/iceberg/"
+    }
+    namespace="seatunnel_namespace"
+    table="iceberg_sink_table"
+    iceberg.table.write-props={
+      write.format.default="parquet"
+      write.target-file-size-bytes=536870912
+    }
+    iceberg.table.primary-keys="id"
+    iceberg.table.partition-keys="f_datetime"
+    iceberg.table.upsert-mode-enabled=true
+    iceberg.table.schema-evolution-enabled=true
+    case_sensitive=true
+    kerberos_krb5_conf_path = "/etc/krb5.conf"
+    kerberos_principal = "test@EXAMPLE.COM"
+    kerberos_keytab_path = "/etc/test.keytab"
+  }
+}
+
+```
+
+### Hadoop catalog With Remote User Login:
+
+```hocon
+sink {
+  Iceberg {
+    catalog_name="seatunnel_test"
+    iceberg.catalog.config={
+      type = "hadoop"
+      warehouse = "hdfs://your_cluster/tmp/seatunnel/iceberg/"
+    }
+    namespace="seatunnel_namespace"
+    table="iceberg_sink_table"
+    iceberg.table.write-props={
+      write.format.default="parquet"
+      write.target-file-size-bytes=536870912
+    }
+    iceberg.table.primary-keys="id"
+    iceberg.table.partition-keys="f_datetime"
+    iceberg.table.upsert-mode-enabled=true
+    iceberg.table.schema-evolution-enabled=true
+    case_sensitive=true
+    remote_user = "hadoop"
   }
 }
 

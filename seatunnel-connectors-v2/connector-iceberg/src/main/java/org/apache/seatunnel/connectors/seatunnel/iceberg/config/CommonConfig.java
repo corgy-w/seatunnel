@@ -80,6 +80,31 @@ public class CommonConfig implements Serializable {
                     .defaultValue(false)
                     .withDescription(" the iceberg case_sensitive");
 
+    // for kerberos
+    public static final Option<String> KERBEROS_PRINCIPAL =
+            Options.key("kerberos_principal")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("jdbc kerberos_principal");
+
+    public static final Option<String> KERBEROS_KEYTAB_PATH =
+            Options.key("kerberos_keytab_path")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("jdbc kerberos_keytab_path");
+
+    public static final Option<String> KERBEROS_KRB5_CONF_PATH =
+            Options.key("kerberos_krb5_conf_path")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("jdbc kerberos_keytab_path");
+
+    public static final Option<String> REMOTE_USER =
+            Options.key("remote_user")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("The remote user name of hdfs");
+
     private String catalogName;
     private String namespace;
     private String table;
@@ -88,6 +113,11 @@ public class CommonConfig implements Serializable {
     private Map<String, String> catalogProps;
     private Map<String, String> hadoopProps;
     private String hadoopConfPath;
+    // kerberos
+    private String kerberosPrincipal;
+    private String kerberosKeytabPath;
+    private String kerberosKrb5ConfPath;
+    private String remoteUser;
 
     public CommonConfig(ReadonlyConfig pluginConfig) {
         this.catalogName = checkArgumentNotNull(pluginConfig.get(KEY_CATALOG_NAME));
@@ -98,6 +128,19 @@ public class CommonConfig implements Serializable {
         this.hadoopConfPath = pluginConfig.get(HADOOP_CONF_PATH_PROP);
         if (pluginConfig.toConfig().hasPath(KEY_CASE_SENSITIVE.key())) {
             this.caseSensitive = pluginConfig.get(KEY_CASE_SENSITIVE);
+        }
+        if (pluginConfig.getOptional(KERBEROS_PRINCIPAL).isPresent()) {
+            this.kerberosPrincipal = pluginConfig.getOptional(KERBEROS_PRINCIPAL).get();
+        }
+        if (pluginConfig.getOptional(KERBEROS_KEYTAB_PATH).isPresent()) {
+            this.kerberosKeytabPath = pluginConfig.getOptional(KERBEROS_KEYTAB_PATH).get();
+        }
+        if (pluginConfig.getOptional(KERBEROS_KRB5_CONF_PATH).isPresent()) {
+            this.kerberosKrb5ConfPath = pluginConfig.getOptional(KERBEROS_KRB5_CONF_PATH).get();
+        }
+
+        if (pluginConfig.getOptional(REMOTE_USER).isPresent()) {
+            this.remoteUser = pluginConfig.getOptional(REMOTE_USER).get();
         }
         validate();
     }
