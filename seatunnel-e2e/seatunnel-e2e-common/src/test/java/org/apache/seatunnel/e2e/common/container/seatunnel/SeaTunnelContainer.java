@@ -162,6 +162,12 @@ public class SeaTunnelContainer extends AbstractTestContainer {
                 Paths.get(SEATUNNEL_HOME, "starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar")
                         .toString());
 
+        server.withCopyFileToContainer(
+                MountableFile.forHostPath(
+                        PROJECT_ROOT_PATH
+                                + "/seatunnel-e2e/seatunnel-engine-e2e/connector-seatunnel-e2e-base/src/test/resources/whaletunnel.license"),
+                "/etc/seatunnel/whaletunnel.license");
+        // execute extra commands
         server.start();
         // execute extra commands
         executeExtraCommands(server);
