@@ -20,7 +20,12 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg;
 import org.apache.seatunnel.shade.com.google.common.collect.ImmutableList;
 
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorErrorCode;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorException;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.hadoop.HadoopLoginFactory;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.iceberg.CatalogUtil;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.common.DynClasses;
@@ -52,6 +57,36 @@ public class IcebergCatalogLoader implements Serializable {
     public Catalog loadCatalog() {
         // When using the seatunel engine, set the current class loader to prevent loading failures
         Thread.currentThread().setContextClassLoader(IcebergCatalogLoader.class.getClassLoader());
+        try {
+            if (enableKerberos(config)) {
+                Catalog catalog =
+                        HadoopLoginFactory.loginWithKerberos(
+                                new Configuration(),
+                                config.getKerberosKrb5ConfPath(),
+                                config.getKerberosPrincipal(),
+                                config.getKerberosKeytabPath(),
+                                (configuration, userGroupInformation) ->
+                                        CatalogUtil.buildIcebergCatalog(
+                                                config.getCatalogName(),
+                                                config.getCatalogProps(),
+                                                loadHadoopConfig(config)));
+                return catalog;
+            }
+            if (enableRemoteUser(config)) {
+                Catalog catalog =
+                        HadoopLoginFactory.loginWithRemoteUser(
+                                new Configuration(),
+                                config.getRemoteUser(),
+                                (configuration, userGroupInformation) ->
+                                        CatalogUtil.buildIcebergCatalog(
+                                                config.getCatalogName(),
+                                                config.getCatalogProps(),
+                                                loadHadoopConfig(config)));
+                return catalog;
+            }
+        } catch (Exception e) {
+            throw new IcebergConnectorException(IcebergConnectorErrorCode.KERBEROS_LOGIN_FAILED, e);
+        }
         return CatalogUtil.buildIcebergCatalog(
                 config.getCatalogName(), config.getCatalogProps(), loadHadoopConfig(config));
     }
@@ -120,5 +155,24 @@ public class IcebergCatalogLoader implements Serializable {
                     e);
         }
         return null;
+    }
+
+    public boolean enableKerberos(CommonConfig config) {
+        if (StringUtils.isNotBlank(config.getKerberosPrincipal())
+                && StringUtils.isNotBlank(config.getKerberosKeytabPath())) {
+            return true;
+        }
+        if (!StringUtils.isNotBlank(config.getKerberosPrincipal())
+                && !StringUtils.isNotBlank(config.getKerberosKeytabPath())) {
+            return false;
+        }
+        if (StringUtils.isNotBlank(config.getKerberosPrincipal())) {
+            throw new IllegalArgumentException("Please set kerberosPrincipal");
+        }
+        throw new IllegalArgumentException("Please set kerberosKeytabPath");
+    }
+
+    public boolean enableRemoteUser(CommonConfig config) {
+        return StringUtils.isNotBlank(config.getRemoteUser());
     }
 }

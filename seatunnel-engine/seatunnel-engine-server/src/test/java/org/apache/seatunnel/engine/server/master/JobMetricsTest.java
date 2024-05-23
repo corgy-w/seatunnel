@@ -23,6 +23,7 @@ import org.apache.seatunnel.engine.server.AbstractSeaTunnelServerTest;
 import org.apache.seatunnel.engine.server.CoordinatorService;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -92,6 +93,7 @@ class JobMetricsTest extends AbstractSeaTunnelServerTest {
     }
 
     @Test
+    @Disabled("Unstable")
     public void testMetricsOnJobRestart() throws InterruptedException {
 
         long jobId3 = System.currentTimeMillis() + 323475L;

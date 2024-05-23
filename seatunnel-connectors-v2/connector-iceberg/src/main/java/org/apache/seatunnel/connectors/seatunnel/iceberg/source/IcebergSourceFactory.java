@@ -41,7 +41,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.Serializable;
 
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HADOOP_CONF_PATH_PROP;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KEYTAB_PATH;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KRB5_CONF_PATH;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_PRINCIPAL;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_CASE_SENSITIVE;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.REMOTE_USER;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig.KEY_END_SNAPSHOT_ID;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig.KEY_START_SNAPSHOT_ID;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig.KEY_START_SNAPSHOT_TIMESTAMP;
@@ -74,7 +79,12 @@ public class IcebergSourceFactory implements TableSourceFactory {
                         KEY_END_SNAPSHOT_ID,
                         KEY_USE_SNAPSHOT_ID,
                         KEY_USE_SNAPSHOT_TIMESTAMP,
-                        KEY_STREAM_SCAN_STRATEGY)
+                        KEY_STREAM_SCAN_STRATEGY,
+                        HADOOP_CONF_PATH_PROP,
+                        KERBEROS_KRB5_CONF_PATH,
+                        KERBEROS_PRINCIPAL,
+                        KERBEROS_KEYTAB_PATH,
+                        REMOTE_USER)
                 .build();
     }
 
