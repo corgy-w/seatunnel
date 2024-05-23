@@ -579,6 +579,19 @@
                     <scope>provided</scope>
                 </dependency>
                 <!-- hadoop jar end -->
+                <dependency>
+                    <groupId>com.dolphindb</groupId>
+                    <artifactId>dolphindb-javaapi</artifactId>
+                    <version>${dolphindb-javaapi.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.dolphindb</groupId>
+                    <artifactId>jdbc</artifactId>
+                    <version>${dolphindb-jdbc.version}</version>
+                    <scope>provided</scope>
+                </dependency>
             </dependencies>
             <repositories>
                 <repository>
@@ -685,20 +698,6 @@
                     <scope>provided</scope>
                 </dependency>
                 <!-- hive jar end -->
-
-                <dependency>
-                    <groupId>com.dolphindb</groupId>
-                    <artifactId>dolphindb-javaapi</artifactId>
-                    <version>${dolphindb-javaapi.version}</version>
-                    <scope>provided</scope>
-                </dependency>
-
-                <dependency>
-                    <groupId>com.dolphindb</groupId>
-                    <artifactId>jdbc</artifactId>
-                    <version>${dolphindb-jdbc.version}</version>
-                    <scope>provided</scope>
-                </dependency>
             </dependencies>
             <repositories>
                 <repository>
