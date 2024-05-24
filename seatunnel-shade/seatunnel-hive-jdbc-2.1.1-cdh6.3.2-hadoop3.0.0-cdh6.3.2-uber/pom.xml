@@ -124,12 +124,6 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <artifactSet>
-                                <includes>
-                                    <include>org.apache.hive:hive-jdbc</include>
-                                    <include>org.apache.hive:hive-service</include>
-                                </includes>
-                            </artifactSet>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
