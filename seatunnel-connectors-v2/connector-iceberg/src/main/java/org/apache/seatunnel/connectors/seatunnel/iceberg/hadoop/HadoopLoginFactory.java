@@ -17,6 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.iceberg.hadoop;
 
+import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorErrorCode;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -26,10 +29,16 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
+import static org.apache.hadoop.security.authorize.ProxyServers.refresh;
+
 @Slf4j
 public class HadoopLoginFactory {
 
-    /** Login with kerberos, and do the given action after login successfully. */
+    /**
+     * Objects returned after Kerberos authentication are authenticated by kerberos. If new objects
+     * are created inside the returned objects that require Kerberos authentication when used, the
+     * new objects will not be authenticated by kerberos *
+     */
     public static <T> T loginWithKerberos(
             Configuration configuration,
             String krb5FilePath,
@@ -55,6 +64,39 @@ public class HadoopLoginFactory {
                             (PrivilegedExceptionAction<T>)
                                     () -> action.run(configuration, userGroupInformation));
             return result;
+        }
+    }
+
+    /**
+     * All operations under this classloader will use the user who has been authenticated using
+     * Kerberos after authentication
+     *
+     * @param configuration
+     * @param principal
+     * @param keytabPath
+     */
+    public static void doKerberosAuthentication(
+            Configuration configuration, String principal, String keytabPath) {
+        if (StringUtils.isBlank(principal) || StringUtils.isBlank(keytabPath)) {
+            log.warn(
+                    "Principal [{}] or keytabPath [{}] is empty, it will skip kerberos authentication",
+                    principal,
+                    keytabPath);
+        } else {
+            configuration.set("hadoop.security.authentication", "kerberos");
+            UserGroupInformation.setConfiguration(configuration);
+            try {
+                log.info(
+                        "Start Kerberos authentication using principal {} and keytab {}",
+                        principal,
+                        keytabPath);
+                refresh();
+                UserGroupInformation.loginUserFromKeytab(principal, keytabPath);
+                log.info("Kerberos authentication successful");
+            } catch (IOException e) {
+                throw new IcebergConnectorException(
+                        IcebergConnectorErrorCode.KERBEROS_LOGIN_FAILED, e);
+            }
         }
     }
 

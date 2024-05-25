@@ -65,7 +65,7 @@ public class HiveMetaStoreProxy {
                                             "Add Hive site failed: " + hiveSite, e);
                                 }
                             });
-            if (enableKerberos(readonlyConfig)) {
+            if (HiveMetaStoreProxyUtils.enableKerberos(readonlyConfig)) {
                 Configuration configuration = new Configuration();
                 configuration.set("hadoop.security.authentication", "kerberos");
                 this.hiveMetaStoreClient =
@@ -80,7 +80,7 @@ public class HiveMetaStoreProxy {
                         readonlyConfig.get(HdfsConfigOptions.REMOTE_USER));
                 return;
             }
-            if (enableRemoteUser(readonlyConfig)) {
+            if (HiveMetaStoreProxyUtils.enableRemoteUser(readonlyConfig)) {
                 this.hiveMetaStoreClient =
                         HadoopLoginFactory.loginWithRemoteUser(
                                 new Configuration(),

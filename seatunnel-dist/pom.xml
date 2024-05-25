@@ -592,31 +592,6 @@
                     <version>${dolphindb-jdbc.version}</version>
                     <scope>provided</scope>
                 </dependency>
-            </dependencies>
-            <repositories>
-                <repository>
-                    <id>cloudera</id>
-                    <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-                </repository>
-            </repositories>
-        </profile>
-        <profile>
-            <id>release</id>
-            <activation>
-                <property>
-                    <name>release</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <dependencies>
-                <!-- starters -->
-                <dependency>
-                    <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>seatunnel-hadoop3-3.0.0-cdh6.3.2-uber</artifactId>
-                    <version>${project.version}</version>
-                    <classifier>optional</classifier>
-                    <scope>provided</scope>
-                </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
                     <artifactId>seatunnel-hadoop2-2.6.5-uber</artifactId>
@@ -697,7 +672,6 @@
                     <classifier>optional</classifier>
                     <scope>provided</scope>
                 </dependency>
-                <!-- hive jar end -->
             </dependencies>
             <repositories>
                 <repository>

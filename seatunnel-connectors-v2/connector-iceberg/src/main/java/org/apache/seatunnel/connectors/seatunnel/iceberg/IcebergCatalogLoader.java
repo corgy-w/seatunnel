@@ -61,18 +61,14 @@ public class IcebergCatalogLoader implements Serializable {
             if (enableKerberos(config)) {
                 Configuration configuration = new Configuration();
                 configuration.set("hadoop.security.authentication", "kerberos");
-                Catalog catalog =
-                        HadoopLoginFactory.loginWithKerberos(
-                                configuration,
-                                config.getKerberosKrb5ConfPath(),
-                                config.getKerberosPrincipal(),
-                                config.getKerberosKeytabPath(),
-                                (conf, userGroupInformation) ->
-                                        CatalogUtil.buildIcebergCatalog(
-                                                config.getCatalogName(),
-                                                config.getCatalogProps(),
-                                                loadHadoopConfig(config)));
-                return catalog;
+                HadoopLoginFactory.doKerberosAuthentication(
+                        configuration,
+                        config.getKerberosPrincipal(),
+                        config.getKerberosKeytabPath());
+                return CatalogUtil.buildIcebergCatalog(
+                        config.getCatalogName(),
+                        config.getCatalogProps(),
+                        loadHadoopConfig(config));
             }
             if (enableRemoteUser(config)) {
                 Catalog catalog =

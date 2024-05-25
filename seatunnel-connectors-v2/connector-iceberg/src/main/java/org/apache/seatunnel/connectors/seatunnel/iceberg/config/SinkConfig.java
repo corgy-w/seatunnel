@@ -105,7 +105,12 @@ public class SinkConfig extends CommonConfig {
 
     public static final Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key("data_save_mode")
-                    .enumType(DataSaveMode.class)
+                    .singleChoice(
+                            DataSaveMode.class,
+                            Arrays.asList(
+                                    DataSaveMode.DROP_DATA,
+                                    DataSaveMode.APPEND_DATA,
+                                    DataSaveMode.ERROR_WHEN_DATA_EXISTS))
                     .defaultValue(DataSaveMode.APPEND_DATA)
                     .withDescription("data save mode");
 

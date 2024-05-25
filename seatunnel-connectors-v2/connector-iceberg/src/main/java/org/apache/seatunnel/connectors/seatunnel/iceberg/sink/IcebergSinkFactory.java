@@ -64,6 +64,8 @@ public class IcebergSinkFactory implements TableSinkFactory {
                         SinkConfig.TABLE_PROPS,
                         SinkConfig.HADOOP_PROPS,
                         SinkConfig.WRITE_PROPS,
+                        SinkConfig.SCHEMA_SAVE_MODE,
+                        SinkConfig.DATA_SAVE_MODE,
                         SinkConfig.AUTO_CREATE_PROPS,
                         SinkConfig.TABLE_PRIMARY_KEYS,
                         SinkConfig.TABLE_DEFAULT_PARTITION_KEYS,
