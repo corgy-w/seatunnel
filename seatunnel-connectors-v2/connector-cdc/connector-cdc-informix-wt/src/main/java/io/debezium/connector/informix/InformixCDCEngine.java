@@ -59,7 +59,7 @@ public class InformixCDCEngine {
         tableIdByLabelId = new HashMap<>();
     }
 
-    public void init(InformixDatabaseSchema schema) throws InterruptedException {
+    public void init(InformixDatabaseSchema schema) {
         try {
             String url = InformixCDCEngine.genURLStr(hostname, port);
             this.cdcEngine = this.buildCDCEngine(url, user, password, schema);
@@ -68,10 +68,10 @@ public class InformixCDCEngine {
             this.inited = true;
         } catch (SQLException ex) {
             log.error("Caught SQLException", ex);
-            throw new InterruptedException("Failed while while initialize CDC Engine");
+            throw new RuntimeException("Failed while while initialize CDC Engine", ex);
         } catch (IfxStreamException ex) {
             log.error("Caught IfxStreamException", ex);
-            throw new InterruptedException("Failed while while initialize CDC Engine");
+            throw new RuntimeException("Failed while while initialize CDC Engine", ex);
         }
     }
 
