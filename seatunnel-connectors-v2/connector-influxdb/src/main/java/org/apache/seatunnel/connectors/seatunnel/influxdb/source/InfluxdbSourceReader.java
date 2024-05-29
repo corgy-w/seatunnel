@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.influxdb.source;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.influxdb.client.InfluxDBClient;
@@ -99,10 +100,11 @@ public class InfluxdbSourceReader implements SourceReader<SeaTunnelRow, InfluxDB
     @Override
     public void pollNext(Collector<SeaTunnelRow> output) {
         while (!pendingSplits.isEmpty()) {
+            InfluxDBSourceSplit split = pendingSplits.poll();
             synchronized (output.getCheckpointLock()) {
-                InfluxDBSourceSplit split = pendingSplits.poll();
                 read(split, output);
             }
+            context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
         }
 
         if (Boundedness.BOUNDED.equals(context.getBoundedness())

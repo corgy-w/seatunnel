@@ -25,6 +25,9 @@ import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceReader;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class ParallelReaderContext implements SourceReader.Context {
 
     protected final ParallelSource<?, ?, ?> parallelSource;
@@ -65,7 +68,7 @@ public class ParallelReaderContext implements SourceReader.Context {
 
     @Override
     public void sendSourceEventToEnumerator(SourceEvent sourceEvent) {
-        throw new UnsupportedOperationException(
+        log.warn(
                 "Flink ParallelSource don't support sending SourceEvent. "
                         + "Please implement the `SupportCoordinate` marker interface on the SeaTunnel source.");
     }

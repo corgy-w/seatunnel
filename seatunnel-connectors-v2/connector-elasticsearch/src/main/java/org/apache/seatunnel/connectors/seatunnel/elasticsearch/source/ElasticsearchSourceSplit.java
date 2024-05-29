@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.elasticsearch.source;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.elasticsearch.dto.source.SourceIndexInfo;
 
 import lombok.AllArgsConstructor;
@@ -25,6 +26,7 @@ import lombok.Getter;
 import lombok.ToString;
 
 @ToString
+@Getter
 @AllArgsConstructor
 public class ElasticsearchSourceSplit implements SourceSplit {
 
@@ -33,6 +35,14 @@ public class ElasticsearchSourceSplit implements SourceSplit {
     private String splitId;
 
     @Getter private SourceIndexInfo sourceIndexInfo;
+
+    private final int index;
+    private final int splitCount;
+
+    @Override
+    public TablePath getTablePath() {
+        return TablePath.of(null, sourceIndexInfo.getIndex());
+    }
 
     @Override
     public String splitId() {

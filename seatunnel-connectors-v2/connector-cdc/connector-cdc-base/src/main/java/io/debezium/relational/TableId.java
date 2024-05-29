@@ -17,6 +17,8 @@
 
 package io.debezium.relational;
 
+import org.apache.seatunnel.api.table.catalog.TablePath;
+
 import io.debezium.annotation.Immutable;
 import io.debezium.relational.Selectors.TableIdToStringMapper;
 import io.debezium.schema.DataCollectionId;
@@ -277,5 +279,9 @@ public final class TableId implements DataCollectionId, Comparable<TableId>, Ser
 
     public TableId toLowercase() {
         return new TableId(catalogName, schemaName, tableName.toLowerCase());
+    }
+
+    public TablePath toTablePath() {
+        return new TablePath(catalogName, schemaName, tableName);
     }
 }

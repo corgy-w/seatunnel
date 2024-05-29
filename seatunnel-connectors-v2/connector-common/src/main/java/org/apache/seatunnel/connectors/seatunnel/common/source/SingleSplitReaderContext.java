@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.common.source;
 
 import org.apache.seatunnel.api.source.Boundedness;
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceReader;
 
 public class SingleSplitReaderContext {
@@ -33,5 +34,9 @@ public class SingleSplitReaderContext {
 
     public void signalNoMoreElement() {
         context.signalNoMoreElement();
+    }
+
+    public void sendSourceEventToEnumerator(SourceEvent event) {
+        context.sendSourceEventToEnumerator(event);
     }
 }

@@ -17,8 +17,10 @@
 
 package org.apache.seatunnel.connectors.seatunnel.fake.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.event.EnumeratorCloseEvent;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.source.event.EnumeratorOpenEvent;
 import org.apache.seatunnel.connectors.seatunnel.fake.config.FakeConfig;
 import org.apache.seatunnel.connectors.seatunnel.fake.config.MultipleTableFakeSourceConfig;
@@ -45,6 +47,7 @@ public class FakeSourceSplitEnumerator
     /** Partitions that have been assigned to readers. */
     private final Set<FakeSourceSplit> assignedSplits;
 
+    private final EnumeratorEventRecorder eventRecorder;
     private final Object lock = new Object();
 
     public FakeSourceSplitEnumerator(
@@ -55,6 +58,7 @@ public class FakeSourceSplitEnumerator
         this.pendingSplits = new HashMap<>();
         this.multipleTableFakeSourceConfig = multipleTableFakeSourceConfig;
         this.assignedSplits = new HashSet<>(assignedSplits);
+        this.eventRecorder = new EnumeratorEventRecorder(enumeratorContext);
     }
 
     @Override
@@ -93,6 +97,11 @@ public class FakeSourceSplitEnumerator
     }
 
     @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
+    }
+
+    @Override
     public FakeSourceState snapshotState(long checkpointId) throws Exception {
         log.debug("Get lock, begin snapshot fakesource split enumerator...");
         synchronized (lock) {
@@ -118,9 +127,19 @@ public class FakeSourceSplitEnumerator
                 for (int num = 0; num < readerRowNum; index += numReaders, num += splitRowNum) {
                     allSplit.add(
                             new FakeSourceSplit(
-                                    tableId, index, Math.min(splitRowNum, readerRowNum - num)));
+                                    tableId,
+                                    index,
+                                    Math.min(splitRowNum, readerRowNum - num),
+                                    index,
+                                    -1));
                 }
             }
+            Set<FakeSourceSplit> finalAllSplit = allSplit;
+            allSplit.forEach(split -> split.setSplitCount(finalAllSplit.size()));
+            // reindex hashcode
+            allSplit = new HashSet<>(allSplit);
+            eventRecorder.addTableSplit(
+                    fakeConfig.getCatalogTable().getTableId().toTablePath(), allSplit.size());
             log.info(
                     "Calculated splits for table {} successfully, the size of splits is {}.",
                     tableId,

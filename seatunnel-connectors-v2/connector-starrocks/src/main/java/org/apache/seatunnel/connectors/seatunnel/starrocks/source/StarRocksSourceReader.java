@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.starrocks.source;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.client.source.StarRocksBeReadClient;
@@ -63,6 +64,7 @@ public class StarRocksSourceReader implements SourceReader<SeaTunnelRow, StarRoc
             synchronized (output.getCheckpointLock()) {
                 StarRocksSourceSplit split = pendingSplits.poll();
                 read(split, output);
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             }
         }
 

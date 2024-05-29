@@ -20,14 +20,22 @@ package org.apache.seatunnel.connectors.seatunnel.maxcompute.source;
 import org.apache.seatunnel.api.source.SourceSplit;
 
 import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 public class MaxcomputeSourceSplit implements SourceSplit {
-    @Getter private int splitId;
-    @Getter private long rowNum;
+    private int splitId;
+    private long rowNum;
 
-    public MaxcomputeSourceSplit(int splitId, long rowNum) {
+    private final int index;
+    private int splitCount;
+
+    public MaxcomputeSourceSplit(int splitId, long rowNum, int index, int splitCount) {
         this.splitId = splitId;
         this.rowNum = rowNum;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
     @Override

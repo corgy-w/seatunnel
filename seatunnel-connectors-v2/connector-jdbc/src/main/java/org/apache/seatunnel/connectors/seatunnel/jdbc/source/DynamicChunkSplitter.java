@@ -89,7 +89,9 @@ public class DynamicChunkSplitter extends ChunkSplitter {
                             splitKeyName,
                             splitKeyType,
                             chunk.getChunkStart(),
-                            chunk.getChunkEnd());
+                            chunk.getChunkEnd(),
+                            i,
+                            chunks.size());
             splits.add(split);
         }
         return splits;

@@ -21,6 +21,7 @@ import org.apache.seatunnel.shade.com.google.common.base.Preconditions;
 
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.internal.MongodbClientProvider;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.serde.DocumentDeserializer;
@@ -100,6 +101,7 @@ public class MongodbReader implements SourceReader<SeaTunnelRow, MongoSplit> {
                 } finally {
                     closeCurrentSplit();
                 }
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(currentSplit));
             }
             if (noMoreSplit && pendingSplits.isEmpty()) {
                 // signal to the source that we have reached the end of the data.

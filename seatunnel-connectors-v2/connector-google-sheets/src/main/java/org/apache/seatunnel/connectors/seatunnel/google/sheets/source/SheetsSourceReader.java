@@ -19,9 +19,11 @@ package org.apache.seatunnel.connectors.seatunnel.google.sheets.source;
 
 import org.apache.seatunnel.api.serialization.DeserializationSchema;
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.common.source.AbstractSingleSplitReader;
+import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplit;
 import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplitReaderContext;
 import org.apache.seatunnel.connectors.seatunnel.google.sheets.config.SheetsParameters;
 import org.apache.seatunnel.connectors.seatunnel.google.sheets.deserialize.GoogleSheetsDeserializer;
@@ -112,6 +114,7 @@ public class SheetsSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> 
                 output.collect(seaTunnelRow);
             }
         }
+        context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(new SingleSplit()));
         this.context.signalNoMoreElement();
     }
 }

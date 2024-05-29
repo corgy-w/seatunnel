@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.paimon.source;
 
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.paimon.utils.RowConverter;
@@ -80,6 +81,7 @@ public class PaimonSourceReader implements SourceReader<SeaTunnelRow, PaimonSour
                         output.collect(seaTunnelRow);
                     }
                 }
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             } else if (noMoreSplit && sourceSplits.isEmpty()) {
                 // signal to the source that we have reached the end of the data.
                 log.info("Closed the bounded flink table store source");

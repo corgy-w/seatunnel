@@ -19,11 +19,15 @@ package org.apache.seatunnel.connectors.cdc.base.source.enumerator;
 
 import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
+import org.apache.seatunnel.api.source.event.SnapshotFinishedEvent;
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.state.PendingSplitsState;
 import org.apache.seatunnel.connectors.cdc.base.source.event.CompletedSnapshotPhaseEvent;
 import org.apache.seatunnel.connectors.cdc.base.source.event.CompletedSnapshotSplitsAckEvent;
 import org.apache.seatunnel.connectors.cdc.base.source.event.CompletedSnapshotSplitsReportEvent;
 import org.apache.seatunnel.connectors.cdc.base.source.event.SnapshotSplitWatermark;
+import org.apache.seatunnel.connectors.cdc.base.source.split.SnapshotSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
 
 import org.slf4j.Logger;
@@ -49,14 +53,19 @@ public class IncrementalSourceEnumerator
     /** using TreeSet to prefer assigning incremental split to task-0 for easier debug */
     private final TreeSet<Integer> readersAwaitingSplit;
 
+    private final EnumeratorEventRecorder eventRecorder;
+
     private volatile boolean running;
 
     public IncrementalSourceEnumerator(
-            SourceSplitEnumerator.Context<SourceSplitBase> context, SplitAssigner splitAssigner) {
+            SourceSplitEnumerator.Context<SourceSplitBase> context,
+            SplitAssigner splitAssigner,
+            EnumeratorEventRecorder eventRecorder) {
         this.context = context;
         this.splitAssigner = splitAssigner;
         this.readersAwaitingSplit = new TreeSet<>();
         this.running = false;
+        this.eventRecorder = eventRecorder;
     }
 
     @Override
@@ -113,6 +122,9 @@ public class IncrementalSourceEnumerator
             synchronized (context) {
                 splitAssigner.onCompletedSplits(completedSplitWatermarks);
             }
+            for (SnapshotSplit snapshotSplit : reportEvent.getCompletedSnapshotSplits()) {
+                eventRecorder.recordEvent(new ReaderSplitFinishedEvent(snapshotSplit));
+            }
 
             // send acknowledge event
             CompletedSnapshotSplitsAckEvent ackEvent =
@@ -128,7 +140,10 @@ public class IncrementalSourceEnumerator
                     subtaskId);
             CompletedSnapshotPhaseEvent event = (CompletedSnapshotPhaseEvent) sourceEvent;
             if (splitAssigner instanceof HybridSplitAssigner) {
-                ((HybridSplitAssigner) splitAssigner).completedSnapshotPhase(event.getTableIds());
+                if (((HybridSplitAssigner) splitAssigner)
+                        .completedSnapshotPhase(event.getTableIds())) {
+                    eventRecorder.recordEvent(new SnapshotFinishedEvent());
+                }
                 LOG.info(
                         "Clean the SnapshotSplitAssigner#assignedSplits/splitCompletedOffsets to empty.");
             }

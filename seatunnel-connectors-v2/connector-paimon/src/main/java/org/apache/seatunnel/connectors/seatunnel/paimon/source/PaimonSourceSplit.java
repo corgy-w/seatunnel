@@ -18,17 +18,31 @@
 package org.apache.seatunnel.connectors.seatunnel.paimon.source;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import org.apache.paimon.table.source.Split;
 
+import lombok.Getter;
+
 /** Paimon source split, wrapped the {@link Split} of paimon table. */
+@Getter
 public class PaimonSourceSplit implements SourceSplit {
     private static final long serialVersionUID = 1L;
 
     private final Split split;
 
-    public PaimonSourceSplit(Split split) {
+    private final int index;
+    private final int splitCount;
+
+    public PaimonSourceSplit(Split split, int index, int splitCount) {
         this.split = split;
+        this.index = index;
+        this.splitCount = splitCount;
+    }
+
+    @Override
+    public TablePath getTablePath() {
+        return null;
     }
 
     @Override

@@ -70,7 +70,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                     "Exactly once is enabled, but not found primary key or unique key for table %s",
                                     tableId));
                 }
-                SnapshotSplit singleSplit = createSnapshotSplit(jdbc, tableId, 0, null, null, null);
+                SnapshotSplit singleSplit =
+                        createSnapshotSplit(jdbc, tableId, 0, null, null, null, 0, 1);
                 splits.add(singleSplit);
                 log.warn(
                         "No evenly split column found for table {}, use single split {}",
@@ -95,7 +96,9 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                     i,
                                     splitType,
                                     chunk.getChunkStart(),
-                                    chunk.getChunkEnd());
+                                    chunk.getChunkEnd(),
+                                    i,
+                                    chunks.size());
                     splits.add(split);
                 }
             }
@@ -368,12 +371,20 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
             int chunkId,
             SeaTunnelRowType splitKeyType,
             Object chunkStart,
-            Object chunkEnd) {
+            Object chunkEnd,
+            int index,
+            int splitCount) {
         // currently, we only support single split column
         Object[] splitStart = chunkStart == null ? null : new Object[] {chunkStart};
         Object[] splitEnd = chunkEnd == null ? null : new Object[] {chunkEnd};
         return new SnapshotSplit(
-                splitId(tableId, chunkId), tableId, splitKeyType, splitStart, splitEnd);
+                splitId(tableId, chunkId),
+                tableId,
+                splitKeyType,
+                splitStart,
+                splitEnd,
+                index,
+                splitCount);
     }
 
     protected Column getSplitColumn(

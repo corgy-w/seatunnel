@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.common.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,9 +30,11 @@ public class SingleSplitEnumerator
     protected final SourceSplitEnumerator.Context<SingleSplit> context;
     protected SingleSplit pendingSplit;
     protected volatile boolean assigned = false;
+    protected final EnumeratorEventRecorder eventRecorder;
 
     public SingleSplitEnumerator(SourceSplitEnumerator.Context<SingleSplit> context) {
         this.context = context;
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -44,7 +48,8 @@ public class SingleSplitEnumerator
             return;
         }
 
-        pendingSplit = new SingleSplit(null);
+        pendingSplit = new SingleSplit();
+        eventRecorder.addTableSplit(null, 1);
         assignSplit();
     }
 
@@ -78,6 +83,11 @@ public class SingleSplitEnumerator
     @Override
     public void handleSplitRequest(int subtaskId) {
         // nothing
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

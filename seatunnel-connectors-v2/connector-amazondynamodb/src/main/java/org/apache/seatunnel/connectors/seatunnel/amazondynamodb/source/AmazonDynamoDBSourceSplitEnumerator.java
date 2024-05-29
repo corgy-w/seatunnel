@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.amazondynamodb.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.connectors.seatunnel.amazondynamodb.config.AmazonDynamoDBSourceOptions;
 
 import org.slf4j.Logger;
@@ -44,6 +46,7 @@ public class AmazonDynamoDBSourceSplitEnumerator
     private final AmazonDynamoDBSourceOptions amazonDynamoDBSourceOptions;
 
     private final Object stateLock = new Object();
+    private final EnumeratorEventRecorder eventRecorder;
     private volatile boolean shouldEnumerate;
 
     public AmazonDynamoDBSourceSplitEnumerator(
@@ -64,6 +67,7 @@ public class AmazonDynamoDBSourceSplitEnumerator
             this.shouldEnumerate = sourceState.isShouldEnumerate();
             this.pendingSplits.putAll(sourceState.getPendingSplits());
         }
+        this.eventRecorder = new EnumeratorEventRecorder(enumeratorContext);
     }
 
     @Override
@@ -123,11 +127,16 @@ public class AmazonDynamoDBSourceSplitEnumerator
         int itemLimit = amazonDynamoDBSourceOptions.scanItemLimit;
         for (int i = 0; i < totalSegments; i++) {
             AmazonDynamoDBSourceSplit split =
-                    new AmazonDynamoDBSourceSplit(i, totalSegments, itemLimit);
-
+                    new AmazonDynamoDBSourceSplit(i, totalSegments, itemLimit, i, totalSegments);
             allSplit.add(split);
         }
+        eventRecorder.addTableSplit(null, allSplit.size());
         return allSplit;
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

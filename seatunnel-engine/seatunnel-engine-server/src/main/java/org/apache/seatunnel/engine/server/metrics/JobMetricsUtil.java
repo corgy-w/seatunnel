@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.UnaryOperator;
 
 import static org.apache.seatunnel.api.common.metrics.MetricTags.ADDRESS;
@@ -56,6 +57,25 @@ public final class JobMetricsUtil {
             }
         }
         return null;
+    }
+
+    public static Long getJobIdFromMetricsDescriptor(MetricDescriptor descriptor) {
+        for (int i = 0; i < descriptor.tagCount(); i++) {
+            if (JOB_ID.equals(descriptor.tag(i))) {
+                return Long.valueOf(Objects.requireNonNull(descriptor.tagValue(i)));
+            }
+        }
+        return null;
+    }
+
+    public static boolean containsTagFromMetricsDescriptor(
+            MetricDescriptor descriptor, String tag) {
+        for (int i = 0; i < descriptor.tagCount(); i++) {
+            if (tag.equals(descriptor.tag(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static UnaryOperator<MetricDescriptor> addMemberPrefixFn(Member member) {

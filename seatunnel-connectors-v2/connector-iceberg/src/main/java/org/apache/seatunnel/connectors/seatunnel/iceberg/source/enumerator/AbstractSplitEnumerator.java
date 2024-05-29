@@ -17,8 +17,11 @@
 
 package org.apache.seatunnel.connectors.seatunnel.iceberg.source.enumerator;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.IcebergTableLoader;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.source.split.IcebergFileScanTaskSplit;
@@ -45,6 +48,7 @@ public abstract class AbstractSplitEnumerator
     protected final SourceSplitEnumerator.Context<IcebergFileScanTaskSplit> context;
     protected final SourceConfig sourceConfig;
     protected final Map<Integer, List<IcebergFileScanTaskSplit>> pendingSplits;
+    protected final EnumeratorEventRecorder eventRecorder;
 
     protected IcebergTableLoader icebergTableLoader;
     @Getter private volatile boolean isOpen = false;
@@ -59,6 +63,7 @@ public abstract class AbstractSplitEnumerator
         this.sourceConfig = sourceConfig;
         this.pendingSplits = new HashMap<>(pendingSplits);
         this.catalogTable = catalogTable;
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -89,6 +94,11 @@ public abstract class AbstractSplitEnumerator
     }
 
     @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
+    }
+
+    @Override
     public int currentUnassignedSplitSize() {
         return pendingSplits.size();
     }
@@ -103,7 +113,9 @@ public abstract class AbstractSplitEnumerator
     public void notifyCheckpointComplete(long checkpointId) throws Exception {}
 
     protected void refreshPendingSplits() {
-        List<IcebergFileScanTaskSplit> newSplits = loadNewSplits(icebergTableLoader.loadTable());
+        Table table = icebergTableLoader.loadTable();
+        List<IcebergFileScanTaskSplit> newSplits = loadNewSplits(table);
+        eventRecorder.addTableSplit(TablePath.of(table.name()), newSplits.size());
         addPendingSplits(newSplits);
     }
 

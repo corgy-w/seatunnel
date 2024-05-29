@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.neo4j.source;
 
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.MapType;
@@ -26,6 +27,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.common.source.AbstractSingleSplitReader;
+import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplit;
 import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplitReaderContext;
 import org.apache.seatunnel.connectors.seatunnel.neo4j.config.Neo4jSourceQueryInfo;
 import org.apache.seatunnel.connectors.seatunnel.neo4j.exception.Neo4jConnectorException;
@@ -97,6 +99,7 @@ public class Neo4jSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
                                     });
                     return null;
                 });
+        context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(new SingleSplit()));
         this.context.signalNoMoreElement();
     }
 

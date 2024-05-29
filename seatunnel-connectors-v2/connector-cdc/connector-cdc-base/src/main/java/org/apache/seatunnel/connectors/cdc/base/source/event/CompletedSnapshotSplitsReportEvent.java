@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.cdc.base.source.event;
 
 import org.apache.seatunnel.api.source.SourceEvent;
+import org.apache.seatunnel.connectors.cdc.base.source.split.SnapshotSplit;
 
 import lombok.Data;
 
@@ -26,5 +27,6 @@ import java.util.List;
 @Data
 public class CompletedSnapshotSplitsReportEvent implements SourceEvent {
     private static final long serialVersionUID = 1L;
-    List<SnapshotSplitWatermark> completedSnapshotSplitWatermarks;
+    private List<SnapshotSplit> completedSnapshotSplits;
+    private List<SnapshotSplitWatermark> completedSnapshotSplitWatermarks;
 }

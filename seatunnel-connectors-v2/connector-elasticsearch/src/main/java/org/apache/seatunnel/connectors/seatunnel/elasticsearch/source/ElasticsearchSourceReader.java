@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.elasticsearch.source;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.elasticsearch.client.EsRestClient;
@@ -92,6 +93,7 @@ public class ElasticsearchSourceReader
                                     scrollResult.getScrollId(), sourceIndexInfo.getScrollTime());
                     outputFromScrollResult(scrollResult, sourceIndexInfo.getSource(), output);
                 }
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             } else if (noMoreSplit) {
                 // signal to the source that we have reached the end of the data.
                 log.info("Closed the bounded ELasticsearch source");

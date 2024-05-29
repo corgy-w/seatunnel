@@ -18,6 +18,7 @@
 package org.apache.seatunnel.engine.server;
 
 import org.apache.seatunnel.api.common.metrics.JobMetrics;
+import org.apache.seatunnel.api.common.metrics.MetricTags;
 import org.apache.seatunnel.api.common.metrics.RawJobMetrics;
 import org.apache.seatunnel.api.event.EventHandler;
 import org.apache.seatunnel.api.event.EventProcessor;
@@ -61,6 +62,9 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.hazelcast.cluster.Address;
 import com.hazelcast.config.Config;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
+import com.hazelcast.internal.metrics.DynamicMetricsProvider;
+import com.hazelcast.internal.metrics.MetricDescriptor;
+import com.hazelcast.internal.metrics.MetricsCollectionContext;
 import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.internal.services.MembershipServiceEvent;
 import com.hazelcast.logging.ILogger;
@@ -85,9 +89,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
+import static org.apache.seatunnel.api.common.metrics.MetricTags.JOB_ID;
 import static org.apache.seatunnel.engine.server.metrics.JobMetricsUtil.toJobMetricsMap;
 
-public class CoordinatorService {
+public class CoordinatorService implements DynamicMetricsProvider {
     private final NodeEngineImpl nodeEngine;
     private final ILogger logger;
 
@@ -271,6 +276,7 @@ public class CoordinatorService {
                                 .getHazelcastInstance()
                                 .getMap(Constant.IMAP_FINISHED_JOB_VERTEX_INFO),
                         engineConfig.getHistoryJobExpireMinutes());
+        nodeEngine.getMetricsRegistry().registerDynamicMetricsProvider(this);
         eventProcessor =
                 createJobEventProcessor(
                         engineConfig.getEventReportHttpApi(),
@@ -847,5 +853,24 @@ public class CoordinatorService {
                     "The user is not configured to enable connector package service, can not get connector package service service from master node.");
         }
         return connectorPackageService;
+    }
+
+    @Override
+    public void provideDynamicMetrics(
+            MetricDescriptor descriptor, MetricsCollectionContext context) {
+        try {
+            MetricDescriptor copy1 =
+                    descriptor.copy().withTag(MetricTags.SERVICE, this.getClass().getSimpleName());
+            Map<Long, JobMaster> jobMasterMap = new ConcurrentHashMap<>(runningJobMasterMap);
+            jobMasterMap.forEach(
+                    (jobId, jobMaster) -> {
+                        MetricDescriptor copy2 =
+                                copy1.copy().withTag(JOB_ID, String.valueOf(jobId));
+                        jobMaster.provideDynamicMetrics(copy2, context);
+                    });
+        } catch (Throwable t) {
+            logger.warning("Dynamic metric collection failed", t);
+            throw t;
+        }
     }
 }

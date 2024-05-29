@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.event.ReaderCloseEvent;
 import org.apache.seatunnel.api.source.event.ReaderOpenEvent;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.fake.config.FakeConfig;
 import org.apache.seatunnel.connectors.seatunnel.fake.config.MultipleTableFakeSourceConfig;
@@ -104,6 +105,7 @@ public class FakeSourceReader implements SourceReader<SeaTunnelRow, FakeSourceSp
                         split.splitId(),
                         split.getTableId(),
                         latestTimestamp);
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             } else {
                 if (!noMoreSplit) {
                     log.info("wait split!");

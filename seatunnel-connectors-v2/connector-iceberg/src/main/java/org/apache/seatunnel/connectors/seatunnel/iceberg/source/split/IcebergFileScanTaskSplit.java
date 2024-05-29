@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.iceberg.source.split;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import org.apache.iceberg.FileScanTask;
 
@@ -39,8 +40,12 @@ public class IcebergFileScanTaskSplit implements SourceSplit {
     private final FileScanTask task;
     @Setter private volatile long recordOffset;
 
-    public IcebergFileScanTaskSplit(@NonNull FileScanTask task) {
-        this(task, 0);
+    private final TablePath tablePath;
+    @Setter private int index;
+    @Setter private int splitCount;
+
+    public IcebergFileScanTaskSplit(TablePath tablePath, @NonNull FileScanTask task) {
+        this(task, 0, tablePath, -1, -1);
     }
 
     @Override

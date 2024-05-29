@@ -25,8 +25,11 @@ import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.shade.com.google.common.base.Preconditions;
 import org.apache.pulsar.shade.javax.annotation.Nullable;
 
+import lombok.Getter;
+
 import java.util.Objects;
 
+@Getter
 public class PulsarPartitionSplit implements SourceSplit {
 
     private final TopicPartition partition;
@@ -35,15 +38,25 @@ public class PulsarPartitionSplit implements SourceSplit {
 
     @Nullable private MessageId latestConsumedId;
 
-    public PulsarPartitionSplit(TopicPartition partition, StopCursor stopCursor) {
-        this(partition, stopCursor, null);
+    private final int index;
+    private final int splitCount;
+
+    public PulsarPartitionSplit(
+            TopicPartition partition, StopCursor stopCursor, int index, int splitCount) {
+        this(partition, stopCursor, null, index, splitCount);
     }
 
     public PulsarPartitionSplit(
-            TopicPartition partition, StopCursor stopCursor, MessageId latestConsumedId) {
+            TopicPartition partition,
+            StopCursor stopCursor,
+            MessageId latestConsumedId,
+            int index,
+            int splitCount) {
         this.partition = Preconditions.checkNotNull(partition);
         this.stopCursor = Preconditions.checkNotNull(stopCursor);
         this.latestConsumedId = latestConsumedId;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
     public TopicPartition getPartition() {
@@ -85,6 +98,6 @@ public class PulsarPartitionSplit implements SourceSplit {
     }
 
     public PulsarPartitionSplit copy() {
-        return new PulsarPartitionSplit(partition, stopCursor, latestConsumedId);
+        return new PulsarPartitionSplit(partition, stopCursor, latestConsumedId, index, splitCount);
     }
 }

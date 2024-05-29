@@ -20,6 +20,7 @@ package org.apache.seatunnel.engine.server.task;
 import org.apache.seatunnel.api.serialization.Serializer;
 import org.apache.seatunnel.engine.core.job.ConnectorJarIdentifier;
 import org.apache.seatunnel.engine.server.checkpoint.operation.TaskReportStatusOperation;
+import org.apache.seatunnel.engine.server.event.JobEventListener;
 import org.apache.seatunnel.engine.server.execution.ProgressState;
 import org.apache.seatunnel.engine.server.execution.Task;
 import org.apache.seatunnel.engine.server.execution.TaskExecutionContext;
@@ -48,6 +49,7 @@ public abstract class AbstractTask implements Task {
     protected volatile boolean startCalled;
     protected volatile boolean closeCalled;
     protected volatile boolean prepareCloseStatus;
+    protected JobEventListener eventListener;
 
     protected AtomicLong prepareCloseBarrierId;
 
@@ -80,6 +82,7 @@ public abstract class AbstractTask implements Task {
     @Override
     public void init() throws Exception {
         this.restoreComplete = new CompletableFuture<>();
+        this.eventListener = new JobEventListener(taskLocation, this.getExecutionContext());
         progress.start();
     }
 

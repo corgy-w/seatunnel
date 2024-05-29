@@ -19,7 +19,9 @@ package org.apache.seatunnel.connectors.seatunnel.mongodb.source.enumerator;
 
 import org.apache.seatunnel.shade.com.google.common.collect.Lists;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.exception.MongodbConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.internal.MongodbClientProvider;
@@ -45,9 +47,8 @@ public class MongodbSplitEnumerator
     private final ArrayList<MongoSplit> pendingSplits = Lists.newArrayList();
 
     private final Context<MongoSplit> context;
-
+    private final EnumeratorEventRecorder eventRecorder;
     private final MongodbClientProvider clientProvider;
-
     private final MongoSplitStrategy strategy;
 
     public MongodbSplitEnumerator(
@@ -66,6 +67,7 @@ public class MongodbSplitEnumerator
         this.clientProvider = clientProvider;
         this.strategy = strategy;
         this.pendingSplits.addAll(splits);
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -76,6 +78,7 @@ public class MongodbSplitEnumerator
         log.info("Starting MongoSplitEnumerator.");
         Set<Integer> readers = context.registeredReaders();
         pendingSplits.addAll(strategy.split());
+        eventRecorder.addTableSplit(pendingSplits.get(0).getTablePath(), pendingSplits.size());
         MongoNamespace namespace = clientProvider.getDefaultCollection().getNamespace();
         log.info(
                 "Added {} pending splits for namespace {}.",
@@ -97,6 +100,11 @@ public class MongodbSplitEnumerator
             log.info("Received {} split(s) back from subtask {}.", splits.size(), subtaskId);
             pendingSplits.addAll(splits);
         }
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

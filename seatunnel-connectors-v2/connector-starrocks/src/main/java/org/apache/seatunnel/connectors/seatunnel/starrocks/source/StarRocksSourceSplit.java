@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.starrocks.source;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.client.source.model.QueryPartition;
 
 import lombok.AllArgsConstructor;
@@ -30,6 +31,14 @@ import lombok.Setter;
 public class StarRocksSourceSplit implements SourceSplit {
     private final QueryPartition partition;
     private final String splitId;
+
+    private final int index;
+    private final int splitCount;
+
+    @Override
+    public TablePath getTablePath() {
+        return TablePath.of(partition.getDatabase(), partition.getTable());
+    }
 
     @Override
     public String splitId() {

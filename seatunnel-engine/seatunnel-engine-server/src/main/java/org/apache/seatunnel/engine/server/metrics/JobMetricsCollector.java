@@ -18,73 +18,54 @@
 package org.apache.seatunnel.engine.server.metrics;
 
 import org.apache.seatunnel.api.common.metrics.RawJobMetrics;
-import org.apache.seatunnel.engine.server.execution.TaskGroupLocation;
 
 import com.hazelcast.cluster.Member;
 import com.hazelcast.internal.metrics.MetricDescriptor;
 import com.hazelcast.internal.metrics.collectors.MetricsCollector;
 import com.hazelcast.internal.metrics.impl.MetricsCompressor;
-import com.hazelcast.logging.ILogger;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
+@Slf4j
 public class JobMetricsCollector implements MetricsCollector {
 
-    private final List<String> taskGroupLocationStrs;
     private final MetricsCompressor compressor;
-    private final ILogger logger;
+    private final Collection<Long> jobIds;
+    private final Collection<String> metrics;
     private final UnaryOperator<MetricDescriptor> addPrefixFn;
 
-    public JobMetricsCollector(TaskGroupLocation taskGroupLocation, Member member, ILogger logger) {
+    public JobMetricsCollector(Collection<Long> jobIds, Member member, Collection<String> metrics) {
         Objects.requireNonNull(member, "member");
-        this.logger = Objects.requireNonNull(logger, "logger");
-
-        this.taskGroupLocationStrs = Collections.singletonList(taskGroupLocation.toString());
-        this.addPrefixFn = JobMetricsUtil.addMemberPrefixFn(member);
-        this.compressor = new MetricsCompressor();
-    }
-
-    public JobMetricsCollector(
-            List<TaskGroupLocation> taskGroupLocations, Member member, ILogger logger) {
-        Objects.requireNonNull(member, "member");
-        this.logger = Objects.requireNonNull(logger, "logger");
-
-        this.taskGroupLocationStrs =
-                taskGroupLocations.stream()
-                        .map(TaskGroupLocation::toString)
-                        .collect(Collectors.toList());
+        this.jobIds = jobIds;
+        this.metrics = metrics;
         this.addPrefixFn = JobMetricsUtil.addMemberPrefixFn(member);
         this.compressor = new MetricsCompressor();
     }
 
     @Override
     public void collectLong(MetricDescriptor descriptor, long value) {
-        String taskGroupLocationStr =
-                JobMetricsUtil.getTaskGroupLocationFromMetricsDescriptor(descriptor);
-        if (taskGroupLocationStrs.contains(taskGroupLocationStr)) {
+        Long jobId = JobMetricsUtil.getJobIdFromMetricsDescriptor(descriptor);
+        if (metrics.contains(descriptor.metric()) && jobIds.contains(jobId)) {
             compressor.addLong(addPrefixFn.apply(descriptor), value);
         }
     }
 
     @Override
     public void collectDouble(MetricDescriptor descriptor, double value) {
-        String taskGroupLocationStr =
-                JobMetricsUtil.getTaskGroupLocationFromMetricsDescriptor(descriptor);
-        if (taskGroupLocationStrs.contains(taskGroupLocationStr)) {
+        Long jobId = JobMetricsUtil.getJobIdFromMetricsDescriptor(descriptor);
+        if (metrics.contains(descriptor.metric()) && jobIds.contains(jobId)) {
             compressor.addDouble(addPrefixFn.apply(descriptor), value);
         }
     }
 
     @Override
     public void collectException(MetricDescriptor descriptor, Exception e) {
-        String taskGroupLocationStr =
-                JobMetricsUtil.getTaskGroupLocationFromMetricsDescriptor(descriptor);
-        if (taskGroupLocationStrs.contains(taskGroupLocationStr)) {
-            logger.warning("Exception when rendering job metrics: " + e, e);
+        Long jobId = JobMetricsUtil.getJobIdFromMetricsDescriptor(descriptor);
+        if (metrics.contains(descriptor.metric()) && jobIds.contains(jobId)) {
+            log.warn("Exception when rendering job metrics: " + e, e);
         }
     }
 

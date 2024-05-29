@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.cdc.base.source.split;
 
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 
@@ -36,13 +37,18 @@ public class SnapshotSplit extends SourceSplitBase {
     private final Offset lowWatermark;
     private final Offset highWatermark;
 
+    private final int index;
+    private final int splitCount;
+
     public SnapshotSplit(
             String splitId,
             TableId tableId,
             SeaTunnelRowType splitKeyType,
             Object[] splitStart,
-            Object[] splitEnd) {
-        this(splitId, tableId, splitKeyType, splitStart, splitEnd, null, null);
+            Object[] splitEnd,
+            int index,
+            int splitCount) {
+        this(splitId, tableId, splitKeyType, splitStart, splitEnd, null, null, index, splitCount);
     }
 
     public SnapshotSplit(
@@ -52,7 +58,9 @@ public class SnapshotSplit extends SourceSplitBase {
             Object[] splitStart,
             Object[] splitEnd,
             Offset lowWatermark,
-            Offset highWatermark) {
+            Offset highWatermark,
+            int index,
+            int splitCount) {
         super(splitId);
         this.tableId = tableId;
         this.splitKeyType = splitKeyType;
@@ -60,11 +68,13 @@ public class SnapshotSplit extends SourceSplitBase {
         this.splitEnd = splitEnd;
         this.lowWatermark = lowWatermark;
         this.highWatermark = highWatermark;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
     @Override
-    public String splitId() {
-        return this.splitId;
+    public TablePath getTablePath() {
+        return tableId.toTablePath();
     }
 
     public boolean isSnapshotReadFinished() {

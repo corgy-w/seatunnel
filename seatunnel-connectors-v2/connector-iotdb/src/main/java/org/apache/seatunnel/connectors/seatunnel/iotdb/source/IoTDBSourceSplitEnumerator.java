@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.iotdb.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.iotdb.exception.IotdbConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.iotdb.state.IoTDBSourceState;
@@ -57,6 +59,7 @@ public class IoTDBSourceSplitEnumerator
     private final Context<IoTDBSourceSplit> context;
     private final Map<String, Object> conf;
     private final Map<Integer, List<IoTDBSourceSplit>> pendingSplit;
+    private final EnumeratorEventRecorder eventRecorder;
     private volatile boolean shouldEnumerate;
 
     public IoTDBSourceSplitEnumerator(
@@ -76,6 +79,7 @@ public class IoTDBSourceSplitEnumerator
             this.shouldEnumerate = sourceState.isShouldEnumerate();
             this.pendingSplit.putAll(sourceState.getPendingSplit());
         }
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -86,7 +90,7 @@ public class IoTDBSourceSplitEnumerator
         Set<Integer> readers = context.registeredReaders();
         if (shouldEnumerate) {
             Set<IoTDBSourceSplit> newSplits = getIotDBSplit();
-
+            eventRecorder.addTableSplit(null, newSplits.size());
             synchronized (stateLock) {
                 addPendingSplit(newSplits);
                 shouldEnumerate = false;
@@ -118,7 +122,7 @@ public class IoTDBSourceSplitEnumerator
         Set<IoTDBSourceSplit> iotDBSourceSplits = new HashSet<>();
         // no need numPartitions, use one partition
         if (!conf.containsKey(NUM_PARTITIONS.key())) {
-            iotDBSourceSplits.add(new IoTDBSourceSplit(DEFAULT_PARTITIONS, sql));
+            iotDBSourceSplits.add(new IoTDBSourceSplit(DEFAULT_PARTITIONS, sql, 0, 1));
             return iotDBSourceSplits;
         }
         long start = Long.parseLong(conf.get(LOWER_BOUND.key()).toString());
@@ -172,7 +176,9 @@ public class IoTDBSourceSplitEnumerator
             if (!Strings.isNullOrEmpty(sqlAlign)) {
                 query = query + " align by " + sqlAlign;
             }
-            iotDBSourceSplits.add(new IoTDBSourceSplit(String.valueOf(query.hashCode()), query));
+            iotDBSourceSplits.add(
+                    new IoTDBSourceSplit(
+                            String.valueOf(query.hashCode()), query, i, numPartitions));
         }
         return iotDBSourceSplits;
     }
@@ -184,6 +190,11 @@ public class IoTDBSourceSplitEnumerator
             addPendingSplit(splits);
             assignSplit(Collections.singletonList(subtaskId));
         }
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

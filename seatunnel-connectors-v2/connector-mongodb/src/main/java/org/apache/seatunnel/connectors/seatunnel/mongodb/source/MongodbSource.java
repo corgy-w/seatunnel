@@ -97,10 +97,7 @@ public class MongodbSource
             ArrayList<MongoSplit> checkpointState) {
         MongodbClientProvider clientProvider = crateClientProvider(options);
         return new MongodbSplitEnumerator(
-                enumeratorContext,
-                clientProvider,
-                createSplitStrategy(options, clientProvider),
-                checkpointState);
+                enumeratorContext, clientProvider, createSplitStrategy(options, clientProvider));
     }
 
     private MongodbClientProvider crateClientProvider(ReadonlyConfig config) {
@@ -126,6 +123,7 @@ public class MongodbSource
                 .ifPresent(s -> splitStrategyBuilder.setMatchQuery(BsonDocument.parse(s)));
         config.getOptional(MongodbConfig.PROJECTION)
                 .ifPresent(s -> splitStrategyBuilder.setProjection(BsonDocument.parse(s)));
+        splitStrategyBuilder.setTablePath(catalogTable.getTablePath());
         return splitStrategyBuilder.setClientProvider(clientProvider).build();
     }
 

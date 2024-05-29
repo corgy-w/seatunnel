@@ -34,6 +34,9 @@ public class KuduSourceSplit implements SourceSplit {
 
     private final byte[] token;
 
+    private final int index;
+    private final int splitCount;
+
     @Override
     public String splitId() {
         return splitId.toString();

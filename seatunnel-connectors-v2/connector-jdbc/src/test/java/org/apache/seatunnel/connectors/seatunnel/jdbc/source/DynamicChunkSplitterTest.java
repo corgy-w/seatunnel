@@ -67,7 +67,9 @@ public class DynamicChunkSplitterTest {
                         "id",
                         BasicType.INT_TYPE,
                         1,
-                        10);
+                        10,
+                        -1,
+                        -1);
         String splitQuerySQL = splitter.createDynamicSplitQuerySQL(split, tableSchema);
         Assertions.assertEquals(
                 "SELECT * FROM \"db1\".\"schema1\".\"table1\" WHERE \"id\" >= ? AND NOT (\"id\" = ?) AND \"id\" <= ?",
@@ -81,7 +83,9 @@ public class DynamicChunkSplitterTest {
                         "id",
                         BasicType.INT_TYPE,
                         1,
-                        10);
+                        10,
+                        -1,
+                        -1);
         splitQuerySQL = splitter.createDynamicSplitQuerySQL(split, tableSchema);
         Assertions.assertEquals(
                 "SELECT * FROM (select * from table1) tmp WHERE \"id\" >= ? AND NOT (\"id\" = ?) AND \"id\" <= ?",
@@ -105,7 +109,9 @@ public class DynamicChunkSplitterTest {
                         "id",
                         BasicType.INT_TYPE,
                         1,
-                        10);
+                        10,
+                        -1,
+                        -1);
         splitQuerySQL = splitter.createDynamicSplitQuerySQL(split, tableSchema);
         Assertions.assertEquals(
                 "SELECT * FROM (select * from table1) tmp WHERE \"id\"::text >= ? AND NOT (\"id\"::text = ?) AND \"id\"::text <= ?",

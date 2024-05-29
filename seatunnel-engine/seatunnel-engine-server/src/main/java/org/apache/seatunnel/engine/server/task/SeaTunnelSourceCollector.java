@@ -20,6 +20,7 @@ package org.apache.seatunnel.engine.server.task;
 import org.apache.seatunnel.api.common.metrics.Counter;
 import org.apache.seatunnel.api.common.metrics.Meter;
 import org.apache.seatunnel.api.common.metrics.MetricsContext;
+import org.apache.seatunnel.api.event.EventListener;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventDispatcher;
@@ -29,10 +30,14 @@ import org.apache.seatunnel.api.table.type.Record;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.core.starter.flowcontrol.FlowControlGate;
 import org.apache.seatunnel.core.starter.flowcontrol.FlowControlStrategy;
 import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
+import org.apache.seatunnel.engine.server.execution.TaskLocation;
+import org.apache.seatunnel.engine.server.task.event.DataStatisticsRecorder;
 import org.apache.seatunnel.engine.server.task.flow.OneInputFlowLifeCycle;
+import org.apache.seatunnel.engine.server.task.record.Barrier;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -71,13 +76,16 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
     private Map<String, SeaTunnelRowType> rowTypeMap = new HashMap<>();
     private SeaTunnelDataType rowType;
     private FlowControlGate flowControlGate;
+    private final DataStatisticsRecorder dataStatisticsRecorder;
 
     public SeaTunnelSourceCollector(
             Object checkpointLock,
             List<OneInputFlowLifeCycle<Record<?>>> outputs,
             MetricsContext metricsContext,
             FlowControlStrategy flowControlStrategy,
-            SeaTunnelDataType rowType) {
+            SeaTunnelDataType rowType,
+            EventListener eventListener,
+            TaskLocation taskLocation) {
         this.checkpointLock = checkpointLock;
         this.outputs = outputs;
         this.rowType = rowType;
@@ -94,6 +102,8 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
         sourceReceivedBytes = metricsContext.counter(SOURCE_RECEIVED_BYTES);
         sourceReceivedBytesPerSeconds = metricsContext.meter(SOURCE_RECEIVED_BYTES_PER_SECONDS);
         flowControlGate = FlowControlGate.create(flowControlStrategy);
+        this.dataStatisticsRecorder =
+                new DataStatisticsRecorder(eventListener, taskLocation, PluginType.SOURCE);
     }
 
     @Override
@@ -115,6 +125,7 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
                 sourceReceivedBytes.inc(size);
                 sourceReceivedBytesPerSeconds.markEvent(size);
                 flowControlGate.audit((SeaTunnelRow) row);
+                dataStatisticsRecorder.updateStatistics((SeaTunnelRow) row);
             }
             sendRecordToNext(new Record<>(row));
             emptyThisPollNext = false;
@@ -139,6 +150,7 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
                 throw new SeaTunnelEngineException(
                         "Unsupported row type: " + rowType.getClass().getName());
             }
+            dataStatisticsRecorder.updateStatistics(event);
             sendRecordToNext(new Record<>(event));
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -199,6 +211,9 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
     }
 
     public void sendRecordToNext(Record<?> record) throws IOException {
+        if (record.getData() instanceof Barrier) {
+            dataStatisticsRecorder.timeToSendStatistics();
+        }
         synchronized (checkpointLock) {
             for (OneInputFlowLifeCycle<Record<?>> output : outputs) {
                 output.received(record);

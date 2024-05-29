@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.kudu.source;
 
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -94,6 +95,7 @@ public class KuduSourceReader implements SourceReader<SeaTunnelRow, KuduSourceSp
                         output.collect(seaTunnelRow);
                     }
                 }
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             } else if (noMoreSplit && splits.isEmpty()) {
                 // signal to the source that we have reached the end of the data.
                 log.info("Closed the bounded kudu source");

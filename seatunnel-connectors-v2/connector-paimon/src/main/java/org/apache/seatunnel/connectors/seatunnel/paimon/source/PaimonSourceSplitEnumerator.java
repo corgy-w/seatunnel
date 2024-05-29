@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.paimon.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 
 import org.apache.paimon.table.Table;
 import org.apache.paimon.table.source.Split;
@@ -29,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /** Paimon source split enumerator, used to calculate the splits for every reader. */
@@ -48,10 +51,13 @@ public class PaimonSourceSplitEnumerator
     /** The table that wants to read */
     private final Table table;
 
+    private final EnumeratorEventRecorder eventRecorder;
+
     public PaimonSourceSplitEnumerator(Context<PaimonSourceSplit> context, Table table) {
         this.context = context;
         this.table = table;
         this.assignedSplit = new HashSet<>();
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     public PaimonSourceSplitEnumerator(
@@ -59,6 +65,7 @@ public class PaimonSourceSplitEnumerator
         this.context = context;
         this.table = table;
         this.assignedSplit = sourceState.getAssignedSplits();
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -98,6 +105,11 @@ public class PaimonSourceSplitEnumerator
     @Override
     public PaimonSourceState snapshotState(long checkpointId) throws Exception {
         return new PaimonSourceState(assignedSplit);
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override
@@ -147,7 +159,13 @@ public class PaimonSourceSplitEnumerator
         final Set<PaimonSourceSplit> tableSplits = new HashSet<>();
         // TODO Support columns projection
         final List<Split> splits = table.newReadBuilder().newScan().plan().splits();
-        splits.forEach(split -> tableSplits.add(new PaimonSourceSplit(split)));
+        AtomicInteger index = new AtomicInteger();
+        splits.forEach(
+                split ->
+                        tableSplits.add(
+                                new PaimonSourceSplit(
+                                        split, index.getAndIncrement(), splits.size())));
+        eventRecorder.addTableSplit(null, tableSplits.size());
         return tableSplits;
     }
 

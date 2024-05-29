@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.hudi.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.connectors.seatunnel.hudi.util.HudiUtil;
 
@@ -45,6 +47,7 @@ public class HudiSourceSplitEnumerator
     private Set<HudiSourceSplit> pendingSplit;
     private Set<HudiSourceSplit> assignedSplit;
     private final String tablePath;
+    private final EnumeratorEventRecorder eventRecorder;
     private final String confPaths;
 
     public HudiSourceSplitEnumerator(
@@ -54,6 +57,7 @@ public class HudiSourceSplitEnumerator
         this.context = context;
         this.tablePath = tablePath;
         this.confPaths = confPaths;
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     public HudiSourceSplitEnumerator(
@@ -85,14 +89,22 @@ public class HudiSourceSplitEnumerator
         FileInputFormat.setInputPaths(jobConf, path);
         HoodieParquetInputFormat inputFormat = new HoodieParquetInputFormat();
         inputFormat.setConf(jobConf);
-        for (InputSplit split : inputFormat.getSplits(jobConf, 0)) {
-            hudiSourceSplits.add(new HudiSourceSplit(split.toString(), split));
+        InputSplit[] splits = inputFormat.getSplits(jobConf, 0);
+        for (int i = 0; i < splits.length; i++) {
+            hudiSourceSplits.add(
+                    new HudiSourceSplit(splits[i].toString(), splits[i], i, splits.length));
         }
+        eventRecorder.addTableSplit(null, hudiSourceSplits.size());
         return hudiSourceSplits;
     }
 
     @Override
     public void close() throws IOException {}
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
+    }
 
     @Override
     public void addSplitsBack(List<HudiSourceSplit> splits, int subtaskId) {

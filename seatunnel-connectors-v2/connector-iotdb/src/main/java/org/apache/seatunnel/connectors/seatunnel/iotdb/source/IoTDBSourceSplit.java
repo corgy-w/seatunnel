@@ -18,10 +18,13 @@
 package org.apache.seatunnel.connectors.seatunnel.iotdb.source;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
+import lombok.Getter;
 import lombok.ToString;
 
 @ToString
+@Getter
 public class IoTDBSourceSplit implements SourceSplit {
 
     private static final long serialVersionUID = -1L;
@@ -30,6 +33,9 @@ public class IoTDBSourceSplit implements SourceSplit {
 
     /** final query statement */
     private final String query;
+
+    private final int index;
+    private final int splitCount;
 
     @Override
     public String splitId() {
@@ -40,8 +46,15 @@ public class IoTDBSourceSplit implements SourceSplit {
         return query;
     }
 
-    public IoTDBSourceSplit(String splitId, String query) {
+    public IoTDBSourceSplit(String splitId, String query, int index, int splitCount) {
         this.splitId = splitId;
         this.query = query;
+        this.index = index;
+        this.splitCount = splitCount;
+    }
+
+    @Override
+    public TablePath getTablePath() {
+        return null;
     }
 }

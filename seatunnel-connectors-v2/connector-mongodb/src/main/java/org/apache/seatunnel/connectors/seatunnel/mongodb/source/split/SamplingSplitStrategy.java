@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.mongodb.source.split;
 import org.apache.seatunnel.shade.com.google.common.base.Preconditions;
 import org.apache.seatunnel.shade.com.google.common.collect.Lists;
 
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.mongodb.internal.MongodbClientProvider;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -49,6 +50,8 @@ public class SamplingSplitStrategy implements MongoSplitStrategy, Serializable {
 
     private final BsonDocument projection;
 
+    private final TablePath tablePath;
+
     private final long samplesPerSplit;
 
     private final long sizePerSplit;
@@ -59,13 +62,15 @@ public class SamplingSplitStrategy implements MongoSplitStrategy, Serializable {
             BsonDocument matchQuery,
             BsonDocument projection,
             long samplesPerSplit,
-            long sizePerSplit) {
+            long sizePerSplit,
+            TablePath tablePath) {
         this.clientProvider = clientProvider;
         this.splitKey = splitKey;
         this.matchQuery = matchQuery;
         this.projection = projection;
         this.samplesPerSplit = samplesPerSplit;
         this.sizePerSplit = sizePerSplit;
+        this.tablePath = tablePath;
     }
 
     @Override
@@ -84,7 +89,7 @@ public class SamplingSplitStrategy implements MongoSplitStrategy, Serializable {
         if (numSplits == 1) {
             return Lists.newArrayList(
                     MongoSplitUtils.createMongoSplit(
-                            0, matchQuery, projection, splitKey, null, null));
+                            0, matchQuery, projection, splitKey, null, null, tablePath));
         }
         List<BsonDocument> samples = sampleCollection(numSamples);
         if (samples.isEmpty()) {
@@ -161,14 +166,22 @@ public class SamplingSplitStrategy implements MongoSplitStrategy, Serializable {
                                             projection,
                                             splitKey,
                                             min,
-                                            rightBoundaries.get(index));
+                                            rightBoundaries.get(index),
+                                            tablePath);
                                 })
                         .collect(Collectors.toList());
 
         Object lastBoundary = rightBoundaries.get(rightBoundaries.size() - 1);
         splits.add(
                 MongoSplitUtils.createMongoSplit(
-                        splits.size(), matchQuery, projection, splitKey, lastBoundary, null));
+                        splits.size(),
+                        matchQuery,
+                        projection,
+                        splitKey,
+                        lastBoundary,
+                        null,
+                        tablePath));
+        splits.forEach(split -> split.setSplitCount(splits.size()));
         return splits;
     }
 
@@ -182,6 +195,7 @@ public class SamplingSplitStrategy implements MongoSplitStrategy, Serializable {
         private String splitKey;
 
         private BsonDocument matchQuery;
+        private TablePath tablePath;
 
         private BsonDocument projection;
 
@@ -205,6 +219,10 @@ public class SamplingSplitStrategy implements MongoSplitStrategy, Serializable {
         public Builder setClientProvider(MongodbClientProvider clientProvider) {
             this.clientProvider = clientProvider;
             return this;
+        }
+
+        public void setTablePath(TablePath tablePath) {
+            this.tablePath = tablePath;
         }
 
         public Builder setSplitKey(String splitKey) {
@@ -240,7 +258,8 @@ public class SamplingSplitStrategy implements MongoSplitStrategy, Serializable {
                     matchQuery,
                     projection,
                     samplesPerSplit,
-                    sizePerSplit);
+                    sizePerSplit,
+                    tablePath);
         }
     }
 }

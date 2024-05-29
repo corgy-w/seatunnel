@@ -20,7 +20,9 @@ package org.apache.seatunnel.connectors.seatunnel.rocketmq.source;
 import org.apache.seatunnel.shade.com.google.common.collect.Maps;
 import org.apache.seatunnel.shade.com.google.common.collect.Sets;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.connectors.seatunnel.rocketmq.common.RocketMqAdminUtil;
 import org.apache.seatunnel.connectors.seatunnel.rocketmq.exception.RocketMqConnectorErrorCode;
@@ -45,6 +47,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -58,6 +61,7 @@ public class RocketMqSourceSplitEnumerator
     private final Map<MessageQueue, RocketMqSourceSplit> pendingSplit;
     private ScheduledExecutorService executor;
     private ScheduledFuture scheduledFuture;
+    private final EnumeratorEventRecorder eventRecorder;
     // ms
     private long discoveryIntervalMillis;
 
@@ -67,6 +71,7 @@ public class RocketMqSourceSplitEnumerator
         this.context = context;
         this.assignedSplit = new HashMap<>();
         this.pendingSplit = new HashMap<>();
+        this.eventRecorder = new EnumeratorEventRecorder(context);
         // Set `rocketmq.client.logUseSlf4j` to `true` to avoid create many
         // `AsyncAppender-Dispatcher-Thread`
         System.setProperty("rocketmq.client.logUseSlf4j", "true");
@@ -184,6 +189,11 @@ public class RocketMqSourceSplitEnumerator
     }
 
     @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
+    }
+
+    @Override
     public RocketMqSourceState snapshotState(long checkpointId) throws Exception {
         return new RocketMqSourceState(assignedSplit.values().stream().collect(Collectors.toSet()));
     }
@@ -215,6 +225,7 @@ public class RocketMqSourceSplitEnumerator
         List<Map<MessageQueue, TopicOffset>> offsetTopics =
                 RocketMqAdminUtil.offsetTopics(metadata.getBaseConfig(), metadata.getTopics());
         Set<RocketMqSourceSplit> sourceSplits = Sets.newConcurrentHashSet();
+        AtomicInteger index = new AtomicInteger();
         offsetTopics.forEach(
                 messageQueueOffsets -> {
                     messageQueueOffsets.forEach(
@@ -223,10 +234,16 @@ public class RocketMqSourceSplitEnumerator
                                         new RocketMqSourceSplit(
                                                 messageQueue,
                                                 topicOffset.getMinOffset(),
-                                                topicOffset.getMaxOffset()));
+                                                topicOffset.getMaxOffset(),
+                                                index.getAndIncrement(),
+                                                -1));
                             });
                 });
-        return sourceSplits;
+        sourceSplits.forEach(split -> split.setSplitCount(sourceSplits.size()));
+        // reindex hashcode
+        Set<RocketMqSourceSplit> newSourceSplits = new HashSet<>(sourceSplits);
+        eventRecorder.addTableSplit(null, newSourceSplits.size());
+        return newSourceSplits;
     }
 
     private void setPartitionStartOffset() throws MQClientException {

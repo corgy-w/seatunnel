@@ -191,6 +191,11 @@ public class JdbcSink
 
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
+        try {
+            Class.forName(jdbcSinkConfig.getJdbcConnectionConfig().getDriverName());
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         if (catalogTable != null) {
             if (StringUtils.isBlank(jdbcSinkConfig.getDatabase())) {
                 return Optional.empty();

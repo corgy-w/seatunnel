@@ -32,6 +32,9 @@ public class AmazonDynamoDBSourceSplit implements SourceSplit {
     private Integer totalSegments;
     private Integer itemCount;
 
+    private final int index;
+    private final int splitCount;
+
     @Override
     public String splitId() {
         return splitId.toString();

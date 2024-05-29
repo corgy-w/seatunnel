@@ -19,6 +19,9 @@ package org.apache.seatunnel.connectors.seatunnel.tdengine.source;
 
 import org.apache.seatunnel.api.source.SourceSplit;
 
+import lombok.Getter;
+
+@Getter
 public class TDengineSourceSplit implements SourceSplit {
 
     private static final long serialVersionUID = -1L;
@@ -27,6 +30,9 @@ public class TDengineSourceSplit implements SourceSplit {
 
     /** final query statement */
     private String query;
+
+    private final int index;
+    private final int splitCount;
 
     @Override
     public String splitId() {
@@ -37,8 +43,10 @@ public class TDengineSourceSplit implements SourceSplit {
         return query;
     }
 
-    public TDengineSourceSplit(String splitId, String query) {
+    public TDengineSourceSplit(String splitId, String query, int index, int splitCount) {
         this.splitId = splitId;
         this.query = query;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 }

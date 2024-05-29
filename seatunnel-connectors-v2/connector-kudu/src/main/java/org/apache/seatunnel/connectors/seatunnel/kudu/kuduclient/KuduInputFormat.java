@@ -104,7 +104,9 @@ public class KuduInputFormat implements Serializable {
                     new KuduSourceSplit(
                             kuduSourceTableConfig.getTablePath(),
                             i,
-                            scanTokens.get(i).serialize()));
+                            scanTokens.get(i).serialize(),
+                            i,
+                            scanTokens.size()));
         }
         return allSplit;
     }

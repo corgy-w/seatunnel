@@ -17,6 +17,8 @@
 
 package org.apache.seatunnel.api.source;
 
+import org.apache.seatunnel.api.table.catalog.TablePath;
+
 import java.io.Serializable;
 
 /** An interface for all the Split types to extend. */
@@ -28,4 +30,16 @@ public interface SourceSplit extends Serializable {
      * @return id of this source split.
      */
     String splitId();
+
+    default TablePath getTablePath() {
+        return null;
+    }
+
+    default int getIndex() {
+        return -1;
+    }
+
+    default int getSplitCount() {
+        return -1;
+    }
 }

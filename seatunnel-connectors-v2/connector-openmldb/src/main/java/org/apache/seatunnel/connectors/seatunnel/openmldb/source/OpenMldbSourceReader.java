@@ -19,11 +19,13 @@ package org.apache.seatunnel.connectors.seatunnel.openmldb.source;
 
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.common.source.AbstractSingleSplitReader;
+import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplit;
 import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplitReaderContext;
 import org.apache.seatunnel.connectors.seatunnel.openmldb.config.OpenMldbParameters;
 import org.apache.seatunnel.connectors.seatunnel.openmldb.config.OpenMldbSqlExecutor;
@@ -79,6 +81,8 @@ public class OpenMldbSourceReader extends AbstractSingleSplitReader<SeaTunnelRow
             }
         } finally {
             if (Boundedness.BOUNDED.equals(readerContext.getBoundedness())) {
+                readerContext.sendSourceEventToEnumerator(
+                        new ReaderSplitFinishedEvent(new SingleSplit()));
                 // signal to the source that we have reached the end of the data.
                 log.info("Closed the bounded openmldb source");
                 readerContext.signalNoMoreElement();

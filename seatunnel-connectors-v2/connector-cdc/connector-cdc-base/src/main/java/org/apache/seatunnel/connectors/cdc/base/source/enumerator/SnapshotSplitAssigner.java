@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.cdc.base.source.enumerator;
 
 import org.apache.seatunnel.shade.com.google.common.annotations.VisibleForTesting;
 
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter.ChunkSplitter;
@@ -70,13 +71,15 @@ public class SnapshotSplitAssigner<C extends SourceConfig> implements SplitAssig
 
     private Long checkpointIdToFinish;
     private final DataSourceDialect<C> dialect;
+    private final EnumeratorEventRecorder eventRecorder;
 
     SnapshotSplitAssigner(
             SplitAssigner.Context<C> context,
             int currentParallelism,
             List<TableId> remainingTables,
             boolean isTableIdCaseSensitive,
-            DataSourceDialect<C> dialect) {
+            DataSourceDialect<C> dialect,
+            EnumeratorEventRecorder eventRecorder) {
         this(
                 context,
                 currentParallelism,
@@ -88,14 +91,16 @@ public class SnapshotSplitAssigner<C extends SourceConfig> implements SplitAssig
                 remainingTables,
                 isTableIdCaseSensitive,
                 true,
-                dialect);
+                dialect,
+                eventRecorder);
     }
 
     SnapshotSplitAssigner(
             SplitAssigner.Context<C> context,
             int currentParallelism,
             SnapshotPhaseState checkpoint,
-            DataSourceDialect<C> dialect) {
+            DataSourceDialect<C> dialect,
+            EnumeratorEventRecorder eventRecorder) {
         this(
                 context,
                 currentParallelism,
@@ -107,7 +112,8 @@ public class SnapshotSplitAssigner<C extends SourceConfig> implements SplitAssig
                 checkpoint.getRemainingTables(),
                 checkpoint.isTableIdCaseSensitive(),
                 checkpoint.isRemainingTablesCheckpointed(),
-                dialect);
+                dialect,
+                eventRecorder);
     }
 
     private SnapshotSplitAssigner(
@@ -121,7 +127,8 @@ public class SnapshotSplitAssigner<C extends SourceConfig> implements SplitAssig
             List<TableId> remainingTables,
             boolean isTableIdCaseSensitive,
             boolean isRemainingTablesCheckpointed,
-            DataSourceDialect<C> dialect) {
+            DataSourceDialect<C> dialect,
+            EnumeratorEventRecorder eventRecorder) {
         this.context = context;
         this.sourceConfig = context.getSourceConfig();
         this.currentParallelism = currentParallelism;
@@ -134,6 +141,7 @@ public class SnapshotSplitAssigner<C extends SourceConfig> implements SplitAssig
         this.isRemainingTablesCheckpointed = isRemainingTablesCheckpointed;
         this.isTableIdCaseSensitive = isTableIdCaseSensitive;
         this.dialect = dialect;
+        this.eventRecorder = eventRecorder;
 
         LOG.info("SnapshotSplitAssigner created with remaining tables: {}", this.remainingTables);
         LOG.info(
@@ -183,6 +191,7 @@ public class SnapshotSplitAssigner<C extends SourceConfig> implements SplitAssig
             if (nextTable != null) {
                 // split the given table into chunks (snapshot splits)
                 Collection<SnapshotSplit> splits = chunkSplitter.generateSplits(nextTable);
+                eventRecorder.addTableSplit(nextTable.toTablePath(), splits.size());
                 remainingSplits.addAll(splits);
                 alreadyProcessedTables.add(nextTable);
                 return getNext();

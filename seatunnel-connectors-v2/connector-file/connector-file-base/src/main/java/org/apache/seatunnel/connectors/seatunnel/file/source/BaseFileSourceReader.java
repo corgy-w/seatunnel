@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.source;
 
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategy;
@@ -64,6 +65,7 @@ public class BaseFileSourceReader implements SourceReader<SeaTunnelRow, FileSour
                 } catch (Exception e) {
                     throw CommonError.fileOperationFailed("SeaTunnel", "read", split.splitId(), e);
                 }
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             } else if (noMoreSplit && sourceSplits.isEmpty()) {
                 // signal to the source that we have reached the end of the data.
                 log.info("Closed the bounded File source");

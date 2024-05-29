@@ -23,6 +23,7 @@ import org.apache.seatunnel.api.serialization.DeserializationSchema;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.rocketmq.exception.RocketMqConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.rocketmq.exception.RocketMqConnectorException;
@@ -179,6 +180,9 @@ public class RocketMqSourceReader implements SourceReader<SeaTunnelRow, RocketMq
                 });
 
         if (Boundedness.BOUNDED.equals(context.getBoundedness())) {
+            for (RocketMqSourceSplit split : sourceSplits) {
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
+            }
             // signal to the source that we have reached the end of the data.
             context.signalNoMoreElement();
         }

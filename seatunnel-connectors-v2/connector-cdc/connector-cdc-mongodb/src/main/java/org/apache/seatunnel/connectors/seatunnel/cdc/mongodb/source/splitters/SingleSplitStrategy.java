@@ -49,6 +49,8 @@ public enum SingleSplitStrategy implements SplitStrategy {
                 collectionId,
                 rowType,
                 minLowerBoundOfId(),
-                maxUpperBoundOfId());
+                maxUpperBoundOfId(),
+                0,
+                1);
     }
 }

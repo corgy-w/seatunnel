@@ -18,6 +18,8 @@
 package org.apache.seatunnel.connectors.cdc.base.source.reader;
 
 import org.apache.seatunnel.api.common.metrics.Counter;
+import org.apache.seatunnel.api.common.metrics.Meter;
+import org.apache.seatunnel.api.common.metrics.ThreadSafeAvgMeter;
 import org.apache.seatunnel.api.event.EventListener;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
@@ -64,6 +66,8 @@ public class IncrementalSourceRecordEmitter<T>
 
     private static final String CDC_RECORD_FETCH_DELAY = "CDCRecordFetchDelay";
     private static final String CDC_RECORD_EMIT_DELAY = "CDCRecordEmitDelay";
+    private static final String CDC_RECORD_EMIT_DELAY_MAX = "CDCRecordEmitDelayMax";
+    private static final String CDC_RECORD_EMIT_DELAY_AVG = "CDCRecordEmitDelayAvg";
 
     protected final DebeziumDeserializationSchema<T> debeziumDeserializationSchema;
     protected final OutputCollector<T> outputCollector;
@@ -73,6 +77,8 @@ public class IncrementalSourceRecordEmitter<T>
     protected final SourceReader.Context context;
     protected final Counter recordFetchDelay;
     protected final Counter recordEmitDelay;
+    protected final Counter recordEmitDelayMax;
+    protected final Meter recordEmitDelayAvg;
     protected final EventListener eventListener;
     protected final MessageDelayedEventLimiter delayedEventLimiter =
             new MessageDelayedEventLimiter(Duration.ofSeconds(1), 0.5d);
@@ -87,6 +93,12 @@ public class IncrementalSourceRecordEmitter<T>
         this.context = context;
         this.recordFetchDelay = context.getMetricsContext().counter(CDC_RECORD_FETCH_DELAY);
         this.recordEmitDelay = context.getMetricsContext().counter(CDC_RECORD_EMIT_DELAY);
+        this.recordEmitDelayMax = context.getMetricsContext().counter(CDC_RECORD_EMIT_DELAY_MAX);
+        this.recordEmitDelayAvg =
+                context.getMetricsContext()
+                        .meter(
+                                CDC_RECORD_EMIT_DELAY_AVG,
+                                new ThreadSafeAvgMeter(CDC_RECORD_EMIT_DELAY_AVG));
         this.eventListener = context.getEventListener();
     }
 
@@ -122,6 +134,12 @@ public class IncrementalSourceRecordEmitter<T>
             // report emit delay
             long emitDelay = now - messageTimestamp;
             recordEmitDelay.set(emitDelay > 0 ? emitDelay : 0);
+            // report max emit delay
+            if (emitDelay > recordEmitDelayMax.getCount()) {
+                recordEmitDelayMax.set(emitDelay);
+            }
+            // report avg emit delay
+            recordEmitDelayAvg.markEvent(emitDelay);
 
             // limit the emit event frequency
             if (delayedEventLimiter.acquire(messageTimestamp)) {

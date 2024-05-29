@@ -462,6 +462,7 @@ public class SubPlan {
     /** restore the pipeline when pipeline failed or canceled by error. */
     public void restorePipeline() {
         try {
+            jobMaster.reportRestoreBySubPlan();
             if (jobMaster.getCheckpointManager().isCompletedPipeline(pipelineId)) {
                 forcePipelineFinish();
             }

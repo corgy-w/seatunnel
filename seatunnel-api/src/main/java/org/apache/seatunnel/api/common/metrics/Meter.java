@@ -30,9 +30,9 @@ public interface Meter extends Metric {
     void markEvent(long n);
 
     /**
-     * Returns the current rate of events per second.
+     * Returns the current rate of events.
      *
-     * @return current rate of events per second
+     * @return current rate of events
      */
     double getRate();
 

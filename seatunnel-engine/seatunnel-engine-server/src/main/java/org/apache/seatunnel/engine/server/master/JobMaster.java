@@ -17,10 +17,21 @@
 
 package org.apache.seatunnel.engine.server.master;
 
+import org.apache.seatunnel.api.common.metrics.Counter;
 import org.apache.seatunnel.api.common.metrics.JobMetrics;
 import org.apache.seatunnel.api.common.metrics.RawJobMetrics;
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.env.EnvCommonOptions;
+import org.apache.seatunnel.api.sink.SaveModeExecuteLocation;
+import org.apache.seatunnel.api.sink.SaveModeExecuteWrapper;
+import org.apache.seatunnel.api.sink.SaveModeHandler;
+import org.apache.seatunnel.api.sink.SeaTunnelSink;
+import org.apache.seatunnel.api.sink.SupportSaveMode;
+import org.apache.seatunnel.api.sink.event.savemode.SaveModeFinishedEvent;
+import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
+import org.apache.seatunnel.common.utils.ReflectionUtils;
 import org.apache.seatunnel.common.utils.RetryUtils;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.engine.checkpoint.storage.exception.CheckpointStorageException;
@@ -32,7 +43,9 @@ import org.apache.seatunnel.engine.common.config.server.CheckpointStorageConfig;
 import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
 import org.apache.seatunnel.engine.common.utils.ExceptionUtil;
 import org.apache.seatunnel.engine.common.utils.PassiveCompletableFuture;
+import org.apache.seatunnel.engine.core.dag.actions.SinkAction;
 import org.apache.seatunnel.engine.core.dag.logical.LogicalDag;
+import org.apache.seatunnel.engine.core.dag.logical.LogicalVertex;
 import org.apache.seatunnel.engine.core.job.ConnectorJarIdentifier;
 import org.apache.seatunnel.engine.core.job.JobDAGInfo;
 import org.apache.seatunnel.engine.core.job.JobImmutableInformation;
@@ -52,6 +65,7 @@ import org.apache.seatunnel.engine.server.dag.physical.SubPlan;
 import org.apache.seatunnel.engine.server.execution.TaskExecutionState;
 import org.apache.seatunnel.engine.server.execution.TaskGroupLocation;
 import org.apache.seatunnel.engine.server.execution.TaskLocation;
+import org.apache.seatunnel.engine.server.metrics.JobMetricsCollector;
 import org.apache.seatunnel.engine.server.metrics.JobMetricsUtil;
 import org.apache.seatunnel.engine.server.metrics.SeaTunnelMetricsContext;
 import org.apache.seatunnel.engine.server.resourcemanager.ResourceManager;
@@ -64,6 +78,9 @@ import com.google.common.collect.Lists;
 import com.hazelcast.cluster.Address;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
 import com.hazelcast.flakeidgen.FlakeIdGenerator;
+import com.hazelcast.internal.metrics.DynamicMetricsProvider;
+import com.hazelcast.internal.metrics.MetricDescriptor;
+import com.hazelcast.internal.metrics.MetricsCollectionContext;
 import com.hazelcast.internal.serialization.Data;
 import com.hazelcast.jet.datamodel.Tuple2;
 import com.hazelcast.jet.impl.execution.init.CustomClassLoadedObject;
@@ -71,6 +88,7 @@ import com.hazelcast.logging.ILogger;
 import com.hazelcast.logging.Logger;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spi.impl.NodeEngine;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -78,18 +96,23 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static com.hazelcast.jet.impl.util.ExceptionUtil.withTryCatch;
+import static org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode.HANDLE_SAVE_MODE_FAILED;
 import static org.apache.seatunnel.common.constants.JobMode.BATCH;
 
-public class JobMaster {
+public class JobMaster implements DynamicMetricsProvider {
     private static final ILogger LOGGER = Logger.getLogger(JobMaster.class);
-
+    private static final String JOB_RESTORE_TIMES = "JobRestoreTimes";
     private PhysicalPlan physicalPlan;
     private final Data jobImmutableInformationData;
 
@@ -142,6 +165,8 @@ public class JobMaster {
     @Getter private volatile boolean needRestore = true;
 
     private CheckpointConfig jobCheckpointConfig;
+    private final SeaTunnelMetricsContext metricsContext;
+    private final Counter jobRestoreTimesCounter;
 
     public String getErrorMessage() {
         return errorMessage;
@@ -178,6 +203,8 @@ public class JobMaster {
         this.engineConfig = engineConfig;
         this.metricsImap = metricsImap;
         this.seaTunnelServer = seaTunnelServer;
+        this.metricsContext = new SeaTunnelMetricsContext();
+        this.jobRestoreTimesCounter = metricsContext.counter(JOB_RESTORE_TIMES);
     }
 
     public void init(long initializationTimestamp, boolean restart, ClassLoader zetaClassLoader)
@@ -212,6 +239,27 @@ public class JobMaster {
                         nodeEngine.getSerializationService(),
                         classLoader,
                         jobImmutableInformation.getLogicalDag());
+        if (!restart
+                && !logicalDag.isStartWithSavePoint()
+                && ReadonlyConfig.fromMap(logicalDag.getJobConfig().getEnvOptions())
+                        .get(EnvCommonOptions.SAVEMODE_EXECUTE_LOCATION)
+                        .equals(SaveModeExecuteLocation.CLUSTER)) {
+            try {
+                Thread.currentThread().setContextClassLoader(classLoader);
+                AtomicInteger index = new AtomicInteger();
+                logicalDag.getLogicalVertexMap().values().stream()
+                        .map(LogicalVertex::getAction)
+                        .filter(action -> action instanceof SinkAction)
+                        .map(sink -> ((SinkAction<?, ?, ?, ?>) sink).getSink())
+                        .forEach(
+                                sink ->
+                                        this.handleSaveMode(
+                                                jobImmutableInformation.getJobId(), sink, index));
+            } finally {
+                Thread.currentThread().setContextClassLoader(appClassLoader);
+            }
+        }
+
         final Tuple2<PhysicalPlan, Map<Integer, CheckpointPlan>> planTuple =
                 PlanUtils.fromLogicalDAG(
                         logicalDag,
@@ -333,6 +381,47 @@ public class JobMaster {
                                 jobImmutableInformation.getJobId(), pluginJarIdentifiers);
             }
         }
+    }
+
+    private void handleSaveMode(long jobId, SeaTunnelSink sink, AtomicInteger index) {
+        if (sink instanceof SupportSaveMode) {
+            Optional<SaveModeHandler> saveModeHandler =
+                    ((SupportSaveMode) sink).getSaveModeHandler();
+            if (saveModeHandler.isPresent()) {
+                long startTime = System.currentTimeMillis();
+                try (SaveModeHandler handler = saveModeHandler.get()) {
+                    new SaveModeExecuteWrapper(handler).execute();
+                    long finishedTime = System.currentTimeMillis();
+                    reportEventOfSaveMode(
+                            jobId,
+                            handler.getHandleTablePath(),
+                            index.getAndIncrement(),
+                            startTime,
+                            finishedTime);
+                } catch (Exception e) {
+                    throw new SeaTunnelRuntimeException(HANDLE_SAVE_MODE_FAILED, e);
+                }
+            }
+        } else if (sink.getClass()
+                .getName()
+                .equals(
+                        "org.apache.seatunnel.connectors.seatunnel.common.multitablesink.MultiTableSink")) {
+            // TODO we should not use class name to judge the sink type
+            Map<String, SeaTunnelSink> sinks =
+                    (Map<String, SeaTunnelSink>) ReflectionUtils.getField(sink, "sinks").get();
+            for (SeaTunnelSink seaTunnelSink : sinks.values()) {
+                handleSaveMode(jobId, seaTunnelSink, index);
+            }
+        }
+    }
+
+    private void reportEventOfSaveMode(
+            long jobId, TablePath tablePath, int indexOfCount, long startTime, long finishedTime) {
+        seaTunnelServer
+                .getTaskExecutionService()
+                .reportEvent(
+                        new SaveModeFinishedEvent(
+                                jobId, tablePath, indexOfCount, startTime, finishedTime));
     }
 
     public void handleCheckpointError(long pipelineId, boolean neverRestore) {
@@ -492,6 +581,10 @@ public class JobMaster {
                 "can't find task group address from taskGroupLocation: " + taskGroupLocation);
     }
 
+    public void reportRestoreBySubPlan() {
+        jobRestoreTimesCounter.inc();
+    }
+
     public void cancelJob() {
         physicalPlan.cancelJob();
     }
@@ -559,12 +652,13 @@ public class JobMaster {
     public List<RawJobMetrics> getCurrJobMetrics(
             Map<TaskGroupLocation, Address> taskGroupLocationSlotProfileMap) {
         Map<Address, List<TaskGroupLocation>> taskGroupLocationMap = new HashMap<>();
-
+        Set<Long> jobIds = new HashSet<>();
         for (Map.Entry<TaskGroupLocation, Address> entry :
                 taskGroupLocationSlotProfileMap.entrySet()) {
             taskGroupLocationMap
                     .computeIfAbsent(entry.getValue(), k -> new ArrayList<>())
                     .add(entry.getKey());
+            jobIds.add(entry.getKey().getJobId());
         }
         List<RawJobMetrics> metrics = new ArrayList<>();
         taskGroupLocationMap.forEach(
@@ -594,6 +688,13 @@ public class JobMaster {
                         throw new SeaTunnelEngineException(ExceptionUtils.getMessage(e));
                     }
                 });
+        JobMetricsCollector metricsRenderer =
+                new JobMetricsCollector(
+                        jobIds,
+                        nodeEngine.getLocalMember(),
+                        Collections.singletonList(JOB_RESTORE_TIMES));
+        ((NodeEngineImpl) nodeEngine).getMetricsRegistry().collect(metricsRenderer);
+        metrics.add(metricsRenderer.getMetrics());
         return metrics;
     }
 
@@ -782,5 +883,13 @@ public class JobMaster {
 
     public void neverNeedRestore() {
         this.needRestore = false;
+    }
+
+    @Override
+    public void provideDynamicMetrics(
+            MetricDescriptor descriptor, MetricsCollectionContext context) {
+        if (null != metricsContext) {
+            metricsContext.provideDynamicMetrics(descriptor, context);
+        }
     }
 }

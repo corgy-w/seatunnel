@@ -121,8 +121,7 @@ public class RabbitmqSourceReader<T> implements SourceReader<T, RabbitmqSplit> {
             Envelope envelope = delivery.getEnvelope();
             synchronized (output.getCheckpointLock()) {
                 boolean newMessage =
-                        verifyMessageIdentifier(
-                                properties.getCorrelationId(), envelope.getDeliveryTag());
+                        verifyMessageIdentifier(correlationId, envelope.getDeliveryTag());
                 if (!newMessage) {
                     return;
                 }

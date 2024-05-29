@@ -29,14 +29,15 @@ import org.apache.seatunnel.api.sink.SupportResourceShare;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.Record;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.engine.core.checkpoint.InternalCheckpointListener;
 import org.apache.seatunnel.engine.core.dag.actions.SinkAction;
 import org.apache.seatunnel.engine.server.checkpoint.ActionStateKey;
 import org.apache.seatunnel.engine.server.checkpoint.ActionSubtaskState;
-import org.apache.seatunnel.engine.server.event.JobEventListener;
 import org.apache.seatunnel.engine.server.execution.TaskLocation;
 import org.apache.seatunnel.engine.server.task.SeaTunnelTask;
 import org.apache.seatunnel.engine.server.task.context.SinkWriterContext;
+import org.apache.seatunnel.engine.server.task.event.DataStatisticsRecorder;
 import org.apache.seatunnel.engine.server.task.operation.GetTaskGroupAddressOperation;
 import org.apache.seatunnel.engine.server.task.operation.checkpoint.BarrierFlowOperation;
 import org.apache.seatunnel.engine.server.task.operation.sink.SinkPrepareCommitOperation;
@@ -101,7 +102,7 @@ public class SinkFlowLifeCycle<T, CommitInfoT extends Serializable, AggregatedCo
     private final boolean containAggCommitter;
 
     private MultiTableResourceManager resourceManager;
-
+    private DataStatisticsRecorder dataStatisticsRecorder;
     private EventListener eventListener;
 
     public SinkFlowLifeCycle(
@@ -112,7 +113,8 @@ public class SinkFlowLifeCycle<T, CommitInfoT extends Serializable, AggregatedCo
             TaskLocation committerTaskLocation,
             boolean containAggCommitter,
             CompletableFuture<Void> completableFuture,
-            MetricsContext metricsContext) {
+            MetricsContext metricsContext,
+            EventListener eventListener) {
         super(sinkAction, runningTask, completableFuture);
         this.sinkAction = sinkAction;
         this.indexID = indexID;
@@ -120,7 +122,7 @@ public class SinkFlowLifeCycle<T, CommitInfoT extends Serializable, AggregatedCo
         this.committerTaskLocation = committerTaskLocation;
         this.containAggCommitter = containAggCommitter;
         this.metricsContext = metricsContext;
-        this.eventListener = new JobEventListener(taskLocation, runningTask.getExecutionContext());
+        this.eventListener = eventListener;
         sinkWriteCount = metricsContext.counter(SINK_WRITE_COUNT);
         sinkWriteQPS = metricsContext.meter(SINK_WRITE_QPS);
         sinkWriteBytes = metricsContext.counter(SINK_WRITE_BYTES);
@@ -133,6 +135,8 @@ public class SinkFlowLifeCycle<T, CommitInfoT extends Serializable, AggregatedCo
         this.writerStateSerializer = sinkAction.getSink().getWriterStateSerializer();
         this.committer = sinkAction.getSink().createCommitter();
         this.lastCommitInfo = Optional.empty();
+        this.dataStatisticsRecorder =
+                new DataStatisticsRecorder(eventListener, taskLocation, PluginType.SINK);
     }
 
     @Override
@@ -181,7 +185,7 @@ public class SinkFlowLifeCycle<T, CommitInfoT extends Serializable, AggregatedCo
         try {
             if (record.getData() instanceof Barrier) {
                 long startTime = System.currentTimeMillis();
-
+                dataStatisticsRecorder.timeToSendStatistics();
                 Barrier barrier = (Barrier) record.getData();
                 if (barrier.prepareClose(this.taskLocation)) {
                     prepareClose = true;
@@ -245,6 +249,7 @@ public class SinkFlowLifeCycle<T, CommitInfoT extends Serializable, AggregatedCo
                 }
                 SchemaChangeEvent event = (SchemaChangeEvent) record.getData();
                 writer.applySchemaChange(event);
+                dataStatisticsRecorder.updateStatistics(event);
             } else {
                 if (prepareClose) {
                     return;
@@ -256,6 +261,7 @@ public class SinkFlowLifeCycle<T, CommitInfoT extends Serializable, AggregatedCo
                     long size = ((SeaTunnelRow) record.getData()).getBytesSize();
                     sinkWriteBytes.inc(size);
                     sinkWriteBytesPerSeconds.markEvent(size);
+                    dataStatisticsRecorder.updateStatistics((SeaTunnelRow) record.getData());
                 }
             }
         } catch (Exception e) {

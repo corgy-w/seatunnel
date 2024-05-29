@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.influxdb.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.influxdb.config.SourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.influxdb.exception.InfluxdbConnectorException;
@@ -45,6 +47,7 @@ public class InfluxDBSourceSplitEnumerator
     private final Context<InfluxDBSourceSplit> context;
     private final Map<Integer, List<InfluxDBSourceSplit>> pendingSplit;
     private final Object stateLock = new Object();
+    private final EnumeratorEventRecorder eventRecorder;
     private volatile boolean shouldEnumerate;
 
     public InfluxDBSourceSplitEnumerator(
@@ -64,6 +67,7 @@ public class InfluxDBSourceSplitEnumerator
             this.shouldEnumerate = sourceState.isShouldEnumerate();
             this.pendingSplit.putAll(sourceState.getPendingSplit());
         }
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -71,7 +75,7 @@ public class InfluxDBSourceSplitEnumerator
         Set<Integer> readers = context.registeredReaders();
         if (shouldEnumerate) {
             Set<InfluxDBSourceSplit> newSplits = getInfluxDBSplit();
-
+            eventRecorder.addTableSplit(null, newSplits.size());
             synchronized (stateLock) {
                 addPendingSplit(newSplits);
                 shouldEnumerate = false;
@@ -119,7 +123,8 @@ public class InfluxDBSourceSplitEnumerator
         Set<InfluxDBSourceSplit> influxDBSourceSplits = new HashSet<>();
         // no need numPartitions, use one partition
         if (config.getPartitionNum() == 0) {
-            influxDBSourceSplits.add(new InfluxDBSourceSplit(SourceConfig.DEFAULT_PARTITIONS, sql));
+            influxDBSourceSplits.add(
+                    new InfluxDBSourceSplit(SourceConfig.DEFAULT_PARTITIONS, sql, 0, 1));
             return influxDBSourceSplits;
         }
         // calculate numRange base on (lowerBound upperBound partitionNum)
@@ -152,9 +157,15 @@ public class InfluxDBSourceSplitEnumerator
                 query = query + " and ( " + sqls[1] + " ) ";
             }
             influxDBSourceSplits.add(
-                    new InfluxDBSourceSplit(String.valueOf(i + System.nanoTime()), query));
+                    new InfluxDBSourceSplit(
+                            String.valueOf(i + System.nanoTime()), query, i, rangePairs.size()));
         }
         return influxDBSourceSplits;
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     public static List<Pair<Long, Long>> genSplitNumRange(

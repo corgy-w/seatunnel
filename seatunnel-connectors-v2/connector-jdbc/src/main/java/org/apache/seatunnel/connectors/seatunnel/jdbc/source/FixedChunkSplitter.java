@@ -141,7 +141,9 @@ public class FixedChunkSplitter extends ChunkSplitter {
                             splitKeyName,
                             splitKeyType,
                             i,
-                            null);
+                            null,
+                            i,
+                            table.getPartitionNumber());
             splits.add(split);
         }
         return splits;
@@ -175,7 +177,9 @@ public class FixedChunkSplitter extends ChunkSplitter {
                             splitKeyName,
                             splitKeyType,
                             parameterValues[i][0],
-                            parameterValues[i][1]);
+                            parameterValues[i][1],
+                            i,
+                            table.getPartitionNumber());
             splits.add(split);
         }
         return splits;

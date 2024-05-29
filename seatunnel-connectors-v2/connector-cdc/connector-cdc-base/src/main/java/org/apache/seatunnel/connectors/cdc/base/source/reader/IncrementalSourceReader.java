@@ -182,17 +182,19 @@ public class IncrementalSourceReader<T, C extends SourceConfig>
     private void reportFinishedSnapshotSplitsIfNeed() {
         if (!finishedUnackedSplits.isEmpty()) {
             List<SnapshotSplitWatermark> completedSnapshotSplitWatermarks = new ArrayList<>();
-
+            List<SnapshotSplit> splits = new ArrayList<>();
             for (SnapshotSplit split : finishedUnackedSplits.values()) {
                 completedSnapshotSplitWatermarks.add(
                         new SnapshotSplitWatermark(
                                 split.splitId(),
                                 split.getLowWatermark(),
                                 split.getHighWatermark()));
+                splits.add(split);
             }
             CompletedSnapshotSplitsReportEvent reportEvent =
                     new CompletedSnapshotSplitsReportEvent();
             reportEvent.setCompletedSnapshotSplitWatermarks(completedSnapshotSplitWatermarks);
+            reportEvent.setCompletedSnapshotSplits(splits);
             context.sendSourceEventToEnumerator(reportEvent);
             // TODO need enumerator return ack
             finishedUnackedSplits.clear();

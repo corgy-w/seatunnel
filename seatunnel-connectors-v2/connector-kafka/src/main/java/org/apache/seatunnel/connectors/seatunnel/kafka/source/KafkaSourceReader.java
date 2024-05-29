@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.serialization.DeserializationSchemaWithTopic;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormatErrorHandleWay;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorErrorCode;
@@ -210,6 +211,9 @@ public class KafkaSourceReader implements SourceReader<SeaTunnelRow, KafkaSource
                 });
 
         if (Boundedness.BOUNDED.equals(context.getBoundedness())) {
+            for (KafkaSourceSplit split : sourceSplits) {
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
+            }
             // signal to the source that we have reached the end of the data.
             context.signalNoMoreElement();
         }

@@ -18,11 +18,13 @@
 package org.apache.seatunnel.connectors.seatunnel.cassandra.source;
 
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.cassandra.client.CassandraClient;
 import org.apache.seatunnel.connectors.seatunnel.cassandra.config.CassandraParameters;
 import org.apache.seatunnel.connectors.seatunnel.cassandra.util.TypeConvertUtil;
 import org.apache.seatunnel.connectors.seatunnel.common.source.AbstractSingleSplitReader;
+import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplit;
 import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplitReaderContext;
 
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -71,6 +73,8 @@ public class CassandraSourceReader extends AbstractSingleSplitReader<SeaTunnelRo
                                     cassandraParameters.getCql(),
                                     cassandraParameters.getConsistencyLevel()));
             resultSet.forEach(row -> output.collect(TypeConvertUtil.buildSeaTunnelRow(row)));
+            readerContext.sendSourceEventToEnumerator(
+                    new ReaderSplitFinishedEvent(new SingleSplit()));
         } finally {
             this.readerContext.signalNoMoreElement();
         }

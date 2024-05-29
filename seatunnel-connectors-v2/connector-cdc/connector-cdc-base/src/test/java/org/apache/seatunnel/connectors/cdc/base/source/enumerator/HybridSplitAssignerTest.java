@@ -58,7 +58,7 @@ public class HybridSplitAssignerTest {
                         checkpointState.getSnapshotPhaseState().getAssignedSplits(),
                         checkpointState.getSnapshotPhaseState().getSplitCompletedOffsets());
         HybridSplitAssigner splitAssigner =
-                new HybridSplitAssigner<>(context, 1, 1, checkpointState, null, null);
+                new HybridSplitAssigner<>(context, 1, 1, checkpointState, null, null, null);
         splitAssigner.getIncrementalSplitAssigner().setSplitAssigned(true);
 
         Assertions.assertFalse(
@@ -89,7 +89,9 @@ public class HybridSplitAssignerTest {
                                         TableId.parse("db1.table1"),
                                         null,
                                         null,
-                                        null)),
+                                        null,
+                                        -1,
+                                        -1)),
                         new AbstractMap.SimpleEntry<>(
                                 "db1.table1.2",
                                 new SnapshotSplit(
@@ -97,7 +99,9 @@ public class HybridSplitAssignerTest {
                                         TableId.parse("db1.table1"),
                                         null,
                                         null,
-                                        null)),
+                                        null,
+                                        -1,
+                                        -1)),
                         new AbstractMap.SimpleEntry<>(
                                 "db1.table2.1",
                                 new SnapshotSplit(
@@ -105,7 +109,9 @@ public class HybridSplitAssignerTest {
                                         TableId.parse("db1.table2"),
                                         null,
                                         null,
-                                        null)),
+                                        null,
+                                        -1,
+                                        -1)),
                         new AbstractMap.SimpleEntry<>(
                                 "db1.table2.2",
                                 new SnapshotSplit(
@@ -113,7 +119,9 @@ public class HybridSplitAssignerTest {
                                         TableId.parse("db1.table2"),
                                         null,
                                         null,
-                                        null)))
+                                        null,
+                                        -1,
+                                        -1)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 

@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kafka.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorException;
@@ -47,6 +49,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -64,6 +67,7 @@ public class KafkaSourceSplitEnumerator
     private final Map<TopicPartition, KafkaSourceSplit> pendingSplit;
     private final Map<TopicPartition, KafkaSourceSplit> assignedSplit;
     private ScheduledExecutorService executor;
+    private final EnumeratorEventRecorder eventRecorder;
     private ScheduledFuture<?> scheduledFuture;
 
     KafkaSourceSplitEnumerator(ConsumerMetadata metadata, Context<KafkaSourceSplit> context) {
@@ -72,6 +76,7 @@ public class KafkaSourceSplitEnumerator
         this.assignedSplit = new HashMap<>();
         this.pendingSplit = new HashMap<>();
         this.adminClient = initAdminClient(this.metadata.getProperties());
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     KafkaSourceSplitEnumerator(
@@ -277,10 +282,14 @@ public class KafkaSourceSplitEnumerator
                                                                         t.name(), p.partition())))
                         .collect(Collectors.toSet());
         Map<TopicPartition, Long> latestOffsets = listOffsets(partitions, OffsetSpec.latest());
+        AtomicInteger index = new AtomicInteger();
+        eventRecorder.addTableSplit(null, partitions.size());
         return partitions.stream()
                 .map(
                         partition -> {
-                            KafkaSourceSplit split = new KafkaSourceSplit(partition);
+                            KafkaSourceSplit split =
+                                    new KafkaSourceSplit(
+                                            partition, index.getAndIncrement(), partitions.size());
                             split.setEndOffset(latestOffsets.get(split.getTopicPartition()));
                             return split;
                         })
@@ -310,6 +319,11 @@ public class KafkaSourceSplitEnumerator
 
         assignedSplit.putAll(pendingSplit);
         pendingSplit.clear();
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     private static int getSplitOwner(TopicPartition tp, int numReaders) {

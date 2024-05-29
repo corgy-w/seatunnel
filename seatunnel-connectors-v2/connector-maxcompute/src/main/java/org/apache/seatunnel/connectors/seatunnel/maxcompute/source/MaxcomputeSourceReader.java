@@ -22,6 +22,7 @@ import org.apache.seatunnel.shade.com.typesafe.config.Config;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
@@ -79,6 +80,7 @@ public class MaxcomputeSourceReader implements SourceReader<SeaTunnelRow, Maxcom
                             output.collect(seaTunnelRow);
                         }
                         recordReader.close();
+                        context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(source));
                     } catch (Exception e) {
                         throw new MaxcomputeConnectorException(
                                 CommonErrorCodeDeprecated.READER_OPERATION_FAILED, e);

@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kudu.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.kudu.config.KuduSourceConfig;
@@ -47,7 +49,7 @@ public class KuduSourceSplitEnumerator
     private static final Logger log = LoggerFactory.getLogger(KuduSourceSplitEnumerator.class);
     private final SourceSplitEnumerator.Context<KuduSourceSplit> enumeratorContext;
     private KuduSourceState checkpointState;
-    private KuduSourceConfig kuduSourceConfig;
+    private final EnumeratorEventRecorder eventRecorder;
 
     private final ConcurrentLinkedQueue<TablePath> pendingTables;
     private final Map<Integer, List<KuduSourceSplit>> pendingSplits;
@@ -66,7 +68,6 @@ public class KuduSourceSplitEnumerator
             KuduSourceConfig kuduSourceConfig,
             KuduSourceState checkpointState) {
         this.enumeratorContext = enumeratorContext;
-        this.kuduSourceConfig = kuduSourceConfig;
         this.kuduInputFormat = new KuduInputFormat(kuduSourceConfig);
         this.tables =
                 kuduSourceConfig.getTableConfigList().stream()
@@ -80,6 +81,7 @@ public class KuduSourceSplitEnumerator
             this.pendingTables = new ConcurrentLinkedQueue<>(checkpointState.getPendingTables());
             this.pendingSplits = new HashMap<>(checkpointState.getPendingSplits());
         }
+        this.eventRecorder = new EnumeratorEventRecorder(enumeratorContext);
     }
 
     @Override
@@ -97,6 +99,7 @@ public class KuduSourceSplitEnumerator
                 log.info("Splitting table {}.", tablePath);
 
                 Collection<KuduSourceSplit> splits = discoverySplits(tables.get(tablePath));
+                eventRecorder.addTableSplit(tablePath, splits.size());
                 log.info("Split table {} into {} splits.", tablePath, splits.size());
 
                 addPendingSplit(splits);
@@ -137,6 +140,11 @@ public class KuduSourceSplitEnumerator
             }
         }
         log.info("Add back splits {} to JdbcSourceSplitEnumerator.", splits.size());
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     private void assignSplit(Collection<Integer> readers) {

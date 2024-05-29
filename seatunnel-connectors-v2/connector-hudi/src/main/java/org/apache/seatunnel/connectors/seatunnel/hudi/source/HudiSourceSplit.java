@@ -21,17 +21,23 @@ import org.apache.seatunnel.api.source.SourceSplit;
 
 import org.apache.hadoop.mapred.InputSplit;
 
+import lombok.Getter;
+
+@Getter
 public class HudiSourceSplit implements SourceSplit {
 
     private static final long serialVersionUID = -1L;
-
     private final String splitId;
-
     private final InputSplit inputSplit;
 
-    public HudiSourceSplit(String splitId, InputSplit inputSplit) {
+    private final int index;
+    private final int splitCount;
+
+    public HudiSourceSplit(String splitId, InputSplit inputSplit, int index, int splitCount) {
         this.splitId = splitId;
         this.inputSplit = inputSplit;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
     @Override

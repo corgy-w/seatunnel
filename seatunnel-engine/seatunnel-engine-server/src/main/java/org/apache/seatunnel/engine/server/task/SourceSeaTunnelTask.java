@@ -90,7 +90,9 @@ public class SourceSeaTunnelTask<T, SplitT extends SourceSplit> extends SeaTunne
                             outputs,
                             this.getMetricsContext(),
                             FlowControlStrategy.fromMap(envOption),
-                            sourceProducedType);
+                            sourceProducedType,
+                            eventListener,
+                            taskLocation);
             ((SourceFlowLifeCycle<T, SplitT>) startFlowLifeCycle).setCollector(collector);
         }
     }
@@ -108,7 +110,8 @@ public class SourceSeaTunnelTask<T, SplitT extends SourceSplit> extends SeaTunne
                 this,
                 taskLocation,
                 completableFuture,
-                metricsContext);
+                metricsContext,
+                eventListener);
     }
 
     @Override

@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.clickhouse.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.state.ClickhouseSourceState;
 
 import java.io.IOException;
@@ -32,11 +34,13 @@ public class ClickhouseSourceSplitEnumerator
     private final Context<ClickhouseSourceSplit> context;
     private final Set<Integer> readers;
     private volatile int assigned = -1;
+    private final EnumeratorEventRecorder eventRecorder;
 
     // TODO support read distributed engine use multi split
     ClickhouseSourceSplitEnumerator(Context<ClickhouseSourceSplit> enumeratorContext) {
         this.context = enumeratorContext;
         this.readers = new HashSet<>();
+        this.eventRecorder = new EnumeratorEventRecorder(enumeratorContext);
     }
 
     @Override
@@ -76,8 +80,14 @@ public class ClickhouseSourceSplitEnumerator
         readers.add(subtaskId);
         if (assigned < 0) {
             assigned = subtaskId;
-            context.assignSplit(subtaskId, new ClickhouseSourceSplit());
+            context.assignSplit(subtaskId, new ClickhouseSourceSplit(0, 1));
+            eventRecorder.addTableSplit(null, 1);
         }
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

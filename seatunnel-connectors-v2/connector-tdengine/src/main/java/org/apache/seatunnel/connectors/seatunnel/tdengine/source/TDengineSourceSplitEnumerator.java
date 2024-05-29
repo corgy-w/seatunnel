@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.tdengine.source;
 
 import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.connectors.seatunnel.tdengine.config.TDengineSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.tdengine.state.TDengineSourceState;
 
@@ -39,6 +40,7 @@ public class TDengineSourceSplitEnumerator
     private final StableMetadata stableMetadata;
     private Set<TDengineSourceSplit> pendingSplit = new HashSet<>();
     private Set<TDengineSourceSplit> assignedSplit = new HashSet<>();
+    private final EnumeratorEventRecorder eventRecorder;
 
     public TDengineSourceSplitEnumerator(
             StableMetadata stableMetadata,
@@ -58,6 +60,7 @@ public class TDengineSourceSplitEnumerator
         if (sourceState != null) {
             this.assignedSplit = sourceState.getAssignedSplit();
         }
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     private static int getSplitOwner(String tp, int numReaders) {
@@ -79,16 +82,19 @@ public class TDengineSourceSplitEnumerator
     private Set<TDengineSourceSplit> getAllSplits() {
         final String timestampFieldName = stableMetadata.getTimestampFieldName();
         final Set<TDengineSourceSplit> splits = new HashSet<>();
-        for (String subTableName : stableMetadata.getSubTableNames()) {
+        List<String> subTableNames = stableMetadata.getSubTableNames();
+        for (int i = 0; i < subTableNames.size(); i++) {
             TDengineSourceSplit splitBySubTable =
-                    createSplitBySubTable(subTableName, timestampFieldName);
+                    createSplitBySubTable(
+                            subTableNames.get(i), timestampFieldName, i, subTableNames.size());
             splits.add(splitBySubTable);
         }
+        eventRecorder.addTableSplit(null, splits.size());
         return splits;
     }
 
     private TDengineSourceSplit createSplitBySubTable(
-            String subTableName, String timestampFieldName) {
+            String subTableName, String timestampFieldName, int index, int splitCount) {
         String selectFields =
                 Arrays.stream(stableMetadata.getRowType().getFieldNames())
                         .skip(1)
@@ -111,7 +117,7 @@ public class TDengineSourceSplitEnumerator
             subTableSQL = subTableSQL + " where " + query;
         }
 
-        return new TDengineSourceSplit(subTableName, subTableSQL);
+        return new TDengineSourceSplit(subTableName, subTableSQL, index, splitCount);
     }
 
     @Override
@@ -161,7 +167,7 @@ public class TDengineSourceSplitEnumerator
 
     @Override
     public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
-        SourceSplitEnumerator.super.handleSourceEvent(subtaskId, sourceEvent);
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

@@ -17,7 +17,10 @@
 
 package org.apache.seatunnel.connectors.doris.source.split;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.doris.config.DorisConfig;
@@ -49,6 +52,7 @@ public class DorisSourceSplitEnumerator
     private final Map<Integer, List<DorisSourceSplit>> pendingSplit;
 
     private SeaTunnelRowType seaTunnelRowType;
+    private final EnumeratorEventRecorder eventRecorder;
     private final Object stateLock = new Object();
 
     public DorisSourceSplitEnumerator(
@@ -72,6 +76,7 @@ public class DorisSourceSplitEnumerator
             this.shouldEnumerate = dorisSourceState.isShouldEnumerate();
             this.pendingSplit.putAll(dorisSourceState.getPendingSplit());
         }
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -151,9 +156,17 @@ public class DorisSourceSplitEnumerator
         List<DorisSourceSplit> splits = new ArrayList<>();
         List<PartitionDefinition> partitions =
                 RestService.findPartitions(seaTunnelRowType, dorisConfig, log);
-        for (PartitionDefinition partition : partitions) {
-            splits.add(new DorisSourceSplit(partition, String.valueOf(partition.hashCode())));
+        for (int i = 0; i < partitions.size(); i++) {
+            splits.add(
+                    new DorisSourceSplit(
+                            partitions.get(i),
+                            String.valueOf(partitions.get(i).hashCode()),
+                            i,
+                            partitions.size()));
         }
+        eventRecorder.addTableSplit(
+                TablePath.of(partitions.get(0).getDatabase(), partitions.get(0).getTable()),
+                splits.size());
         return splits;
     }
 
@@ -164,6 +177,11 @@ public class DorisSourceSplitEnumerator
             log.info("Assigning split {} to reader {} .", split.splitId(), ownerReader);
             pendingSplit.computeIfAbsent(ownerReader, f -> new ArrayList<>()).add(split);
         }
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     private static int getSplitOwner(String tp, int numReaders) {

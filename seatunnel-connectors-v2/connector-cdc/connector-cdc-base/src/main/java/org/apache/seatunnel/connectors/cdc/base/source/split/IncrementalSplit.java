@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.cdc.base.source.split;
 
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 
@@ -98,5 +99,20 @@ public class IncrementalSplit extends SourceSplitBase {
         this.completedSnapshotSplitInfos = completedSnapshotSplitInfos;
         this.checkpointDataType = checkpointDataType;
         this.historyTableChanges = historyTableChanges;
+    }
+
+    @Override
+    public TablePath getTablePath() {
+        return null;
+    }
+
+    @Override
+    public int getIndex() {
+        return 0;
+    }
+
+    @Override
+    public int getSplitCount() {
+        return 1;
     }
 }

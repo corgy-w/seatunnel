@@ -30,7 +30,6 @@ import org.apache.seatunnel.engine.core.dag.actions.SourceAction;
 import org.apache.seatunnel.engine.server.checkpoint.ActionStateKey;
 import org.apache.seatunnel.engine.server.checkpoint.ActionSubtaskState;
 import org.apache.seatunnel.engine.server.checkpoint.CheckpointBarrier;
-import org.apache.seatunnel.engine.server.event.JobEventListener;
 import org.apache.seatunnel.engine.server.execution.TaskLocation;
 import org.apache.seatunnel.engine.server.task.SeaTunnelSourceCollector;
 import org.apache.seatunnel.engine.server.task.SeaTunnelTask;
@@ -93,15 +92,15 @@ public class SourceFlowLifeCycle<T, SplitT extends SourceSplit> extends ActionFl
             SeaTunnelTask runningTask,
             TaskLocation currentTaskLocation,
             CompletableFuture<Void> completableFuture,
-            MetricsContext metricsContext) {
+            MetricsContext metricsContext,
+            EventListener eventListener) {
         super(sourceAction, runningTask, completableFuture);
         this.sourceAction = sourceAction;
         this.indexID = indexID;
         this.enumeratorTaskLocation = enumeratorTaskLocation;
         this.currentTaskLocation = currentTaskLocation;
         this.metricsContext = metricsContext;
-        this.eventListener =
-                new JobEventListener(currentTaskLocation, runningTask.getExecutionContext());
+        this.eventListener = eventListener;
     }
 
     public void setCollector(SeaTunnelSourceCollector<T> collector) {

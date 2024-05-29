@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.iotdb.source;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.iotdb.exception.IotdbConnectorErrorCode;
@@ -101,10 +102,11 @@ public class IoTDBSourceReader implements SourceReader<SeaTunnelRow, IoTDBSource
     @Override
     public void pollNext(Collector<SeaTunnelRow> output) throws Exception {
         while (!pendingSplits.isEmpty()) {
+            IoTDBSourceSplit split = pendingSplits.poll();
             synchronized (output.getCheckpointLock()) {
-                IoTDBSourceSplit split = pendingSplits.poll();
                 read(split, output);
             }
+            context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
         }
 
         if (Boundedness.BOUNDED.equals(context.getBoundedness())

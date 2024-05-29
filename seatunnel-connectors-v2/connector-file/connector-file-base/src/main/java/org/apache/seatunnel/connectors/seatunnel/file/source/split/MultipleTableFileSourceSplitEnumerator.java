@@ -17,7 +17,10 @@
 
 package org.apache.seatunnel.connectors.seatunnel.file.source.split;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseFileSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseMultipleTableFileSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.source.state.FileSourceState;
@@ -42,6 +45,7 @@ public class MultipleTableFileSourceSplitEnumerator
     private final Set<FileSourceSplit> pendingSplit;
     private final Set<FileSourceSplit> assignedSplit;
     private final Map<String, List<String>> filePathMap;
+    private final EnumeratorEventRecorder eventRecorder;
 
     public MultipleTableFileSourceSplitEnumerator(
             Context<FileSourceSplit> context,
@@ -60,6 +64,7 @@ public class MultipleTableFileSourceSplitEnumerator
                                         BaseFileSourceConfig::getFilePaths));
         this.assignedSplit = new HashSet<>();
         this.pendingSplit = new HashSet<>();
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     public MultipleTableFileSourceSplitEnumerator(
@@ -92,9 +97,11 @@ public class MultipleTableFileSourceSplitEnumerator
         for (Map.Entry<String, List<String>> filePathEntry : filePathMap.entrySet()) {
             String tableId = filePathEntry.getKey();
             List<String> filePaths = filePathEntry.getValue();
-            for (String filePath : filePaths) {
-                pendingSplit.add(new FileSourceSplit(tableId, filePath));
+            for (int i = 0; i < filePaths.size(); i++) {
+                pendingSplit.add(
+                        new FileSourceSplit(tableId, filePaths.get(i), i, filePaths.size()));
             }
+            eventRecorder.addTableSplit(TablePath.of(tableId), pendingSplit.size());
         }
         assignSplit(subtaskId);
     }
@@ -107,6 +114,11 @@ public class MultipleTableFileSourceSplitEnumerator
     @Override
     public void notifyCheckpointComplete(long checkpointId) {
         // do nothing.
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     private void assignSplit(int taskId) {

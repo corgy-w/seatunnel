@@ -18,7 +18,9 @@
 package org.apache.seatunnel.connectors.seatunnel.pulsar.source.enumerator;
 
 import org.apache.seatunnel.api.source.Boundedness;
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.pulsar.config.PulsarAdminConfig;
 import org.apache.seatunnel.connectors.seatunnel.pulsar.config.PulsarConfigUtil;
@@ -48,6 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -78,7 +81,7 @@ public class PulsarSplitEnumerator
     // This flag will be marked as true if periodically partition discovery is disabled AND the
     // initializing partition discovery has finished.
     private boolean noMoreNewPartitionSplits = false;
-
+    private final EnumeratorEventRecorder eventRecorder;
     private ScheduledThreadPoolExecutor executor = null;
 
     public PulsarSplitEnumerator(
@@ -125,6 +128,7 @@ public class PulsarSplitEnumerator
         this.subscriptionName = subscriptionName;
         this.assignedPartitions = new HashSet<>(assignedPartitions);
         this.pendingPartitionSplits = new HashMap<>();
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -167,17 +171,26 @@ public class PulsarSplitEnumerator
         if (newPartitions.isEmpty()) {
             return;
         }
+        AtomicInteger index = new AtomicInteger();
         List<PulsarPartitionSplit> newSplits =
                 newPartitions.stream()
-                        .map(this::createPulsarPartitionSplit)
+                        .map(
+                                partition ->
+                                        createPulsarPartitionSplit(
+                                                partition,
+                                                index.getAndIncrement(),
+                                                newPartitions.size()))
                         .collect(Collectors.toList());
+        eventRecorder.addTableSplit(null, newSplits.size());
         addPartitionSplitChangeToPendingAssignments(newSplits);
         assignPendingPartitionSplits(context.registeredReaders());
     }
 
-    private PulsarPartitionSplit createPulsarPartitionSplit(TopicPartition partition) {
+    private PulsarPartitionSplit createPulsarPartitionSplit(
+            TopicPartition partition, int index, int splitCount) {
         StopCursor partitionStopCursor = stopCursor.copy();
-        PulsarPartitionSplit split = new PulsarPartitionSplit(partition, partitionStopCursor);
+        PulsarPartitionSplit split =
+                new PulsarPartitionSplit(partition, partitionStopCursor, index, splitCount);
         if (partitionStopCursor instanceof LatestMessageStopCursor) {
             ((LatestMessageStopCursor) partitionStopCursor).prepare(pulsarAdmin, partition);
         }
@@ -186,6 +199,11 @@ public class PulsarSplitEnumerator
                     .ensureSubscription(subscriptionName, partition, pulsarAdmin);
         }
         return split;
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     private Set<TopicPartition> getNewPartitions(Set<TopicPartition> fetchedPartitions) {

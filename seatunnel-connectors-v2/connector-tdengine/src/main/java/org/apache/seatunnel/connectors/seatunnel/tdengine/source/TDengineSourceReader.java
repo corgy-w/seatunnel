@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.tdengine.source;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.tdengine.config.TDengineSourceConfig;
@@ -76,6 +77,8 @@ public class TDengineSourceReader implements SourceReader<SeaTunnelRow, TDengine
                     split -> {
                         try {
                             read(split, collector);
+                            context.sendSourceEventToEnumerator(
+                                    new ReaderSplitFinishedEvent(split));
                         } catch (Exception e) {
                             throw new TDengineConnectorException(
                                     CommonErrorCodeDeprecated.READER_OPERATION_FAILED,

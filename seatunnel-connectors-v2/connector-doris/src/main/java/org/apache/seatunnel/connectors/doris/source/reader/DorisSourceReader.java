@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.doris.source.reader;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.doris.config.DorisConfig;
@@ -76,6 +77,7 @@ public class DorisSourceReader implements SourceReader<SeaTunnelRow, DorisSource
                     SeaTunnelRow record = valueReader.next();
                     output.collect(record);
                 }
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(nextSplit));
             }
             if (Boundedness.BOUNDED.equals(context.getBoundedness())
                     && noMoreSplits

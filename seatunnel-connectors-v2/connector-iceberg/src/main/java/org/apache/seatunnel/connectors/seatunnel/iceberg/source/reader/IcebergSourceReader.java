@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.source.reader;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -114,6 +115,7 @@ public class IcebergSourceReader implements SourceReader<SeaTunnelRow, IcebergFi
                     output.collect(rowIterator.next());
                 }
             }
+            context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(currentReadSplit));
         }
 
         if (noMoreSplitsAssignment && Boundedness.BOUNDED.equals(context.getBoundedness())) {

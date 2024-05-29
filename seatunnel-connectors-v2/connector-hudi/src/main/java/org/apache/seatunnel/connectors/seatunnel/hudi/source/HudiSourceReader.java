@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.hudi.source;
 
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -115,6 +116,7 @@ public class HudiSourceReader implements SourceReader<SeaTunnelRow, HudiSourceSp
                             output.collect(new SeaTunnelRow(datas));
                         }
                         reader.close();
+                        context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(source));
                     } catch (Exception e) {
                         throw new HudiConnectorException(
                                 CommonErrorCodeDeprecated.READER_OPERATION_FAILED, e);

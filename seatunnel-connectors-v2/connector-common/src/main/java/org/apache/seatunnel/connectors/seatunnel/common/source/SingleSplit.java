@@ -26,8 +26,22 @@ public class SingleSplit implements SourceSplit {
         this.state = state;
     }
 
+    public SingleSplit() {
+        this.state = null;
+    }
+
     public byte[] getState() {
         return state;
+    }
+
+    @Override
+    public int getIndex() {
+        return 0;
+    }
+
+    @Override
+    public int getSplitCount() {
+        return 1;
     }
 
     @Override

@@ -19,7 +19,16 @@ package org.apache.seatunnel.connectors.seatunnel.clickhouse.source;
 
 import org.apache.seatunnel.api.source.SourceSplit;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
 public class ClickhouseSourceSplit implements SourceSplit {
+
+    private final int index;
+    private final int splitCount;
+
     @Override
     public String splitId() {
         return null;

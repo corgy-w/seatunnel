@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.cdc.base.source.enumerator;
 
 import org.apache.seatunnel.shade.com.google.common.annotations.VisibleForTesting;
 
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.state.HybridPendingSplitsState;
@@ -55,14 +56,16 @@ public class HybridSplitAssigner<C extends SourceConfig> implements SplitAssigne
             List<TableId> remainingTables,
             boolean isTableIdCaseSensitive,
             DataSourceDialect<C> dialect,
-            OffsetFactory offsetFactory) {
+            OffsetFactory offsetFactory,
+            EnumeratorEventRecorder eventRecorder) {
         this(
                 new SnapshotSplitAssigner<>(
                         context,
                         currentParallelism,
                         remainingTables,
                         isTableIdCaseSensitive,
-                        dialect),
+                        dialect,
+                        eventRecorder),
                 new IncrementalSplitAssigner<>(context, incrementalParallelism, offsetFactory));
     }
 
@@ -72,10 +75,15 @@ public class HybridSplitAssigner<C extends SourceConfig> implements SplitAssigne
             int incrementalParallelism,
             HybridPendingSplitsState checkpoint,
             DataSourceDialect<C> dialect,
-            OffsetFactory offsetFactory) {
+            OffsetFactory offsetFactory,
+            EnumeratorEventRecorder eventRecorder) {
         this(
                 new SnapshotSplitAssigner<>(
-                        context, currentParallelism, checkpoint.getSnapshotPhaseState(), dialect),
+                        context,
+                        currentParallelism,
+                        checkpoint.getSnapshotPhaseState(),
+                        dialect,
+                        eventRecorder),
                 new IncrementalSplitAssigner<>(context, incrementalParallelism, offsetFactory));
     }
 

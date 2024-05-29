@@ -17,7 +17,10 @@
 
 package org.apache.seatunnel.connectors.seatunnel.hive.source.split;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.config.HiveSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.config.MultipleTableHiveSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.hive.source.state.HiveSourceState;
@@ -42,6 +45,7 @@ public class MultipleTableHiveSourceSplitEnumerator
     private final Set<HiveSourceSplit> pendingSplit;
     private final Set<HiveSourceSplit> assignedSplit;
     private final Map<String, List<String>> filePathMap;
+    private final EnumeratorEventRecorder eventRecorder;
 
     public MultipleTableHiveSourceSplitEnumerator(
             SourceSplitEnumerator.Context<HiveSourceSplit> context,
@@ -60,6 +64,7 @@ public class MultipleTableHiveSourceSplitEnumerator
                                         HiveSourceConfig::getFilePaths));
         this.assignedSplit = new HashSet<>();
         this.pendingSplit = new HashSet<>();
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     public MultipleTableHiveSourceSplitEnumerator(
@@ -92,11 +97,18 @@ public class MultipleTableHiveSourceSplitEnumerator
         for (Map.Entry<String, List<String>> filePathEntry : filePathMap.entrySet()) {
             String tableId = filePathEntry.getKey();
             List<String> filePaths = filePathEntry.getValue();
-            for (String filePath : filePaths) {
-                pendingSplit.add(new HiveSourceSplit(tableId, filePath));
+            for (int i = 0; i < filePaths.size(); i++) {
+                pendingSplit.add(
+                        new HiveSourceSplit(tableId, filePaths.get(i), i, filePaths.size()));
             }
+            eventRecorder.addTableSplit(TablePath.of(tableId), filePaths.size());
         }
         assignSplit(subtaskId);
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

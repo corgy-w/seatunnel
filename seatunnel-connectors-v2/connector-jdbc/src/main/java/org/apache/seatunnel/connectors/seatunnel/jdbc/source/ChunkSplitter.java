@@ -158,7 +158,9 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
                 null,
                 null,
                 null,
-                null);
+                null,
+                0,
+                1);
     }
 
     protected PreparedStatement createSingleSplitStatement(JdbcSourceSplit split)

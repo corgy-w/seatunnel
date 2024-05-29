@@ -19,7 +19,7 @@ package org.apache.seatunnel.engine.server.task.operation;
 
 import org.apache.seatunnel.api.common.metrics.RawJobMetrics;
 import org.apache.seatunnel.engine.server.execution.TaskGroupLocation;
-import org.apache.seatunnel.engine.server.metrics.JobMetricsCollector;
+import org.apache.seatunnel.engine.server.metrics.JobTaskGroupMetricsCollector;
 import org.apache.seatunnel.engine.server.serializable.TaskDataSerializerHook;
 
 import com.hazelcast.cluster.Address;
@@ -63,8 +63,9 @@ public class GetTaskGroupMetricsOperation extends Operation implements Identifie
                             + masterAddress);
         }
 
-        JobMetricsCollector metricsRenderer =
-                new JobMetricsCollector(taskGroupLocations, nodeEngine.getLocalMember(), logger);
+        JobTaskGroupMetricsCollector metricsRenderer =
+                new JobTaskGroupMetricsCollector(
+                        taskGroupLocations, nodeEngine.getLocalMember(), logger);
         nodeEngine.getMetricsRegistry().collect(metricsRenderer);
         response = metricsRenderer.getMetrics();
     }

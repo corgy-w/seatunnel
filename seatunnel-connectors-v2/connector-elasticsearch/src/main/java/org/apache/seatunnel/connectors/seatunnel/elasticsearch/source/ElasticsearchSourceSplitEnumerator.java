@@ -18,7 +18,10 @@
 package org.apache.seatunnel.connectors.seatunnel.elasticsearch.source;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.elasticsearch.client.EsRestClient;
 import org.apache.seatunnel.connectors.seatunnel.elasticsearch.config.SourceConfig;
@@ -54,6 +57,7 @@ public class ElasticsearchSourceSplitEnumerator
     private Map<Integer, List<ElasticsearchSourceSplit>> pendingSplit;
 
     private final List<String> source;
+    private final EnumeratorEventRecorder eventRecorder;
 
     private volatile boolean shouldEnumerate;
 
@@ -78,6 +82,7 @@ public class ElasticsearchSourceSplitEnumerator
             this.pendingSplit.putAll(sourceState.getPendingSplit());
         }
         this.source = source;
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -150,7 +155,8 @@ public class ElasticsearchSourceSplitEnumerator
                         .filter(x -> x.getDocsCount() != null && x.getDocsCount() > 0)
                         .sorted(Comparator.comparingLong(IndexDocsCount::getDocsCount))
                         .collect(Collectors.toList());
-        for (IndexDocsCount indexDocsCount : indexDocsCounts) {
+        for (int i = 0; i < indexDocsCounts.size(); i++) {
+            IndexDocsCount indexDocsCount = indexDocsCounts.get(i);
             splits.add(
                     new ElasticsearchSourceSplit(
                             String.valueOf(indexDocsCount.getIndex().hashCode()),
@@ -159,9 +165,22 @@ public class ElasticsearchSourceSplitEnumerator
                                     source,
                                     query,
                                     scrollTime,
-                                    scrollSize)));
+                                    scrollSize),
+                            i,
+                            indexDocsCounts.size()));
         }
+        splits.stream()
+                .collect(
+                        Collectors.groupingBy(
+                                x -> x.getSourceIndexInfo().getIndex(), Collectors.counting()))
+                .forEach(
+                        (k, v) -> eventRecorder.addTableSplit(TablePath.of(null, k), v.intValue()));
         return splits;
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

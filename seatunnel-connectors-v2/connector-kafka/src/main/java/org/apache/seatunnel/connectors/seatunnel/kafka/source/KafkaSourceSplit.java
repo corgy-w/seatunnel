@@ -21,22 +21,36 @@ import org.apache.seatunnel.api.source.SourceSplit;
 
 import org.apache.kafka.common.TopicPartition;
 
+import lombok.Getter;
+
 import java.util.Objects;
 
+@Getter
 public class KafkaSourceSplit implements SourceSplit {
 
     private TopicPartition topicPartition;
     private long startOffset = -1L;
     private long endOffset = -1L;
+    private final int index;
+    private final int splitCount;
 
-    public KafkaSourceSplit(TopicPartition topicPartition) {
+    public KafkaSourceSplit(TopicPartition topicPartition, int index, int splitCount) {
         this.topicPartition = topicPartition;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
-    public KafkaSourceSplit(TopicPartition topicPartition, long startOffset, long endOffset) {
+    public KafkaSourceSplit(
+            TopicPartition topicPartition,
+            long startOffset,
+            long endOffset,
+            int index,
+            int splitCount) {
         this.topicPartition = topicPartition;
         this.startOffset = startOffset;
         this.endOffset = endOffset;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
     public long getStartOffset() {
@@ -87,6 +101,10 @@ public class KafkaSourceSplit implements SourceSplit {
 
     public KafkaSourceSplit copy() {
         return new KafkaSourceSplit(
-                this.topicPartition, this.getStartOffset(), this.getEndOffset());
+                this.topicPartition,
+                this.getStartOffset(),
+                this.getEndOffset(),
+                this.getIndex(),
+                this.getSplitCount());
     }
 }

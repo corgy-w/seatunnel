@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.hive.source.reader;
 
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategy;
@@ -86,6 +87,7 @@ public class MultipleTableHiveSourceReader implements SourceReader<SeaTunnelRow,
                             String.format("Read data from this file [%s] failed", split.splitId());
                     throw new FileConnectorException(FILE_READ_FAILED, errorMsg, e);
                 }
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             } else if (noMoreSplit && sourceSplits.isEmpty()) {
                 // signal to the source that we have reached the end of the data.
                 log.info(

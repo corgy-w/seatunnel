@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.fake.source;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,6 +32,14 @@ public class FakeSourceSplit implements SourceSplit {
     private int splitId;
 
     private int rowNum;
+
+    private final int index;
+    private int splitCount;
+
+    @Override
+    public TablePath getTablePath() {
+        return TablePath.of(tableId);
+    }
 
     @Override
     public String splitId() {

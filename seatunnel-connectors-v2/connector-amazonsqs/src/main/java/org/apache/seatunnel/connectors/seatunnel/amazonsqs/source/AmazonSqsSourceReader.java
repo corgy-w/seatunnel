@@ -19,12 +19,14 @@ package org.apache.seatunnel.connectors.seatunnel.amazonsqs.source;
 
 import org.apache.seatunnel.api.serialization.DeserializationSchema;
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.amazonsqs.config.AmazonSqsSourceOptions;
 import org.apache.seatunnel.connectors.seatunnel.amazonsqs.deserialize.AmazonSqsDeserializer;
 import org.apache.seatunnel.connectors.seatunnel.amazonsqs.deserialize.SeaTunnelRowDeserializer;
 import org.apache.seatunnel.connectors.seatunnel.common.source.AbstractSingleSplitReader;
+import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplit;
 import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplitReaderContext;
 
 import lombok.extern.slf4j.Slf4j;
@@ -119,6 +121,7 @@ public class AmazonSqsSourceReader extends AbstractSingleSplitReader<SeaTunnelRo
                 sqsClient.deleteMessage(deleteMessageRequest);
             }
         }
+        context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(new SingleSplit()));
         this.context.signalNoMoreElement();
     }
 }

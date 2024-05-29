@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.amazondynamodb.source;
 
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.amazondynamodb.config.AmazonDynamoDBSourceOptions;
@@ -100,6 +101,7 @@ public class AmazonDynamoDBSourceReader
             }
             if (Objects.nonNull(split)) {
                 read(split, output);
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             }
         }
     }

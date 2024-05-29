@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceConfig;
@@ -46,6 +48,7 @@ public class JdbcSourceSplitEnumerator
     private final Map<Integer, List<JdbcSourceSplit>> pendingSplits;
     private final ChunkSplitter splitter;
     private final Context<JdbcSourceSplit> context;
+    private final EnumeratorEventRecorder eventRecorder;
     private final Object stateLock = new Object();
 
     public JdbcSourceSplitEnumerator(
@@ -56,6 +59,7 @@ public class JdbcSourceSplitEnumerator
         this.context = context;
         this.tables = tables;
         this.splitter = ChunkSplitter.create(jdbcSourceConfig);
+        this.eventRecorder = new EnumeratorEventRecorder(context);
         if (sourceState == null) {
             this.pendingTables = new ConcurrentLinkedQueue<>(tables.keySet());
             this.pendingSplits = new HashMap<>();
@@ -80,7 +84,7 @@ public class JdbcSourceSplitEnumerator
 
                 Collection<JdbcSourceSplit> splits = splitter.generateSplits(tables.get(tablePath));
                 LOG.info("Split table {} into {} splits.", tablePath, splits.size());
-
+                eventRecorder.addTableSplit(tablePath, splits.size());
                 addPendingSplit(splits);
             }
 
@@ -116,6 +120,11 @@ public class JdbcSourceSplitEnumerator
             }
         }
         LOG.info("Add back splits {} to JdbcSourceSplitEnumerator.", splits.size());
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override

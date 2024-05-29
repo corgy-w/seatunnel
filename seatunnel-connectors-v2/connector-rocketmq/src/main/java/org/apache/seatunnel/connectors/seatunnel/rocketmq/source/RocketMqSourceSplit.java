@@ -21,46 +21,31 @@ import org.apache.seatunnel.api.source.SourceSplit;
 
 import org.apache.rocketmq.common.message.MessageQueue;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /** define rocketmq source split */
+@Getter
+@Setter
 public class RocketMqSourceSplit implements SourceSplit {
     private MessageQueue messageQueue;
     private long startOffset = -1L;
     private long endOffset = -1L;
 
-    public RocketMqSourceSplit() {}
+    private final int index;
+    private int splitCount;
 
-    public RocketMqSourceSplit(MessageQueue messageQueue) {
-        this.messageQueue = messageQueue;
-    }
-
-    public RocketMqSourceSplit(MessageQueue messageQueue, long startOffset, long endOffset) {
+    public RocketMqSourceSplit(
+            MessageQueue messageQueue,
+            long startOffset,
+            long endOffset,
+            int index,
+            int splitCount) {
         this.messageQueue = messageQueue;
         this.startOffset = startOffset;
         this.endOffset = endOffset;
-    }
-
-    public MessageQueue getMessageQueue() {
-        return messageQueue;
-    }
-
-    public void setMessageQueue(MessageQueue messageQueue) {
-        this.messageQueue = messageQueue;
-    }
-
-    public long getStartOffset() {
-        return startOffset;
-    }
-
-    public void setStartOffset(long startOffset) {
-        this.startOffset = startOffset;
-    }
-
-    public long getEndOffset() {
-        return endOffset;
-    }
-
-    public void setEndOffset(long endOffset) {
-        this.endOffset = endOffset;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
     @Override
@@ -74,6 +59,6 @@ public class RocketMqSourceSplit implements SourceSplit {
 
     public RocketMqSourceSplit copy() {
         return new RocketMqSourceSplit(
-                this.messageQueue, this.getStartOffset(), this.getEndOffset());
+                this.messageQueue, this.getStartOffset(), this.getEndOffset(), index, splitCount);
     }
 }

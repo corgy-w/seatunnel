@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.serialization.DeserializationSchema;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.common.Handover;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.pulsar.config.PulsarClientConfig;
@@ -138,6 +139,9 @@ public class PulsarSourceReader<T> implements SourceReader<T, PulsarPartitionSpl
                 }
             }
             if (noMoreSplitsAssignment && finishedSplits.size() == splitStates.size()) {
+                for (PulsarPartitionSplit split : splitStates.values()) {
+                    context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
+                }
                 context.signalNoMoreElement();
                 break;
             }

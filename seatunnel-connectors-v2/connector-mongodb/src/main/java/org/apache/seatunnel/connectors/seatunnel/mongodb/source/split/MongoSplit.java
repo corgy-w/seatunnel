@@ -18,11 +18,13 @@
 package org.apache.seatunnel.connectors.seatunnel.mongodb.source.split;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import org.bson.BsonDocument;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
 /** MongoSplit is composed a query and a start offset. */
 @Getter
@@ -36,6 +38,10 @@ public class MongoSplit implements SourceSplit {
     private final BsonDocument projection;
 
     private final long startOffset;
+    private final TablePath tablePath;
+
+    private final int index;
+    @Setter private int splitCount;
 
     @Override
     public String splitId() {

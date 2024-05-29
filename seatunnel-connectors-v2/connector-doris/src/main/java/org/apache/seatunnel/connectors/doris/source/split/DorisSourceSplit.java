@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.doris.source.split;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.doris.rest.PartitionDefinition;
 
 import lombok.AllArgsConstructor;
@@ -35,6 +36,14 @@ public class DorisSourceSplit implements SourceSplit {
     private final PartitionDefinition partitionDefinition;
 
     private final String splitId;
+
+    private final int index;
+    private final int splitCount;
+
+    @Override
+    public TablePath getTablePath() {
+        return TablePath.of(partitionDefinition.getDatabase(), partitionDefinition.getTable());
+    }
 
     @Override
     public String splitId() {

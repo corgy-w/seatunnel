@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.clickhouse.source;
 
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.util.TypeConvertUtil;
@@ -94,6 +95,9 @@ public class ClickhouseSourceReader implements SourceReader<SeaTunnelRow, Clickh
                                     }
                                     output.collect(new SeaTunnelRow(values));
                                 });
+            }
+            for (ClickhouseSourceSplit split : splits) {
+                readerContext.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             }
             this.readerContext.signalNoMoreElement();
             this.splits.clear();

@@ -99,7 +99,9 @@ public enum SampleBucketSplitStrategy implements SplitStrategy {
                         collectionId,
                         rowType,
                         minLowerBoundOfId(),
-                        boundOfId(lowerBoundOfBucket(chunks.get(0))));
+                        boundOfId(lowerBoundOfBucket(chunks.get(0))),
+                        0,
+                        chunks.size() + 2);
         snapshotSplits.add(firstSplit);
 
         for (int i = 0; i < chunks.size(); i++) {
@@ -110,7 +112,9 @@ public enum SampleBucketSplitStrategy implements SplitStrategy {
                             collectionId,
                             rowType,
                             boundOfId(lowerBoundOfBucket(bucket)),
-                            boundOfId(upperBoundOfBucket(bucket))));
+                            boundOfId(upperBoundOfBucket(bucket)),
+                            i + 1,
+                            chunks.size() + 2));
         }
 
         SnapshotSplit lastSplit =
@@ -119,7 +123,9 @@ public enum SampleBucketSplitStrategy implements SplitStrategy {
                         collectionId,
                         rowType,
                         boundOfId(upperBoundOfBucket(chunks.get(chunks.size() - 1))),
-                        maxUpperBoundOfId());
+                        maxUpperBoundOfId(),
+                        chunks.size() + 1,
+                        chunks.size() + 2);
         snapshotSplits.add(lastSplit);
 
         return snapshotSplits;

@@ -19,7 +19,9 @@ package org.apache.seatunnel.connectors.seatunnel.maxcompute.source;
 
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.connectors.seatunnel.maxcompute.util.MaxcomputeUtil;
 
 import com.aliyun.odps.tunnel.TableTunnel;
@@ -44,6 +46,7 @@ public class MaxcomputeSourceSplitEnumerator
     private final Map<Integer, Set<MaxcomputeSourceSplit>> pendingSplits;
     private Set<MaxcomputeSourceSplit> assignedSplits;
     private Config pluginConfig;
+    private final EnumeratorEventRecorder eventRecorder;
 
     public MaxcomputeSourceSplitEnumerator(
             SourceSplitEnumerator.Context<MaxcomputeSourceSplit> enumeratorContext,
@@ -52,6 +55,7 @@ public class MaxcomputeSourceSplitEnumerator
         this.pluginConfig = pluginConfig;
         this.pendingSplits = new HashMap<>();
         this.assignedSplits = new HashSet<>();
+        this.eventRecorder = new EnumeratorEventRecorder(enumeratorContext);
     }
 
     public MaxcomputeSourceSplitEnumerator(
@@ -112,13 +116,25 @@ public class MaxcomputeSourceSplitEnumerator
             int readerStart = i * splitRowNum;
             int readerEnd = (int) Math.min((i + 1) * splitRowNum, recordCount);
             for (int num = readerStart; num < readerEnd; num += splitRow) {
-                allSplit.add(new MaxcomputeSourceSplit(num, Math.min(splitRow, readerEnd - num)));
+                allSplit.add(
+                        new MaxcomputeSourceSplit(
+                                num, Math.min(splitRow, readerEnd - num), num, -1));
             }
         }
+        Set<MaxcomputeSourceSplit> finalAllSplit = allSplit;
+        allSplit.forEach(split -> split.setSplitCount(finalAllSplit.size()));
+        // reindex hashcode
+        allSplit = new HashSet<>(allSplit);
         assignedSplits.forEach(allSplit::remove);
+        eventRecorder.addTableSplit(null, allSplit.size());
         addSplitChangeToPendingAssignments(allSplit);
         log.debug("Assigned {} to {} readers.", allSplit, numReaders);
         log.info("Calculated splits successfully, the size of splits is {}.", allSplit.size());
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     private void addSplitChangeToPendingAssignments(Collection<MaxcomputeSourceSplit> newSplits) {

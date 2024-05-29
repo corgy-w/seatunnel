@@ -20,9 +20,11 @@ package org.apache.seatunnel.connectors.seatunnel.http.source;
 import org.apache.seatunnel.api.serialization.DeserializationSchema;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.connectors.seatunnel.common.source.AbstractSingleSplitReader;
+import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplit;
 import org.apache.seatunnel.connectors.seatunnel.common.source.SingleSplitReaderContext;
 import org.apache.seatunnel.connectors.seatunnel.http.client.HttpClientProvider;
 import org.apache.seatunnel.connectors.seatunnel.http.client.HttpResponse;
@@ -176,6 +178,8 @@ public class HttpSourceReader extends AbstractSingleSplitReader<SeaTunnelRow> {
             if (Boundedness.BOUNDED.equals(context.getBoundedness()) && noMoreElementFlag) {
                 // signal to the source that we have reached the end of the data.
                 log.info("Closed the bounded http source");
+                context.sendSourceEventToEnumerator(
+                        new ReaderSplitFinishedEvent(new SingleSplit()));
                 context.signalNoMoreElement();
             } else {
                 if (httpParameter.getPollIntervalMillis() > 0) {

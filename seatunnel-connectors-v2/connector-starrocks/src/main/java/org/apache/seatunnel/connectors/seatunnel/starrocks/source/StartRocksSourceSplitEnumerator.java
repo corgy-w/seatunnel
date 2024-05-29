@@ -17,7 +17,10 @@
 
 package org.apache.seatunnel.connectors.seatunnel.starrocks.source;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.client.source.StarRocksQueryPlanReadClient;
@@ -46,6 +49,7 @@ public class StartRocksSourceSplitEnumerator
     private final Object stateLock = new Object();
     private volatile boolean shouldEnumerate;
     private final Context<StarRocksSourceSplit> context;
+    private final EnumeratorEventRecorder eventRecorder;
 
     public StartRocksSourceSplitEnumerator(
             SourceSplitEnumerator.Context<StarRocksSourceSplit> context,
@@ -70,6 +74,7 @@ public class StartRocksSourceSplitEnumerator
             this.shouldEnumerate = sourceState.isShouldEnumerate();
             this.pendingSplit.putAll(sourceState.getPendingSplit());
         }
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -98,6 +103,11 @@ public class StartRocksSourceSplitEnumerator
             addPendingSplit(splits);
             assignSplit(Collections.singletonList(subtaskId));
         }
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override
@@ -185,8 +195,14 @@ public class StartRocksSourceSplitEnumerator
         for (int i = 0; i < partitions.size(); i++) {
             sourceSplits.add(
                     new StarRocksSourceSplit(
-                            partitions.get(i), String.valueOf(partitions.get(i).hashCode())));
+                            partitions.get(i),
+                            String.valueOf(partitions.get(i).hashCode()),
+                            i,
+                            partitions.size()));
         }
+        eventRecorder.addTableSplit(
+                TablePath.of(partitions.get(0).getDatabase(), partitions.get(0).getTable()),
+                sourceSplits.size());
         return sourceSplits;
     }
 

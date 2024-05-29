@@ -23,6 +23,7 @@ import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -232,6 +233,7 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                         new HashSet<>(remainingTables),
                         new HashMap<>(),
                         new HashMap<>());
+        EnumeratorEventRecorder eventRecorder = new EnumeratorEventRecorder(enumeratorContext);
         if (sourceConfig.getStartupConfig().getStartupMode() == StartupMode.INITIAL) {
             try {
 
@@ -245,7 +247,8 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                                 remainingTables,
                                 isTableIdCaseSensitive,
                                 dataSourceDialect,
-                                offsetFactory);
+                                offsetFactory,
+                                eventRecorder);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to discover captured tables for enumerator", e);
             }
@@ -255,7 +258,7 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                             assignerContext, incrementalParallelism, offsetFactory);
         }
 
-        return new IncrementalSourceEnumerator(enumeratorContext, splitAssigner);
+        return new IncrementalSourceEnumerator(enumeratorContext, splitAssigner, eventRecorder);
     }
 
     @Override
@@ -272,6 +275,7 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                 new HashSet<>(dataSourceDialect.discoverDataCollections(sourceConfig));
 
         final SplitAssigner splitAssigner;
+        EnumeratorEventRecorder eventRecorder = new EnumeratorEventRecorder(enumeratorContext);
         if (checkpointState instanceof HybridPendingSplitsState) {
             checkpointState = restore(capturedTables, (HybridPendingSplitsState) checkpointState);
             SnapshotPhaseState checkpointSnapshotState =
@@ -289,7 +293,8 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                             incrementalParallelism,
                             (HybridPendingSplitsState) checkpointState,
                             dataSourceDialect,
-                            offsetFactory);
+                            offsetFactory,
+                            eventRecorder);
         } else if (checkpointState instanceof IncrementalPhaseState) {
             SplitAssigner.Context<C> assignerContext =
                     new SplitAssigner.Context<>(
@@ -301,7 +306,7 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
             throw new UnsupportedOperationException(
                     "Unsupported restored PendingSplitsState: " + checkpointState);
         }
-        return new IncrementalSourceEnumerator(enumeratorContext, splitAssigner);
+        return new IncrementalSourceEnumerator(enumeratorContext, splitAssigner, eventRecorder);
     }
 
     private HybridPendingSplitsState restore(

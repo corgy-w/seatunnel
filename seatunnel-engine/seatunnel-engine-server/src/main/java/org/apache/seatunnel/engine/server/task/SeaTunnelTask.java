@@ -229,7 +229,8 @@ public abstract class SeaTunnelTask extends AbstractTask {
                                 ((SinkConfig) f.getConfig()).getCommitterTask(),
                                 ((SinkConfig) f.getConfig()).isContainCommitter(),
                                 completableFuture,
-                                this.getMetricsContext());
+                                this.getMetricsContext(),
+                                eventListener);
             } else if (f.getAction() instanceof TransformChainAction) {
                 lifeCycle =
                         new TransformFlowLifeCycle<SeaTunnelRow>(
