@@ -104,7 +104,7 @@ public class DataStatisticsRecorder {
             delete.remove(table);
             update.remove(table);
             ddl.remove(table);
-            if (i + d + u + dd > 0) {
+            if (r + i + d + u + dd > 0) {
                 if (pluginType.equals(PluginType.SOURCE)) {
                     eventListener.onEvent(
                             new DataReadStatisticsEvent(
