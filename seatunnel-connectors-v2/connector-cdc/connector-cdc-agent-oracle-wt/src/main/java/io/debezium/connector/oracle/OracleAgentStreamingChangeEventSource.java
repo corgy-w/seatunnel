@@ -94,7 +94,8 @@ public class OracleAgentStreamingChangeEventSource
         this.context = context;
         try {
             log.info(
-                    "Start {} from fzsFileNumber={}, scn={}",
+                    "[{}] Start {} from fzsFileNumber={}, scn={}",
+                    tables,
                     getClass().getName(),
                     offsetContext.getFzsFileNumber(),
                     offsetContext.getScn());
@@ -103,11 +104,15 @@ public class OracleAgentStreamingChangeEventSource
                     OracleAgentClientFactory.getOrCreateStartedSocketClient(
                             sourceConfig.getOracleAgentHost(), sourceConfig.getOracleAgentPort());
             Integer currentFzsFileNumber = offsetContext.getFzsFileNumber();
+            log.info("The current fzs file number is: {}", currentFzsFileNumber);
             if (offsetContext.getFzsFileNumber() == 0) {
                 currentFzsFileNumber =
                         OracleAgentClientUtils.currentMinFzsFileNumber(
                                 oracle9BridgeClient,
                                 new OracleTransactionFileNumberFetchRequest(tableOwners, tables));
+                log.info(
+                        "The fzs file number from offset is 0, fetched the currentFzsFileNumber: {} from agent",
+                        currentFzsFileNumber);
             }
 
             while (context.isRunning()) {
@@ -142,12 +147,20 @@ public class OracleAgentStreamingChangeEventSource
                 Scn preScn = offsetContext.getScn();
                 if (offsetContext.getScn().compareTo(preScn) != 1) {
                     eventDispatcher.dispatchHeartbeatEvent(offsetContext);
+                } else {
+                    log.info("[{}] The scn is invalided, will skip the event: {}", tables, preScn);
                 }
+                log.info(
+                        "[{}] Success fetch data: {} from the OracleAgent: {} file, increase fzs file number to: {}",
+                        tables,
+                        oracleTransactionData.size(),
+                        currentFzsFileNumber,
+                        currentFzsFileNumber + 1);
                 currentFzsFileNumber++;
                 Thread.sleep(pollInterval);
             }
         } catch (Exception e) {
-            log.error("Fzs fetch task stopped due to the {}", e.getMessage(), e);
+            log.error("[{}] Fzs fetch task stopped", tables, e);
             errorHandler.setProducerThrowable(e);
         }
     }
