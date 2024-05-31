@@ -34,7 +34,7 @@ public class ConsoleSinkFactory implements TableSinkFactory {
     public static final Option<Boolean> LOG_PRINT_DATA =
             Options.key("log.print.data")
                     .booleanType()
-                    .defaultValue(false)
+                    .defaultValue(true)
                     .withDescription(
                             "Flag to determine whether data should be printed in the logs.");
 

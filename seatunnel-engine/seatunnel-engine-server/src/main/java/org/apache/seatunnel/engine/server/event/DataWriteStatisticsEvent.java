@@ -30,6 +30,7 @@ import lombok.ToString;
 @ToString
 public class DataWriteStatisticsEvent implements Event {
 
+    private long read;
     private long insert;
     private long delete;
     private long update;
@@ -40,12 +41,19 @@ public class DataWriteStatisticsEvent implements Event {
     private long taskId;
 
     public DataWriteStatisticsEvent(
-            TablePath tablePath, long insert, long delete, long update, long ddl, long taskId) {
+            TablePath tablePath,
+            long read,
+            long insert,
+            long delete,
+            long update,
+            long ddl,
+            long taskId) {
         if (tablePath != null) {
             this.databaseName = tablePath.getDatabaseName();
             this.schemaName = tablePath.getSchemaName();
             this.tableName = tablePath.getTableName();
         }
+        this.read = read;
         this.insert = insert;
         this.delete = delete;
         this.update = update;

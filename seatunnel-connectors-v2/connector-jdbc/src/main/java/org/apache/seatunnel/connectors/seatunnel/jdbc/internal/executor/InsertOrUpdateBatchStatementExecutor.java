@@ -133,6 +133,7 @@ public class InsertOrUpdateBatchStatementExecutor
         }
         switch (record.getRowKind()) {
             case INSERT:
+            case READ:
                 return false;
             case UPDATE_AFTER:
                 return true;

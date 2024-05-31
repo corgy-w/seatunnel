@@ -69,6 +69,7 @@ public class InsertOrUpdateBatchStatementExecutor implements JdbcBatchStatementE
         }
         switch (record.getRowKind()) {
             case INSERT:
+            case READ:
                 return true;
             case UPDATE_AFTER:
                 return false;

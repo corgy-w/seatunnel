@@ -32,6 +32,7 @@ public enum StarRocksSinkOP {
     static StarRocksSinkOP parse(RowKind kind) {
         switch (kind) {
             case INSERT:
+            case READ:
             case UPDATE_AFTER:
                 return UPSERT;
             case DELETE:

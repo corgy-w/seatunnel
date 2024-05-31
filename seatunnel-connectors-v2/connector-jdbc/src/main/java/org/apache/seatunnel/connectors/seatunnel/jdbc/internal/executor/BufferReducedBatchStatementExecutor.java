@@ -106,6 +106,7 @@ public class BufferReducedBatchStatementExecutor
     private boolean changeFlag(RowKind rowKind) {
         switch (rowKind) {
             case INSERT:
+            case READ:
             case UPDATE_AFTER:
                 return true;
             case DELETE:

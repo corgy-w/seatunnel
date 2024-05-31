@@ -30,6 +30,7 @@ import lombok.ToString;
 @ToString
 public class DataReadStatisticsEvent implements Event {
 
+    private long read;
     private long insert;
     private long delete;
     private long update;
@@ -40,7 +41,14 @@ public class DataReadStatisticsEvent implements Event {
     private long taskId;
 
     public DataReadStatisticsEvent(
-            TablePath tablePath, long insert, long delete, long update, long ddl, long taskId) {
+            TablePath tablePath,
+            long read,
+            long insert,
+            long delete,
+            long update,
+            long ddl,
+            long taskId) {
+        this.read = read;
         this.insert = insert;
         this.delete = delete;
         this.update = update;

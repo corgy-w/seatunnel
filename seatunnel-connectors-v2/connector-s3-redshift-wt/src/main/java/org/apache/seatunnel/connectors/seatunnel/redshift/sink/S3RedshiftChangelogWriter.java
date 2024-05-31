@@ -253,7 +253,9 @@ public class S3RedshiftChangelogWriter extends BaseFileSinkWriter {
             return;
         }
 
-        if (appendOnly && RowKind.INSERT.equals(element.getRowKind())) {
+        if (appendOnly
+                && (RowKind.INSERT.equals(element.getRowKind())
+                        || RowKind.READ.equals(element.getRowKind()))) {
             writeStrategy.write(element);
         } else {
             if (appendOnly) {
@@ -270,6 +272,7 @@ public class S3RedshiftChangelogWriter extends BaseFileSinkWriter {
     private void writeMemoryTable(SeaTunnelRow element) throws IOException {
         switch (element.getRowKind()) {
             case INSERT:
+            case READ:
             case UPDATE_AFTER:
             case DELETE:
                 memoryTable.put(keyExtractor.apply(element), element);

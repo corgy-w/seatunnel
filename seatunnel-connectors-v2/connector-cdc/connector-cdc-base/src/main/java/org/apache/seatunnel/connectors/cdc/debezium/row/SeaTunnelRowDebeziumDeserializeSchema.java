@@ -179,11 +179,16 @@ public final class SeaTunnelRowDebeziumDeserializeSchema
             converters = tableRowConverters.get(DEFAULT_TABLE_NAME_KEY);
         }
 
-        if (operation == Envelope.Operation.CREATE || operation == Envelope.Operation.READ) {
+        if (operation == Envelope.Operation.CREATE) {
             SeaTunnelRow insert = extractAfterRow(converters, record, messageStruct, valueSchema);
             insert.setRowKind(RowKind.INSERT);
             insert.setTableId(tableId);
             collector.collect(insert);
+        } else if (operation == Envelope.Operation.READ) {
+            SeaTunnelRow read = extractAfterRow(converters, record, messageStruct, valueSchema);
+            read.setRowKind(RowKind.READ);
+            read.setTableId(tableId);
+            collector.collect(read);
         } else if (operation == Envelope.Operation.DELETE) {
             SeaTunnelRow delete = extractBeforeRow(converters, record, messageStruct, valueSchema);
             delete.setRowKind(RowKind.DELETE);

@@ -93,7 +93,7 @@ public class DwsGaussDBUsingTemporaryTableSinkWriter
         dwsGaussDBMemoryTable.write(element);
         // If the row kind is not INSERT, means this is in cdc incremental mode
         // We need to write the data to temporary table and merge to target table
-        if (element.getRowKind() != RowKind.INSERT) {
+        if (element.getRowKind() != RowKind.INSERT && element.getRowKind() != RowKind.READ) {
             directlyCopyToTargetTable = false;
         }
         if (dwsGaussDBMemoryTable.size() > batchSize) {

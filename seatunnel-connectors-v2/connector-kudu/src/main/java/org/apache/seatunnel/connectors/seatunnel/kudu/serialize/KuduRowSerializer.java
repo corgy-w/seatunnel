@@ -52,6 +52,7 @@ public class KuduRowSerializer implements SeaTunnelRowSerializer {
         Operation operation;
         switch (row.getRowKind()) {
             case INSERT:
+            case READ:
                 if (saveMode == KuduSinkConfig.SaveMode.OVERWRITE) {
                     operation = kuduTable.newUpsert();
                     break;

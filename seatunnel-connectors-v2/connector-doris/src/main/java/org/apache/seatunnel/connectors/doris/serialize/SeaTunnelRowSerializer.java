@@ -96,7 +96,9 @@ public class SeaTunnelRowSerializer extends SeaTunnelRowConverter implements Dor
     }
 
     public String parseDeleteSign(RowKind rowKind) {
-        if (RowKind.INSERT.equals(rowKind) || RowKind.UPDATE_AFTER.equals(rowKind)) {
+        if (RowKind.INSERT.equals(rowKind)
+                || RowKind.UPDATE_AFTER.equals(rowKind)
+                || RowKind.READ.equals(rowKind)) {
             return "0";
         } else if (RowKind.DELETE.equals(rowKind) || RowKind.UPDATE_BEFORE.equals(rowKind)) {
             return "1";

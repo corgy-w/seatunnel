@@ -69,6 +69,7 @@ public class ElasticsearchRowSerializer implements SeaTunnelRowSerializer {
     public String serializeRow(SeaTunnelRow row) {
         switch (row.getRowKind()) {
             case INSERT:
+            case READ:
             case UPDATE_AFTER:
                 return serializeUpsert(row);
             case UPDATE_BEFORE:

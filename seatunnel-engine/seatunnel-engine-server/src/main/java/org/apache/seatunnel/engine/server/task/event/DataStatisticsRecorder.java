@@ -33,6 +33,7 @@ import java.util.Set;
 
 public class DataStatisticsRecorder {
 
+    private final Map<String, Long> read;
     private final Map<String, Long> insert;
     private final Map<String, Long> delete;
     private final Map<String, Long> update;
@@ -46,6 +47,7 @@ public class DataStatisticsRecorder {
 
     public DataStatisticsRecorder(
             EventListener eventListener, TaskLocation taskLocation, PluginType pluginType) {
+        this.read = new HashMap<>();
         this.insert = new HashMap<>();
         this.delete = new HashMap<>();
         this.update = new HashMap<>();
@@ -63,6 +65,9 @@ public class DataStatisticsRecorder {
         switch (row.getRowKind()) {
             case INSERT:
                 insert.put(tablePath, insert.getOrDefault(tablePath, 0L) + 1);
+                break;
+            case READ:
+                read.put(tablePath, read.getOrDefault(tablePath, 0L) + 1);
                 break;
             case DELETE:
                 delete.put(tablePath, delete.getOrDefault(tablePath, 0L) + 1);
@@ -89,10 +94,12 @@ public class DataStatisticsRecorder {
 
     public synchronized void timeToSendStatistics() {
         for (String table : tables) {
+            long r = read.getOrDefault(table, 0L);
             long i = insert.getOrDefault(table, 0L);
             long d = delete.getOrDefault(table, 0L);
             long u = update.getOrDefault(table, 0L);
             long dd = ddl.getOrDefault(table, 0L);
+            read.remove(table);
             insert.remove(table);
             delete.remove(table);
             update.remove(table);
@@ -102,6 +109,7 @@ public class DataStatisticsRecorder {
                     eventListener.onEvent(
                             new DataReadStatisticsEvent(
                                     table != null ? TablePath.of(table) : null,
+                                    r,
                                     i,
                                     d,
                                     u,
@@ -111,6 +119,7 @@ public class DataStatisticsRecorder {
                     eventListener.onEvent(
                             new DataWriteStatisticsEvent(
                                     table != null ? TablePath.of(table) : null,
+                                    r,
                                     i,
                                     d,
                                     u,

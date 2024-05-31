@@ -25,6 +25,9 @@ public enum RowKind {
     /** Insertion operation. */
     INSERT("+I", (byte) 0),
 
+    /** Read operation. Only came from CDC snapshot phase */
+    READ("+R", (byte) 4),
+
     /**
      * Update operation with the previous content of the updated row.
      *
@@ -109,6 +112,8 @@ public enum RowKind {
                 return UPDATE_AFTER;
             case 3:
                 return DELETE;
+            case 4:
+                return READ;
             default:
                 throw new UnsupportedOperationException(
                         "Unsupported byte value '" + value + "' for row kind.");

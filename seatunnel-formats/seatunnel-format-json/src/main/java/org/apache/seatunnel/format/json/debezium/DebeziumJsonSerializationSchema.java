@@ -48,6 +48,7 @@ public class DebeziumJsonSerializationSchema implements SerializationSchema {
         try {
             switch (row.getRowKind()) {
                 case INSERT:
+                case READ:
                 case UPDATE_AFTER:
                     genericRow.setField(0, null);
                     genericRow.setField(1, row);

@@ -63,6 +63,7 @@ public class OggJsonSerializationSchema implements SerializationSchema {
         switch (rowKind) {
             case INSERT:
             case UPDATE_AFTER:
+            case READ:
                 return OP_INSERT;
             case UPDATE_BEFORE:
             case DELETE:

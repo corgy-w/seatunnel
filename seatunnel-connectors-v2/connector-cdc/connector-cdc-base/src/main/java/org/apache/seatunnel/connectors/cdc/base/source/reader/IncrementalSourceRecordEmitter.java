@@ -139,7 +139,7 @@ public class IncrementalSourceRecordEmitter<T>
                 recordEmitDelayMax.set(emitDelay);
             }
             // report avg emit delay
-            recordEmitDelayAvg.markEvent(emitDelay);
+            recordEmitDelayAvg.markEvent(emitDelay > 0 ? emitDelay : 0);
 
             // limit the emit event frequency
             if (delayedEventLimiter.acquire(messageTimestamp)) {

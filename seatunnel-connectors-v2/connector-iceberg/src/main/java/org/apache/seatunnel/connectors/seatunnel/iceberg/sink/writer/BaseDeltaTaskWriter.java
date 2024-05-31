@@ -83,6 +83,7 @@ abstract class BaseDeltaTaskWriter extends BaseTaskWriter<Record> {
         RowDataDeltaWriter writer = route(row);
         switch (row.getRowKind()) {
             case INSERT:
+            case READ:
             case UPDATE_AFTER:
                 if (upsert) {
                     writer.deleteKey(keyProjection.wrap(row));

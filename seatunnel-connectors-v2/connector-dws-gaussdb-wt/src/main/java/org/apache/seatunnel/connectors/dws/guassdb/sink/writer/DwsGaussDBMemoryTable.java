@@ -50,6 +50,7 @@ public class DwsGaussDBMemoryTable {
                 // todo: how to deal with update before
                 break;
             case INSERT:
+            case READ:
             case UPDATE_AFTER:
                 deleteRows.remove(primaryKey);
                 upsertRows.put(primaryKey, element);
