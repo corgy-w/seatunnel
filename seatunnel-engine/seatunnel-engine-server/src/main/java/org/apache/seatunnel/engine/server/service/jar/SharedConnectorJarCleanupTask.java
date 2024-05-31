@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.TimerTask;
 import java.util.function.Consumer;
 
-import static org.apache.curator.shaded.com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /*
 Cleanup task for shared connector jar package.

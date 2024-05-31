@@ -87,6 +87,11 @@ public class ConnectorPackageServiceContainer extends AbstractTestContainer {
                                 + "/seatunnel-shade/seatunnel-hadoop3-3.3.6-uber/target/seatunnel-hadoop3-3.3.6-uber.jar"),
                 Paths.get(SEATUNNEL_HOME, "starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar")
                         .toString());
+        server1.withCopyFileToContainer(
+                MountableFile.forHostPath(
+                        PROJECT_ROOT_PATH
+                                + "/seatunnel-e2e/seatunnel-engine-e2e/connector-seatunnel-e2e-base/src/test/resources/whaletunnel.license"),
+                "/etc/seatunnel/whaletunnel.license");
 
         server2 =
                 new GenericContainer<>(getDockerImage())
@@ -114,6 +119,11 @@ public class ConnectorPackageServiceContainer extends AbstractTestContainer {
                                 + "/seatunnel-shade/seatunnel-hadoop3-3.3.6-uber/target/seatunnel-hadoop3-3.3.6-uber.jar"),
                 Paths.get(SEATUNNEL_HOME, "starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar")
                         .toString());
+        server2.withCopyFileToContainer(
+                MountableFile.forHostPath(
+                        PROJECT_ROOT_PATH
+                                + "/seatunnel-e2e/seatunnel-engine-e2e/connector-seatunnel-e2e-base/src/test/resources/whaletunnel.license"),
+                "/etc/seatunnel/whaletunnel.license");
 
         server3 =
                 new GenericContainer<>(getDockerImage())
@@ -141,6 +151,11 @@ public class ConnectorPackageServiceContainer extends AbstractTestContainer {
                                 + "/seatunnel-shade/seatunnel-hadoop3-3.3.6-uber/target/seatunnel-hadoop3-3.3.6-uber.jar"),
                 Paths.get(SEATUNNEL_HOME, "starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar")
                         .toString());
+        server3.withCopyFileToContainer(
+                MountableFile.forHostPath(
+                        PROJECT_ROOT_PATH
+                                + "/seatunnel-e2e/seatunnel-engine-e2e/connector-seatunnel-e2e-base/src/test/resources/whaletunnel.license"),
+                "/etc/seatunnel/whaletunnel.license");
 
         Startables.deepStart(Stream.of(server1)).join();
         Startables.deepStart(Stream.of(server2)).join();
