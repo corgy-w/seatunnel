@@ -97,7 +97,7 @@ public class XuguDialect implements JdbcDialect {
 
     @Override
     public String tableIdentifier(TablePath tablePath) {
-        return tablePath.getSchemaAndTableName();
+        return quoteIdentifier(tablePath.getSchemaAndTableName());
     }
 
     @Override
@@ -207,7 +207,7 @@ public class XuguDialect implements JdbcDialect {
                                     + ") WHERE ROWNUM <= %s",
                             quotedColumn,
                             quotedColumn,
-                            table.getTablePath().getSchemaAndTableName(),
+                            tableIdentifier(table.getTablePath()),
                             quotedColumn,
                             quotedColumn,
                             chunkSize);

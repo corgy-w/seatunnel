@@ -102,7 +102,7 @@ public class IrisDialect implements JdbcDialect {
 
     @Override
     public String tableIdentifier(TablePath tablePath) {
-        return tablePath.getSchemaAndTableName();
+        return quoteIdentifier(tablePath.getSchemaAndTableName());
     }
 
     @Override
@@ -176,7 +176,7 @@ public class IrisDialect implements JdbcDialect {
                             quotedColumn,
                             chunkSize,
                             quotedColumn,
-                            table.getTablePath().getSchemaAndTableName(),
+                            tableIdentifier(table.getTablePath()),
                             quotedColumn,
                             quotedColumn);
         }

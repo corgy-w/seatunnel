@@ -244,7 +244,7 @@ public class MysqlDialect implements JdbcDialect {
                                     String sql =
                                             String.format(
                                                     "alter table %s CHANGE %s %s",
-                                                    tablePath.getFullName(),
+                                                    tableIdentifier(tablePath),
                                                     ((AlterTableChangeColumnEvent) column)
                                                             .getOldColumn(),
                                                     this.buildColumnIdentifySql(
@@ -258,7 +258,7 @@ public class MysqlDialect implements JdbcDialect {
                                     String sql =
                                             String.format(
                                                     "alter table %s MODIFY COLUMN %s DEFAULT %s ",
-                                                    tablePath.getFullName(),
+                                                    tableIdentifier(tablePath),
                                                     this.buildColumnIdentifySql(
                                                             column.tableIdentifier()
                                                                     .getCatalogName(),
@@ -274,7 +274,7 @@ public class MysqlDialect implements JdbcDialect {
                                     String sql =
                                             String.format(
                                                     "alter table %s add column %s DEFAULT %s ",
-                                                    tablePath.getFullName(),
+                                                    tableIdentifier(tablePath),
                                                     this.buildColumnIdentifySql(
                                                             column.tableIdentifier()
                                                                     .getCatalogName(),
@@ -290,7 +290,7 @@ public class MysqlDialect implements JdbcDialect {
                                     String sql =
                                             String.format(
                                                     "alter table %s drop column %s",
-                                                    tablePath.getFullName(),
+                                                    tableIdentifier(tablePath),
                                                     ((AlterTableDropColumnEvent) column)
                                                             .getColumn());
                                     sqlList.add(sql);

@@ -153,7 +153,7 @@ public class DmdbDialect implements JdbcDialect {
 
     @Override
     public String tableIdentifier(TablePath tablePath) {
-        return tablePath.getSchemaAndTableName();
+        return quoteIdentifier(tablePath.getSchemaAndTableName());
     }
 
     // Compatibility Both database = mode and table-names = schema.tableName are configured
