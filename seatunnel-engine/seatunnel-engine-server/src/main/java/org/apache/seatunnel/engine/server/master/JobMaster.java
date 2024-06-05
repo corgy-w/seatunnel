@@ -216,11 +216,6 @@ public class JobMaster {
                         nodeEngine.getSerializationService(),
                         classLoader,
                         jobImmutableInformation.getLogicalDag());
-        seaTunnelServer
-                .getClassLoaderService()
-                .releaseClassLoader(
-                        jobImmutableInformation.getJobId(),
-                        jobImmutableInformation.getPluginJarsUrls());
 
         final Tuple2<PhysicalPlan, Map<Integer, CheckpointPlan>> planTuple =
                 PlanUtils.fromLogicalDAG(
@@ -234,6 +229,11 @@ public class JobMaster {
                         runningJobStateTimestampsIMap,
                         engineConfig.getQueueType(),
                         engineConfig);
+        seaTunnelServer
+                .getClassLoaderService()
+                .releaseClassLoader(
+                        jobImmutableInformation.getJobId(),
+                        jobImmutableInformation.getPluginJarsUrls());
         // revert to app class loader, it may be changed by PlanUtils.fromLogicalDAG
         Thread.currentThread().setContextClassLoader(appClassLoader);
         this.physicalPlan = planTuple.f0();
@@ -472,6 +472,7 @@ public class JobMaster {
     }
 
     public void cleanJob() {
+        checkpointManager.clearCheckpointIfNeed(physicalPlan.getJobStatus());
         jobHistoryService.storeJobInfo(jobImmutableInformation.getJobId(), getJobDAGInfo());
         jobHistoryService.storeFinishedJobState(this);
         removeJobIMap();

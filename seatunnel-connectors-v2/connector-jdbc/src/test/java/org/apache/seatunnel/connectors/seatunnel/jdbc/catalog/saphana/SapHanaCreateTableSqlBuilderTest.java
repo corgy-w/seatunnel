@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.sql;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.saphana;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
@@ -26,28 +26,19 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
-import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.mysql.MysqlCreateTableSqlBuilder;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.mysql.MySqlTypeConverter;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Lists;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
-public class MysqlCreateTableSqlBuilderTest {
-
-    private static final PrintStream CONSOLE = System.out;
+public class SapHanaCreateTableSqlBuilderTest {
 
     @Test
     public void testBuild() {
-        // todo
         String dataBaseName = "test_database";
         String tableName = "test_table";
         TablePath tablePath = TablePath.of(dataBaseName, tableName);
@@ -60,14 +51,6 @@ public class MysqlCreateTableSqlBuilderTest {
                         .column(
                                 PhysicalColumn.of(
                                         "age", BasicType.INT_TYPE, (Long) null, true, null, "age"))
-                        .column(
-                                PhysicalColumn.of(
-                                        "blob_v",
-                                        PrimitiveByteArrayType.INSTANCE,
-                                        Long.MAX_VALUE,
-                                        true,
-                                        null,
-                                        "blob_v"))
                         .column(
                                 PhysicalColumn.of(
                                         "createTime",
@@ -84,23 +67,14 @@ public class MysqlCreateTableSqlBuilderTest {
                                         true,
                                         null,
                                         "lastUpdateTime"))
-                        .primaryKey(
-                                PrimaryKey.of(
-                                        "id", com.google.common.collect.Lists.newArrayList("id")))
+                        .primaryKey(PrimaryKey.of("id", Lists.newArrayList("id")))
                         .constraintKey(
-                                Arrays.asList(
-                                        ConstraintKey.of(
-                                                ConstraintKey.ConstraintType.INDEX_KEY,
-                                                "name",
-                                                Lists.newArrayList(
-                                                        ConstraintKey.ConstraintKeyColumn.of(
-                                                                "name", null))),
-                                        ConstraintKey.of(
-                                                ConstraintKey.ConstraintType.INDEX_KEY,
-                                                "blob_v",
-                                                Lists.newArrayList(
-                                                        ConstraintKey.ConstraintKeyColumn.of(
-                                                                "blob_v", null)))))
+                                ConstraintKey.of(
+                                        ConstraintKey.ConstraintType.UNIQUE_KEY,
+                                        "name",
+                                        Lists.newArrayList(
+                                                ConstraintKey.ConstraintKeyColumn.of(
+                                                        "name", null))))
                         .build();
         CatalogTable catalogTable =
                 CatalogTable.of(
@@ -110,25 +84,17 @@ public class MysqlCreateTableSqlBuilderTest {
                         new ArrayList<>(),
                         "User table");
 
-        String createTableSql =
-                MysqlCreateTableSqlBuilder.builder(
-                                tablePath, catalogTable, MySqlTypeConverter.DEFAULT_INSTANCE)
-                        .build(DatabaseIdentifier.MYSQL);
-        // create table sql is change; The old unit tests are no longer applicable
+        String createTableSql = new SapHanaCreateTableSqlBuilder(catalogTable).build(tablePath);
         String expect =
-                "CREATE TABLE IF NOT EXISTS `test_table` (\n"
-                        + "\t`id` BIGINT NOT NULL COMMENT 'id', \n"
-                        + "\t`name` VARCHAR(128) NOT NULL COMMENT 'name', \n"
-                        + "\t`age` INT NULL COMMENT 'age', \n"
-                        + "\t`blob_v` LONGBLOB NULL COMMENT 'blob_v', \n"
-                        + "\t`createTime` DATETIME NULL COMMENT 'createTime', \n"
-                        + "\t`lastUpdateTime` DATETIME NULL COMMENT 'lastUpdateTime', \n"
-                        + "\tPRIMARY KEY (`id`), \n"
-                        + "\tKEY `name` (`name`), \n"
-                        + "\tKEY `blob_v` (`blob_v`(255))\n"
-                        + ") COMMENT = 'User table';";
-        CONSOLE.println(expect);
-        System.out.println(createTableSql);
+                "CREATE TABLE \"test_database\".\"test_table\" (\n"
+                        + "\"id\" BIGINT NOT NULL COMMENT 'id',\n"
+                        + "\"name\" NVARCHAR(128) NOT NULL COMMENT 'name',\n"
+                        + "\"age\" INTEGER NULL COMMENT 'age',\n"
+                        + "\"createTime\" SECONDDATE NULL COMMENT 'createTime',\n"
+                        + "\"lastUpdateTime\" SECONDDATE NULL COMMENT 'lastUpdateTime',\n"
+                        + "PRIMARY KEY (\"id\"),\n"
+                        + "UNIQUE (\"name\")\n"
+                        + ") COMMENT 'User table'";
         Assertions.assertEquals(expect, createTableSql);
     }
 }

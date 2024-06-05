@@ -376,7 +376,23 @@ jobs:
           fi
         env:
           MAVEN_OPTS: -Xmx2048m
-
+  engine-v2-it:
+    needs: [ changes, sanity-check ]
+    if: needs.changes.outputs.api == 'true'
+    runs-on:
+      labels: wtci
+    strategy:
+      matrix:
+        os: [ 'self-hosted' ]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v2
+      - name: run seatunnel zeta integration test
+        if: needs.changes.outputs.api == 'true'
+        run: |
+          ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-seatunnel-e2e-base,:connector-console-seatunnel-e2e -am -Pci
+        env:
+          MAVEN_OPTS: -Xmx4096m
   transform-v2-it-part-1:
     needs: [ changes, sanity-check ]
     if: needs.changes.outputs.api == 'true'
