@@ -405,15 +405,8 @@ public class SapHanaTypeConverter implements TypeConverter<BasicTypeDefine> {
                 builder.scale(scale);
                 break;
             case BYTES:
-                if (column.getColumnLength() == null
-                        || column.getColumnLength() <= MAX_VARBINARY_LENGTH) {
-                    builder.columnType(HANA_VARBINARY);
-                    builder.dataType(HANA_VARBINARY);
-                    builder.length((long) MAX_VARBINARY_LENGTH);
-                } else {
-                    builder.columnType(HANA_BLOB);
-                    builder.dataType(HANA_BLOB);
-                }
+                builder.columnType(HANA_BLOB);
+                builder.dataType(HANA_BLOB);
                 break;
             case STRING:
                 if (column.getColumnLength() == null

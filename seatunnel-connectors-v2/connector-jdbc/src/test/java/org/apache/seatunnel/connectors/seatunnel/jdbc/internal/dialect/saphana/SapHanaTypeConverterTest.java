@@ -495,8 +495,8 @@ public class SapHanaTypeConverterTest {
 
         BasicTypeDefine typeDefine = SapHanaTypeConverter.INSTANCE.reconvert(column);
         Assertions.assertEquals(column.getName(), typeDefine.getName());
-        Assertions.assertEquals("VARBINARY(5000)", typeDefine.getColumnType());
-        Assertions.assertEquals(SapHanaTypeConverter.HANA_VARBINARY, typeDefine.getDataType());
+        Assertions.assertEquals(SapHanaTypeConverter.HANA_BLOB, typeDefine.getColumnType());
+        Assertions.assertEquals(SapHanaTypeConverter.HANA_BLOB, typeDefine.getDataType());
 
         column =
                 PhysicalColumn.builder()
