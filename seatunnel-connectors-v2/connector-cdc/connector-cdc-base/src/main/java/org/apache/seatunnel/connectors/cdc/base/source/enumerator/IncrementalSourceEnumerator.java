@@ -146,6 +146,8 @@ public class IncrementalSourceEnumerator
                 }
                 LOG.info(
                         "Clean the SnapshotSplitAssigner#assignedSplits/splitCompletedOffsets to empty.");
+            } else {
+                eventRecorder.recordEvent(new SnapshotFinishedEvent());
             }
         }
     }

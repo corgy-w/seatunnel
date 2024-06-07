@@ -240,7 +240,6 @@ public class JobMaster implements DynamicMetricsProvider {
                         classLoader,
                         jobImmutableInformation.getLogicalDag());
         if (!restart
-                && !logicalDag.isStartWithSavePoint()
                 && ReadonlyConfig.fromMap(logicalDag.getJobConfig().getEnvOptions())
                         .get(EnvCommonOptions.SAVEMODE_EXECUTE_LOCATION)
                         .equals(SaveModeExecuteLocation.CLUSTER)) {
@@ -254,7 +253,10 @@ public class JobMaster implements DynamicMetricsProvider {
                         .forEach(
                                 sink ->
                                         this.handleSaveMode(
-                                                jobImmutableInformation.getJobId(), sink, index));
+                                                jobImmutableInformation.getJobId(),
+                                                sink,
+                                                index,
+                                                logicalDag.isStartWithSavePoint()));
             } finally {
                 Thread.currentThread().setContextClassLoader(appClassLoader);
             }
@@ -383,14 +385,19 @@ public class JobMaster implements DynamicMetricsProvider {
         }
     }
 
-    private void handleSaveMode(long jobId, SeaTunnelSink sink, AtomicInteger index) {
+    private void handleSaveMode(
+            long jobId, SeaTunnelSink sink, AtomicInteger index, boolean isStartWithSavePoint) {
         if (sink instanceof SupportSaveMode) {
             Optional<SaveModeHandler> saveModeHandler =
                     ((SupportSaveMode) sink).getSaveModeHandler();
             if (saveModeHandler.isPresent()) {
                 long startTime = System.currentTimeMillis();
                 try (SaveModeHandler handler = saveModeHandler.get()) {
-                    new SaveModeExecuteWrapper(handler).execute();
+                    if (!isStartWithSavePoint) {
+                        new SaveModeExecuteWrapper(handler).execute();
+                    } else {
+                        handler.handleSchemaSaveModeWithRestore();
+                    }
                     long finishedTime = System.currentTimeMillis();
                     reportEventOfSaveMode(
                             jobId,
@@ -410,7 +417,7 @@ public class JobMaster implements DynamicMetricsProvider {
             Map<String, SeaTunnelSink> sinks =
                     (Map<String, SeaTunnelSink>) ReflectionUtils.getField(sink, "sinks").get();
             for (SeaTunnelSink seaTunnelSink : sinks.values()) {
-                handleSaveMode(jobId, seaTunnelSink, index);
+                handleSaveMode(jobId, seaTunnelSink, index, isStartWithSavePoint);
             }
         }
     }

@@ -80,6 +80,7 @@ public class IncrementalSourceRecordEmitter<T>
     protected final Counter recordEmitDelayMax;
     protected final Meter recordEmitDelayAvg;
     protected final EventListener eventListener;
+    private boolean firstTimeInIncrementalPhase = true;
     protected final MessageDelayedEventLimiter delayedEventLimiter =
             new MessageDelayedEventLimiter(Duration.ofSeconds(1), 0.5d);
 
@@ -180,10 +181,17 @@ public class IncrementalSourceRecordEmitter<T>
         if (splitState.isIncrementalSplitState()) {
             IncrementalSplitState incrementalSplitState = splitState.asIncrementalSplitState();
             if (incrementalSplitState.isEnterPureIncrementPhase()) {
+                if (firstTimeInIncrementalPhase) {
+                    firstTimeInIncrementalPhase = false;
+                    CompletedSnapshotPhaseEvent completedSnapshotPhaseEvent =
+                            new CompletedSnapshotPhaseEvent(incrementalSplitState.getTableIds());
+                    context.sendSourceEventToEnumerator(completedSnapshotPhaseEvent);
+                }
                 return;
             }
             Offset position = getOffsetPosition(element);
             if (incrementalSplitState.markEnterPureIncrementPhaseIfNeed(position)) {
+                firstTimeInIncrementalPhase = false;
                 log.info(
                         "The current record position {} is after the maxSnapshotSplitsHighWatermark {}, "
                                 + "mark enter pure increment phase.",

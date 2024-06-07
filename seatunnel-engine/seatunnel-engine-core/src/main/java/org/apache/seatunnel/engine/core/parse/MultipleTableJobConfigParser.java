@@ -704,15 +704,19 @@ public class MultipleTableJobConfigParser {
         }
     }
 
-    public static void handleSchemaSaveModeWithRestore(SeaTunnelSink<?, ?, ?, ?> sink) {
+    public void handleSchemaSaveModeWithRestore(SeaTunnelSink<?, ?, ?, ?> sink) {
         if (SupportSaveMode.class.isAssignableFrom(sink.getClass())) {
             SupportSaveMode saveModeSink = (SupportSaveMode) sink;
-            Optional<SaveModeHandler> saveModeHandler = saveModeSink.getSaveModeHandler();
-            if (saveModeHandler.isPresent()) {
-                try (SaveModeHandler handler = saveModeHandler.get()) {
-                    handler.handleSchemaSaveModeWithRestore();
-                } catch (Exception e) {
-                    throw new SeaTunnelRuntimeException(HANDLE_SAVE_MODE_FAILED, e);
+            if (envOptions
+                    .get(EnvCommonOptions.SAVEMODE_EXECUTE_LOCATION)
+                    .equals(SaveModeExecuteLocation.CLIENT)) {
+                Optional<SaveModeHandler> saveModeHandler = saveModeSink.getSaveModeHandler();
+                if (saveModeHandler.isPresent()) {
+                    try (SaveModeHandler handler = saveModeHandler.get()) {
+                        handler.handleSchemaSaveModeWithRestore();
+                    } catch (Exception e) {
+                        throw new SeaTunnelRuntimeException(HANDLE_SAVE_MODE_FAILED, e);
+                    }
                 }
             }
         }
