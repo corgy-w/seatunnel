@@ -65,7 +65,6 @@ public class ConfigBuilder {
                 adapterSupplier
                         .map(adapter -> of(adapter, filePath))
                         .orElseGet(() -> ofInner(filePath));
-        log.info("Parsed config file: \n{}", config.root().render(CONFIG_RENDER_OPTIONS));
         return config;
     }
 
@@ -84,7 +83,6 @@ public class ConfigBuilder {
         if (!isEncrypt) {
             config = ConfigShadeUtils.decryptConfig(config);
         }
-        log.info("Parsed config file: \n{}", config.root().render(CONFIG_RENDER_OPTIONS));
         return config;
     }
 
