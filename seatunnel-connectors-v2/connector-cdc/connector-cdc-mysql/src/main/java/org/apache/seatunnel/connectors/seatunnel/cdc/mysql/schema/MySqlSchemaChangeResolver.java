@@ -53,11 +53,11 @@ public class MySqlSchemaChangeResolver implements SchemaChangeResolver {
     public boolean support(SourceRecord record) {
         Struct value = (Struct) record.value();
         String ddl = value.getString(HistoryRecord.Fields.DDL_STATEMENTS);
-        List<Struct> tableChanges = value.getArray(HistoryRecord.Fields.TABLE_CHANGES);
         if (ddl == null || !ddl.toUpperCase().contains("ALTER TABLE")) {
             log.debug("Ignoring non-ALTER TABLE statement: {}", ddl);
             return false;
         }
+        List<Struct> tableChanges = value.getArray(HistoryRecord.Fields.TABLE_CHANGES);
         if (tableChanges == null || tableChanges.isEmpty()) {
             log.debug("Ignoring ALTER TABLE statement for non-captured table {}", ddl);
             return false;
