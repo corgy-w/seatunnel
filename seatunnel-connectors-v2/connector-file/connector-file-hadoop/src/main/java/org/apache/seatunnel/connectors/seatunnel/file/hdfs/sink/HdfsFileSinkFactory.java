@@ -67,7 +67,9 @@ public class HdfsFileSinkFactory extends BaseMultipleTableFinkSinkFactory {
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.PARQUET,
-                        BaseSinkConfig.PARQUET_COMPRESS)
+                        BaseSinkConfig.PARQUET_COMPRESS,
+                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
+                        BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96)
                 .optional(BaseSinkConfig.CUSTOM_FILENAME)
                 .conditional(
                         BaseSinkConfig.CUSTOM_FILENAME,

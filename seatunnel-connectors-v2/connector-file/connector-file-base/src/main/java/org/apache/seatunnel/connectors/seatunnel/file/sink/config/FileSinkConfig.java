@@ -23,6 +23,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseFileSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.config.PartitionConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 
@@ -70,6 +71,11 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
     private int maxRowsInMemory;
 
     private String sheetName;
+
+    private Boolean parquetWriteTimestampAsInt96 =
+            BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96.defaultValue();
+    private List<String> parquetAvroWriteFixedAsInt96 =
+            BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.defaultValue();
 
     public FileSinkConfig(@NonNull Config config, @NonNull SeaTunnelRowType seaTunnelRowTypeInfo) {
         super(config);
@@ -194,6 +200,21 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
 
         if (config.hasPath(BaseSinkConfig.SHEET_NAME.key())) {
             this.sheetName = config.getString(BaseSinkConfig.SHEET_NAME.key());
+        }
+
+        if (FileFormat.PARQUET
+                .name()
+                .equalsIgnoreCase(config.getString(BaseSinkConfig.FILE_FORMAT_TYPE.key()))) {
+            if (config.hasPath(BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96.key())) {
+                this.parquetWriteTimestampAsInt96 =
+                        config.getBoolean(
+                                BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96.key());
+            }
+            if (config.hasPath(BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.key())) {
+                this.parquetAvroWriteFixedAsInt96 =
+                        config.getStringList(
+                                BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.key());
+            }
         }
     }
 }
