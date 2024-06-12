@@ -27,7 +27,19 @@
     <properties>
         <hive-jdbc.version>2.1.1-cdh6.3.2</hive-jdbc.version>
         <hadoop.version>3.0.0-cdh6.3.2</hadoop.version>
+        <guava.version>14.0.1</guava.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--  Keep same with hive  -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <dependency>
