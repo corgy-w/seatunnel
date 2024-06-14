@@ -720,7 +720,8 @@ public class JobMaster implements DynamicMetricsProvider {
 
     public void removeMetricsContext(
             PipelineLocation pipelineLocation, PipelineStatus pipelineStatus) {
-        if (pipelineStatus.equals(PipelineStatus.FINISHED) && !checkpointManager.isSavePointEnd()
+        if ((pipelineStatus.equals(PipelineStatus.FINISHED)
+                        && !checkpointManager.isPipelineSavePointEnd(pipelineLocation))
                 || pipelineStatus.equals(PipelineStatus.CANCELED)) {
             try {
                 metricsImap.lock(Constant.IMAP_RUNNING_JOB_METRICS_KEY);
