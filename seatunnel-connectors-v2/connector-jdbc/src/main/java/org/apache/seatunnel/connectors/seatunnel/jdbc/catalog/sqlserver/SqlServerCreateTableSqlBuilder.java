@@ -217,7 +217,8 @@ public class SqlServerCreateTableSqlBuilder {
 
         if (column.getComment() != null) {
             columnComments.put(
-                    CatalogUtils.getFieldIde(column.getName(), fieldIde), column.getComment());
+                    CatalogUtils.getFieldIde(column.getName(), fieldIde),
+                    column.getComment().replace("'", "''"));
         }
 
         return String.join(" ", columnSqls);

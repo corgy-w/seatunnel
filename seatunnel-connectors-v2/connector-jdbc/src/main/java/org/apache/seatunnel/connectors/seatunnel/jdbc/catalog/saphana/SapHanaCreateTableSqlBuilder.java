@@ -128,7 +128,10 @@ public class SapHanaCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuil
         }
 
         if (column.getComment() != null) {
-            columnSql.append(" COMMENT '").append(column.getComment()).append("'");
+            columnSql
+                    .append(" COMMENT '")
+                    .append(column.getComment().replace("'", "''"))
+                    .append("'");
         }
 
         return columnSql.toString();

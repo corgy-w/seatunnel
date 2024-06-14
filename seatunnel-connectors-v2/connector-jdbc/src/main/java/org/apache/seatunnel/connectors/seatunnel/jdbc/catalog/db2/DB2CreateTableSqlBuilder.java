@@ -144,7 +144,7 @@ public class DB2CreateTableSqlBuilder {
         columnCommentSql
                 .append(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "\""))
                 .append(CatalogUtils.quoteIdentifier(" IS '", fieldIde))
-                .append(column.getComment())
+                .append(column.getComment().replace("'", "''"))
                 .append("'");
         return columnCommentSql.toString();
     }
