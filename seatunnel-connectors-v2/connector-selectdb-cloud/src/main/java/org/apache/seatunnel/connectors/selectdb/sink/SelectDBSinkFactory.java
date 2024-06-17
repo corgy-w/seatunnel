@@ -53,8 +53,6 @@ import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHE
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.BASE_URL;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.CLUSTER_NAME;
-import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.COLUMN_PATTERN;
-import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.COLUMN_REPLACEMENT;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.CUSTOM_SQL;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.DATABASE;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.DATA_SAVE_MODE;
@@ -87,7 +85,6 @@ public class SelectDBSinkFactory
     public OptionRule optionRule() {
         return OptionRule.builder()
                 .required(BASE_URL, LOAD_URL, CLUSTER_NAME, USERNAME, PASSWORD)
-                .bundled(COLUMN_PATTERN, COLUMN_REPLACEMENT)
                 .optional(
                         DATABASE,
                         TABLE,
@@ -139,14 +136,6 @@ public class SelectDBSinkFactory
 
         TableIdentifier newTableId =
                 TableIdentifier.of(tableId.getCatalogName(), namespace, null, tableName);
-
-        if (options.get(COLUMN_PATTERN) != null && options.get(COLUMN_REPLACEMENT) != null) {
-            catalogTable =
-                    replaceColumnName(
-                            catalogTable,
-                            options.get(COLUMN_PATTERN),
-                            options.get(COLUMN_REPLACEMENT));
-        }
 
         return CatalogTable.of(newTableId, catalogTable);
     }
