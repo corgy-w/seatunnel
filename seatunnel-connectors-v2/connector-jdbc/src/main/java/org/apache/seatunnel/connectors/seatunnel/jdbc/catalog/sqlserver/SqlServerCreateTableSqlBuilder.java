@@ -218,7 +218,7 @@ public class SqlServerCreateTableSqlBuilder {
         if (column.getComment() != null) {
             columnComments.put(
                     CatalogUtils.getFieldIde(column.getName(), fieldIde),
-                    column.getComment().replace("'", "''"));
+                    column.getComment().replace("'", "''").replace("\\", "\\\\"));
         }
 
         return String.join(" ", columnSqls);

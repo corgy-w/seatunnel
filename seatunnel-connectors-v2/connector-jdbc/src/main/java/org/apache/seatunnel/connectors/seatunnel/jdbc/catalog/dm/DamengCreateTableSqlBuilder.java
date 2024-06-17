@@ -162,7 +162,7 @@ public class DamengCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
         columnCommentSql
                 .append(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "\""))
                 .append(CatalogUtils.quoteIdentifier(" IS '", fieldIde))
-                .append(column.getComment().replace("'", "''"))
+                .append(column.getComment().replace("'", "''").replace("\\", "\\\\"))
                 .append("'");
         return columnCommentSql.toString();
     }

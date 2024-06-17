@@ -67,7 +67,7 @@ public class JdbcMySqlSaveModeCatalogIT extends TestSuiteBase implements TestRes
             "CREATE TABLE IF NOT EXISTS mysql_auto_create\n"
                     + "(\n  "
                     + "`id` int(11) NOT NULL AUTO_INCREMENT,\n"
-                    + "  `f_binary` binary(64) DEFAULT NULL COMMENT '123''344',\n"
+                    + "  `f_binary` binary(64) DEFAULT NULL COMMENT '\"#¥%……&*（）;;'',,..``````//''@特殊注释''\\\\''\"',\n"
                     + "  `f_smallint` smallint(6) DEFAULT NULL,\n"
                     + "  `f_smallint_unsigned` smallint(5) unsigned DEFAULT NULL,\n"
                     + "  `f_mediumint` mediumint(9) DEFAULT NULL,\n"
@@ -160,7 +160,8 @@ public class JdbcMySqlSaveModeCatalogIT extends TestSuiteBase implements TestRes
         CatalogTable catalogTable = mySqlCatalog.getTable(tablePathMySql);
         // source comment
         Assertions.assertEquals(
-                catalogTable.getTableSchema().getColumns().get(1).getComment(), "123'344");
+                catalogTable.getTableSchema().getColumns().get(1).getComment(),
+                "\"#¥%……&*（）;;',,..``````//'@特殊注释'\\'\"");
         // sink tableExists ?
         boolean tableExistsBefore = mySqlCatalog.tableExists(tablePathMySqlSink);
         Assertions.assertFalse(tableExistsBefore);
@@ -171,7 +172,7 @@ public class JdbcMySqlSaveModeCatalogIT extends TestSuiteBase implements TestRes
         // comment
         final CatalogTable sinkTable = mySqlCatalog.getTable(tablePathMySqlSink);
         final Column column = sinkTable.getTableSchema().getColumns().get(1);
-        Assertions.assertEquals(column.getComment(), "123'344");
+        Assertions.assertEquals(column.getComment(), "\"#¥%……&*（）;;',,..``````//'@特殊注释'\\'\"");
         // isExistsData ?
         boolean existsDataBefore = mySqlCatalog.isExistsData(tablePathMySqlSink);
         Assertions.assertFalse(existsDataBefore);

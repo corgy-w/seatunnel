@@ -204,7 +204,10 @@ public class MysqlCreateTableSqlBuilder {
         }
 
         if (column.getComment() != null) {
-            columnSqls.add("COMMENT '" + column.getComment().replace("'", "''") + "'");
+            columnSqls.add(
+                    "COMMENT '"
+                            + column.getComment().replace("'", "''").replace("\\", "\\\\")
+                            + "'");
         }
 
         return String.join(" ", columnSqls);
