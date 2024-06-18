@@ -37,8 +37,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 public class SqlServerCatalog extends AbstractJdbcCatalog {
@@ -118,9 +116,8 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected List<String> getCreateTableSql(TablePath tablePath, CatalogTable table) {
-        return Collections.singletonList(
-                SqlServerCreateTableSqlBuilder.builder(tablePath, table).build(tablePath, table));
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return SqlServerCreateTableSqlBuilder.builder(tablePath, table).build(tablePath, table);
     }
 
     @Override

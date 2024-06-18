@@ -148,8 +148,8 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected List<String> getCreateTableSql(TablePath tablePath, CatalogTable table) {
-        return Collections.singletonList(new PhoenixCreateTableSqlBuilder(table).build(tablePath));
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return new PhoenixCreateTableSqlBuilder(table).build(tablePath);
     }
 
     @Override

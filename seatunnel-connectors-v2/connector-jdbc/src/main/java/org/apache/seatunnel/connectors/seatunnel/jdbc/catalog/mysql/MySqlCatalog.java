@@ -42,7 +42,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -176,10 +175,9 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected List<String> getCreateTableSql(TablePath tablePath, CatalogTable table) {
-        return Collections.singletonList(
-                MysqlCreateTableSqlBuilder.builder(tablePath, table, typeConverter)
-                        .build(table.getCatalogName()));
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return MysqlCreateTableSqlBuilder.builder(tablePath, table, typeConverter)
+                .build(table.getCatalogName());
     }
 
     @Override

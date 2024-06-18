@@ -39,8 +39,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 public class PostgresCatalog extends AbstractJdbcCatalog {
@@ -194,10 +192,10 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected List<String> getCreateTableSql(TablePath tablePath, CatalogTable table) {
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
         PostgresCreateTableSqlBuilder postgresCreateTableSqlBuilder =
                 new PostgresCreateTableSqlBuilder(table);
-        return Collections.singletonList(postgresCreateTableSqlBuilder.build(tablePath));
+        return postgresCreateTableSqlBuilder.build(tablePath);
     }
 
     @Override

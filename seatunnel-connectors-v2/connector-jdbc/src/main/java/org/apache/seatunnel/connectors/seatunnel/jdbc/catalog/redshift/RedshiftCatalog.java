@@ -38,9 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -117,12 +115,11 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected List<String> getCreateTableSql(TablePath tablePath, CatalogTable table) {
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
         String createTableSql =
                 new RedshiftCreateTableSqlBuilder(table)
                         .build(tablePath, table.getOptions().get("fieldIde"));
-        return Collections.singletonList(
-                CatalogUtils.getFieldIde(createTableSql, table.getOptions().get("fieldIde")));
+        return CatalogUtils.getFieldIde(createTableSql, table.getOptions().get("fieldIde"));
     }
 
     @Override

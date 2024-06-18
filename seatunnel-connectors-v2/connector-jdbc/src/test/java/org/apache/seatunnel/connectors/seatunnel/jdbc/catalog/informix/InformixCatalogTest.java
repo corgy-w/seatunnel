@@ -89,8 +89,7 @@ public class InformixCatalogTest {
                                                 put("password", "test");
                                             }
                                         }));
-        String sql =
-                catalog.getCreateTableSql(TablePath.of("test.test.test"), CATALOG_TABLE).get(0);
+        String sql = catalog.getCreateTableSql(TablePath.of("test.test.test"), CATALOG_TABLE);
         Assertions.assertEquals(
                 "CREATE TABLE IF NOT EXISTS test.test (\n"
                         + "test TEXT,\n"
