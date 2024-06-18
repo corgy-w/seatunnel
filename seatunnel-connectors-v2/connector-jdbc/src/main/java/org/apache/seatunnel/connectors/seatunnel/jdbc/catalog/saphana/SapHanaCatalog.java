@@ -40,6 +40,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.saphana.SapHanaTypeConverter.appendColumnSizeIfNeed;
@@ -129,8 +130,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
-        return new SapHanaCreateTableSqlBuilder(table).build(tablePath);
+    protected List<String> getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return Collections.singletonList(new SapHanaCreateTableSqlBuilder(table).build(tablePath));
     }
 
     @Override

@@ -412,7 +412,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
         createTableInternal(tablePath, table);
     }
 
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+    protected List<String> getCreateTableSql(TablePath tablePath, CatalogTable table) {
         throw new UnsupportedOperationException();
     }
 
@@ -420,7 +420,10 @@ public abstract class AbstractJdbcCatalog implements Catalog {
             throws CatalogException {
         String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
         try {
-            executeInternal(dbUrl, getCreateTableSql(tablePath, table));
+            final List<String> createTableSqlList = getCreateTableSql(tablePath, table);
+            for (String sql : createTableSqlList) {
+                executeInternal(dbUrl, sql);
+            }
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed creating table %s", tablePath.getFullName()), e);
@@ -645,7 +648,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
             ActionType actionType, TablePath tablePath, Optional<CatalogTable> catalogTable) {
         if (actionType == ActionType.CREATE_TABLE) {
             checkArgument(catalogTable.isPresent(), "CatalogTable cannot be null");
-            return new SQLPreviewResult(getCreateTableSql(tablePath, catalogTable.get()));
+            return new SQLPreviewResult(getCreateTableSql(tablePath, catalogTable.get()).get(0));
         } else if (actionType == ActionType.DROP_TABLE) {
             return new SQLPreviewResult(getDropTableSql(tablePath));
         } else if (actionType == ActionType.TRUNCATE_TABLE) {

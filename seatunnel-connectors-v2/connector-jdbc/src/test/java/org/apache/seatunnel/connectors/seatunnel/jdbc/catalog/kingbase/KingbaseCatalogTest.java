@@ -89,7 +89,8 @@ public class KingbaseCatalogTest {
                                                 put("password", "test");
                                             }
                                         }));
-        String sql = catalog.getCreateTableSql(TablePath.of("test.test.test"), CATALOG_TABLE);
+        String sql =
+                catalog.getCreateTableSql(TablePath.of("test.test.test"), CATALOG_TABLE).get(0);
         Assertions.assertEquals(
                 "CREATE TABLE IF NOT EXISTS \"test\".\"test\" (\n"
                         + "\"test\" text,\n"

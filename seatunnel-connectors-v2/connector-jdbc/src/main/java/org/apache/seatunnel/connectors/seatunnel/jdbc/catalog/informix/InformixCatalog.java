@@ -234,9 +234,10 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
-        return new InformixCreateTableSqlBuilder(table)
-                .build(tablePath, table.getOptions().get("fieldIde"));
+    protected List<String> getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return Collections.singletonList(
+                new InformixCreateTableSqlBuilder(table)
+                        .build(tablePath, table.getOptions().get("fieldIde")));
     }
 
     @Override
