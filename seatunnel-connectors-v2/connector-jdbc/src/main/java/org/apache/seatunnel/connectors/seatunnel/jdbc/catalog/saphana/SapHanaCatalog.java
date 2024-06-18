@@ -91,7 +91,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     + "    C.COMMENTS,\n"
                     + "    E.DATA_TYPE_NAME AS ELEMENT_TYPE_NAME\n"
                     + "FROM\n"
-                    + "    SYS.COLUMNS C\n"
+                    + "    (SELECT * FROM SYS.TABLE_COLUMNS UNION ALL SELECT * FROM SYS.VIEW_COLUMNS) C\n"
                     + "        LEFT JOIN\n"
                     + "    SYS.ELEMENT_TYPES E\n"
                     + "    ON\n"
