@@ -76,26 +76,6 @@ public class DamengCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected void createTableInternal(TablePath tablePath, CatalogTable table)
-            throws CatalogException {
-        String createTableSql = getCreateTableSql(tablePath, table);
-        String[] createTableSqls = createTableSql.split(";");
-        Connection connection = getConnection(baseUrl);
-        for (String sql : createTableSqls) {
-            log.info("create table sql: {}", sql);
-            try (PreparedStatement ps = connection.prepareStatement(sql)) {
-                ps.execute();
-            } catch (Exception e) {
-                throw new CatalogException(
-                        String.format(
-                                "Failed creating table %s.%s",
-                                tablePath.getSchemaName(), tablePath.getTableName()),
-                        e);
-            }
-        }
-    }
-
-    @Override
     protected void createDatabaseInternal(String databaseName) {
         throw new UnsupportedOperationException();
     }
@@ -119,6 +99,10 @@ public class DamengCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return new DamengCreateTableSqlBuilder(table).build(tablePath).get(0);
+    }
+
+    protected List<String> getCreateTableSqls(TablePath tablePath, CatalogTable table) {
         return new DamengCreateTableSqlBuilder(table).build(tablePath);
     }
 
