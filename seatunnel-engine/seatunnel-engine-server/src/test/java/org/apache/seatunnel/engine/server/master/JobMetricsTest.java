@@ -131,22 +131,24 @@ class JobMetricsTest extends AbstractSeaTunnelServerTest {
                                         server.getCoordinatorService().getJobStatus(jobId3)));
 
         // check metrics
-        await().atMost(60000, TimeUnit.MILLISECONDS)
+        await().atMost(600000, TimeUnit.MILLISECONDS)
                 .untilAsserted(
                         () -> {
                             JobMetrics jobMetrics = coordinatorService.getJobMetrics(jobId3);
-                            assertTrue(0 < (Long) jobMetrics.get(SINK_WRITE_COUNT).get(0).value());
-                            assertTrue(0 < (Long) jobMetrics.get(SINK_WRITE_COUNT).get(1).value());
                             assertTrue(
-                                    0
-                                            < (Long)
+                                    100 <= (Long) jobMetrics.get(SINK_WRITE_COUNT).get(0).value());
+                            assertTrue(
+                                    100 <= (Long) jobMetrics.get(SINK_WRITE_COUNT).get(1).value());
+                            assertTrue(
+                                    100
+                                            <= (Long)
                                                     jobMetrics
                                                             .get(SOURCE_RECEIVED_COUNT)
                                                             .get(0)
                                                             .value());
                             assertTrue(
-                                    0
-                                            < (Long)
+                                    100
+                                            <= (Long)
                                                     jobMetrics
                                                             .get(SOURCE_RECEIVED_COUNT)
                                                             .get(1)
