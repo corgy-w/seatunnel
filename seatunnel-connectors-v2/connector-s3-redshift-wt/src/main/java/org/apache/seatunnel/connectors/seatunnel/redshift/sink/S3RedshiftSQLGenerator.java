@@ -181,18 +181,24 @@ public class S3RedshiftSQLGenerator implements Serializable {
         if (!Strings.isNullOrEmpty(conf.getAccessKey())
                 && !Strings.isNullOrEmpty(conf.getSecretKey())) {
             return String.format(
-                    "COPY %s.%s(%s) FROM '%s/${path}' ACCESS_KEY_ID '%s' SECRET_ACCESS_KEY '%s' FILLRECORD FORMAT ORC SERIALIZETOJSON",
+                    "COPY %s.%s(%s) FROM '%s/${path}' ACCESS_KEY_ID '%s' SECRET_ACCESS_KEY '%s' FILLRECORD FORMAT %s SERIALIZETOJSON",
                     conf.getSchema(),
                     table,
                     columns,
                     bucket,
                     conf.getAccessKey(),
-                    conf.getSecretKey());
+                    conf.getSecretKey(),
+                    conf.getFileFormat().name());
         }
         if (!Strings.isNullOrEmpty(conf.getRedshiftS3IamRole())) {
             return String.format(
-                    "COPY %s.%s(%s) FROM '%s/${path}' IAM_ROLE '%s' FILLRECORD FORMAT ORC SERIALIZETOJSON",
-                    conf.getSchema(), table, columns, bucket, conf.getRedshiftS3IamRole());
+                    "COPY %s.%s(%s) FROM '%s/${path}' IAM_ROLE '%s' FILLRECORD FORMAT %s SERIALIZETOJSON",
+                    conf.getSchema(),
+                    table,
+                    columns,
+                    bucket,
+                    conf.getRedshiftS3IamRole(),
+                    conf.getFileFormat().name());
         }
         throw new IllegalArgumentException("Either accessKey/secretKey or iamRole must be set");
     }

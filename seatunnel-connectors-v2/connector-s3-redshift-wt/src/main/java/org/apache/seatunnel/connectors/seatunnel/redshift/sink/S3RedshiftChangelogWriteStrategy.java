@@ -32,6 +32,7 @@ import static org.apache.seatunnel.connectors.seatunnel.file.config.CompressForm
 import static org.apache.seatunnel.connectors.seatunnel.file.config.CompressFormat.NONE;
 import static org.apache.seatunnel.connectors.seatunnel.file.config.CompressFormat.SNAPPY;
 import static org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat.ORC;
+import static org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat.PARQUET;
 
 public class S3RedshiftChangelogWriteStrategy extends AbstractWriteStrategy {
     private final AbstractWriteStrategy delegate;
@@ -66,8 +67,8 @@ public class S3RedshiftChangelogWriteStrategy extends AbstractWriteStrategy {
                 DEFAULT_FILE_NAME_EXPRESSION);
         checkArgument(fileSinkConfig.isEnableTransaction(), "Transaction must be enabled");
         checkArgument(
-                Arrays.asList(ORC).contains(fileSinkConfig.getFileFormat()),
-                "File format must be ORC");
+                Arrays.asList(ORC, PARQUET).contains(fileSinkConfig.getFileFormat()),
+                "File format must be ORC/Parquet");
         checkArgument(
                 Arrays.asList(NONE, GZIP, SNAPPY).contains(fileSinkConfig.getCompressFormat()),
                 "Compress format must be NONE, GZIP or SNAPPY");
