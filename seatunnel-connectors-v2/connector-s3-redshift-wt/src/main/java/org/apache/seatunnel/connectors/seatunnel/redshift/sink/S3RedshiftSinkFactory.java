@@ -65,6 +65,7 @@ public class S3RedshiftSinkFactory implements TableSinkFactory {
                         S3RedshiftConfig.DATA_SAVE_MODE,
                         BaseSinkConfig.FILE_PATH,
                         BaseSinkConfig.TMP_PATH,
+                        S3RedshiftConfig.FILE_FORMAT_TYPE,
                         S3ConfigOptions.S3A_AWS_CREDENTIALS_PROVIDER,
                         MULTI_TABLE_SINK_REPLICA)
                 .conditional(
@@ -101,6 +102,7 @@ public class S3RedshiftSinkFactory implements TableSinkFactory {
                         S3RedshiftConfig.CHANGELOG_BUFFER_FLUSH_SIZE,
                         S3RedshiftConfig.CHANGELOG_BUFFER_FLUSH_INTERVAL,
                         S3RedshiftConfig.REDSHIFT_TEMPORARY_TABLE_NAME)
+                .optional(S3RedshiftConfig.TIMEZONE)
                 .build();
     }
 

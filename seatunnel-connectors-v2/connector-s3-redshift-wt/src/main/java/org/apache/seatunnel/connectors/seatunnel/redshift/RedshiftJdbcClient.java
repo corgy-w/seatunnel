@@ -44,11 +44,13 @@ public class RedshiftJdbcClient implements AutoCloseable {
     private final String password;
     private final int maxPoolSize;
     private final Duration maxIdleTime;
+    private final String timezone;
 
     private volatile HikariDataSource dataSource;
 
-    public RedshiftJdbcClient(String jdbcUrl, String user, String password, int maxPoolSize) {
-        this(jdbcUrl, user, password, maxPoolSize, Duration.ofMinutes(30));
+    public RedshiftJdbcClient(
+            String jdbcUrl, String user, String password, int maxPoolSize, String timezone) {
+        this(jdbcUrl, user, password, maxPoolSize, Duration.ofMinutes(30), timezone);
     }
 
     public Connection getConnection() throws SQLException {
@@ -66,7 +68,13 @@ public class RedshiftJdbcClient implements AutoCloseable {
                 }
             }
         }
-        return dataSource.getConnection();
+        Connection connection = dataSource.getConnection();
+        if (timezone != null) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("set timezone = '" + timezone + "'");
+            }
+        }
+        return connection;
     }
 
     public boolean execute(String sql) throws SQLException {
@@ -145,7 +153,11 @@ public class RedshiftJdbcClient implements AutoCloseable {
 
     public static RedshiftJdbcClient newConnectionPool(S3RedshiftConf conf, int maxPoolSize) {
         return new RedshiftJdbcClient(
-                conf.getJdbcUrl(), conf.getJdbcUser(), conf.getJdbcPassword(), maxPoolSize);
+                conf.getJdbcUrl(),
+                conf.getJdbcUser(),
+                conf.getJdbcPassword(),
+                maxPoolSize,
+                conf.getTimezone());
     }
 
     public static RedshiftJdbcClient newConnectionPool(
@@ -155,6 +167,7 @@ public class RedshiftJdbcClient implements AutoCloseable {
                 conf.getJdbcUser(),
                 conf.getJdbcPassword(),
                 maxPoolSize,
-                maxIdleTime);
+                maxIdleTime,
+                conf.getTimezone());
     }
 }

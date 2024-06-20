@@ -18,7 +18,6 @@
 package org.apache.seatunnel.connectors.seatunnel.redshift.config;
 
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
-import org.apache.seatunnel.shade.com.typesafe.config.ConfigValueFactory;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.DataSaveMode;
@@ -35,7 +34,7 @@ import lombok.ToString;
 import java.io.Serializable;
 import java.util.List;
 
-import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions.FILE_FORMAT_TYPE;
+import static org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConfig.FILE_FORMAT_TYPE;
 import static org.apache.seatunnel.connectors.seatunnel.redshift.sink.S3RedshiftChangelogMode.APPEND_ONLY;
 import static org.apache.seatunnel.connectors.seatunnel.redshift.sink.S3RedshiftChangelogMode.APPEND_ON_DUPLICATE_UPDATE_AUTOMATIC;
 
@@ -49,10 +48,12 @@ public class S3RedshiftConf implements Serializable {
     private final String executeSql;
     @Setter private String database;
     @Setter private String schema;
+    private String timezone;
 
     private final String s3Bucket;
     private final String accessKey;
     private final String secretKey;
+    private final FileFormat fileFormat;
 
     private final SchemaSaveMode schemaSaveMode;
     private final DataSaveMode dataSaveMode;
@@ -95,10 +96,12 @@ public class S3RedshiftConf implements Serializable {
         builder.jdbcPassword(readonlyConfig.get(S3RedshiftConfig.JDBC_PASSWORD));
         builder.database(readonlyConfig.get(S3RedshiftConfig.DATABASE));
         builder.schema(readonlyConfig.get(S3RedshiftConfig.SCHEMA_NAME));
+        builder.timezone(readonlyConfig.get(S3RedshiftConfig.TIMEZONE));
 
         builder.s3Bucket(readonlyConfig.get(S3RedshiftConfig.S3_BUCKET));
         builder.accessKey(readonlyConfig.get(S3RedshiftConfig.S3_ACCESS_KEY));
         builder.secretKey(readonlyConfig.get(S3RedshiftConfig.S3_SECRET_KEY));
+        builder.fileFormat(readonlyConfig.get(FILE_FORMAT_TYPE));
 
         builder.schemaSaveMode(readonlyConfig.get(S3RedshiftConfig.SCHEMA_SAVE_MODE));
         builder.dataSaveMode(readonlyConfig.get(S3RedshiftConfig.DATA_SAVE_MODE));
@@ -135,10 +138,5 @@ public class S3RedshiftConf implements Serializable {
                 throw new IllegalArgumentException("Path must start with /");
             }
         }
-    }
-
-    public static Config enhanceS3RedshiftConfig(Config config) {
-        return config.withValue(
-                FILE_FORMAT_TYPE.key(), ConfigValueFactory.fromAnyRef(FileFormat.ORC.name()));
     }
 }
