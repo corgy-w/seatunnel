@@ -38,6 +38,7 @@ def get_engine_e2e_modules(files):
 def get_modules(files, index, start_pre, root_module):
     update_files = json.loads(files)
     modules_name_set = set([])
+    exclude_modules = ["connector-hive"]
     for file in update_files:
         names = file.split('/')
         module_name = names[index]
@@ -50,7 +51,8 @@ def get_modules(files, index, start_pre, root_module):
     output_module = ""
     if len(modules_name_set) > 0:
         for module in modules_name_set:
-            output_module = output_module + "," + module
+            if module not in exclude_modules:
+                output_module = output_module + "," + module
 
     else:
         output_module = output_module + "," + root_module
