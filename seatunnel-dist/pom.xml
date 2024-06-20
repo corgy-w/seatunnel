@@ -501,6 +501,14 @@
                 </dependency>
 
                 <dependency>
+                    <groupId>com.highgo</groupId>
+                    <artifactId>highgo-jdbc</artifactId>
+                    <version>6.2.0</version>
+                    <scope>system</scope>
+                    <systemPath>${basedir}/src/main/highgo/hgjdbc-6.2.0.jar</systemPath>
+                </dependency>
+
+                <dependency>
                     <groupId>com.huaweicloud.dws</groupId>
                     <artifactId>huaweicloud-dws-jdbc</artifactId>
                     <version>${dws-gaussdb.version}</version>
