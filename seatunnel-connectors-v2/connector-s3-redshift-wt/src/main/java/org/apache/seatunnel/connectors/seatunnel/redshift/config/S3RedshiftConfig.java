@@ -21,11 +21,13 @@ import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
+import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3ConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.redshift.sink.S3RedshiftChangelogMode;
 
 import lombok.Builder;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Builder
@@ -57,6 +59,19 @@ public class S3RedshiftConfig extends S3ConfigOptions {
                     .stringType()
                     .defaultValue("public")
                     .withDescription("Redshift JDBC schema");
+
+    public static final Option<String> TIMEZONE =
+            Options.key("timezone")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Redshift JDBC client session timezone");
+
+    public static final Option<FileFormat> FILE_FORMAT_TYPE =
+            Options.key("file_format_type")
+                    .singleChoice(
+                            FileFormat.class, Arrays.asList(FileFormat.ORC, FileFormat.PARQUET))
+                    .defaultValue(FileFormat.ORC)
+                    .withDescription("File format type, e.g. orc, parquet");
 
     public static final Option<SchemaSaveMode> SCHEMA_SAVE_MODE =
             Options.key("schema_save_mode")

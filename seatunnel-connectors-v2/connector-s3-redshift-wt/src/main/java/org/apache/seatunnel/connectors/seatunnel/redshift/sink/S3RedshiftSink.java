@@ -69,7 +69,7 @@ public class S3RedshiftSink extends BaseHdfsFileSink
             Config pluginConfig,
             ReadonlyConfig readonlyConfig) {
         this.readonlyConfig = readonlyConfig;
-        this.pluginConfig = S3RedshiftConf.enhanceS3RedshiftConfig(pluginConfig);
+        this.pluginConfig = pluginConfig;
         this.hadoopConf =
                 S3HadoopConf.buildWithReadOnlyConfig(ReadonlyConfig.fromConfig(this.pluginConfig));
         this.s3RedshiftConf = s3RedshiftConf;
@@ -99,7 +99,7 @@ public class S3RedshiftSink extends BaseHdfsFileSink
                             "PluginName: %s, PluginType: %s, Message: %s",
                             getPluginName(), PluginType.SINK, checkResult.getMsg()));
         }
-        this.pluginConfig = S3RedshiftConf.enhanceS3RedshiftConfig(this.pluginConfig);
+        this.pluginConfig = this.pluginConfig;
         hadoopConf =
                 S3HadoopConf.buildWithReadOnlyConfig(ReadonlyConfig.fromConfig(this.pluginConfig));
         s3RedshiftConf = S3RedshiftConf.valueOf(this.pluginConfig);
