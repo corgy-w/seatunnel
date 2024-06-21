@@ -26,16 +26,27 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import static io.debezium.connector.mysql.MySqlConnectorConfig.JDBC_DRIVER;
+
 public class CustomMySqlConnectionConfiguration
         extends MySqlConnection.MySqlConnectionConfiguration {
 
+    protected static final String URL_PATTERN =
+            "jdbc:mysql://${hostname}:${port}/?useInformationSchema=true&nullCatalogMeansCurrent=false&useSSL=${useSSL}&zeroDateTimeBehavior=CONVERT_TO_NULL&connectTimeout=${connectTimeout}";
+
+    private final JdbcConnection.ConnectionFactory connectionFactory;
+
     public CustomMySqlConnectionConfiguration(Configuration config) {
         super(config);
+        String driverClassName =
+                config.getString(JDBC_DRIVER.name(), JDBC_DRIVER.defaultValueAsString());
+        connectionFactory =
+                JdbcConnection.patternBasedFactory(
+                        URL_PATTERN, driverClassName, getClass().getClassLoader());
     }
 
     @Override
     public JdbcConnection.ConnectionFactory factory() {
-        super.factory();
         return new JdbcConnection.ConnectionFactory() {
             @Override
             public Connection connect(JdbcConfiguration config) throws SQLException {
@@ -44,7 +55,7 @@ public class CustomMySqlConnectionConfiguration
                 // initialization block.
                 DriverManager.getDrivers();
 
-                return CustomMySqlConnectionConfiguration.super.factory().connect(config);
+                return connectionFactory.connect(config);
             }
         };
     }
