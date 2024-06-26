@@ -151,7 +151,9 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
         String columnType;
         if (isCompatibleCatalog(sourceCatalogName)
                 && StringUtils.isNotBlank(column.getSourceType())) {
-            if (PostgresTypeConverter.PG_POSTGIS_TYPES.contains(column.getDataType())
+            if ((column.getSourceType().startsWith(PostgresTypeConverter.PG_POSTGIS_GEOMETRY)
+                            || column.getSourceType()
+                                    .startsWith(PostgresTypeConverter.PG_POSTGIS_GEOGRAPHY))
                     && !pgPlugins.contains(PostgresTypeConverter.PG_POSTGIS)) {
                 columnType = buildColumnType(column);
             } else {

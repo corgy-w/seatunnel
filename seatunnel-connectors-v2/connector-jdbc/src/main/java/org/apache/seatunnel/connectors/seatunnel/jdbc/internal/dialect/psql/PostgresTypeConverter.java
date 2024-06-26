@@ -34,9 +34,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 import com.google.auto.service.AutoService;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Arrays;
-import java.util.List;
-
 // reference http://www.postgres.cn/docs/13/datatype.html
 @Slf4j
 @AutoService(TypeConverter.class)
@@ -122,9 +119,6 @@ public class PostgresTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final int MAX_VARCHAR_LENGTH = 10485760;
 
     public static final String PG_POSTGIS = "postgis";
-    public static final List<String> PG_POSTGIS_TYPES =
-            Arrays.asList(PG_POSTGIS_GEOMETRY, PG_POSTGIS_GEOGRAPHY);
-
     public static final PostgresTypeConverter INSTANCE = new PostgresTypeConverter();
 
     @Override
