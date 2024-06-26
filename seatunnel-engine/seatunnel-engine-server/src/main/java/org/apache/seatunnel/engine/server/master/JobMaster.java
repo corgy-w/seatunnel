@@ -239,12 +239,12 @@ public class JobMaster implements DynamicMetricsProvider {
                         nodeEngine.getSerializationService(),
                         classLoader,
                         jobImmutableInformation.getLogicalDag());
-        if (!restart
-                && ReadonlyConfig.fromMap(logicalDag.getJobConfig().getEnvOptions())
-                        .get(EnvCommonOptions.SAVEMODE_EXECUTE_LOCATION)
-                        .equals(SaveModeExecuteLocation.CLUSTER)) {
-            try {
-                Thread.currentThread().setContextClassLoader(classLoader);
+        try {
+            Thread.currentThread().setContextClassLoader(classLoader);
+            if (!restart
+                    && ReadonlyConfig.fromMap(logicalDag.getJobConfig().getEnvOptions())
+                            .get(EnvCommonOptions.SAVEMODE_EXECUTE_LOCATION)
+                            .equals(SaveModeExecuteLocation.CLUSTER)) {
                 AtomicInteger index = new AtomicInteger();
                 logicalDag.getLogicalVertexMap().values().stream()
                         .map(LogicalVertex::getAction)
@@ -257,34 +257,32 @@ public class JobMaster implements DynamicMetricsProvider {
                                                 sink,
                                                 index,
                                                 logicalDag.isStartWithSavePoint()));
-            } finally {
-                Thread.currentThread().setContextClassLoader(appClassLoader);
             }
+            final Tuple2<PhysicalPlan, Map<Integer, CheckpointPlan>> planTuple =
+                    PlanUtils.fromLogicalDAG(
+                            logicalDag,
+                            nodeEngine,
+                            jobImmutableInformation,
+                            initializationTimestamp,
+                            executorService,
+                            flakeIdGenerator,
+                            runningJobStateIMap,
+                            runningJobStateTimestampsIMap,
+                            engineConfig.getQueueType(),
+                            engineConfig);
+
+            this.physicalPlan = planTuple.f0();
+            this.physicalPlan.setJobMaster(this);
+            this.checkpointPlanMap = planTuple.f1();
+        } finally {
+            Thread.currentThread().setContextClassLoader(appClassLoader);
+            seaTunnelServer
+                    .getClassLoaderService()
+                    .releaseClassLoader(
+                            jobImmutableInformation.getJobId(),
+                            jobImmutableInformation.getPluginJarsUrls());
         }
 
-        final Tuple2<PhysicalPlan, Map<Integer, CheckpointPlan>> planTuple =
-                PlanUtils.fromLogicalDAG(
-                        logicalDag,
-                        nodeEngine,
-                        jobImmutableInformation,
-                        initializationTimestamp,
-                        executorService,
-                        flakeIdGenerator,
-                        runningJobStateIMap,
-                        runningJobStateTimestampsIMap,
-                        engineConfig.getQueueType(),
-                        engineConfig);
-
-        seaTunnelServer
-                .getClassLoaderService()
-                .releaseClassLoader(
-                        jobImmutableInformation.getJobId(),
-                        jobImmutableInformation.getPluginJarsUrls());
-        // revert to app class loader, it may be changed by PlanUtils.fromLogicalDAG
-        Thread.currentThread().setContextClassLoader(appClassLoader);
-        this.physicalPlan = planTuple.f0();
-        this.physicalPlan.setJobMaster(this);
-        this.checkpointPlanMap = planTuple.f1();
         Exception initException = null;
         try {
             this.initCheckPointManager(restart);

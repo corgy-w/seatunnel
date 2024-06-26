@@ -22,6 +22,7 @@ import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggregatedCommitter;
 import org.apache.seatunnel.connectors.seatunnel.hive.sink.HiveSinkOptions;
+import org.apache.seatunnel.connectors.seatunnel.hive.utils.AbstractHiveMetaStoreProxy;
 import org.apache.seatunnel.connectors.seatunnel.hive.utils.HiveMetaStoreProxy;
 
 import org.apache.thrift.TException;
@@ -57,7 +58,8 @@ public class HiveSinkAggregatedCommitter extends FileSinkAggregatedCommitter {
 
         List<FileAggregatedCommitInfo> errorCommitInfos = super.commit(aggregatedCommitInfos);
         if (errorCommitInfos.isEmpty()) {
-            HiveMetaStoreProxy hiveMetaStore = HiveMetaStoreProxy.getInstance(readonlyConfig);
+            AbstractHiveMetaStoreProxy hiveMetaStore =
+                    HiveMetaStoreProxy.getInstance(readonlyConfig);
             try {
                 for (FileAggregatedCommitInfo aggregatedCommitInfo : aggregatedCommitInfos) {
                     Map<String, List<String>> partitionDirAndValuesMap =
@@ -85,7 +87,8 @@ public class HiveSinkAggregatedCommitter extends FileSinkAggregatedCommitter {
     public void abort(List<FileAggregatedCommitInfo> aggregatedCommitInfos) throws Exception {
         super.abort(aggregatedCommitInfos);
         if (abortDropPartitionMetadata) {
-            HiveMetaStoreProxy hiveMetaStore = HiveMetaStoreProxy.getInstance(readonlyConfig);
+            AbstractHiveMetaStoreProxy hiveMetaStore =
+                    HiveMetaStoreProxy.getInstance(readonlyConfig);
             for (FileAggregatedCommitInfo aggregatedCommitInfo : aggregatedCommitInfos) {
                 Map<String, List<String>> partitionDirAndValuesMap =
                         aggregatedCommitInfo.getPartitionDirAndValuesMap();
