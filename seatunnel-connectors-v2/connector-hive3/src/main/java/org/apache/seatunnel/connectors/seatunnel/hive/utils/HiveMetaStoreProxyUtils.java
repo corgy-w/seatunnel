@@ -20,6 +20,8 @@ package org.apache.seatunnel.connectors.seatunnel.hive.utils;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -27,9 +29,12 @@ public class HiveMetaStoreProxyUtils {
 
     public boolean enableKerberos(ReadonlyConfig config) {
         boolean kerberosPrincipalEmpty =
-                config.getOptional(HdfsConfigOptions.KERBEROS_PRINCIPAL).isPresent();
+                config.getOptional(HdfsConfigOptions.KERBEROS_PRINCIPAL).isPresent()
+                        && StringUtils.isNotBlank(config.get(HdfsConfigOptions.KERBEROS_PRINCIPAL));
         boolean kerberosKeytabPathEmpty =
-                config.getOptional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH).isPresent();
+                config.getOptional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH).isPresent()
+                        && StringUtils.isNotBlank(
+                                config.get(HdfsConfigOptions.KERBEROS_KEYTAB_PATH));
         if (kerberosKeytabPathEmpty && kerberosPrincipalEmpty) {
             return true;
         }
@@ -43,6 +48,7 @@ public class HiveMetaStoreProxyUtils {
     }
 
     public boolean enableRemoteUser(ReadonlyConfig config) {
-        return config.getOptional(HdfsConfigOptions.REMOTE_USER).isPresent();
+        return config.getOptional(HdfsConfigOptions.REMOTE_USER).isPresent()
+                && StringUtils.isNotBlank(config.get(HdfsConfigOptions.REMOTE_USER));
     }
 }
