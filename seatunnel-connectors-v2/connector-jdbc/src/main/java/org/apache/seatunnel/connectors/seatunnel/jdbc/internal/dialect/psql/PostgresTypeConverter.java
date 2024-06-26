@@ -34,6 +34,9 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 import com.google.auto.service.AutoService;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.Arrays;
+import java.util.List;
+
 // reference http://www.postgres.cn/docs/13/datatype.html
 @Slf4j
 @AutoService(TypeConverter.class)
@@ -90,8 +93,16 @@ public class PostgresTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final String PG_JSONB = "jsonb";
     public static final String PG_XML = "xml";
     public static final String PG_UUID = "uuid";
-    private static final String PG_GEOMETRY = "geometry";
-    private static final String PG_GEOGRAPHY = "geography";
+    public static final String PG_POINT = "point";
+    public static final String PG_LINE = "line";;
+    public static final String PG_LSEG = "lseg";
+    public static final String PG_POLYGON = "polygon";
+    public static final String PG_BOX = "box";
+    public static final String PG_CIRCLE = "circle";
+    public static final String PG_PATH = "path";
+    public static final String PG_POSTGIS_GEOMETRY = "geometry";
+    public static final String PG_POSTGIS_GEOGRAPHY = "geography";
+
     public static final String PG_DATE = "date";
     // time without time zone <=> time
     public static final String PG_TIME = "time";
@@ -109,6 +120,11 @@ public class PostgresTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final int MAX_TIME_SCALE = 6;
     public static final int MAX_TIMESTAMP_SCALE = 6;
     public static final int MAX_VARCHAR_LENGTH = 10485760;
+
+    public static final String PG_POSTGIS = "postgis";
+    public static final List<String> PG_POSTGIS_TYPES =
+            Arrays.asList(PG_POSTGIS_GEOMETRY, PG_POSTGIS_GEOGRAPHY);
+
     public static final PostgresTypeConverter INSTANCE = new PostgresTypeConverter();
 
     @Override
@@ -228,8 +244,15 @@ public class PostgresTypeConverter implements TypeConverter<BasicTypeDefine> {
             case PG_JSON:
             case PG_JSONB:
             case PG_XML:
-            case PG_GEOMETRY:
-            case PG_GEOGRAPHY:
+            case PG_POINT:
+            case PG_LINE:
+            case PG_LSEG:
+            case PG_POLYGON:
+            case PG_BOX:
+            case PG_CIRCLE:
+            case PG_PATH:
+            case PG_POSTGIS_GEOMETRY:
+            case PG_POSTGIS_GEOGRAPHY:
                 builder.dataType(BasicType.STRING_TYPE);
                 break;
             case PG_CHAR_ARRAY:

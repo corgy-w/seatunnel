@@ -40,6 +40,7 @@ import org.apache.seatunnel.connectors.cdc.debezium.row.DebeziumJsonDeserializeS
 import org.apache.seatunnel.connectors.cdc.debezium.row.SeaTunnelRowDebeziumDeserializeSchema;
 import org.apache.seatunnel.connectors.seatunnel.cdc.highgo.config.HighGoSourceConfigFactory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.highgo.source.offset.LsnOffsetFactory;
+import org.apache.seatunnel.connectors.seatunnel.cdc.highgo.utils.HighGoDebeziumDeserializationConverterFactory;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
 
 import org.apache.kafka.connect.data.Struct;
@@ -121,6 +122,8 @@ public class HighGoIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
                         .setResultTypeInfo(physicalRowType)
                         .setTableIdTableChangeMap(tableIdStructMap)
                         .setServerTimeZone(ZoneId.of(zoneId))
+                        .setUserDefinedConverterFactory(
+                                HighGoDebeziumDeserializationConverterFactory.INSTANCE)
                         .build();
     }
 

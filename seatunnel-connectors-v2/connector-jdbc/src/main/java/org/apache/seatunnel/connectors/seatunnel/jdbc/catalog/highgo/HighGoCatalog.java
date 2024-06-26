@@ -18,9 +18,12 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.highgo;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresCatalog;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresCreateTableSqlBuilder;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.highgo.HighGoTypeConverter;
 
 import lombok.extern.slf4j.Slf4j;
@@ -40,5 +43,11 @@ public class HighGoCatalog extends PostgresCatalog {
     @Override
     public TypeConverter getTypeConverter() {
         return HighGoTypeConverter.INSTANCE;
+    }
+
+    @Override
+    protected PostgresCreateTableSqlBuilder createTableSqlBuilder(
+            TablePath tablePath, CatalogTable table) {
+        return new HighGoCreateTableSqlBuilder(table, plugins(tablePath));
     }
 }
