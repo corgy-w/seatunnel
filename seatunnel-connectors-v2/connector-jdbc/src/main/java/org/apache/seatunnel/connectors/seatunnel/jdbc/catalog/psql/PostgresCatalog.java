@@ -150,7 +150,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
                         tablePath.getSchemaName(),
                         tablePath.getTableName());
         if (plugins.contains(PostgresTypeConverter.PG_POSTGIS)) {
-            String postgisPath = selectPostgisPath();
+            String postgisPath = selectPostgisPath(tablePath);
             return String.format(
                     SELECT_COLUMNS_SQL_TEMPLATE_FOR_POSTGIS,
                     selectColumnsSQL,
@@ -296,12 +296,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     }
 
     protected Collection<String> plugins(TablePath tablePath) {
-        String dbUrl;
-        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        } else {
-            dbUrl = getUrlFromDatabaseName(defaultDatabase);
-        }
+        String dbUrl = getJdbcURL(tablePath);
         try {
             Connection connection = getConnection(dbUrl);
             Set<String> plugins = new HashSet<>();
@@ -318,9 +313,10 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
         }
     }
 
-    protected String selectPostgisPath() {
+    protected String selectPostgisPath(TablePath tablePath) {
+        String dbUrl = getJdbcURL(tablePath);
         String sql = "SELECT schemaname FROM pg_views WHERE viewname = 'geometry_columns'";
-        Connection conn = getConnection(getUrlFromDatabaseName(defaultDatabase));
+        Connection conn = getConnection(dbUrl);
         try (Statement stmt = conn.createStatement();
                 ResultSet rs = stmt.executeQuery(sql)) {
             rs.next();
@@ -333,5 +329,16 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     protected PostgresCreateTableSqlBuilder createTableSqlBuilder(
             TablePath tablePath, CatalogTable table) {
         return new PostgresCreateTableSqlBuilder(table, plugins(tablePath));
+    }
+
+    @Override
+    protected String getJdbcURL(TablePath tablePath) {
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        return dbUrl;
     }
 }
