@@ -39,6 +39,7 @@ import org.apache.seatunnel.connectors.cdc.debezium.row.DebeziumJsonDeserializeS
 import org.apache.seatunnel.connectors.cdc.debezium.row.SeaTunnelRowDebeziumDeserializeSchema;
 import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.config.PostgresSourceConfigFactory;
 import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.source.offset.LsnOffsetFactory;
+import org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils.PostgresDebeziumDeserializationConverterFactory;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
 
 import org.apache.kafka.connect.data.Struct;
@@ -116,6 +117,8 @@ public class PostgresIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
                         .setResultTypeInfo(physicalRowType)
                         .setTableIdTableChangeMap(tableIdStructMap)
                         .setServerTimeZone(ZoneId.of(zoneId))
+                        .setUserDefinedConverterFactory(
+                                PostgresDebeziumDeserializationConverterFactory.INSTANCE)
                         .build();
     }
 

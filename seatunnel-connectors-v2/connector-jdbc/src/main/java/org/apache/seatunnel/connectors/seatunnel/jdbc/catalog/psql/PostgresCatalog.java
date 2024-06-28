@@ -39,12 +39,19 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 @Slf4j
 public class PostgresCatalog extends AbstractJdbcCatalog {
 
     private static final String SELECT_COLUMNS_SQL_TEMPLATE =
             "SELECT \n"
+                    + "    n.nspname as schema_name, \n"
+                    + "    c.relname as table_name, \n"
                     + "    a.attname AS column_name, \n"
                     + "\t\tt.typname as type_name,\n"
                     + "    CASE \n"
@@ -83,7 +90,25 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
                     + "    AND c.relname = '%s'\n"
                     + "    AND a.attnum > 0\n"
                     + "ORDER BY \n"
-                    + "    a.attnum;";
+                    + "    a.attnum";
+
+    protected static final String SELECT_COLUMNS_SQL_TEMPLATE_FOR_POSTGIS =
+            "SELECT\n"
+                    + "    st_tmp1.column_name,\n"
+                    + "    st_tmp1.type_name,\n"
+                    + "    (CASE WHEN st_tmp1.type_name IN ('geometry') THEN st_tmp1.type_name || '(' || geometry.type || CASE WHEN geometry.srid != 0 THEN ',' || geometry.srid ELSE '' END ||  ')'\n"
+                    + "          WHEN st_tmp1.type_name IN ('geography') THEN st_tmp1.type_name || '(' || geography.type || CASE WHEN geography.srid != 0 THEN ',' || geography.srid ELSE '' END || ')'\n"
+                    + "          ELSE st_tmp1.full_type_name END) AS full_type_name,\n"
+                    + "    st_tmp1.column_length,\n"
+                    + "    st_tmp1.column_scale,\n"
+                    + "    st_tmp1.column_comment,\n"
+                    + "    st_tmp1.default_value,\n"
+                    + "    st_tmp1.is_nullable\n"
+                    + "       FROM (%s) st_tmp1\n"
+                    + "    LEFT JOIN %s.geometry_columns geometry ON st_tmp1.schema_name = geometry.f_table_schema AND st_tmp1.table_name = geometry.f_table_name AND st_tmp1.column_name = geometry.f_geometry_column\n"
+                    + "    LEFT JOIN %s.geography_columns geography ON st_tmp1.schema_name = geography.f_table_schema AND st_tmp1.table_name = geography.f_table_name AND st_tmp1.column_name = geography.f_geography_column\n";
+
+    private static final String QUERY_PLUGINS = "SELECT extname FROM pg_extension";
 
     static {
         SYS_DATABASES.add("information_schema");
@@ -118,8 +143,21 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getSelectColumnsSql(TablePath tablePath) {
-        return String.format(
-                SELECT_COLUMNS_SQL_TEMPLATE, tablePath.getSchemaName(), tablePath.getTableName());
+        Collection<String> plugins = plugins(tablePath);
+        String selectColumnsSQL =
+                String.format(
+                        SELECT_COLUMNS_SQL_TEMPLATE,
+                        tablePath.getSchemaName(),
+                        tablePath.getTableName());
+        if (plugins.contains(PostgresTypeConverter.PG_POSTGIS)) {
+            String postgisPath = selectPostgisPath(tablePath);
+            return String.format(
+                    SELECT_COLUMNS_SQL_TEMPLATE_FOR_POSTGIS,
+                    selectColumnsSQL,
+                    postgisPath,
+                    postgisPath);
+        }
+        return selectColumnsSQL;
     }
 
     @Override
@@ -166,7 +204,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     protected void createTableInternal(TablePath tablePath, CatalogTable table)
             throws CatalogException {
         PostgresCreateTableSqlBuilder postgresCreateTableSqlBuilder =
-                new PostgresCreateTableSqlBuilder(table);
+                createTableSqlBuilder(tablePath, table);
         String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
         try {
             String createTableSql = postgresCreateTableSqlBuilder.build(tablePath);
@@ -195,7 +233,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     @Override
     protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
         PostgresCreateTableSqlBuilder postgresCreateTableSqlBuilder =
-                new PostgresCreateTableSqlBuilder(table);
+                createTableSqlBuilder(tablePath, table);
         return postgresCreateTableSqlBuilder.build(tablePath);
     }
 
@@ -256,5 +294,52 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new PostgresTypeMapper());
+    }
+
+    protected Collection<String> plugins(TablePath tablePath) {
+        String dbUrl = getJdbcURL(tablePath);
+        try {
+            Connection connection = getConnection(dbUrl);
+            Set<String> plugins = new HashSet<>();
+            try (Statement statement = connection.createStatement();
+                    ResultSet rs = statement.executeQuery(QUERY_PLUGINS)) {
+                while (rs.next()) {
+                    plugins.add(rs.getString(1));
+                }
+                return plugins;
+            }
+        } catch (Exception e) {
+            log.error("Failed to load plugins", e);
+            return Collections.emptyList();
+        }
+    }
+
+    protected String selectPostgisPath(TablePath tablePath) {
+        String dbUrl = getJdbcURL(tablePath);
+        String sql = "SELECT schemaname FROM pg_views WHERE viewname = 'geometry_columns'";
+        Connection conn = getConnection(dbUrl);
+        try (Statement stmt = conn.createStatement();
+                ResultSet rs = stmt.executeQuery(sql)) {
+            rs.next();
+            return rs.getString(1);
+        } catch (SQLException e) {
+            throw new CatalogException(String.format("Failed execute query %s", sql), e);
+        }
+    }
+
+    protected PostgresCreateTableSqlBuilder createTableSqlBuilder(
+            TablePath tablePath, CatalogTable table) {
+        return new PostgresCreateTableSqlBuilder(table, plugins(tablePath));
+    }
+
+    @Override
+    protected String getJdbcURL(TablePath tablePath) {
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        return dbUrl;
     }
 }

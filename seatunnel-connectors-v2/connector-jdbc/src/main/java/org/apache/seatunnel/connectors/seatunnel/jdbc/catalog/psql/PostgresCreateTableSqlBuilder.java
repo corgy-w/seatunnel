@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCreateTableSqlBuilder;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresTypeConverter;
@@ -32,25 +33,39 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.Getter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class PostgresCreateTableSqlBuilder {
+public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuilder {
+    private static final List<String> COMPATIBLE_DATABASES =
+            Arrays.asList(
+                    DatabaseIdentifier.POSTGRESQL.toUpperCase(),
+                    DatabaseIdentifier.HIGHGO.toUpperCase());
+
     private List<Column> columns;
     private PrimaryKey primaryKey;
     private String sourceCatalogName;
     private String fieldIde;
     private List<ConstraintKey> constraintKeys;
     public Boolean isHaveConstraintKey = false;
+    private Collection<String> pgPlugins;
 
     @Getter public List<String> createIndexSqls = new ArrayList<>();
 
     public PostgresCreateTableSqlBuilder(CatalogTable catalogTable) {
+        this(catalogTable, Collections.emptyList());
+    }
+
+    public PostgresCreateTableSqlBuilder(CatalogTable catalogTable, Collection<String> pgPlugins) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
         this.sourceCatalogName = catalogTable.getCatalogName();
         this.fieldIde = catalogTable.getOptions().get("fieldIde");
         this.constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
+        this.pgPlugins = pgPlugins;
     }
 
     public String build(TablePath tablePath) {
@@ -133,11 +148,20 @@ public class PostgresCreateTableSqlBuilder {
         columnSql.append("\"").append(column.getName()).append("\" ");
 
         // For simplicity, assume the column type in SeaTunnelDataType is the same as in PostgreSQL
-        String columnType =
-                StringUtils.equalsIgnoreCase(DatabaseIdentifier.POSTGRESQL, sourceCatalogName)
-                                && StringUtils.isNotBlank(column.getSourceType())
-                        ? column.getSourceType()
-                        : buildColumnType(column);
+        String columnType;
+        if (isCompatibleCatalog(sourceCatalogName)
+                && StringUtils.isNotBlank(column.getSourceType())) {
+            if ((column.getSourceType().startsWith(PostgresTypeConverter.PG_POSTGIS_GEOMETRY)
+                            || column.getSourceType()
+                                    .startsWith(PostgresTypeConverter.PG_POSTGIS_GEOGRAPHY))
+                    && !pgPlugins.contains(PostgresTypeConverter.PG_POSTGIS)) {
+                columnType = buildColumnType(column);
+            } else {
+                columnType = column.getSourceType();
+            }
+        } else {
+            columnType = buildColumnType(column);
+        }
         columnSql.append(columnType);
 
         // Add NOT NULL if column is not nullable
@@ -148,7 +172,11 @@ public class PostgresCreateTableSqlBuilder {
         return columnSql.toString();
     }
 
-    private String buildColumnType(Column column) {
+    protected boolean isCompatibleCatalog(String sourceCatalogName) {
+        return COMPATIBLE_DATABASES.contains(sourceCatalogName.toUpperCase());
+    }
+
+    protected String buildColumnType(Column column) {
         return PostgresTypeConverter.INSTANCE.reconvert(column).getColumnType();
     }
 
@@ -161,7 +189,7 @@ public class PostgresCreateTableSqlBuilder {
         columnCommentSql
                 .append(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "\""))
                 .append(CatalogUtils.quoteIdentifier(" IS '", fieldIde))
-                .append(column.getComment())
+                .append(column.getComment().replace("'", "''").replace("\\", "\\\\"))
                 .append("'");
         return columnCommentSql.toString();
     }

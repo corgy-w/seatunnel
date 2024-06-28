@@ -599,7 +599,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
 
     protected void truncateTableInternal(TablePath tablePath) throws CatalogException {
         try {
-            executeInternal(defaultUrl, getTruncateTableSql(tablePath));
+            executeInternal(getJdbcURL(tablePath), getTruncateTableSql(tablePath));
         } catch (Exception e) {
             throw new CatalogException(
                     String.format(
@@ -657,5 +657,9 @@ public abstract class AbstractJdbcCatalog implements Catalog {
         } else {
             throw new UnsupportedOperationException("Unsupported action type: " + actionType);
         }
+    }
+
+    protected String getJdbcURL(TablePath tablePath) {
+        return defaultUrl;
     }
 }

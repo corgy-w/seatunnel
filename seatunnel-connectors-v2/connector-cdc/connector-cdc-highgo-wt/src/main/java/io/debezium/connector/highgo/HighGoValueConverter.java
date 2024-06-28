@@ -242,6 +242,13 @@ public class HighGoValueConverter extends JdbcValueConverters {
                 return Uuid.builder();
             case OgOid.POINT:
                 return Point.builder();
+            case OgOid.LINE:
+            case OgOid.LSEG:
+            case OgOid.PATH:
+            case OgOid.POLYGON:
+            case OgOid.CIRCLE:
+            case OgOid.BOX:
+                return SchemaBuilder.string();
             case OgOid.MONEY:
                 return moneySchema();
             case OgOid.NUMERIC:
@@ -433,6 +440,13 @@ public class HighGoValueConverter extends JdbcValueConverters {
                 return data -> convertString(column, fieldDefn, data);
             case OgOid.POINT:
                 return data -> convertPoint(column, fieldDefn, data);
+            case OgOid.LINE:
+            case OgOid.LSEG:
+            case OgOid.PATH:
+            case OgOid.POLYGON:
+            case OgOid.CIRCLE:
+            case OgOid.BOX:
+                return data -> convertString(column, fieldDefn, data);
             case OgOid.MONEY:
                 return data -> convertMoney(column, fieldDefn, data, decimalMode);
             case OgOid.NUMERIC:
