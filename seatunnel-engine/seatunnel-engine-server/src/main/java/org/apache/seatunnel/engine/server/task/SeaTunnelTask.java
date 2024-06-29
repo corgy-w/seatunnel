@@ -46,6 +46,7 @@ import org.apache.seatunnel.engine.server.dag.physical.flow.UnknownFlowException
 import org.apache.seatunnel.engine.server.execution.TaskGroup;
 import org.apache.seatunnel.engine.server.execution.TaskLocation;
 import org.apache.seatunnel.engine.server.metrics.SeaTunnelMetricsContext;
+import org.apache.seatunnel.engine.server.operation.SavePointJobOperation;
 import org.apache.seatunnel.engine.server.task.flow.ActionFlowLifeCycle;
 import org.apache.seatunnel.engine.server.task.flow.FlowLifeCycle;
 import org.apache.seatunnel.engine.server.task.flow.IntermediateQueueFlowLifeCycle;
@@ -373,6 +374,15 @@ public abstract class SeaTunnelTask extends AbstractTask {
                 taskLocation);
         return this.getExecutionContext()
                 .sendToMaster(new TriggerSchemaChangeAfterCheckpointOperation(taskLocation));
+    }
+
+    public InvocationFuture<Object> triggerSchemaChangePauseCheckpoint() {
+        log.info(
+                "trigger schema-change-pause checkpoint. jobID[{}], taskLocation[{}]",
+                jobID,
+                taskLocation);
+        return this.getExecutionContext()
+                .sendToMaster(new SavePointJobOperation(taskLocation.getJobId()));
     }
 
     public void addState(Barrier barrier, ActionStateKey stateKey, List<byte[]> state) {

@@ -17,10 +17,21 @@
 
 package org.apache.seatunnel.connectors.cdc.base.source.reader.external;
 
+import org.apache.seatunnel.shade.com.google.common.collect.ImmutableMap;
+
+import org.apache.seatunnel.api.table.schema.SchemaChangeStrategy;
+import org.apache.seatunnel.api.table.schema.SchemaChangeType;
+import org.apache.seatunnel.api.table.schema.event.AlterTableAddColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableDropColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableModifyColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.connectors.cdc.base.schema.SchemaChangeResolver;
+import org.apache.seatunnel.connectors.cdc.base.source.SchemaChangeEventStrategy;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceRecords;
 import org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.WatermarkEvent;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumDeserializationSchema;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -29,6 +40,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.stubbing.Answer;
 
 import io.debezium.data.Envelope;
 import io.debezium.heartbeat.Heartbeat;
@@ -48,6 +60,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class IncrementalSourceStreamFetcherTest {
+    private static final String UNKNOWN_SCHEMA_KEY = "UNKNOWN";
 
     @Test
     public void testSplitSchemaChangeStream() throws Exception {
@@ -149,6 +162,7 @@ public class IncrementalSourceStreamFetcherTest {
         inputEvents.add(new DataChangeEvent(createSchemaChangeEvent()));
         inputEvents.add(new DataChangeEvent(createSchemaChangeEvent()));
         inputEvents.add(new DataChangeEvent(createDataEvent()));
+        inputEvents.add(new DataChangeEvent(createSchemaChangeUnknownEvent()));
         outputEvents = fetcher.splitSchemaChangeStream(inputEvents);
         outputEvents.forEachRemaining(records::add);
 
@@ -177,6 +191,7 @@ public class IncrementalSourceStreamFetcherTest {
         inputEvents.add(new DataChangeEvent(createSchemaChangeEvent()));
         inputEvents.add(new DataChangeEvent(createDataEvent()));
         inputEvents.add(new DataChangeEvent(createSchemaChangeEvent()));
+        inputEvents.add(new DataChangeEvent(createSchemaChangeUnknownEvent()));
         outputEvents = fetcher.splitSchemaChangeStream(inputEvents);
         outputEvents.forEachRemaining(records::add);
 
@@ -309,14 +324,121 @@ public class IncrementalSourceStreamFetcherTest {
                 SourceRecordUtils.isHeartbeatRecord(records.get(10).getSourceRecordList().get(1)));
     }
 
+    @Test
+    public void testSplitSchemaChangeStreamBySchemaChangeStrategy() throws Exception {
+        IncrementalSourceStreamFetcher fetcher = createFetcher();
+
+        List<DataChangeEvent> inputEvents = new ArrayList<>();
+        List<SourceRecords> records = new ArrayList<>();
+        inputEvents.add(
+                new DataChangeEvent(createSchemaChangeEvent(SchemaChangeType.ADD_COLUMN.name())));
+        inputEvents.add(
+                new DataChangeEvent(
+                        createSchemaChangeEvent(SchemaChangeType.UPDATE_COLUMN.name())));
+        inputEvents.add(
+                new DataChangeEvent(createSchemaChangeEvent(SchemaChangeType.DROP_COLUMN.name())));
+        Iterator<SourceRecords> outputEvents = fetcher.splitSchemaChangeStream(inputEvents);
+        outputEvents.forEachRemaining(records::add);
+
+        Assertions.assertEquals(5, records.size());
+        Assertions.assertEquals(1, records.get(0).getSourceRecordList().size());
+        Assertions.assertTrue(
+                WatermarkEvent.isSchemaChangeBeforeWatermarkEvent(
+                        records.get(0).getSourceRecordList().get(0)));
+        Assertions.assertEquals(2, records.get(1).getSourceRecordList().size());
+        Assertions.assertEquals(
+                SchemaChangeType.ADD_COLUMN.name(),
+                records.get(1).getSourceRecordList().get(0).topic());
+        Assertions.assertTrue(
+                WatermarkEvent.isSchemaChangeAfterWatermarkEvent(
+                        records.get(1).getSourceRecordList().get(1)));
+        Assertions.assertEquals(1, records.get(2).getSourceRecordList().size());
+        Assertions.assertTrue(
+                WatermarkEvent.isSchemaChangeBeforeWatermarkEvent(
+                        records.get(2).getSourceRecordList().get(0)));
+        Assertions.assertEquals(2, records.get(3).getSourceRecordList().size());
+        Assertions.assertEquals(
+                SchemaChangeType.UPDATE_COLUMN.name(),
+                records.get(3).getSourceRecordList().get(0).topic());
+        Assertions.assertTrue(
+                WatermarkEvent.isSchemaChangePauseWatermarkEvent(
+                        records.get(3).getSourceRecordList().get(1)));
+        Assertions.assertEquals(1, records.get(4).getSourceRecordList().size());
+        Assertions.assertEquals(
+                SchemaChangeType.DROP_COLUMN.name(),
+                records.get(4).getSourceRecordList().get(0).topic());
+
+        inputEvents = new ArrayList<>();
+        records = new ArrayList<>();
+        inputEvents.add(new DataChangeEvent(createDataEvent()));
+        inputEvents.add(
+                new DataChangeEvent(createSchemaChangeEvent(SchemaChangeType.ADD_COLUMN.name())));
+        inputEvents.add(new DataChangeEvent(createDataEvent()));
+        inputEvents.add(
+                new DataChangeEvent(
+                        createSchemaChangeEvent(SchemaChangeType.UPDATE_COLUMN.name())));
+        inputEvents.add(new DataChangeEvent(createDataEvent()));
+        inputEvents.add(
+                new DataChangeEvent(createSchemaChangeEvent(SchemaChangeType.DROP_COLUMN.name())));
+        inputEvents.add(new DataChangeEvent(createDataEvent()));
+        outputEvents = fetcher.splitSchemaChangeStream(inputEvents);
+        outputEvents.forEachRemaining(records::add);
+
+        Assertions.assertEquals(7, records.size());
+        Assertions.assertEquals(2, records.get(0).getSourceRecordList().size());
+        Assertions.assertTrue(
+                SourceRecordUtils.isDataChangeRecord(records.get(0).getSourceRecordList().get(0)));
+        Assertions.assertTrue(
+                WatermarkEvent.isSchemaChangeBeforeWatermarkEvent(
+                        records.get(0).getSourceRecordList().get(1)));
+        Assertions.assertEquals(2, records.get(1).getSourceRecordList().size());
+        Assertions.assertEquals(
+                SchemaChangeType.ADD_COLUMN.name(),
+                records.get(1).getSourceRecordList().get(0).topic());
+        Assertions.assertTrue(
+                WatermarkEvent.isSchemaChangeAfterWatermarkEvent(
+                        records.get(1).getSourceRecordList().get(1)));
+        Assertions.assertEquals(2, records.get(2).getSourceRecordList().size());
+        Assertions.assertTrue(
+                SourceRecordUtils.isDataChangeRecord(records.get(2).getSourceRecordList().get(0)));
+        Assertions.assertTrue(
+                WatermarkEvent.isSchemaChangeBeforeWatermarkEvent(
+                        records.get(2).getSourceRecordList().get(1)));
+        Assertions.assertEquals(2, records.get(3).getSourceRecordList().size());
+        Assertions.assertEquals(
+                SchemaChangeType.UPDATE_COLUMN.name(),
+                records.get(3).getSourceRecordList().get(0).topic());
+        Assertions.assertTrue(
+                WatermarkEvent.isSchemaChangePauseWatermarkEvent(
+                        records.get(3).getSourceRecordList().get(1)));
+        Assertions.assertEquals(1, records.get(4).getSourceRecordList().size());
+        Assertions.assertTrue(
+                SourceRecordUtils.isDataChangeRecord(records.get(4).getSourceRecordList().get(0)));
+        Assertions.assertEquals(1, records.get(5).getSourceRecordList().size());
+        Assertions.assertEquals(
+                SchemaChangeType.DROP_COLUMN.name(),
+                records.get(5).getSourceRecordList().get(0).topic());
+        Assertions.assertEquals(1, records.get(6).getSourceRecordList().size());
+        Assertions.assertTrue(
+                SourceRecordUtils.isDataChangeRecord(records.get(6).getSourceRecordList().get(0)));
+    }
+
     static SourceRecord createSchemaChangeEvent() {
+        return createSchemaChangeEvent(SchemaChangeType.ADD_COLUMN.name());
+    }
+
+    static SourceRecord createSchemaChangeUnknownEvent() {
+        return createSchemaChangeEvent(UNKNOWN_SCHEMA_KEY);
+    }
+
+    static SourceRecord createSchemaChangeEvent(String topic) {
         Schema keySchema =
                 SchemaBuilder.struct().name(SourceRecordUtils.SCHEMA_CHANGE_EVENT_KEY_NAME).build();
         SourceRecord record =
                 new SourceRecord(
                         Collections.emptyMap(),
                         Collections.emptyMap(),
-                        null,
+                        topic,
                         keySchema,
                         null,
                         null,
@@ -357,9 +479,48 @@ public class IncrementalSourceStreamFetcherTest {
 
     static IncrementalSourceStreamFetcher createFetcher() {
         SchemaChangeResolver schemaChangeResolver = mock(SchemaChangeResolver.class);
-        when(schemaChangeResolver.support(any())).thenReturn(true);
+        when(schemaChangeResolver.support(any()))
+                .thenAnswer(
+                        (Answer<Boolean>)
+                                invocationOnMock -> {
+                                    SourceRecord record = invocationOnMock.getArgument(0);
+                                    return record.topic() == null
+                                            || !record.topic().equalsIgnoreCase(UNKNOWN_SCHEMA_KEY);
+                                });
+        when(schemaChangeResolver.resolve(any(), any()))
+                .thenAnswer(
+                        (Answer<SchemaChangeEvent>)
+                                invocationOnMock -> {
+                                    SourceRecord record = invocationOnMock.getArgument(0);
+                                    SchemaChangeType schemaChangeType =
+                                            SchemaChangeType.valueOf(record.topic());
+                                    switch (schemaChangeType) {
+                                        case UPDATE_COLUMN:
+                                            return AlterTableModifyColumnEvent.modify(null, null);
+                                        case DROP_COLUMN:
+                                            return new AlterTableDropColumnEvent(null, null);
+                                        case RENAME_COLUMN:
+                                            return AlterTableChangeColumnEvent.change(
+                                                    null, null, null);
+                                        case ADD_COLUMN:
+                                        default:
+                                            return AlterTableAddColumnEvent.add(null, null);
+                                    }
+                                });
+        DebeziumDeserializationSchema schema = mock(DebeziumDeserializationSchema.class);
+        SchemaChangeEventStrategy schemaChangeEventStrategy =
+                new SchemaChangeEventStrategy(
+                        schema,
+                        ImmutableMap.of(
+                                SchemaChangeType.ADD_COLUMN,
+                                SchemaChangeStrategy.APPLY,
+                                SchemaChangeType.UPDATE_COLUMN,
+                                SchemaChangeStrategy.PAUSE,
+                                SchemaChangeType.DROP_COLUMN,
+                                SchemaChangeStrategy.IGNORE));
         IncrementalSourceStreamFetcher fetcher =
-                new IncrementalSourceStreamFetcher(null, 0, schemaChangeResolver);
+                new IncrementalSourceStreamFetcher(
+                        null, 0, schemaChangeResolver, schemaChangeEventStrategy);
         IncrementalSourceStreamFetcher spy = spy(fetcher);
         doReturn(true).when(spy).shouldEmit(any());
         return spy;

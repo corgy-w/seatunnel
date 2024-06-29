@@ -21,8 +21,6 @@ import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
@@ -61,11 +59,8 @@ public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSou
 
     static final String IDENTIFIER = "MongoDB-CDC";
 
-    public MongodbIncrementalSource(
-            ReadonlyConfig options,
-            SeaTunnelDataType<SeaTunnelRow> dataType,
-            List<CatalogTable> catalogTables) {
-        super(options, dataType, catalogTables);
+    public MongodbIncrementalSource(ReadonlyConfig options, List<CatalogTable> catalogTables) {
+        super(options, catalogTables);
     }
 
     @Override
@@ -129,18 +124,8 @@ public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSou
                             tableIdTableChangeMap);
         }
 
-        SeaTunnelDataType<SeaTunnelRow> physicalRowType;
-        if (dataType == null) {
-            return (DebeziumDeserializationSchema<T>)
-                    new DebeziumJsonDeserializeSchema(
-                            config.get(JdbcSourceOptions.DEBEZIUM_PROPERTIES),
-                            tableIdTableChangeMap);
-        } else {
-            physicalRowType = dataType;
-            return (DebeziumDeserializationSchema<T>)
-                    new MongoDBConnectorDeserializationSchema(
-                            physicalRowType, physicalRowType, tableIdTableChangeMap);
-        }
+        return (DebeziumDeserializationSchema<T>)
+                new MongoDBConnectorDeserializationSchema(catalogTables, tableIdTableChangeMap);
     }
 
     @Override

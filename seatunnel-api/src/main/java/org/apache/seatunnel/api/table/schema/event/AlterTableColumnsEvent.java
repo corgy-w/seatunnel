@@ -15,40 +15,39 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event;
+package org.apache.seatunnel.api.table.schema.event;
 
 import org.apache.seatunnel.api.event.EventType;
-import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @ToString(callSuper = true)
-public class AlterTableModifyColumnEvent extends AlterTableAddColumnEvent {
-    public AlterTableModifyColumnEvent(
-            TableIdentifier tableIdentifier, Column column, boolean first, String afterColumn) {
-        super(tableIdentifier, column, first, afterColumn);
+public class AlterTableColumnsEvent extends AlterTableEvent {
+    private final List<AlterTableColumnEvent> events;
+
+    public AlterTableColumnsEvent(TableIdentifier tableIdentifier) {
+        this(tableIdentifier, new ArrayList<>());
     }
 
-    public static AlterTableModifyColumnEvent modifyFirst(
-            TableIdentifier tableIdentifier, Column column) {
-        return new AlterTableModifyColumnEvent(tableIdentifier, column, true, null);
+    public AlterTableColumnsEvent(
+            TableIdentifier tableIdentifier, List<AlterTableColumnEvent> events) {
+        super(tableIdentifier);
+        this.events = events;
     }
 
-    public static AlterTableModifyColumnEvent modify(
-            TableIdentifier tableIdentifier, Column column) {
-        return new AlterTableModifyColumnEvent(tableIdentifier, column, false, null);
-    }
-
-    public static AlterTableModifyColumnEvent modifyAfter(
-            TableIdentifier tableIdentifier, Column column, String afterColumn) {
-        return new AlterTableModifyColumnEvent(tableIdentifier, column, false, afterColumn);
+    public AlterTableColumnsEvent addEvent(AlterTableColumnEvent event) {
+        events.add(event);
+        return this;
     }
 
     @Override
     public EventType getEventType() {
-        return EventType.SCHEMA_CHANGE_MODIFY_COLUMN;
+        return EventType.SCHEMA_CHANGE_UPDATE_COLUMNS;
     }
 }

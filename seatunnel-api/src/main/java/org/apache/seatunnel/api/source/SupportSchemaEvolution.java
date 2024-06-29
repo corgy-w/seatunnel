@@ -15,15 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event;
+package org.apache.seatunnel.api.source;
 
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
+import org.apache.seatunnel.api.table.schema.SchemaChangeType;
 
-import lombok.ToString;
+import java.util.List;
 
-@ToString(callSuper = true)
-public abstract class AlterTableColumnEvent extends AlterTableEvent {
-    public AlterTableColumnEvent(TableIdentifier tableIdentifier) {
-        super(tableIdentifier);
-    }
+public interface SupportSchemaEvolution {
+
+    /**
+     * Whether the source connector supports schema evolution.
+     *
+     * @return the supported schema change types
+     */
+    List<SchemaChangeType> supports();
 }

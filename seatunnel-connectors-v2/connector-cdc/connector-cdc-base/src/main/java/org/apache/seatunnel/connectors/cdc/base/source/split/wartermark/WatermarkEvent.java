@@ -94,6 +94,17 @@ public class WatermarkEvent {
                 signalRecordValue("schema-change-after", WatermarkKind.SCHEMA_CHANGE_AFTER));
     }
 
+    public static SourceRecord createSchemaChangePauseWatermark(SourceRecord record) {
+        return new SourceRecord(
+                record.sourcePartition(),
+                record.sourceOffset(),
+                record.topic(),
+                SIGNAL_EVENT_KEY_SCHEMA,
+                signalRecordKey("schema-change-pause"),
+                SIGNAL_EVENT_VALUE_SCHEMA,
+                signalRecordValue("schema-change-pause", WatermarkKind.SCHEMA_CHANGE_PAUSE));
+    }
+
     public static boolean isWatermarkEvent(SourceRecord record) {
         Optional<WatermarkKind> watermarkKind = getWatermarkKind(record);
         return watermarkKind.isPresent();
@@ -124,6 +135,12 @@ public class WatermarkEvent {
         Optional<WatermarkKind> watermarkKind = getWatermarkKind(record);
         return watermarkKind.isPresent()
                 && watermarkKind.get() == WatermarkKind.SCHEMA_CHANGE_AFTER;
+    }
+
+    public static boolean isSchemaChangePauseWatermarkEvent(SourceRecord record) {
+        Optional<WatermarkKind> watermarkKind = getWatermarkKind(record);
+        return watermarkKind.isPresent()
+                && watermarkKind.get() == WatermarkKind.SCHEMA_CHANGE_PAUSE;
     }
 
     private static Optional<WatermarkKind> getWatermarkKind(SourceRecord record) {

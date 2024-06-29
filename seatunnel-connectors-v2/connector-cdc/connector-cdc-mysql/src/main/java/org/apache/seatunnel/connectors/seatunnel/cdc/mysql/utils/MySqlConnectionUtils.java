@@ -64,7 +64,7 @@ public class MySqlConnectionUtils {
         TopicSelector<TableId> topicSelector = MySqlTopicSelector.defaultSelector(dbzMySqlConfig);
         SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create();
         MySqlValueConverters valueConverters = getValueConverters(dbzMySqlConfig);
-        return new MySqlDatabaseSchema(
+        return new CustomMySqlDatabaseSchema(
                 dbzMySqlConfig,
                 valueConverters,
                 topicSelector,

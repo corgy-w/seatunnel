@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.cdc.base.source.split;
 
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
@@ -50,7 +51,9 @@ public class IncrementalSplit extends SourceSplitBase {
      */
     private final List<CompletedSnapshotSplitInfo> completedSnapshotSplitInfos;
 
-    private final SeaTunnelDataType checkpointDataType;
+    // Remove in the next version
+    @Deprecated private SeaTunnelDataType checkpointDataType;
+    private List<CatalogTable> checkpointTables;
 
     private final Map<TableId, byte[]> historyTableChanges;
 
@@ -66,10 +69,11 @@ public class IncrementalSplit extends SourceSplitBase {
                 startupOffset,
                 stopOffset,
                 completedSnapshotSplitInfos,
-                null,
+                (List<CatalogTable>) null,
                 null);
     }
 
+    @Deprecated
     public IncrementalSplit(
             IncrementalSplit split,
             SeaTunnelDataType checkpointDataType,
@@ -85,6 +89,21 @@ public class IncrementalSplit extends SourceSplitBase {
     }
 
     public IncrementalSplit(
+            IncrementalSplit split,
+            List<CatalogTable> tables,
+            Map<TableId, byte[]> historyTableChanges) {
+        this(
+                split.splitId(),
+                split.getTableIds(),
+                split.getStartupOffset(),
+                split.getStopOffset(),
+                split.getCompletedSnapshotSplitInfos(),
+                tables,
+                historyTableChanges);
+    }
+
+    @Deprecated
+    public IncrementalSplit(
             String splitId,
             List<TableId> capturedTables,
             Offset startupOffset,
@@ -98,6 +117,23 @@ public class IncrementalSplit extends SourceSplitBase {
         this.stopOffset = stopOffset;
         this.completedSnapshotSplitInfos = completedSnapshotSplitInfos;
         this.checkpointDataType = checkpointDataType;
+        this.historyTableChanges = historyTableChanges;
+    }
+
+    public IncrementalSplit(
+            String splitId,
+            List<TableId> capturedTables,
+            Offset startupOffset,
+            Offset stopOffset,
+            List<CompletedSnapshotSplitInfo> completedSnapshotSplitInfos,
+            List<CatalogTable> checkpointTables,
+            Map<TableId, byte[]> historyTableChanges) {
+        super(splitId);
+        this.tableIds = capturedTables;
+        this.startupOffset = startupOffset;
+        this.stopOffset = stopOffset;
+        this.completedSnapshotSplitInfos = completedSnapshotSplitInfos;
+        this.checkpointTables = checkpointTables;
         this.historyTableChanges = historyTableChanges;
     }
 

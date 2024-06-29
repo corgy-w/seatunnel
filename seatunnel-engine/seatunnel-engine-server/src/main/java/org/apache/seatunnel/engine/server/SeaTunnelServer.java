@@ -84,6 +84,7 @@ public class SeaTunnelServer
     private TaskExecutionService taskExecutionService;
     private ClassLoaderService classLoaderService;
     private CoordinatorService coordinatorService;
+    @Getter private CheckpointService checkpointService;
     private ScheduledExecutorService monitorService;
 
     @Getter private SeaTunnelHealthMonitor seaTunnelHealthMonitor;
@@ -145,6 +146,8 @@ public class SeaTunnelServer
         coordinatorService =
                 new CoordinatorService(
                         nodeEngine, this, seaTunnelConfig.getEngineConfig(), classLoader);
+        checkpointService =
+                new CheckpointService(seaTunnelConfig.getEngineConfig().getCheckpointConfig());
         monitorService = Executors.newSingleThreadScheduledExecutor();
         monitorService.scheduleAtFixedRate(
                 this::printExecutionInfo,

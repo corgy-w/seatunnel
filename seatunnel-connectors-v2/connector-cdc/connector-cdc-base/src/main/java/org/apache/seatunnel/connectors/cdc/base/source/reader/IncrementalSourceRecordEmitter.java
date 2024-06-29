@@ -24,7 +24,10 @@ import org.apache.seatunnel.api.event.EventListener;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.event.MessageDelayedEvent;
-import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.schema.SchemaChangeStrategy;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
+import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
+import org.apache.seatunnel.connectors.cdc.base.source.SchemaChangeEventStrategy;
 import org.apache.seatunnel.connectors.cdc.base.source.event.CompletedSnapshotPhaseEvent;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.OffsetFactory;
@@ -48,6 +51,7 @@ import static org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.W
 import static org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.WatermarkEvent.isLowWatermarkEvent;
 import static org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.WatermarkEvent.isSchemaChangeAfterWatermarkEvent;
 import static org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.WatermarkEvent.isSchemaChangeBeforeWatermarkEvent;
+import static org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.WatermarkEvent.isSchemaChangePauseWatermarkEvent;
 import static org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.WatermarkEvent.isWatermarkEvent;
 import static org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils.getFetchTimestamp;
 import static org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils.getMessageTimestamp;
@@ -71,7 +75,7 @@ public class IncrementalSourceRecordEmitter<T>
 
     protected final DebeziumDeserializationSchema<T> debeziumDeserializationSchema;
     protected final OutputCollector<T> outputCollector;
-
+    protected final SourceConfig sourceConfig;
     protected final OffsetFactory offsetFactory;
 
     protected final SourceReader.Context context;
@@ -83,11 +87,15 @@ public class IncrementalSourceRecordEmitter<T>
     private boolean firstTimeInIncrementalPhase = true;
     protected final MessageDelayedEventLimiter delayedEventLimiter =
             new MessageDelayedEventLimiter(Duration.ofSeconds(1), 0.5d);
+    private final SchemaChangeEventStrategy schemaChangeEventStrategy;
 
     public IncrementalSourceRecordEmitter(
+            SourceConfig sourceConfig,
             DebeziumDeserializationSchema<T> debeziumDeserializationSchema,
             OffsetFactory offsetFactory,
-            SourceReader.Context context) {
+            SourceReader.Context context,
+            SchemaChangeEventStrategy schemaChangeEventStrategy) {
+        this.sourceConfig = sourceConfig;
         this.debeziumDeserializationSchema = debeziumDeserializationSchema;
         this.outputCollector = new OutputCollector<>();
         this.offsetFactory = offsetFactory;
@@ -101,6 +109,7 @@ public class IncrementalSourceRecordEmitter<T>
                                 CDC_RECORD_EMIT_DELAY_AVG,
                                 new ThreadSafeAvgMeter(CDC_RECORD_EMIT_DELAY_AVG));
         this.eventListener = context.getEventListener();
+        this.schemaChangeEventStrategy = schemaChangeEventStrategy;
     }
 
     @Override
@@ -159,11 +168,14 @@ public class IncrementalSourceRecordEmitter<T>
             } else if (isHighWatermarkEvent(element) && splitState.isSnapshotSplitState()) {
                 splitState.asSnapshotSplitState().setHighWatermark(watermark);
             } else if ((isSchemaChangeBeforeWatermarkEvent(element)
-                            || isSchemaChangeAfterWatermarkEvent(element))
+                            || isSchemaChangeAfterWatermarkEvent(element)
+                            || isSchemaChangePauseWatermarkEvent(element))
                     && splitState.isIncrementalSplitState()) {
                 emitElement(element, output);
             }
         } else if (isSchemaChangeEvent(element) && splitState.isIncrementalSplitState()) {
+            Offset position = getOffsetPosition(element);
+            splitState.asIncrementalSplitState().setStartupOffset(position);
             emitElement(element, output);
         } else if (isDataChangeRecord(element)) {
             if (splitState.isIncrementalSplitState()) {
@@ -239,7 +251,20 @@ public class IncrementalSourceRecordEmitter<T>
         @Override
         public void collect(SchemaChangeEvent event) {
             eventListener.onEvent(event);
-            output.collect(event);
+
+            SchemaChangeStrategy schemaChangeStrategy = schemaChangeEventStrategy.apply(event);
+            switch (schemaChangeStrategy) {
+                case APPLY:
+                    output.collect(event);
+                    break;
+                case IGNORE:
+                    // Skip schema change event in ignore-transform
+                    output.collect(event);
+                    break;
+                case PAUSE:
+                default:
+                    log.debug("Ignore the schema change event: {}", event);
+            }
         }
 
         @Override
@@ -250,6 +275,11 @@ public class IncrementalSourceRecordEmitter<T>
         @Override
         public void markSchemaChangeAfterCheckpoint() {
             output.markSchemaChangeAfterCheckpoint();
+        }
+
+        @Override
+        public void markSchemaChangePauseCheckpoint() {
+            output.markSchemaChangePauseCheckpoint();
         }
 
         @Override

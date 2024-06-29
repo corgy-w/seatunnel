@@ -17,6 +17,8 @@
 
 package org.apache.seatunnel.connectors.cdc.base.source;
 
+import org.apache.seatunnel.shade.com.google.common.collect.ImmutableMap;
+
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.Boundedness;
@@ -26,8 +28,8 @@ import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.api.table.schema.SchemaChangeStrategy;
+import org.apache.seatunnel.api.table.schema.SchemaChangeType;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.config.StartupConfig;
 import org.apache.seatunnel.connectors.cdc.base.config.StopConfig;
@@ -108,19 +110,15 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
 
     protected StopMode stopMode;
     protected DebeziumDeserializationSchema<T> deserializationSchema;
+    protected Map<SchemaChangeType, SchemaChangeStrategy> schemaChangeStrategys;
 
-    protected SeaTunnelDataType<SeaTunnelRow> dataType;
-
-    protected IncrementalSource(
-            ReadonlyConfig options,
-            SeaTunnelDataType<SeaTunnelRow> dataType,
-            List<CatalogTable> catalogTables) {
-        this.dataType = dataType;
+    protected IncrementalSource(ReadonlyConfig options, List<CatalogTable> catalogTables) {
         this.catalogTables = catalogTables;
         this.readonlyConfig = options;
         this.startupConfig = getStartupConfig(readonlyConfig);
         this.stopConfig = getStopConfig(readonlyConfig);
         this.stopMode = stopConfig.getStopMode();
+        this.schemaChangeStrategys = getSchemaChangeStrategys(readonlyConfig);
         //        this.incrementalParallelism =
         // readonlyConfig.get(SourceOptions.INCREMENTAL_PARALLELISM);
         // avoid the old data influence the job
@@ -145,6 +143,19 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                 config.get(SourceOptions.STOP_SPECIFIC_OFFSET_FILE),
                 config.get(SourceOptions.STOP_SPECIFIC_OFFSET_POS),
                 config.get(SourceOptions.STOP_TIMESTAMP));
+    }
+
+    protected Map<SchemaChangeType, SchemaChangeStrategy> getSchemaChangeStrategys(
+            ReadonlyConfig config) {
+        return ImmutableMap.of(
+                SchemaChangeType.ADD_COLUMN,
+                config.get(JdbcSourceOptions.DDL_ADD_COLUMN),
+                SchemaChangeType.DROP_COLUMN,
+                config.get(JdbcSourceOptions.DDL_DROP_COLUMN),
+                SchemaChangeType.UPDATE_COLUMN,
+                config.get(JdbcSourceOptions.DDL_UPDATE_COLUMN),
+                SchemaChangeType.RENAME_COLUMN,
+                config.get(JdbcSourceOptions.DDL_RENAME_COLUMN));
     }
 
     @Override
@@ -193,18 +204,21 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
                 new LinkedBlockingQueue<>(2);
 
         SchemaChangeResolver schemaChangeResolver = deserializationSchema.getSchemaChangeResolver();
+        SchemaChangeEventStrategy schemaChangeEventStrategy =
+                new SchemaChangeEventStrategy(deserializationSchema, schemaChangeStrategys);
         Supplier<IncrementalSourceSplitReader<C>> splitReaderSupplier =
                 () ->
                         new IncrementalSourceSplitReader<>(
                                 readerContext.getIndexOfSubtask(),
                                 dataSourceDialect,
                                 sourceConfig,
-                                schemaChangeResolver);
+                                schemaChangeResolver,
+                                schemaChangeEventStrategy);
         return new IncrementalSourceReader<>(
                 dataSourceDialect,
                 elementsQueue,
                 splitReaderSupplier,
-                createRecordEmitter(sourceConfig, readerContext),
+                createRecordEmitter(sourceConfig, readerContext, schemaChangeEventStrategy),
                 new SourceReaderOptions(readonlyConfig),
                 readerContext,
                 sourceConfig,
@@ -212,8 +226,15 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
     }
 
     protected RecordEmitter<SourceRecords, T, SourceSplitStateBase> createRecordEmitter(
-            SourceConfig sourceConfig, SourceReader.Context context) {
-        return new IncrementalSourceRecordEmitter<>(deserializationSchema, offsetFactory, context);
+            SourceConfig sourceConfig,
+            SourceReader.Context context,
+            SchemaChangeEventStrategy schemaChangeEventStrategy) {
+        return new IncrementalSourceRecordEmitter<>(
+                sourceConfig,
+                deserializationSchema,
+                offsetFactory,
+                context,
+                schemaChangeEventStrategy);
     }
 
     @Override

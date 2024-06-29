@@ -22,9 +22,9 @@ import org.apache.seatunnel.api.common.metrics.Meter;
 import org.apache.seatunnel.api.common.metrics.MetricsContext;
 import org.apache.seatunnel.api.event.EventListener;
 import org.apache.seatunnel.api.source.Collector;
-import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
-import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventDispatcher;
-import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventHandler;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.schema.handler.DataTypeChangeEventDispatcher;
+import org.apache.seatunnel.api.table.schema.handler.DataTypeChangeEventHandler;
 import org.apache.seatunnel.api.table.type.MultipleRowType;
 import org.apache.seatunnel.api.table.type.Record;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -62,6 +62,7 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
     private final AtomicBoolean schemaChangeBeforeCheckpointSignal = new AtomicBoolean(false);
 
     private final AtomicBoolean schemaChangeAfterCheckpointSignal = new AtomicBoolean(false);
+    private final AtomicBoolean schemaChangePauseCheckpointSignal = new AtomicBoolean(false);
 
     private final Counter sourceReceivedCount;
 
@@ -179,6 +180,17 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
         log.info("mark schema-change-after checkpoint signal.");
     }
 
+    @Override
+    public void markSchemaChangePauseCheckpoint() {
+        if (schemaChangePauseCheckpointSignal.get()) {
+            throw new IllegalStateException("schema-change-pause checkpoint already marked.");
+        }
+        if (!schemaChangePauseCheckpointSignal.compareAndSet(false, true)) {
+            throw new IllegalStateException("schema-change-pause checkpoint already marked.");
+        }
+        log.info("mark schema-change-pause checkpoint signal.");
+    }
+
     public boolean captureSchemaChangeBeforeCheckpointSignal() {
         if (schemaChangeBeforeCheckpointSignal.get()) {
             log.info("capture schema-change-before checkpoint signal.");
@@ -191,6 +203,14 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
         if (schemaChangeAfterCheckpointSignal.get()) {
             log.info("capture schema-change-after checkpoint signal.");
             return schemaChangeAfterCheckpointSignal.getAndSet(false);
+        }
+        return false;
+    }
+
+    public boolean captureSchemaChangePauseCheckpointSignal() {
+        if (schemaChangePauseCheckpointSignal.get()) {
+            log.info("capture schema-change-pause checkpoint signal.");
+            return schemaChangePauseCheckpointSignal.getAndSet(false);
         }
         return false;
     }

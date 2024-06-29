@@ -15,36 +15,43 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event;
+package org.apache.seatunnel.api.table.schema.event;
 
+import org.apache.seatunnel.api.event.Event;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+/** Represents a structural change to a table schema. */
+public interface SchemaChangeEvent extends Event {
 
-@Getter
-@ToString
-@RequiredArgsConstructor
-public abstract class TableEvent implements SchemaChangeEvent {
-    private long createdTime = System.currentTimeMillis();
-    protected final TableIdentifier tableIdentifier;
-    @Getter @Setter private String jobId;
-    @Getter @Setter private String statement;
-
-    @Override
-    public TableIdentifier tableIdentifier() {
-        return tableIdentifier;
+    /**
+     * Path of the change table object
+     *
+     * @return
+     */
+    default TablePath tablePath() {
+        return tableIdentifier().toTablePath();
     }
 
-    public TablePath getTablePath() {
-        return tablePath();
-    }
+    /**
+     * Path of the change table object
+     *
+     * @return
+     */
+    TableIdentifier tableIdentifier();
 
-    @Override
-    public long getCreatedTime() {
-        return createdTime;
-    }
+    /**
+     * Get the table struct after the change
+     *
+     * @return
+     */
+    CatalogTable getChangeAfter();
+
+    /**
+     * Set the table struct after the change
+     *
+     * @param table
+     */
+    void setChangeAfter(CatalogTable table);
 }

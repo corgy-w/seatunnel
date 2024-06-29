@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event.handler;
+package org.apache.seatunnel.connectors.seatunnel.common.sink;
 
-import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.sink.SupportSchemaEvolutionSinkWriter;
 
-import java.io.Serializable;
-
-public interface SchemaChangeEventHandler<T> extends Serializable {
-
-    T handle(SchemaChangeEvent event);
-}
+public interface SupportMultiTableSchemaEvolutionSinkWriter<IN, StateT, CommitInfoT, S>
+        extends SupportMultiTableSinkWriter<S>,
+                SupportSchemaEvolutionSinkWriter<IN, StateT, CommitInfoT> {}

@@ -35,7 +35,7 @@ public abstract class AbstractSimpleSink<T, StateT>
             throws IOException;
 
     @Override
-    public SinkWriter<T, Void, StateT> restoreWriter(
+    public AbstractSinkWriter<T, StateT> restoreWriter(
             SinkWriter.Context context, List<StateT> states) throws IOException {
         return createWriter(context);
     }

@@ -23,6 +23,7 @@ public enum WatermarkKind {
     HIGH,
     SCHEMA_CHANGE_BEFORE,
     SCHEMA_CHANGE_AFTER,
+    SCHEMA_CHANGE_PAUSE,
     END;
 
     public WatermarkKind fromString(String kindString) {
@@ -34,6 +35,8 @@ public enum WatermarkKind {
             return SCHEMA_CHANGE_BEFORE;
         } else if (SCHEMA_CHANGE_AFTER.name().equalsIgnoreCase(kindString)) {
             return SCHEMA_CHANGE_AFTER;
+        } else if (SCHEMA_CHANGE_PAUSE.name().equalsIgnoreCase(kindString)) {
+            return SCHEMA_CHANGE_PAUSE;
         } else {
             return END;
         }

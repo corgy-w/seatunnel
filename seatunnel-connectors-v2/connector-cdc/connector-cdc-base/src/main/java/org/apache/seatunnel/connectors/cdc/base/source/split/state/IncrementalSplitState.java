@@ -23,6 +23,7 @@ import org.apache.seatunnel.connectors.cdc.base.source.split.IncrementalSplit;
 import io.debezium.relational.TableId;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.util.Comparator;
 import java.util.List;
@@ -30,6 +31,7 @@ import java.util.List;
 /** The state of split to describe the change log of table(s). */
 @Getter
 @Setter
+@ToString
 public class IncrementalSplitState extends SourceSplitStateBase {
 
     private List<TableId> tableIds;

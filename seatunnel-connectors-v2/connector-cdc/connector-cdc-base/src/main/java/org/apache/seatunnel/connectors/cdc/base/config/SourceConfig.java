@@ -30,10 +30,6 @@ public interface SourceConfig extends Serializable {
 
     boolean isExactlyOnce();
 
-    default boolean isIncludeSchemaChanges() {
-        return false;
-    }
-
     /** Factory for the {@code SourceConfig}. */
     @FunctionalInterface
     interface Factory<C extends SourceConfig> extends Serializable {

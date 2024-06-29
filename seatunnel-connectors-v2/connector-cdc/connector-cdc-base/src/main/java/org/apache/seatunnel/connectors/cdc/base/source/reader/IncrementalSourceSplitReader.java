@@ -21,6 +21,7 @@ import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.schema.SchemaChangeResolver;
+import org.apache.seatunnel.connectors.cdc.base.source.SchemaChangeEventStrategy;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.Fetcher;
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.IncrementalSourceScanFetcher;
@@ -52,17 +53,20 @@ public class IncrementalSourceSplitReader<C extends SourceConfig>
     private final DataSourceDialect<C> dataSourceDialect;
     private final C sourceConfig;
     private final SchemaChangeResolver schemaChangeResolver;
+    private final SchemaChangeEventStrategy schemaChangeEventStrategy;
 
     public IncrementalSourceSplitReader(
             int subtaskId,
             DataSourceDialect<C> dataSourceDialect,
             C sourceConfig,
-            SchemaChangeResolver schemaChangeResolver) {
+            SchemaChangeResolver schemaChangeResolver,
+            SchemaChangeEventStrategy schemaChangeEventStrategy) {
         this.subtaskId = subtaskId;
         this.splits = new ArrayDeque<>();
         this.dataSourceDialect = dataSourceDialect;
         this.sourceConfig = sourceConfig;
         this.schemaChangeResolver = schemaChangeResolver;
+        this.schemaChangeEventStrategy = schemaChangeEventStrategy;
     }
 
     @Override
@@ -141,7 +145,10 @@ public class IncrementalSourceSplitReader<C extends SourceConfig>
                         dataSourceDialect.createFetchTaskContext(nextSplit, sourceConfig);
                 currentFetcher =
                         new IncrementalSourceStreamFetcher(
-                                taskContext, subtaskId, schemaChangeResolver);
+                                taskContext,
+                                subtaskId,
+                                schemaChangeResolver,
+                                schemaChangeEventStrategy);
                 log.info("Stream fetcher is created.");
             }
             currentFetcher.submitTask(dataSourceDialect.createFetchTask(nextSplit));

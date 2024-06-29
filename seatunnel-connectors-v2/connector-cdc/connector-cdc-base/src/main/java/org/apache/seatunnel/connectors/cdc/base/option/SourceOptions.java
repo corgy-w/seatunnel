@@ -19,9 +19,12 @@ package org.apache.seatunnel.connectors.cdc.base.option;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
+import org.apache.seatunnel.api.configuration.SingleChoiceOption;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.table.schema.SchemaChangeStrategy;
 import org.apache.seatunnel.connectors.cdc.debezium.DeserializeFormat;
 
+import java.util.Arrays;
 import java.util.Map;
 
 @SuppressWarnings("MagicNumber")
@@ -107,6 +110,38 @@ public class SourceOptions {
                     .booleanType()
                     .defaultValue(false)
                     .withDescription("Enable exactly once semantic.");
+
+    public static final SingleChoiceOption<SchemaChangeStrategy> DDL_ADD_COLUMN =
+            Options.key("ddl.add.column")
+                    .singleChoice(
+                            SchemaChangeStrategy.class,
+                            Arrays.asList(SchemaChangeStrategy.PAUSE, SchemaChangeStrategy.APPLY))
+                    .defaultValue(SchemaChangeStrategy.APPLY)
+                    .withDescription("Optional schema change mode for adding column");
+
+    public static final SingleChoiceOption<SchemaChangeStrategy> DDL_DROP_COLUMN =
+            Options.key("ddl.drop.column")
+                    .singleChoice(
+                            SchemaChangeStrategy.class,
+                            Arrays.asList(SchemaChangeStrategy.PAUSE, SchemaChangeStrategy.APPLY))
+                    .defaultValue(SchemaChangeStrategy.APPLY)
+                    .withDescription("Optional schema change mode for dropping column");
+
+    public static final SingleChoiceOption<SchemaChangeStrategy> DDL_UPDATE_COLUMN =
+            Options.key("ddl.update.column")
+                    .singleChoice(
+                            SchemaChangeStrategy.class,
+                            Arrays.asList(SchemaChangeStrategy.PAUSE, SchemaChangeStrategy.APPLY))
+                    .defaultValue(SchemaChangeStrategy.APPLY)
+                    .withDescription("Optional schema change mode for updating column");
+
+    public static final SingleChoiceOption<SchemaChangeStrategy> DDL_RENAME_COLUMN =
+            Options.key("ddl.rename.column")
+                    .singleChoice(
+                            SchemaChangeStrategy.class,
+                            Arrays.asList(SchemaChangeStrategy.PAUSE, SchemaChangeStrategy.APPLY))
+                    .defaultValue(SchemaChangeStrategy.APPLY)
+                    .withDescription("Optional schema change mode for renaming column");
 
     public static OptionRule.Builder getBaseRule() {
         return OptionRule.builder()

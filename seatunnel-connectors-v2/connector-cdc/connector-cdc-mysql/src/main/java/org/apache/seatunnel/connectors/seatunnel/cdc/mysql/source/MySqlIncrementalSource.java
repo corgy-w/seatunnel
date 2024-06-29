@@ -20,9 +20,9 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.mysql.source;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.source.SupportParallelism;
+import org.apache.seatunnel.api.source.SupportSchemaEvolution;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.api.table.schema.SchemaChangeType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
@@ -53,6 +53,7 @@ import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
 
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,14 +61,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceConfig>
-        implements SupportParallelism {
+        implements SupportParallelism, SupportSchemaEvolution {
     static final String IDENTIFIER = "MySQL-CDC";
 
-    public MySqlIncrementalSource(
-            ReadonlyConfig options,
-            SeaTunnelDataType<SeaTunnelRow> dataType,
-            List<CatalogTable> catalogTables) {
-        super(options, dataType, catalogTables);
+    public MySqlIncrementalSource(ReadonlyConfig options, List<CatalogTable> catalogTables) {
+        super(options, catalogTables);
     }
 
     @Override
@@ -115,12 +113,10 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
                             tableIdTableChangeMap);
         }
 
-        SeaTunnelDataType<SeaTunnelRow> physicalRowType = dataType;
         String zoneId = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);
         return (DebeziumDeserializationSchema<T>)
                 SeaTunnelRowDebeziumDeserializeSchema.builder()
-                        .setPhysicalRowType(physicalRowType)
-                        .setResultTypeInfo(physicalRowType)
+                        .setTables(catalogTables)
                         .setServerTimeZone(ZoneId.of(zoneId))
                         .setTableIdTableChangeMap(tableIdTableChangeMap)
                         .setSchemaChangeResolver(
@@ -176,5 +172,14 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
     @Override
     public Optional<String> driverName() {
         return Optional.of("com.mysql.cj.jdbc.Driver");
+    }
+
+    @Override
+    public List<SchemaChangeType> supports() {
+        return Arrays.asList(
+                SchemaChangeType.ADD_COLUMN,
+                SchemaChangeType.DROP_COLUMN,
+                SchemaChangeType.RENAME_COLUMN,
+                SchemaChangeType.UPDATE_COLUMN);
     }
 }

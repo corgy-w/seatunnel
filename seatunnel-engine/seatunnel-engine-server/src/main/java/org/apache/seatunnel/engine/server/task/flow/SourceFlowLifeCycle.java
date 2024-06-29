@@ -185,6 +185,14 @@ public class SourceFlowLifeCycle<T, SplitT extends SourceSplit> extends ActionFl
                 schemaChangePhase.set(SchemaChangePhase.createAfterPhase());
                 runningTask.triggerSchemaChangeAfterCheckpoint().get();
                 log.info("triggered schema-change-after checkpoint, stopping collect data");
+            } else if (collector.captureSchemaChangePauseCheckpointSignal()) {
+                if (schemaChangePhase.get() != null) {
+                    throw new IllegalStateException(
+                            "previous schema changes in progress, schemaChangePhase: "
+                                    + schemaChangePhase.get());
+                }
+                runningTask.triggerSchemaChangePauseCheckpoint().get();
+                log.info("triggered schema-change-pause checkpoint, stopping collect data");
             }
         } else {
             Thread.sleep(100);

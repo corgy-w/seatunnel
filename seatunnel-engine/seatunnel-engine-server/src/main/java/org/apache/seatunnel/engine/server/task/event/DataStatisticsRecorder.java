@@ -19,7 +19,7 @@ package org.apache.seatunnel.engine.server.task.event;
 
 import org.apache.seatunnel.api.event.EventListener;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.engine.server.event.DataReadStatisticsEvent;
