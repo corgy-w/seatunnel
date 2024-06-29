@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.file.s3.catalog;
+package org.apache.seatunnel.connectors.seatunnel.file.sftp.catalog;
 
 import org.apache.seatunnel.connectors.seatunnel.file.catalog.AbstractFileCatalog;
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
 
-public class S3FileCatalog extends AbstractFileCatalog {
+public class SftpFileCatalog extends AbstractFileCatalog {
 
-    public S3FileCatalog(
+    public SftpFileCatalog(
             HadoopFileSystemProxy hadoopFileSystemProxy, String filePath, String catalogName) {
         super(hadoopFileSystemProxy, filePath, catalogName);
     }

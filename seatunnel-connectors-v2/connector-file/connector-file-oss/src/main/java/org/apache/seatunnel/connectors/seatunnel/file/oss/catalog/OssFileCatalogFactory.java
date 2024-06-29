@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.file.s3.catalog;
+package org.apache.seatunnel.connectors.seatunnel.file.oss.catalog;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
@@ -24,27 +24,26 @@ import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileSystemType;
-import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
-import org.apache.seatunnel.connectors.seatunnel.file.s3.config.S3HadoopConf;
+import org.apache.seatunnel.connectors.seatunnel.file.oss.config.OssHadoopConf;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(Factory.class)
-public class S3FileCatalogFactory implements CatalogFactory {
+public class OssFileCatalogFactory implements CatalogFactory {
     @Override
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
-        HadoopConf hadoopConf = S3HadoopConf.buildWithReadOnlyConfig(options);
-        HadoopFileSystemProxy fileSystemUtils = new HadoopFileSystemProxy(hadoopConf);
-        return new S3FileCatalog(
+        HadoopFileSystemProxy fileSystemUtils =
+                new HadoopFileSystemProxy(OssHadoopConf.buildWithConfig(options));
+        return new OssFileCatalog(
                 fileSystemUtils,
                 options.get(BaseSourceConfigOptions.FILE_PATH),
-                factoryIdentifier());
+                FileSystemType.OSS.getFileSystemPluginName());
     }
 
     @Override
     public String factoryIdentifier() {
-        return FileSystemType.S3.getFileSystemPluginName();
+        return FileSystemType.OSS.getFileSystemPluginName();
     }
 
     @Override
