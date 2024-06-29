@@ -301,7 +301,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
         LinkedHashMap<String, LinkedHashMap<String, String>> transactionGroup =
                 commitInfo.getTransactionMap();
 
-        log.info("Parallel commit transactions {}", transactionGroup.keySet());
+        log.info("Parallel commit transactions {}", transactionGroup);
         Map<String, Future<Throwable>> taskFutures = new HashMap<>();
         CountDownLatch taskAwaits = new CountDownLatch(transactionGroup.size());
         for (Map.Entry<String, LinkedHashMap<String, String>> transaction :
@@ -323,6 +323,9 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
 
                                             LinkedHashMap<String, String> temporaryFiles =
                                                     transaction.getValue();
+                                            log.info(
+                                                    "copy transaction directory to table {}",
+                                                    transaction);
                                             if (!temporaryFiles.isEmpty()) {
                                                 copyS3FileToRedshiftTable(transactionDir);
                                             }
@@ -377,6 +380,7 @@ public class S3RedshiftSinkAggregatedCommitter extends FileSinkAggregatedCommitt
                 continue;
             }
 
+            log.info("copy transaction directory to table {}", mvFileEntry);
             String filepath = tempFilePath;
             mergeS3FileToRedshiftWithTemporaryTable(filepath);
 
