@@ -47,6 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -321,6 +322,13 @@ public class S3RedshiftChangelogWriter extends BaseFileSinkWriter {
                                                         schemaChanged)));
         schemaChanged = false;
         return result;
+    }
+
+    @Override
+    public List<FileSinkState> snapshotState(long checkpointId) throws IOException {
+        super.snapshotState(checkpointId);
+        // Currently, transaction control is not enabled for writing files to S3
+        return Collections.emptyList();
     }
 
     @Override

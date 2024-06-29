@@ -98,6 +98,7 @@ public class S3RedshiftConf implements Serializable {
         builder.schema(readonlyConfig.get(S3RedshiftConfig.SCHEMA_NAME));
         builder.timezone(readonlyConfig.get(S3RedshiftConfig.TIMEZONE));
 
+        checkBucket(readonlyConfig.get(S3RedshiftConfig.S3_BUCKET));
         builder.s3Bucket(readonlyConfig.get(S3RedshiftConfig.S3_BUCKET));
         builder.accessKey(readonlyConfig.get(S3RedshiftConfig.S3_ACCESS_KEY));
         builder.secretKey(readonlyConfig.get(S3RedshiftConfig.S3_SECRET_KEY));
@@ -137,6 +138,21 @@ public class S3RedshiftConf implements Serializable {
             if (!path.startsWith("/")) {
                 throw new IllegalArgumentException("Path must start with /");
             }
+        }
+    }
+
+    private static void checkBucket(String bucket) throws IllegalArgumentException {
+        if (bucket == null || bucket.isEmpty()) {
+            throw new IllegalArgumentException("Bucket cannot be empty");
+        }
+        String[] paths = bucket.split("://");
+        if (paths.length != 2) {
+            throw new IllegalArgumentException(
+                    "Bucket is not valid: " + bucket + ", example s3a://bucket-test-1");
+        }
+        if (paths[1].split("/").length > 1) {
+            throw new IllegalArgumentException(
+                    "Bucket is not valid: " + bucket + ", example s3a://bucket-example-1");
         }
     }
 }
