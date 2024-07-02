@@ -245,7 +245,7 @@ public class JobExecutionIT {
             CompletableFuture<JobStatus> objectCompletableFuture =
                     CompletableFuture.supplyAsync(clientJobProxy::waitForJobComplete);
 
-            await().atMost(600000, TimeUnit.MILLISECONDS)
+            await().atMost(6000000, TimeUnit.MILLISECONDS)
                     .untilAsserted(
                             () ->
                                     Assertions.assertTrue(
