@@ -94,6 +94,12 @@ public class StringFunction {
         return base64ConfigShade.encrypt(valueStr);
     }
 
+    public static String decrypt(List<Object> args) {
+        String valueStr = String.valueOf(args.get(0));
+        final Encryption.Base64ConfigShade base64ConfigShade = new Encryption.Base64ConfigShade();
+        return base64ConfigShade.decrypt(valueStr);
+    }
+
     public static String concatWs(List<Object> args) {
         int i = 1;
         String separator = (String) args.get(0);
