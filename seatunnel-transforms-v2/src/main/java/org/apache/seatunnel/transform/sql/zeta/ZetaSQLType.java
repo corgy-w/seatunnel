@@ -285,6 +285,7 @@ public class ZetaSQLType {
             case ZetaSQLFunction.CHAR:
             case ZetaSQLFunction.CHR:
             case ZetaSQLFunction.CONCAT:
+            case ZetaSQLFunction.ENCRYPT:
             case ZetaSQLFunction.CONCAT_WS:
             case ZetaSQLFunction.HEXTORAW:
             case ZetaSQLFunction.RAWTOHEX:

@@ -20,6 +20,7 @@ package org.apache.seatunnel.transform.sql.zeta.functions;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.transform.exception.TransformException;
 import org.apache.seatunnel.transform.sql.zeta.ZetaSQLFunction;
+import org.apache.seatunnel.transform.utils.Encryption;
 
 import java.nio.charset.StandardCharsets;
 import java.time.temporal.Temporal;
@@ -85,6 +86,12 @@ public class StringFunction {
             builder.append(v);
         }
         return builder.toString();
+    }
+
+    public static String encrypt(List<Object> args) {
+        String valueStr = String.valueOf(args.get(0));
+        final Encryption.Base64ConfigShade base64ConfigShade = new Encryption.Base64ConfigShade();
+        return base64ConfigShade.encrypt(valueStr);
     }
 
     public static String concatWs(List<Object> args) {
