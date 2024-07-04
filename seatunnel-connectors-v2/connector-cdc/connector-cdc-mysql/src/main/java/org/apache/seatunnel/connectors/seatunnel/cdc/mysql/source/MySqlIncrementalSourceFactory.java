@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
+import org.apache.seatunnel.api.table.schema.SchemaChangeOptions;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceTableConfig;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
 import org.apache.seatunnel.connectors.cdc.base.option.SourceOptions;
@@ -72,10 +73,10 @@ public class MySqlIncrementalSourceFactory extends BaseChangeStreamTableSourceFa
                         JdbcSourceOptions.TABLE_NAMES_CONFIG)
                 .optional(MySqlSourceOptions.STARTUP_MODE, MySqlSourceOptions.STOP_MODE)
                 .optional(
-                        SourceOptions.DDL_ADD_COLUMN,
-                        SourceOptions.DDL_DROP_COLUMN,
-                        SourceOptions.DDL_UPDATE_COLUMN,
-                        SourceOptions.DDL_RENAME_COLUMN)
+                        SchemaChangeOptions.DDL_ADD_COLUMN,
+                        SchemaChangeOptions.DDL_DROP_COLUMN,
+                        SchemaChangeOptions.DDL_UPDATE_COLUMN,
+                        SchemaChangeOptions.DDL_RENAME_COLUMN)
                 .conditional(
                         MySqlSourceOptions.STARTUP_MODE,
                         StartupMode.INITIAL,

@@ -28,6 +28,7 @@ import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
+import org.apache.seatunnel.api.table.schema.SchemaChangeOptions;
 import org.apache.seatunnel.api.table.schema.SchemaChangeStrategy;
 import org.apache.seatunnel.api.table.schema.SchemaChangeType;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
@@ -149,13 +150,13 @@ public abstract class IncrementalSource<T, C extends SourceConfig>
             ReadonlyConfig config) {
         return ImmutableMap.of(
                 SchemaChangeType.ADD_COLUMN,
-                config.get(JdbcSourceOptions.DDL_ADD_COLUMN),
+                config.get(SchemaChangeOptions.DDL_ADD_COLUMN),
                 SchemaChangeType.DROP_COLUMN,
-                config.get(JdbcSourceOptions.DDL_DROP_COLUMN),
+                config.get(SchemaChangeOptions.DDL_DROP_COLUMN),
                 SchemaChangeType.UPDATE_COLUMN,
-                config.get(JdbcSourceOptions.DDL_UPDATE_COLUMN),
+                config.get(SchemaChangeOptions.DDL_UPDATE_COLUMN),
                 SchemaChangeType.RENAME_COLUMN,
-                config.get(JdbcSourceOptions.DDL_RENAME_COLUMN));
+                config.get(SchemaChangeOptions.DDL_RENAME_COLUMN));
     }
 
     @Override
