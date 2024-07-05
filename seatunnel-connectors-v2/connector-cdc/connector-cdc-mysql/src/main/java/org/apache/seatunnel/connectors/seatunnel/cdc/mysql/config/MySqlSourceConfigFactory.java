@@ -31,7 +31,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /** A factory to initialize {@link MySqlSourceConfig}. */
 public class MySqlSourceConfigFactory extends JdbcSourceConfigFactory {
     public static final String SCHEMA_CHANGE_KEY = "include.schema.changes";
-    public static final Boolean SCHEMA_CHANGE_DEFAULT = false;
+    public static final Boolean SCHEMA_CHANGE_DEFAULT = true;
 
     private ServerIdRange serverIdRange;
 
