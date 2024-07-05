@@ -22,7 +22,7 @@ on:
       types: [ opened, reopened, synchronize ]
 
 env:
-  GH_USER: ${{ secrets.GH_PACKAGE_USER }}
+  GH_USERNAME: ${{ secrets.GH_PACKAGE_USER }}
   GH_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
 
 concurrency:
