@@ -18,15 +18,15 @@
 seatunnel:
   engine:
     event-report-http:
-      url: http://localhost:12345/dolphinscheduler/ws/seaTunnel/event
+      url: http://localhost:12345/dolphinscheduler/ws/seaTunnel/openapi/event
       headers:
         Content-Type: application/json
-        Token: 4c61c3f30444d59fe23930186139d033 # should change it when deploy engine
+        wt_token: EB5EDA4982C10904
     license-service-http:
-      url: http://localhost:12345/dolphinscheduler/license/get-valid-license
+      url: http://localhost:12345/dolphinscheduler/ws/seaTunnel/openapi/get-valid-license
       headers:
         Content-Type: application/json
-        Token: 4c61c3f30444d59fe23930186139d033 # should change it when deploy engine
+        wt_token: EB5EDA4982C10904
     classloader-cache-mode: true
     history-job-expire-minutes: 1440
     backup-count: 1

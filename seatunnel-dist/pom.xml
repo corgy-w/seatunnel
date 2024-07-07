@@ -306,6 +306,12 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-cdc-highgo-wt</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-cdc-oracle-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
@@ -498,6 +504,14 @@
                     <version>5.0.1</version>
                     <scope>system</scope>
                     <systemPath>${basedir}/src/main/opengauss/opengauss-jdbc-5.0.1.jar</systemPath>
+                </dependency>
+
+                <dependency>
+                    <groupId>com.highgo</groupId>
+                    <artifactId>highgo-jdbc</artifactId>
+                    <version>6.2.0</version>
+                    <scope>system</scope>
+                    <systemPath>${basedir}/src/main/highgo/hgjdbc-6.2.0.jar</systemPath>
                 </dependency>
 
                 <dependency>

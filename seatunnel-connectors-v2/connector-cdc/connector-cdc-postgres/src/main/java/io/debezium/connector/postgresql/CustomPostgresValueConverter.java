@@ -17,8 +17,13 @@
 
 package io.debezium.connector.postgresql;
 
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.SchemaBuilder;
+
 import io.debezium.config.CommonConnectorConfig;
 import io.debezium.jdbc.TemporalPrecisionMode;
+import io.debezium.relational.Column;
+import io.debezium.relational.ValueConverter;
 
 import java.nio.charset.Charset;
 import java.time.Instant;
@@ -69,5 +74,37 @@ public class CustomPostgresValueConverter extends PostgresValueConverter {
                 connectorConfig.binaryHandlingMode(),
                 connectorConfig.intervalHandlingMode(),
                 connectorConfig.toastedValuePlaceholder());
+    }
+
+    @Override
+    public SchemaBuilder schemaBuilder(Column column) {
+        int oidValue = column.nativeType();
+        switch (oidValue) {
+            case PgOid.LINE:
+            case PgOid.LSEG:
+            case PgOid.PATH:
+            case PgOid.POLYGON:
+            case PgOid.CIRCLE:
+            case PgOid.BOX:
+                return SchemaBuilder.string();
+            default:
+                return super.schemaBuilder(column);
+        }
+    }
+
+    @Override
+    public ValueConverter converter(Column column, Field fieldDefn) {
+        int oidValue = column.nativeType();
+        switch (oidValue) {
+            case PgOid.LINE:
+            case PgOid.LSEG:
+            case PgOid.PATH:
+            case PgOid.POLYGON:
+            case PgOid.CIRCLE:
+            case PgOid.BOX:
+                return data -> convertString(column, fieldDefn, data);
+            default:
+                return super.converter(column, fieldDefn);
+        }
     }
 }

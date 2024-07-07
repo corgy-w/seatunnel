@@ -161,7 +161,10 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getSelectColumnsSql(TablePath tablePath) {
-        return String.format(SELECT_COLUMNS, tablePath.getSchemaName(), tablePath.getTableName());
+        return String.format(
+                SELECT_COLUMNS,
+                tablePath.getSchemaName().toLowerCase(),
+                tablePath.getTableName().toLowerCase());
     }
 
     @Override

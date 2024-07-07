@@ -98,6 +98,8 @@ public class ZetaSQLFunction {
     public static final String SUBSTR = "SUBSTR";
     public static final String TO_CHAR = "TO_CHAR";
     public static final String TRANSLATE = "TRANSLATE";
+    public static final String ENCRYPT = "ENCRYPT";
+    public static final String DECRYPT = "DECRYPT";
 
     // -------------------------numeric functions----------------------------
     public static final String ABS = "ABS";
@@ -282,6 +284,10 @@ public class ZetaSQLFunction {
             case CHAR:
             case CHR:
                 return StringFunction.chr(args);
+            case ENCRYPT:
+                return StringFunction.encrypt(args);
+            case DECRYPT:
+                return StringFunction.decrypt(args);
             case CONCAT:
                 return StringFunction.concat(args);
             case CONCAT_WS:

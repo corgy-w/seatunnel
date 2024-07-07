@@ -147,6 +147,11 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                 "SELECT TABLE_NAME FROM TABLES WHERE SCHEMA_NAME = '%s'", databaseName);
     }
 
+    public String getListViewSql(String databaseName) {
+        return String.format(
+                "SELECT VIEW_NAME FROM SYS.VIEWS WHERE SCHEMA_NAME = '%s'", databaseName);
+    }
+
     @Override
     protected String getTableName(ResultSet rs) throws SQLException {
         return rs.getString(1);
@@ -208,8 +213,10 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
         try {
             if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
                 return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getTableName());
+                        && (listTables(tablePath.getDatabaseName())
+                                        .contains(tablePath.getTableName())
+                                || listViews(tablePath.getDatabaseName())
+                                        .contains(tablePath.getTableName()));
             }
             return listTables().contains(tablePath.getSchemaAndTableName());
         } catch (DatabaseNotExistException e) {
