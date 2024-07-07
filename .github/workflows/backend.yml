@@ -259,7 +259,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run all modules unit test
         run: |
-          ./mvnw -B -T 1 clean verify -D"maven.test.skip"=false -D"license.skipAddThirdParty"=true --no-snapshot-updates
+          ./mvnw -B --settings maven-settings.xml -T 1 clean verify -D"maven.test.skip"=false -D"license.skipAddThirdParty"=true --no-snapshot-updates
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -686,7 +686,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run kudu connector integration test
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kudu-e2e -am -Pci
+          ./mvnw -B --settings maven-settings.xml -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kudu-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -703,7 +703,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run amazonsqs connector integration test
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-amazonsqs-e2e -am -Pci
+          ./mvnw -B --settings maven-settings.xml -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-amazonsqs-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -721,7 +721,7 @@ jobs:
       - name: run kafka connector integration test
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kafka-e2e -am -Pci
+          ./mvnw -B --settings maven-settings.xml -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kafka-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -739,7 +739,7 @@ jobs:
       - name: run rocket connector integration test
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-rocketmq-e2e -am -Pci
+          ./mvnw -B --settings maven-settings.xml -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-rocketmq-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -756,7 +756,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run doris connector integration test
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-doris-e2e -am -Pci
+          ./mvnw -B --settings maven-settings.xml -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-doris-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
