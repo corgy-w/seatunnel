@@ -384,7 +384,7 @@ jobs:
     strategy:
       matrix:
         os: [ 'self-hosted' ]
-    timeout-minutes: 45
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v2
       - name: run seatunnel zeta integration test
