@@ -32,7 +32,6 @@ import org.apache.seatunnel.engine.server.SeaTunnelServerStarter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.hazelcast.client.config.ClientConfig;
@@ -209,7 +208,6 @@ public class JobExecutionIT {
     }
 
     @Test
-    @Disabled
     public void testLastCheckpointErrorJob() throws Exception {
         Common.setDeployMode(DeployMode.CLIENT);
         String filePath = TestUtils.getResource("batch_last_checkpoint_error.conf");
