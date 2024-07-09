@@ -149,7 +149,7 @@ public class JobEventHttpReportHandler implements EventHandler {
     private OkHttpClient createHttpClient() {
         OkHttpClient client = new OkHttpClient();
         client.setConnectTimeout(30, TimeUnit.SECONDS);
-        client.setWriteTimeout(10, TimeUnit.SECONDS);
+        client.setWriteTimeout(30, TimeUnit.SECONDS);
         return client;
     }
 }
