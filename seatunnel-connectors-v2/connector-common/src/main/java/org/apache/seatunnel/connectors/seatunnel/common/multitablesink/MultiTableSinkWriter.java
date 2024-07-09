@@ -43,8 +43,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public class MultiTableSinkWriter
-        implements SupportSchemaEvolutionSinkWriter<
-                SeaTunnelRow, MultiTableCommitInfo, MultiTableState> {
+        implements SinkWriter<SeaTunnelRow, MultiTableCommitInfo, MultiTableState>,
+                SupportSchemaEvolutionSinkWriter {
 
     private final Map<SinkIdentifier, SinkWriter<SeaTunnelRow, ?, ?>> sinkWriters;
     private final Map<String, Optional<Integer>> sinkPrimaryKeys = new HashMap<>();

@@ -19,11 +19,9 @@ package org.apache.seatunnel.api.sink;
 
 import org.apache.seatunnel.api.table.schema.SchemaChangeType;
 
-import java.io.IOException;
 import java.util.List;
 
-public interface SupportSchemaEvolutionSink<IN, StateT, CommitInfoT, AggregatedCommitInfoT>
-        extends SeaTunnelSink<IN, StateT, CommitInfoT, AggregatedCommitInfoT> {
+public interface SupportSchemaEvolutionSink {
 
     /**
      * The sink connector supports schema evolution types.
@@ -31,25 +29,4 @@ public interface SupportSchemaEvolutionSink<IN, StateT, CommitInfoT, AggregatedC
      * @return the supported schema change types
      */
     List<SchemaChangeType> supports();
-
-    /**
-     * The sink writer supports schema evolution.
-     *
-     * @param context The sink context
-     * @return
-     * @throws IOException
-     */
-    SupportSchemaEvolutionSinkWriter<IN, CommitInfoT, StateT> createWriter(
-            SinkWriter.Context context) throws IOException;
-
-    /**
-     * The sink writer supports schema evolution.
-     *
-     * @param context
-     * @param states
-     * @return
-     * @throws IOException
-     */
-    SupportSchemaEvolutionSinkWriter<IN, CommitInfoT, StateT> restoreWriter(
-            SinkWriter.Context context, List<StateT> states) throws IOException;
 }

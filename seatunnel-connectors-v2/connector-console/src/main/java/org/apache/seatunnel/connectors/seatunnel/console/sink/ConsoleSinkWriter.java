@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.console.sink;
 
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.sink.SupportSchemaEvolutionSinkWriter;
 import org.apache.seatunnel.api.sink.event.WriterCloseEvent;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.schema.handler.DataTypeChangeEventDispatcher;
@@ -28,7 +29,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
-import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSchemaEvolutionSinkWriter;
+import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSinkWriter;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -40,8 +41,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
-public class ConsoleSinkWriter extends AbstractSchemaEvolutionSinkWriter<SeaTunnelRow, Void>
-        implements SupportMultiTableSinkWriter<Void> {
+public class ConsoleSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
+        implements SupportMultiTableSinkWriter<Void>, SupportSchemaEvolutionSinkWriter {
 
     private SeaTunnelRowType seaTunnelRowType;
     private final AtomicLong rowCounter = new AtomicLong(0);

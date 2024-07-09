@@ -17,10 +17,13 @@
 
 package org.apache.seatunnel.connectors.cdc.debezium.row;
 
+import org.apache.seatunnel.api.event.EventType;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.schema.event.AlterTableColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.schema.handler.TableSchemaChangeEventDispatcher;
 import org.apache.seatunnel.api.table.schema.handler.TableSchemaChangeEventHandler;
@@ -139,17 +142,40 @@ public final class SeaTunnelRowDebeziumDeserializeSchema
                     "Table[{}] change before: {}",
                     schemaChangeEvent.tablePath(),
                     changeBefore.getTableSchema());
-            TableSchema changeAfterSchema =
-                    tableSchemaChangeHandler
-                            .reset(changeBefore.getTableSchema())
-                            .apply(schemaChangeEvent);
-            CatalogTable changeAfter =
-                    CatalogTable.of(
-                            changeBefore.getTableId(),
-                            changeAfterSchema,
-                            changeBefore.getOptions(),
-                            changeBefore.getPartitionKeys(),
-                            changeBefore.getComment());
+
+            CatalogTable changeAfter = null;
+            if (EventType.SCHEMA_CHANGE_UPDATE_COLUMNS.equals(schemaChangeEvent.getEventType())) {
+                AlterTableColumnsEvent alterTableColumnsEvent =
+                        (AlterTableColumnsEvent) schemaChangeEvent;
+                for (AlterTableColumnEvent event : alterTableColumnsEvent.getEvents()) {
+                    TableSchema changeAfterSchema =
+                            tableSchemaChangeHandler
+                                    .reset(changeBefore.getTableSchema())
+                                    .apply(event);
+                    changeAfter =
+                            CatalogTable.of(
+                                    changeBefore.getTableId(),
+                                    changeAfterSchema,
+                                    changeBefore.getOptions(),
+                                    changeBefore.getPartitionKeys(),
+                                    changeBefore.getComment());
+                    event.setChangeAfter(changeAfter);
+
+                    changeBefore = changeAfter;
+                }
+            } else {
+                TableSchema changeAfterSchema =
+                        tableSchemaChangeHandler
+                                .reset(changeBefore.getTableSchema())
+                                .apply(schemaChangeEvent);
+                changeAfter =
+                        CatalogTable.of(
+                                changeBefore.getTableId(),
+                                changeAfterSchema,
+                                changeBefore.getOptions(),
+                                changeBefore.getPartitionKeys(),
+                                changeBefore.getComment());
+            }
             tables.set(i, changeAfter);
             schemaChangeEvent.setChangeAfter(changeAfter);
             log.debug(

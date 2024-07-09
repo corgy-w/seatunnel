@@ -21,8 +21,7 @@ import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 
 import java.io.IOException;
 
-public interface SupportSchemaEvolutionSinkWriter<T, CommitInfoT, StateT>
-        extends SinkWriter<T, CommitInfoT, StateT> {
+public interface SupportSchemaEvolutionSinkWriter {
 
     /**
      * apply schema change to third party data receiver.

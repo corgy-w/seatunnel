@@ -41,11 +41,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class MultiTableSink
-        implements SupportSchemaEvolutionSink<
-                SeaTunnelRow,
-                MultiTableState,
-                MultiTableCommitInfo,
-                MultiTableAggregatedCommitInfo> {
+        implements SeaTunnelSink<
+                        SeaTunnelRow,
+                        MultiTableState,
+                        MultiTableCommitInfo,
+                        MultiTableAggregatedCommitInfo>,
+                SupportSchemaEvolutionSink {
 
     private final Map<String, SeaTunnelSink> sinks;
     private final int replicaNum;
