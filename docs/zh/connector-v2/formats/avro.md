@@ -1,12 +1,12 @@
-# Avro format
+# Avro 格式
 
-Avro is very popular in streaming data pipeline. Now seatunnel supports Avro format in kafka connector.
+Avro 在流式数据处理管道中非常流行。现在seatunnel在kafka连接器中支持Avro格式
 
-# How To Use
+# 怎样用
 
-## Kafka uses example
+## Kafka 使用示例
 
-- This is an example to generate data from fake source and sink to kafka with avro format.
+- 模拟随机生成数据源,并以 Avro 的格式 写入 Kafka 的实例
 
 ```bash
 env {
@@ -64,7 +64,7 @@ sink {
 }
 ```
 
-- This is an example read data from kafka with avro format and print to console.
+- 从 kafka 读取 avro 格式的数据并打印到控制台的示例
 
 ```bash
 env {
