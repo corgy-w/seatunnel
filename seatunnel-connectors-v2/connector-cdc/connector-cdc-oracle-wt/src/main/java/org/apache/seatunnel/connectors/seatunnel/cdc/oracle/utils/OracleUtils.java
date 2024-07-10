@@ -81,38 +81,32 @@ public class OracleUtils {
 
     public static long queryApproximateRowCnt(JdbcConnection jdbc, TableId tableId)
             throws SQLException {
-        try {
-            return analyzeRowCnt(jdbc, tableId);
-        } catch (SQLException e) {
-            log.warn(
-                    "Failed to get approximate row count for table {}. Will use exact row count instead.",
-                    tableId,
-                    e);
-            return SQLUtils.countForTable(jdbc.connection(), quoteSchemaAndTable(tableId));
-        }
-    }
-
-    public static long analyzeRowCnt(JdbcConnection jdbc, TableId tableId) throws SQLException {
-        final String analyzeTable =
-                String.format(
-                        "analyze table %s compute statistics for table",
-                        quoteSchemaAndTable(tableId));
+        long count = 0;
         final String rowCountQuery =
                 String.format(
                         "select NUM_ROWS from all_tables where TABLE_NAME = '%s'", tableId.table());
 
-        return jdbc.execute(analyzeTable)
-                .queryAndMap(
-                        rowCountQuery,
-                        rs -> {
-                            if (!rs.next()) {
-                                throw new SQLException(
-                                        String.format(
-                                                "No result returned after running query [%s]",
-                                                rowCountQuery));
-                            }
-                            return rs.getLong(1);
-                        });
+        try (Statement stmt = jdbc.connection().createStatement()) {
+            log.info("Split Chunk, approximateRowCntStatement: {}", rowCountQuery);
+            try (ResultSet rs = stmt.executeQuery(rowCountQuery)) {
+                if (!rs.next()) {
+                    throw new SQLException(
+                            String.format(
+                                    "No result returned after running query [%s]", rowCountQuery));
+                }
+                count = rs.getLong(1);
+            }
+        } catch (SQLException e) {
+            log.warn(
+                    "Failed to get approximate row count from table status, fallback to count rows",
+                    e);
+        }
+
+        if (count == 0) {
+            count = SQLUtils.countForTable(jdbc.connection(), quoteSchemaAndTable(tableId));
+        }
+
+        return count;
     }
 
     public static Object queryMin(

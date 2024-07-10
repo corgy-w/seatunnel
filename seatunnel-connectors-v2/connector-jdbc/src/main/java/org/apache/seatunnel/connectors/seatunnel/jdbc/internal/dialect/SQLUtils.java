@@ -43,7 +43,7 @@ public class SQLUtils {
     }
 
     public static Long countForTable(Connection connection, String tablePath) throws SQLException {
-        String sqlQuery = String.format("SELECT COUNT(*) FROM %s", tablePath);
+        String sqlQuery = String.format("SELECT COUNT(1) FROM %s", tablePath);
         log.info("Split Chunk, countForTable: {}", sqlQuery);
         try (Statement stmt = connection.createStatement()) {
             try (ResultSet resultSet = stmt.executeQuery(sqlQuery)) {
