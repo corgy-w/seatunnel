@@ -259,9 +259,22 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName())
-                            .contains(tablePath.getSchemaAndTableName());
+            if (databaseExists(tablePath.getDatabaseName())) {
+                String urlFromDatabaseName = getUrlFromDatabaseName(tablePath.getDatabaseName());
+                BaseConnection connection = getConnection(urlFromDatabaseName);
+                try (PreparedStatement ps =
+                        connection.prepareStatement(
+                                "SELECT table_schema, table_name FROM information_schema.tables where table_schema = ? and table_name = ?")) {
+                    ps.setString(1, tablePath.getSchemaName());
+                    ps.setString(2, tablePath.getTableName());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        return rs.next();
+                    }
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return false;
         } catch (DatabaseNotExistException e) {
             return false;
         }
