@@ -20,11 +20,17 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
+import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
+import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.converter.TypeConverter;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
@@ -37,13 +43,18 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class PostgresCatalog extends AbstractJdbcCatalog {
@@ -139,6 +150,84 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
     @Override
     protected String getListTableSql(String databaseName) {
         return "SELECT table_schema, table_name FROM information_schema.tables;";
+    }
+
+    @Override
+    public CatalogTable getTable(TablePath tablePath)
+            throws CatalogException, TableNotExistException {
+        if (!tableExists(tablePath)) {
+            throw new TableNotExistException(catalogName, tablePath);
+        }
+
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        Connection conn = getConnection(dbUrl);
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
+            List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            try (PreparedStatement ps = conn.prepareStatement(getSelectColumnsSql(tablePath));
+                    ResultSet resultSet = ps.executeQuery()) {
+
+                TableSchema.Builder builder = TableSchema.builder();
+                buildColumnsWithErrorCheck(tablePath, resultSet, builder);
+                // add primary key
+                primaryKey.ifPresent(builder::primaryKey);
+                // get column names
+                final List<Column> columns = builder.build().getColumns();
+                final List<String> columnNameList =
+                        columns.stream().map(Column::getName).collect(Collectors.toList());
+                // filter some not exit column
+                final List<ConstraintKey> finalConstraintKeys =
+                        constraintKeys.stream()
+                                .filter(
+                                        constraintKey -> {
+                                            final List<ConstraintKey.ConstraintKeyColumn>
+                                                    constraintKeyColumnNames =
+                                                            constraintKey.getColumnNames();
+                                            List<String> constraintKeyColumnNameStrList =
+                                                    constraintKeyColumnNames.stream()
+                                                            .map(
+                                                                    ConstraintKey
+                                                                                    .ConstraintKeyColumn
+                                                                            ::getColumnName)
+                                                            .collect(Collectors.toList());
+                                            boolean isCanUniqueKey = true;
+                                            for (String constraintKeyColumnName :
+                                                    constraintKeyColumnNameStrList) {
+                                                if (!columnNameList.contains(
+                                                        constraintKeyColumnName)) {
+                                                    isCanUniqueKey = false;
+                                                    break;
+                                                }
+                                            }
+                                            return isCanUniqueKey
+                                                    && constraintKey.getConstraintType()
+                                                            == ConstraintKey.ConstraintType
+                                                                    .UNIQUE_KEY;
+                                        })
+                                .collect(Collectors.toList());
+
+                finalConstraintKeys.forEach(builder::constraintKey);
+                TableIdentifier tableIdentifier = getTableIdentifier(tablePath);
+                return CatalogTable.of(
+                        tableIdentifier,
+                        builder.build(),
+                        buildConnectorOptions(tablePath),
+                        Collections.emptyList(),
+                        "",
+                        catalogName);
+            }
+        } catch (SeaTunnelRuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format("Failed getting table %s", tablePath.getFullName()), e);
+        }
     }
 
     @Override
