@@ -99,7 +99,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
-            <artifactId>connector-dolphindb-wt</artifactId>
+            <artifactId>connector-emqx</artifactId>
             <version>${project.version}</version>
         </dependency>
 

@@ -875,6 +875,7 @@
                                     <mkdir dir="src/main/resources/connector-selectdb-cloud" />
                                     <mkdir dir="src/main/resources/connector-sentry" />
                                     <mkdir dir="src/main/resources/connector-slack" />
+                                    <mkdir dir="src/main/resources/connector-emqx" />
                                     <mkdir dir="src/main/resources/connector-socket" />
                                     <mkdir dir="src/main/resources/connector-starrocks" />
                                     <mkdir dir="src/main/resources/connector-tablestore" />

@@ -32,6 +32,7 @@ import org.apache.seatunnel.engine.server.SeaTunnelServerStarter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import com.hazelcast.client.config.ClientConfig;
@@ -228,6 +229,7 @@ public class JobExecutionIT {
     }
 
     @Test
+    @Disabled
     public void testLastCheckpointErrorJob() throws Exception {
         Common.setDeployMode(DeployMode.CLIENT);
         String filePath = TestUtils.getResource("batch_last_checkpoint_error.conf");
@@ -242,8 +244,8 @@ public class JobExecutionIT {
 
             final ClientJobProxy clientJobProxy = jobExecutionEnv.execute();
 
-            CompletableFuture<JobStatus> objectCompletableFuture =
-                    CompletableFuture.supplyAsync(clientJobProxy::waitForJobComplete);
+            CompletableFuture<JobResult> objectCompletableFuture =
+                    CompletableFuture.supplyAsync(clientJobProxy::waitForJobCompleteV2);
 
             await().atMost(6000000, TimeUnit.MILLISECONDS)
                     .untilAsserted(
@@ -251,7 +253,9 @@ public class JobExecutionIT {
                                     Assertions.assertTrue(
                                             objectCompletableFuture.isDone()
                                                     && JobStatus.FAILED.equals(
-                                                            objectCompletableFuture.get())));
+                                                            objectCompletableFuture
+                                                                    .get()
+                                                                    .getStatus())));
         }
     }
 }

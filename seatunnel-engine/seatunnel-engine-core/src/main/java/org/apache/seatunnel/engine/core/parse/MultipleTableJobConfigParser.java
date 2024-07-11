@@ -233,7 +233,7 @@ public class MultipleTableJobConfigParser {
 
             boolean isMultipleTableJob = false;
             log.info("start generating all sources.");
-            if (isStartWithSavePoint && pipelineCheckpoints != null) {
+            if (isStartWithSavePoint && !CollectionUtils.isEmpty(pipelineCheckpoints)) {
                 Preconditions.checkState(
                         sourceConfigs.size() == pipelineCheckpoints.size(),
                         "The number of source configurations and pipeline checkpoints must be equal.");
@@ -384,7 +384,7 @@ public class MultipleTableJobConfigParser {
         }
 
         Tuple2<SeaTunnelSource<Object, SourceSplit, Serializable>, List<CatalogTable>> tuple2;
-        if (isStartWithSavePoint && pipelineCheckpoints != null) {
+        if (isStartWithSavePoint && !CollectionUtils.isEmpty(pipelineCheckpoints)) {
             ChangeStreamTableSourceCheckpoint checkpoint =
                     getSourceCheckpoint(configIndex, factoryId);
             tuple2 =
