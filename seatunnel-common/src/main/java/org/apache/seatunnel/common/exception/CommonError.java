@@ -216,4 +216,18 @@ public class CommonError {
         params.put("optionName", optionName);
         return new SeaTunnelRuntimeException(SQL_TEMPLATE_HANDLED_ERROR, params);
     }
+
+    public static SeaTunnelRuntimeException formatDateTimeError(String datetime, String field) {
+        Map<String, String> params = new HashMap<>();
+        params.put("datetime", datetime);
+        params.put("field", field);
+        return new SeaTunnelRuntimeException(CommonErrorCode.FORMAT_DATETIME_ERROR, params);
+    }
+
+    public static SeaTunnelRuntimeException formatDateError(String date, String field) {
+        Map<String, String> params = new HashMap<>();
+        params.put("date", date);
+        params.put("field", field);
+        return new SeaTunnelRuntimeException(CommonErrorCode.FORMAT_DATE_ERROR, params);
+    }
 }

@@ -58,7 +58,15 @@ public enum CommonErrorCode implements SeaTunnelErrorCode {
 
     OPERATION_NOT_SUPPORTED("COMMON-26", "<identifier> <operation> is unsupported."),
 
-    PRIMARY_KEY_IS_NECESSARY("COMMON-27", "primary key is necessary");
+    PRIMARY_KEY_IS_NECESSARY("COMMON-27", "primary key is necessary"),
+
+    FORMAT_DATE_ERROR(
+            "COMMON-32",
+            "The date format '<date>' of field '<field>' is not supported. Please check the date format."),
+    FORMAT_DATETIME_ERROR(
+            "COMMON-33",
+            "The datetime format '<datetime>' of field '<field>' is not supported. Please check the datetime format."),
+    ;
 
     private final String code;
     private final String description;
