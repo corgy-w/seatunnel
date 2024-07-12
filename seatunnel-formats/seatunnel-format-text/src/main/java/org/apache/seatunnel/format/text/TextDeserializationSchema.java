@@ -244,6 +244,13 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
                     dateFormatter = DateUtils.matchDateTimeFormatter(field);
                     fieldFormatterMap.put(fieldName, dateFormatter);
                 }
+                if (dateFormatter == null) {
+                    throw new SeaTunnelTextFormatException(
+                            CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
+                            String.format(
+                                    "SeaTunnel can not parse this date format [%s] of field [%s]",
+                                    field, fieldName));
+                }
 
                 return dateFormatter.parse(field).query(TemporalQueries.localDate());
             case TIME:
@@ -254,6 +261,13 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
                 if (dateTimeFormatter == null) {
                     dateTimeFormatter = DateTimeUtils.matchDateTimeFormatter(field);
                     fieldFormatterMap.put(fieldName, dateTimeFormatter);
+                }
+                if (dateTimeFormatter == null) {
+                    throw new SeaTunnelTextFormatException(
+                            CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
+                            String.format(
+                                    "SeaTunnel can not parse this date format [%s] of field [%s]",
+                                    field, fieldName));
                 }
 
                 TemporalAccessor parsedTimestamp = dateTimeFormatter.parse(field);
