@@ -40,10 +40,12 @@ public class HiveTableUtils {
         }
         AbstractHiveMetaStoreProxy hiveMetaStoreProxy =
                 HiveMetaStoreProxy.getInstance(readonlyConfig);
-        Table tableInformation =
-                hiveMetaStoreProxy.getTable(tablePath.getDatabaseName(), tablePath.getTableName());
-        hiveMetaStoreProxy.close();
-        return tableInformation;
+        try {
+            return hiveMetaStoreProxy.getTable(
+                    tablePath.getDatabaseName(), tablePath.getTableName());
+        } finally {
+            hiveMetaStoreProxy.close();
+        }
     }
 
     public static FileFormat parseFileFormat(Table table) {
