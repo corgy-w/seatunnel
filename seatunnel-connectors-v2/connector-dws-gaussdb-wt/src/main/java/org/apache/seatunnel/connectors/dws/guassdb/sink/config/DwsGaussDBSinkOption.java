@@ -64,6 +64,12 @@ public class DwsGaussDBSinkOption implements BaseDwsGaussDBOption {
     public static final Option<Integer> BATCH_SIZE =
             Options.key("batch_size").intType().defaultValue(8196).withDescription("batch_size");
 
+    public static final Option<String> COPY_FILE_FIELD_DELIMITER =
+            Options.key("copy_file_field_delimiter")
+                    .stringType()
+                    .defaultValue("\t")
+                    .withDescription("delimiter of copy file row, default is \t");
+
     public enum WriteMode {
         APPEND_ONLY,
         // todo: Add UPSERT mode(Doesn't use temporary table)
@@ -91,7 +97,7 @@ public class DwsGaussDBSinkOption implements BaseDwsGaussDBOption {
         return OptionRule.builder()
                 .required(URL, DRIVER, SCHEMA_SAVE_MODE, DATA_SAVE_MODE)
                 .optional(USER, PASSWORD, PROPERTIES, WRITE_MODE, BATCH_SIZE)
-                .optional(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
+                .optional(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA, COPY_FILE_FIELD_DELIMITER)
                 .conditional(WRITE_MODE, WriteMode.USING_TEMPORARY_TABLE, PRIMARY_KEY)
                 .conditional(DATA_SAVE_MODE, DataSaveMode.CUSTOM_PROCESSING, CUSTOM_SQL)
                 .build();

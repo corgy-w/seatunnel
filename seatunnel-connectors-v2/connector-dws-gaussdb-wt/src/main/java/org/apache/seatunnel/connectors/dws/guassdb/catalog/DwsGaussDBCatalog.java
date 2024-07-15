@@ -78,6 +78,7 @@ import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBO
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.TABLE;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.URL;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.USER;
+import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.COPY_FILE_FIELD_DELIMITER;
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.FIELD_IDE;
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.PRIMARY_KEY;
 
@@ -366,7 +367,10 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         DwsGaussSqlGenerator dwsGaussSqlGenerator =
                 new DwsGaussSqlGenerator(
-                        readonlyConfig.get(PRIMARY_KEY), readonlyConfig.get(FIELD_IDE), table);
+                        readonlyConfig.get(PRIMARY_KEY),
+                        readonlyConfig.get(FIELD_IDE),
+                        table,
+                        readonlyConfig.get(COPY_FILE_FIELD_DELIMITER));
         this.executeUpdateSql(dwsGaussSqlGenerator.getCreateTargetTableSql());
         log.info(
                 "Create table: {} success using: {}",
@@ -450,7 +454,8 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
                     new DwsGaussSqlGenerator(
                             readonlyConfig.get(PRIMARY_KEY),
                             readonlyConfig.get(FIELD_IDE),
-                            catalogTable.get());
+                            catalogTable.get(),
+                            readonlyConfig.get(COPY_FILE_FIELD_DELIMITER));
             String sql = dwsGaussSqlGenerator.getCreateTargetTableSql();
             if (readonlyConfig.get(DwsGaussDBSinkOption.WRITE_MODE)
                     == DwsGaussDBSinkOption.WriteMode.USING_TEMPORARY_TABLE) {

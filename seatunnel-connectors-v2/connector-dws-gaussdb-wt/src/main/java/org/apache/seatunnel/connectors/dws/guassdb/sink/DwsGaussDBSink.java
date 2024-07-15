@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.COPY_FILE_FIELD_DELIMITER;
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.FIELD_IDE;
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.PRIMARY_KEY;
 
@@ -82,7 +83,8 @@ public class DwsGaussDBSink
                 new DwsGaussSqlGenerator(
                         readonlyConfig.get(PRIMARY_KEY),
                         readonlyConfig.get(FIELD_IDE),
-                        catalogTable);
+                        catalogTable,
+                        readonlyConfig.get(COPY_FILE_FIELD_DELIMITER));
     }
 
     @Override
