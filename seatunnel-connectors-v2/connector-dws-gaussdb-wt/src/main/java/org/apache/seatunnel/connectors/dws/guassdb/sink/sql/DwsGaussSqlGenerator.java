@@ -52,20 +52,22 @@ public class DwsGaussSqlGenerator implements Serializable {
 
     private final String targetTableName;
 
-    private final String delimiter = "|";
+    private final String delimiter;
 
     private transient Map<Integer, Function<Object, String>> transformToCopyStringFunction;
 
     public DwsGaussSqlGenerator(
             String primaryKey,
             DwsGaussDBSinkOption.FieldIdeEnum fieldIdeEnum,
-            CatalogTable catalogTable) {
+            CatalogTable catalogTable,
+            String delimiter) {
         this.fieldIdeEnum = checkNotNull(fieldIdeEnum);
         if (StringUtils.isNotEmpty(primaryKey)) {
             this.primaryKey = getIDEString(primaryKey);
         } else {
             this.primaryKey = primaryKey;
         }
+        this.delimiter = delimiter;
         this.catalogTable = catalogTable;
         this.schemaName =
                 Optional.ofNullable(catalogTable.getTableId().getSchemaName())

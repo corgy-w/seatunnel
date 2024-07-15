@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 
 public class DwsGaussSqlGeneratorTest {
+    private static final String delimiter = "\t";
 
     private static DwsGaussSqlGenerator dwsGaussSqlGenerator;
 
@@ -76,7 +77,7 @@ public class DwsGaussSqlGeneratorTest {
                         tableIdentifier, tableSchema, new HashMap<>(), new ArrayList<>(), "");
         dwsGaussSqlGenerator =
                 new DwsGaussSqlGenerator(
-                        "id", DwsGaussDBSinkOption.FieldIdeEnum.ORIGINAL, catalogTable);
+                        "id", DwsGaussDBSinkOption.FieldIdeEnum.ORIGINAL, catalogTable, delimiter);
     }
 
     @Test
@@ -95,7 +96,9 @@ public class DwsGaussSqlGeneratorTest {
     void getCopyInTemporaryTableSql() {
         String copyInTemporaryTableSql = dwsGaussSqlGenerator.getCopyInTemporaryTableSql();
         Assertions.assertEquals(
-                "COPY \"public\".\"st_temporary_t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '|'",
+                "COPY \"public\".\"st_temporary_t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '"
+                        + delimiter
+                        + "'",
                 copyInTemporaryTableSql);
     }
 
@@ -103,7 +106,9 @@ public class DwsGaussSqlGeneratorTest {
     void getCopyInTargetTableSql() {
         String copyInTargetTableSql = dwsGaussSqlGenerator.getCopyInTargetTableSql();
         Assertions.assertEquals(
-                "COPY \"public\".\"t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '|'",
+                "COPY \"public\".\"t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '"
+                        + delimiter
+                        + "'",
                 copyInTargetTableSql);
     }
 
@@ -118,11 +123,15 @@ public class DwsGaussSqlGeneratorTest {
         SeaTunnelRow seaTunnelRow = new SeaTunnelRow(fields);
         String deleteRows =
                 dwsGaussSqlGenerator.getTemporaryRows(Lists.newArrayList(seaTunnelRow), true, 1L);
-        Assertions.assertEquals("1|tom|18|2023-09-07T10:10:10|1|true", deleteRows);
+        Assertions.assertEquals(
+                String.join(delimiter, "1", "tom", "18", "2023-09-07T10:10:10", "1", "true"),
+                deleteRows);
 
         String upsertRows =
                 dwsGaussSqlGenerator.getTemporaryRows(Lists.newArrayList(seaTunnelRow), false, 1L);
-        Assertions.assertEquals("1|tom|18|2023-09-07T10:10:10|1|false", upsertRows);
+        Assertions.assertEquals(
+                String.join(delimiter, "1", "tom", "18", "2023-09-07T10:10:10", "1", "false"),
+                upsertRows);
     }
 
     @Test
@@ -136,7 +145,8 @@ public class DwsGaussSqlGeneratorTest {
 
         String targetTableRows =
                 dwsGaussSqlGenerator.getTargetTableRows(Lists.newArrayList(seaTunnelRow));
-        Assertions.assertEquals("1|tom|18|2023-09-07T10:10:10", targetTableRows);
+        Assertions.assertEquals(
+                String.join(delimiter, "1", "tom", "18", "2023-09-07T10:10:10"), targetTableRows);
 
         fields = new Object[4];
         fields[0] = 1;
@@ -146,7 +156,8 @@ public class DwsGaussSqlGeneratorTest {
         seaTunnelRow = new SeaTunnelRow(fields);
 
         targetTableRows = dwsGaussSqlGenerator.getTargetTableRows(Lists.newArrayList(seaTunnelRow));
-        Assertions.assertEquals("1|tom||2023-09-07T10:10:10", targetTableRows);
+        Assertions.assertEquals(
+                String.join(delimiter, "1", "tom", "", "2023-09-07T10:10:10"), targetTableRows);
     }
 
     @Test
@@ -201,14 +212,18 @@ public class DwsGaussSqlGeneratorTest {
     @Test
     void testGetCopyInTemporaryTableSql() {
         Assertions.assertEquals(
-                "COPY \"public\".\"st_temporary_t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '|'",
+                "COPY \"public\".\"st_temporary_t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '"
+                        + delimiter
+                        + "'",
                 dwsGaussSqlGenerator.getCopyInTemporaryTableSql());
     }
 
     @Test
     void testGetCopyInTargetTableSql() {
         Assertions.assertEquals(
-                "COPY \"public\".\"t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '|'",
+                "COPY \"public\".\"t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '"
+                        + delimiter
+                        + "'",
                 dwsGaussSqlGenerator.getCopyInTargetTableSql());
     }
 
