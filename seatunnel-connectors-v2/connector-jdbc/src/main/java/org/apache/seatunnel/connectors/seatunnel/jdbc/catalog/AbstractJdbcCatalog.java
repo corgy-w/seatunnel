@@ -347,6 +347,10 @@ public abstract class AbstractJdbcCatalog implements Catalog {
         throw new UnsupportedOperationException();
     }
 
+    protected String getListSynonymSql(String databaseName) {
+        throw new UnsupportedOperationException();
+    }
+
     protected String getTableName(ResultSet rs) throws SQLException {
         String schemaName = rs.getString(1);
         String tableName = rs.getString(2);
@@ -384,6 +388,20 @@ public abstract class AbstractJdbcCatalog implements Catalog {
         String dbUrl = getUrlFromDatabaseName(databaseName);
         try {
             return queryString(dbUrl, getListViewSql(databaseName), this::getTableName);
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format("Failed listing database in catalog %s", catalogName), e);
+        }
+    }
+
+    public List<String> listSynonym(String databaseName)
+            throws CatalogException, DatabaseNotExistException {
+        if (!databaseExists(databaseName)) {
+            throw new DatabaseNotExistException(this.catalogName, databaseName);
+        }
+        String dbUrl = getUrlFromDatabaseName(databaseName);
+        try {
+            return queryString(dbUrl, getListSynonymSql(databaseName), this::getTableName);
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed listing database in catalog %s", catalogName), e);
