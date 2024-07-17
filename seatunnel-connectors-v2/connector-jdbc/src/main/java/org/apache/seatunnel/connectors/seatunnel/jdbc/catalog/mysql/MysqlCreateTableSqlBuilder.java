@@ -157,7 +157,7 @@ public class MysqlCreateTableSqlBuilder {
             columnSqls.add("\t" + buildColumnIdentifySql(column, catalogName, columnTypeMap));
         }
         if (primaryKey != null) {
-            columnSqls.add("\t" + buildPrimaryKeySql());
+            columnSqls.add("\t" + buildPrimaryKeySql(columnTypeMap));
         }
         if (CollectionUtils.isNotEmpty(constraintKeys)) {
             for (ConstraintKey constraintKey : constraintKeys) {
@@ -213,10 +213,20 @@ public class MysqlCreateTableSqlBuilder {
         return String.join(" ", columnSqls);
     }
 
-    private String buildPrimaryKeySql() {
+    private String buildPrimaryKeySql(Map<String, String> columnTypeMap) {
         String key =
                 primaryKey.getColumnNames().stream()
-                        .map(columnName -> "`" + columnName + "`")
+                        .map(
+                                columnName -> {
+                                    String columnType = columnTypeMap.get(columnName);
+                                    boolean withLength = false;
+                                    if (columnType.toUpperCase().endsWith("BLOB")
+                                            || columnType.toUpperCase().endsWith("TEXT")) {
+                                        withLength = true;
+                                    }
+                                    return String.format(
+                                            "`%s`%s", columnName, withLength ? "(255)" : "");
+                                })
                         .collect(Collectors.joining(", "));
         // add sort type
         return String.format("PRIMARY KEY (%s)", CatalogUtils.quoteIdentifier(key, fieldIde));
