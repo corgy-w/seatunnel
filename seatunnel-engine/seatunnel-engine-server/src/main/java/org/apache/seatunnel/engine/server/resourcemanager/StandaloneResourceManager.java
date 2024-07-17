@@ -18,6 +18,7 @@
 package org.apache.seatunnel.engine.server.resourcemanager;
 
 import org.apache.seatunnel.engine.common.config.EngineConfig;
+import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseBillingServiceImpl;
 import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseServiceImpl;
 import org.apache.seatunnel.engine.server.resourcemanager.worker.WorkerProfile;
 
@@ -25,6 +26,7 @@ import org.apache.commons.collections4.MapUtils;
 
 import org.whaleops.license.LicenseManager;
 import org.whaleops.license.dto.LicenseInfo;
+import org.whaleops.license.enums.LicenseNodeEnum;
 import org.whaleops.license.utils.LicenseUtil;
 
 import com.hazelcast.cluster.Address;
@@ -67,20 +69,26 @@ public class StandaloneResourceManager extends AbstractResourceManager {
     private Boolean isPassedLicenseCheck(String ip) {
         LicenseManager licenseManager = new LicenseManager();
         Class<?> clazz = licenseManager.getClass();
-        Field nameField = clazz.getDeclaredField("licenseService");
-        nameField.setAccessible(true);
-        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(engineConfig));
+        Field licenseServiceField = clazz.getDeclaredField("licenseService");
+        licenseServiceField.setAccessible(true);
+        licenseServiceField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(engineConfig));
 
-        licenseManager.init();
+        Field licenseBillingServiceField = clazz.getDeclaredField("licenseBillingService");
+        licenseBillingServiceField.setAccessible(true);
+        licenseBillingServiceField.set(licenseManager, new WhaleTunnelLicenseBillingServiceImpl());
+
+        licenseManager.refreshLicenseCache();
         final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
         if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
             return false;
         }
-        if (LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), ip)) {
+        if (LicenseUtil.checkLicenseServer(
+                latestValidLicenseInfo, new HashSet<>(), ip, LicenseNodeEnum.WT)) {
             return true;
         }
         // for test
-        if (LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), "127.0.0.1")) {
+        if (LicenseUtil.checkLicenseServer(
+                latestValidLicenseInfo, new HashSet<>(), "127.0.0.1", LicenseNodeEnum.WT)) {
             return true;
         }
         return false;
