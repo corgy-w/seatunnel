@@ -230,8 +230,8 @@ public class MysqlCreateTableSqlBuilder {
                                     boolean withLength = false;
                                     if (columnTypeMap.containsKey(columnName)) {
                                         String columnType = columnTypeMap.get(columnName);
-                                        if (columnType.endsWith("BLOB")
-                                                || columnType.endsWith("TEXT")) {
+                                        if (columnType.toUpperCase().endsWith("BLOB")
+                                                || columnType.toUpperCase().endsWith("TEXT")) {
                                             withLength = true;
                                         }
                                     }
