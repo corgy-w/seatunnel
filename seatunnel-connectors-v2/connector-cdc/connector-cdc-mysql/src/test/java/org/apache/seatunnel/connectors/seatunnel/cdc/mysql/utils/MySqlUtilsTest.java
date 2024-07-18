@@ -36,6 +36,8 @@ public class MySqlUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
+                        false,
+                        null,
                         false);
         Assertions.assertEquals(
                 "SELECT * FROM `db1`.`table1` WHERE `id` >= ? AND NOT (`id` = ?) AND `id` <= ?",
@@ -47,7 +49,9 @@ public class MySqlUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
-                        true);
+                        true,
+                        null,
+                        false);
         Assertions.assertEquals("SELECT * FROM `db1`.`table1`", splitScanSQL);
 
         splitScanSQL =
@@ -56,6 +60,8 @@ public class MySqlUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
+                        false,
+                        null,
                         false);
         Assertions.assertEquals(
                 "SELECT * FROM `db1`.`table1` WHERE `id` <= ? AND NOT (`id` = ?)", splitScanSQL);
@@ -66,7 +72,56 @@ public class MySqlUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
-                        true);
+                        true,
+                        null,
+                        false);
         Assertions.assertEquals("SELECT * FROM `db1`.`table1` WHERE `id` >= ?", splitScanSQL);
+        splitScanSQL =
+                MySqlUtils.buildSplitScanQuery(
+                        TableId.parse("db1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
+                        false,
+                        true,
+                        null,
+                        true);
+        Assertions.assertEquals("SELECT * FROM `db1`.`table1` WHERE `id` IS NULL", splitScanSQL);
+
+        splitScanSQL =
+                MySqlUtils.buildSplitScanQuery(
+                        TableId.parse("db1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"name"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        false,
+                        true,
+                        null,
+                        true);
+        Assertions.assertEquals("SELECT * FROM `db1`.`table1` WHERE `name` IS NULL", splitScanSQL);
+
+        splitScanSQL =
+                MySqlUtils.buildSplitScanQuery(
+                        TableId.parse("db1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"name"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        true,
+                        true,
+                        null,
+                        false);
+        Assertions.assertEquals("SELECT * FROM `db1`.`table1`", splitScanSQL);
+
+        splitScanSQL =
+                MySqlUtils.buildSplitScanQuery(
+                        TableId.parse("db1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"name"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        false,
+                        false,
+                        new Object[] {10},
+                        false);
+        Assertions.assertEquals(
+                "SELECT * FROM `db1`.`table1` WHERE ABS(MD5(`name`) % 10) = ?", splitScanSQL);
     }
 }

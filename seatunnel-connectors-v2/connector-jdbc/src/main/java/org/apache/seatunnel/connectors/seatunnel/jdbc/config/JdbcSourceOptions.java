@@ -93,4 +93,10 @@ public interface JdbcSourceOptions {
                                     + "The value represents the denominator of the sampling rate fraction. "
                                     + "For example, a value of 1000 means a sampling rate of 1/1000. "
                                     + "This parameter is used when the sample sharding strategy is triggered.");
+
+    Option<Boolean> SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN =
+            Options.key("split.enable-hash-split-for-string-column")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription("Enable hash split for string column, default is false.");
 }

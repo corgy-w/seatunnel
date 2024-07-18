@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils;
+package org.apache.seatunnel.connectors.seatunnel.cdc.oracle.utils;
 
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -24,21 +24,14 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import io.debezium.relational.Column;
-import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 
-public class PostgresUtilsTest {
+public class OracleUtilsTest {
     @Test
     public void testSplitScanQuery() {
-        Table table =
-                Table.editor()
-                        .tableId(TableId.parse("db1.schema1.table1"))
-                        .addColumn(Column.editor().name("id").type("int8").create())
-                        .create();
         String splitScanSQL =
-                PostgresUtils.buildSplitScanQuery(
-                        table,
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
@@ -50,8 +43,8 @@ public class PostgresUtilsTest {
                 splitScanSQL);
 
         splitScanSQL =
-                PostgresUtils.buildSplitScanQuery(
-                        table,
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
@@ -61,8 +54,8 @@ public class PostgresUtilsTest {
         Assertions.assertEquals("SELECT * FROM \"schema1\".\"table1\"", splitScanSQL);
 
         splitScanSQL =
-                PostgresUtils.buildSplitScanQuery(
-                        table,
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
@@ -73,27 +66,20 @@ public class PostgresUtilsTest {
                 "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" <= ? AND NOT (\"id\" = ?)",
                 splitScanSQL);
 
-        table =
-                Table.editor()
-                        .tableId(TableId.parse("db1.schema1.table1"))
-                        .addColumn(Column.editor().name("id").type("uuid").create())
-                        .create();
         splitScanSQL =
-                PostgresUtils.buildSplitScanQuery(
-                        table,
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
                         new SeaTunnelRowType(
-                                new String[] {"id"},
-                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                                new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
                         true,
-                        new Object[] {10},
+                        null,
                         false);
         Assertions.assertEquals(
-                "SELECT * FROM \"schema1\".\"table1\" WHERE (ABS(HASHTEXT(\"id\")) % 10) = ?",
-                splitScanSQL);
+                "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" >= ?", splitScanSQL);
         splitScanSQL =
-                PostgresUtils.buildSplitScanQuery(
-                        table,
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
@@ -101,19 +87,13 @@ public class PostgresUtilsTest {
                         null,
                         true);
         Assertions.assertEquals(
-                "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\"::text IS NULL", splitScanSQL);
+                "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" IS NULL", splitScanSQL);
 
-        table =
-                Table.editor()
-                        .tableId(TableId.parse("db1.schema1.table1"))
-                        .addColumn(Column.editor().name("name").type("varchar(100)").create())
-                        .create();
         splitScanSQL =
-                PostgresUtils.buildSplitScanQuery(
-                        table,
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
                         new SeaTunnelRowType(
-                                new String[] {"name"},
-                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                                new String[] {"name"}, new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
                         false,
                         true,
                         null,
@@ -121,30 +101,30 @@ public class PostgresUtilsTest {
         Assertions.assertEquals(
                 "SELECT * FROM \"schema1\".\"table1\" WHERE \"name\" IS NULL", splitScanSQL);
 
+
         splitScanSQL =
-                PostgresUtils.buildSplitScanQuery(
-                        table,
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
                         new SeaTunnelRowType(
-                                new String[] {"name"},
-                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                                new String[] {"name"}, new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
                         true,
                         true,
                         null,
                         false);
-        Assertions.assertEquals("SELECT * FROM \"schema1\".\"table1\"", splitScanSQL);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\"", splitScanSQL);
 
         splitScanSQL =
-                PostgresUtils.buildSplitScanQuery(
-                        table,
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
                         new SeaTunnelRowType(
-                                new String[] {"name"},
-                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                                new String[] {"name"}, new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
                         false,
                         false,
-                        new Object[] {10},
+                        new Object[]{10},
                         false);
         Assertions.assertEquals(
-                "SELECT * FROM \"schema1\".\"table1\" WHERE (ABS(HASHTEXT(\"name\")) % 10) = ?",
-                splitScanSQL);
+                "SELECT * FROM \"schema1\".\"table1\" WHERE MOD(ORA_HASH(\"name\"),10) = ?", splitScanSQL);
+
     }
 }

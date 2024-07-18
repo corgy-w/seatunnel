@@ -143,6 +143,12 @@ public class JdbcSourceOptions extends SourceOptions {
                                     + "For example, a value of 1000 means a sampling rate of 1/1000. "
                                     + "This parameter is used when the sample sharding strategy is triggered.");
 
+    public static final Option<Boolean> SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN =
+            Options.key("split.enable-hash-split-for-string-column")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription("Enable hash split for string column, default is false.");
+
     public static final Option<List<JdbcSourceTableConfig>> TABLE_NAMES_CONFIG =
             Options.key("table-names-config")
                     .listType(JdbcSourceTableConfig.class)

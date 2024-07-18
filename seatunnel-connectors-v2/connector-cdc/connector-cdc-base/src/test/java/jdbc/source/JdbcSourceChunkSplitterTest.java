@@ -109,7 +109,9 @@ public class JdbcSourceChunkSplitterTest {
                 Table table,
                 SeaTunnelRowType splitKeyType,
                 boolean isFirstSplit,
-                boolean isLastSplit) {
+                boolean isLastSplit,
+                Object[] splitEnd,
+                boolean isNull) {
             return null;
         }
 

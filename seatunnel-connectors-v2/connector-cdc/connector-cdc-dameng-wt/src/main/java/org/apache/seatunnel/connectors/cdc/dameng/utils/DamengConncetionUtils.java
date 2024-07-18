@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.cdc.dameng.utils;
 
+import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
 
@@ -195,8 +196,14 @@ public class DamengConncetionUtils {
     }
 
     public static String buildSplitScanQuery(
-            TableId tableId, SeaTunnelRowType rowType, boolean isFirstSplit, boolean isLastSplit) {
-        return buildSplitQuery(tableId, rowType, isFirstSplit, isLastSplit, -1, true);
+            TableId tableId,
+            SeaTunnelRowType rowType,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            Object[] splitEnd,
+            boolean isNull) {
+        return buildSplitQuery(
+                tableId, rowType, isFirstSplit, isLastSplit, splitEnd, -1, true, isNull);
     }
 
     private static String buildSplitQuery(
@@ -204,14 +211,28 @@ public class DamengConncetionUtils {
             SeaTunnelRowType rowType,
             boolean isFirstSplit,
             boolean isLastSplit,
+            Object[] splitEnd,
             int limitSize,
-            boolean isScanningData) {
+            boolean isScanningData,
+            boolean isNull) {
         final String condition;
-
-        if (isFirstSplit && isLastSplit) {
+        final StringBuilder sql;
+        if (isNull) {
+            sql = new StringBuilder();
+            addPrimaryKeyColumnsToCondition(rowType, sql, " IS NULL");
+            condition = sql.toString();
+        } else if (isFirstSplit && isLastSplit) {
             condition = null;
+        } else if (BasicType.STRING_TYPE.equals(rowType.getFieldType(0))) {
+            sql = new StringBuilder();
+            // only support single column to split
+            // splitStart[0] is the mod value
+            // splitEnd[0] is the mod base
+            sql.append(hashModForField(rowType.getFieldName(0), (int) splitEnd[0]));
+            sql.append(" = ?");
+            condition = sql.toString();
         } else if (isFirstSplit) {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(rowType, sql, " <= ?");
             if (isScanningData) {
                 sql.append(" AND NOT (");
@@ -220,11 +241,11 @@ public class DamengConncetionUtils {
             }
             condition = sql.toString();
         } else if (isLastSplit) {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(rowType, sql, " >= ?");
             condition = sql.toString();
         } else {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(rowType, sql, " >= ?");
             if (isScanningData) {
                 sql.append(" AND NOT (");
@@ -286,7 +307,7 @@ public class DamengConncetionUtils {
         return sql.toString();
     }
 
-    private static String buildSelectWithRowLimits(
+    public static String buildSelectWithRowLimits(
             TableId tableId,
             int limit,
             String projection,
@@ -340,6 +361,10 @@ public class DamengConncetionUtils {
         return quoted.toString();
     }
 
+    private static String hashModForField(String fieldName, int mod) {
+        return "ABS(MD5(" + quote(fieldName) + ") % " + mod + ")";
+    }
+
     public static PreparedStatement createTableSplitDataStatement(
             JdbcConnection jdbc,
             String sql,
@@ -348,14 +373,23 @@ public class DamengConncetionUtils {
             Object[] splitStart,
             Object[] splitEnd,
             SeaTunnelRowType splitKeyType,
-            int fetchSize) {
+            int fetchSize,
+            boolean isNull) {
         try {
             Connection connection = jdbc.connection();
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setFetchSize(fetchSize);
-            if (isFirstSplit && isLastSplit) {
+            if ((isFirstSplit && isLastSplit) || isNull) {
                 return statement;
             }
+
+            if (BasicType.STRING_TYPE.equals(splitKeyType.getFieldType(0))) {
+                // splitStart[0] is the mod value
+                // splitEnd[0] is the mod base
+                statement.setObject(1, splitStart[0]);
+                return statement;
+            }
+
             int primaryKeyNum = splitKeyType.getTotalFields();
             if (isFirstSplit) {
                 for (int i = 0; i < primaryKeyNum; i++) {

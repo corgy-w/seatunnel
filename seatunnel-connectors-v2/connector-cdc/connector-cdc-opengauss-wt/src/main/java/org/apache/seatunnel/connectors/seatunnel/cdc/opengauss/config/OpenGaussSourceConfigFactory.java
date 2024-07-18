@@ -97,6 +97,7 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
                 distributionFactorLower,
                 sampleShardingThreshold,
                 inverseSamplingRate,
+                enableHashSplitterForStringColumn,
                 props,
                 DRIVER_CLASS_NAME,
                 hostname,

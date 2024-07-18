@@ -111,7 +111,7 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
     }
 
     protected abstract Collection<JdbcSourceSplit> createSplits(
-            JdbcSourceTable table, SeaTunnelRowType splitKeyType) throws SQLException, Exception;
+            JdbcSourceTable table, SeaTunnelRowType splitKeyType) throws Exception;
 
     public PreparedStatement generateSplitStatement(JdbcSourceSplit split, TableSchema schema)
             throws SQLException {
@@ -158,7 +158,8 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
                 null,
                 null,
                 null,
-                null);
+                null,
+                false);
     }
 
     protected PreparedStatement createSingleSplitStatement(JdbcSourceSplit split)
