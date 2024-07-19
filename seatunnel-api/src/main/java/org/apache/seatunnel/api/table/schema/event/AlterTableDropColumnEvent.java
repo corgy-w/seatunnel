@@ -21,12 +21,14 @@ import org.apache.seatunnel.api.event.EventType;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 
 import lombok.Getter;
+import lombok.Setter;
 import lombok.ToString;
 
 @Getter
 @ToString(callSuper = true)
 public class AlterTableDropColumnEvent extends AlterTableColumnEvent {
     private final String column;
+    @Getter @Setter private boolean primaryKey;
 
     public AlterTableDropColumnEvent(TableIdentifier tableIdentifier, String column) {
         super(tableIdentifier);

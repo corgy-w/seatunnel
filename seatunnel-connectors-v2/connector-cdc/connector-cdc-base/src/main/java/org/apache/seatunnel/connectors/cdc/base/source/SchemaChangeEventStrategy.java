@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.schema.SchemaChangeEventRecognizer;
 import org.apache.seatunnel.api.table.schema.SchemaChangeStrategy;
 import org.apache.seatunnel.api.table.schema.SchemaChangeType;
+import org.apache.seatunnel.api.table.schema.event.AlterTableColumnEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableDropColumnEvent;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
@@ -46,12 +47,17 @@ public class SchemaChangeEventStrategy
     public SchemaChangeStrategy apply(SchemaChangeEvent event) {
         if (EventType.SCHEMA_CHANGE_UPDATE_COLUMNS.equals(event.getEventType())) {
             AlterTableColumnsEvent columnsEvent = (AlterTableColumnsEvent) event;
-            boolean dropPrimaryKey =
-                    columnsEvent.getEvents().stream()
-                            .filter(e -> e.getEventType() == EventType.SCHEMA_CHANGE_DROP_COLUMN)
-                            .map(e -> AlterTableDropColumnEvent.class.cast(e))
-                            .map(e -> dropPrimaryKey(e))
-                            .anyMatch(e -> e == true);
+            boolean dropPrimaryKey = false;
+            for (AlterTableColumnEvent columnEvent : columnsEvent.getEvents()) {
+                if (columnEvent.getEventType() == EventType.SCHEMA_CHANGE_DROP_COLUMN) {
+                    AlterTableDropColumnEvent dropColumnEvent =
+                            (AlterTableDropColumnEvent) columnEvent;
+                    if (dropPrimaryKey(dropColumnEvent)) {
+                        dropColumnEvent.setPrimaryKey(true);
+                        dropPrimaryKey = true;
+                    }
+                }
+            }
             if (dropPrimaryKey) {
                 log.warn(
                         "The table {} primary key column is dropped, job will be auto suspended.",
@@ -67,6 +73,7 @@ public class SchemaChangeEventStrategy
                 log.warn(
                         "The table {} primary key column is dropped, job will be auto suspended.",
                         dropColumnEvent.getTablePath());
+                dropColumnEvent.setPrimaryKey(true);
                 return SchemaChangeStrategy.PAUSE;
             }
         }
