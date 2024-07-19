@@ -25,6 +25,7 @@ import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.server.utils.HttpUtils;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -47,9 +48,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class WhaleTunnelLicenseServiceImpl implements LicenseService {
@@ -75,33 +80,27 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
         if (StringUtils.isNotEmpty(licenseStringFromApi)) {
             systemLicenseInfo.setLicense(licenseStringFromApi);
         } else {
-            InputStream inputStream = new FileInputStream(LICENSE_PATH);
-            StringBuilder stringBuilder = new StringBuilder();
-            if (inputStream != null) {
-                try (BufferedReader reader =
-                        new BufferedReader(new InputStreamReader(inputStream))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        stringBuilder.append(line);
-                    }
-                } catch (IOException e) {
-                    throw new SeaTunnelException(e);
-                } finally {
-                    try {
-                        inputStream.close();
-                    } catch (IOException e) {
-                        throw new SeaTunnelException(e);
-                    }
-                }
-            } else {
-                throw new SeaTunnelException("inputStream is null");
-            }
-            systemLicenseInfo.setLicense(stringBuilder.toString());
+            final String licenseFromFile = getLicenseFromFile();
+            systemLicenseInfo.setLicense(licenseFromFile);
         }
         systemLicenseInfo.setStatus(1);
         List<SystemLicenseInfo> systemLicenseInfoList = new ArrayList<>(1);
         systemLicenseInfoList.add(systemLicenseInfo);
         return systemLicenseInfoList;
+    }
+
+    private String getLicenseFromFile() {
+        StringBuilder stringBuilder = new StringBuilder();
+        try (InputStream inputStream = new FileInputStream(LICENSE_PATH);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+        } catch (IOException e) {
+            throw new SeaTunnelException(e);
+        }
+        return stringBuilder.toString();
     }
 
     private String getLicenseStringFromApi() {
@@ -153,9 +152,41 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
         return new ArrayList<>();
     }
 
+    @Deprecated
     @Override
-    public Set<String> getAllServerIpListWithCache() {
-        return null;
+    public List<String> getAllServerIpListWithCache() {
+        return Collections.emptyList();
+    }
+
+    @Deprecated
+    @Override
+    public Set<String> getAllServerIpList() {
+        Set<String> hosts = getWtIpSet();
+        if (CollectionUtils.isEmpty(hosts)) {
+            return hosts;
+        }
+        return hosts.stream()
+                .map(
+                        host -> {
+                            int lastColonIndex = host.lastIndexOf(":");
+                            if (lastColonIndex > 0) {
+                                return host.substring(0, lastColonIndex);
+                            } else {
+                                return host;
+                            }
+                        })
+                .sorted()
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    @Override
+    public Set<String> getWsIpSet() {
+        return new HashSet<>();
+    }
+
+    @Override
+    public Set<String> getWtIpSet() {
+        return new HashSet<>();
     }
 
     @Override
