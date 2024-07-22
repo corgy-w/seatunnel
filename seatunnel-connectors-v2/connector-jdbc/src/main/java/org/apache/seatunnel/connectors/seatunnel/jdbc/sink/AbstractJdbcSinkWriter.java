@@ -15,15 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.sink;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.sink;
 
-/** @deprecated instead by {@link TablePlaceholder} todo remove this class */
-@Deprecated
-public final class SinkReplaceNameConstant {
+import org.apache.seatunnel.api.sink.SinkWriter;
+import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcSinkState;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.state.XidInfo;
 
-    public static final String REPLACE_TABLE_NAME_KEY = "${table_name}";
+import lombok.extern.slf4j.Slf4j;
 
-    public static final String REPLACE_SCHEMA_NAME_KEY = "${schema_name}";
-
-    public static final String REPLACE_DATABASE_NAME_KEY = "${database_name}";
-}
+@Slf4j
+public abstract class AbstractJdbcSinkWriter<T>
+        implements SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState>,
+                SupportMultiTableSinkWriter<T> {}

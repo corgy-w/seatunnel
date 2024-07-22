@@ -107,9 +107,6 @@ public class HdfsFileSinkFactory extends BaseMultipleTableFileSinkFactory {
     public TableSink createSink(TableSinkFactoryContext context) {
         ReadonlyConfig readonlyConfig = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
-
-        ReadonlyConfig finalReadonlyConfig =
-                generateCurrentReadonlyConfig(readonlyConfig, catalogTable);
-        return () -> new HdfsFileSink(finalReadonlyConfig, catalogTable);
+        return () -> new HdfsFileSink(readonlyConfig, catalogTable);
     }
 }

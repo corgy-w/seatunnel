@@ -19,8 +19,6 @@
 package org.apache.seatunnel.connectors.dws.guassdb.sink.writer;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.sink.SinkWriter;
-import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.dws.guassdb.catalog.DwsGaussDBCatalog;
@@ -30,7 +28,6 @@ import org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOpt
 import org.apache.seatunnel.connectors.dws.guassdb.sink.exception.DwsGaussDBConnectorErrorCode;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.exception.DwsGaussDBConnectorException;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.sql.DwsGaussSqlGenerator;
-import org.apache.seatunnel.connectors.dws.guassdb.sink.state.DwsGaussDBSinkState;
 
 import com.huawei.gauss200.jdbc.copy.CopyManager;
 import com.huawei.gauss200.jdbc.core.BaseConnection;
@@ -48,9 +45,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * data to the table, it will not guarantee the exactly-once.
  */
 @Slf4j
-public class DwsGaussDBAppendOnlySinkWriter
-        implements SinkWriter<SeaTunnelRow, DwsGaussDBSinkCommitInfo, DwsGaussDBSinkState>,
-                SupportMultiTableSinkWriter {
+public class DwsGaussDBAppendOnlySinkWriter extends DwsGaussDBSinkWriter {
 
     private final String tableName;
     private final transient DwsGaussDBCatalog dwsGaussDBCatalog;

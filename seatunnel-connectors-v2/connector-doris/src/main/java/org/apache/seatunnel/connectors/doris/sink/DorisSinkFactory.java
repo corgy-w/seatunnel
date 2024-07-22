@@ -40,6 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,9 +48,6 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_PATTERN;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_REPLACEMENT;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.DATABASE;
@@ -70,6 +68,11 @@ public class DorisSinkFactory implements TableSinkFactory {
     @Override
     public OptionRule optionRule() {
         return DorisOptions.SINK_RULE.build();
+    }
+
+    @Override
+    public List<String> excludeTablePlaceholderReplaceKeys() {
+        return Arrays.asList(DorisOptions.SAVE_MODE_CREATE_TEMPLATE.key());
     }
 
     @Override
@@ -96,13 +99,13 @@ public class DorisSinkFactory implements TableSinkFactory {
             databaseName = tableIdentifier.split("\\.")[0];
         } else {
             if (StringUtils.isNotEmpty(options.get(TABLE))) {
-                tableName = replaceName(options.get(TABLE), tableId);
+                tableName = options.get(TABLE);
             } else {
                 tableName = tableId.getTableName();
             }
 
             if (StringUtils.isNotEmpty(options.get(DATABASE))) {
-                databaseName = replaceName(options.get(DATABASE), tableId);
+                databaseName = options.get(DATABASE);
             } else {
                 databaseName = tableId.getDatabaseName();
             }
@@ -120,19 +123,6 @@ public class DorisSinkFactory implements TableSinkFactory {
         }
 
         return CatalogTable.of(newTableId, catalogTable);
-    }
-
-    private String replaceName(String original, TableIdentifier tableId) {
-        if (tableId.getTableName() != null) {
-            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
-        }
-        if (tableId.getSchemaName() != null) {
-            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
-        }
-        if (tableId.getDatabaseName() != null) {
-            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
-        }
-        return original;
     }
 
     @VisibleForTesting

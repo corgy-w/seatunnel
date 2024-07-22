@@ -64,8 +64,7 @@ public class MongodbSink
     }
 
     @Override
-    public SinkWriter<SeaTunnelRow, MongodbCommitInfo, DocumentBulk> createWriter(
-            SinkWriter.Context context) {
+    public MongodbWriter createWriter(SinkWriter.Context context) {
         String[] primaryKeyInCatalogTable =
                 catalogTable.getTableSchema().getPrimaryKey() == null
                         ? null

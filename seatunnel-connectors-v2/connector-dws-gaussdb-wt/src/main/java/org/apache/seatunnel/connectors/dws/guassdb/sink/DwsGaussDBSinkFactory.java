@@ -44,9 +44,6 @@ import com.google.auto.service.AutoService;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 import static org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions.SCHEMA;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.DATABASE;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.PRIMARY_KEY;
@@ -88,9 +85,6 @@ public class DwsGaussDBSinkFactory
         CatalogTable catalogTable = context.getCatalogTable();
         Map<String, String> catalogOptions = config.get(CatalogOptions.CATALOG_OPTIONS);
         if (config.getOptional(TABLE).isPresent()) {
-            catalogOptions.put(
-                    TABLE.key(),
-                    replaceFullTableName(config.get(TABLE), catalogTable.getTableId()));
             catalogOptions.put(PRIMARY_KEY.key(), config.get(PRIMARY_KEY));
         } else {
             String prefix = catalogOptions.get(TABLE_PREFIX.key());
@@ -140,8 +134,7 @@ public class DwsGaussDBSinkFactory
             config = ReadonlyConfig.fromMap(new HashMap<>(map));
         }
         final ReadonlyConfig options = config;
-        String[] split =
-                replaceFullTableName(config.get(TABLE), catalogTable.getTableId()).split("\\.");
+        String[] split = config.get(TABLE).split("\\.");
         String schemaName = null;
         String tableName;
         if (split.length == 2) {
@@ -162,18 +155,5 @@ public class DwsGaussDBSinkFactory
         CatalogTable finalCatalogTable = CatalogTable.of(tableIdentifier, catalogTable);
 
         return () -> new DwsGaussDBSink(options, finalCatalogTable);
-    }
-
-    private String replaceFullTableName(String original, TableIdentifier tableId) {
-        if (StringUtils.isNotBlank(tableId.getDatabaseName())) {
-            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
-        }
-        if (StringUtils.isNotBlank(tableId.getSchemaName())) {
-            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
-        }
-        if (StringUtils.isNotBlank(tableId.getTableName())) {
-            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
-        }
-        return original;
     }
 }

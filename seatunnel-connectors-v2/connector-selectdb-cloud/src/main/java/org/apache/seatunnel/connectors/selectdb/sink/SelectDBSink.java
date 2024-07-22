@@ -79,8 +79,7 @@ public class SelectDBSink
     }
 
     @Override
-    public SinkWriter<SeaTunnelRow, SelectDBCommitInfo, SelectDBSinkState> createWriter(
-            SinkWriter.Context context) throws IOException {
+    public SelectDBSinkWriter createWriter(SinkWriter.Context context) throws IOException {
         SelectDBSinkWriter selectDBSinkWriter =
                 new SelectDBSinkWriter(
                         context, Collections.emptyList(), catalogTable, selectDBConfig, jobId);

@@ -114,8 +114,7 @@ public class S3RedshiftSink extends BaseHdfsFileSink
     }
 
     @Override
-    public SinkWriter<SeaTunnelRow, FileCommitInfo, FileSinkState> createWriter(
-            SinkWriter.Context context) {
+    public S3RedshiftChangelogWriter createWriter(SinkWriter.Context context) {
         return new S3RedshiftChangelogWriter(
                 newWriteStrategy(),
                 hadoopConf,

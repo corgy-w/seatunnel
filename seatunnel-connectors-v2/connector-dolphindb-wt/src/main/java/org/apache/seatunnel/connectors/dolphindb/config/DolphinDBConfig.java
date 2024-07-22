@@ -100,7 +100,7 @@ public class DolphinDBConfig {
             Options.key("save_mode_create_template")
                     .stringType()
                     .defaultValue(
-                            "create table '${database}'.'${table_name}'(\n"
+                            "create table '${database}'.'${table}'(\n"
                                     + "     ${rowtype_fields}\n"
                                     + " )\n"
                                     + " partitioned by ${rowtype_primary_key};")

@@ -19,8 +19,6 @@
 package org.apache.seatunnel.connectors.dws.guassdb.sink.writer;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.sink.SinkWriter;
-import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.RowKind;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -50,9 +48,7 @@ import java.util.Optional;
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.PRIMARY_KEY;
 
 @Slf4j
-public class DwsGaussDBUsingTemporaryTableSinkWriter
-        implements SinkWriter<SeaTunnelRow, DwsGaussDBSinkCommitInfo, DwsGaussDBSinkState>,
-                SupportMultiTableSinkWriter {
+public class DwsGaussDBUsingTemporaryTableSinkWriter extends DwsGaussDBSinkWriter {
 
     private final DwsGaussDBMemoryTable dwsGaussDBMemoryTable;
 

@@ -129,7 +129,7 @@ public class SelectDBConfig implements Serializable {
             Options.key("save_mode_create_template")
                     .stringType()
                     .defaultValue(
-                            "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (\n"
+                            "CREATE TABLE IF NOT EXISTS `${database}`.`${table}` (\n"
                                     + "${rowtype_fields}\n"
                                     + ") ENGINE=OLAP\n"
                                     + " UNIQUE KEY (${rowtype_primary_key})\n"

@@ -41,9 +41,6 @@ public class Hive2SinkFactory extends HiveSinkFactory {
             createSink(TableSinkFactoryContext context) {
         ReadonlyConfig readonlyConfig = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
-
-        ReadonlyConfig finalReadonlyConfig =
-                generateCurrentReadonlyConfig(readonlyConfig, catalogTable);
-        return () -> new Hive2Sink(finalReadonlyConfig, catalogTable);
+        return () -> new Hive2Sink(readonlyConfig, catalogTable);
     }
 }

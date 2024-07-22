@@ -50,7 +50,7 @@ public class StarRocksCreateTableTest {
 
         String result =
                 StarRocksSaveModeUtil.getCreateTableSql(
-                        "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (                                                                                                                                                   \n"
+                        "CREATE TABLE IF NOT EXISTS `${database}`.`${table}` (                                                                                                                                                   \n"
                                 + "${rowtype_primary_key}  ,       \n"
                                 + "`create_time` DATETIME NOT NULL ,  \n"
                                 + "${rowtype_fields}  \n"

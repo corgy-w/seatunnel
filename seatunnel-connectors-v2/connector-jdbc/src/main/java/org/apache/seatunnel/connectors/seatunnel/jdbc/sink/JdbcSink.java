@@ -106,15 +106,14 @@ public class JdbcSink
     }
 
     @Override
-    public SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState> createWriter(
-            SinkWriter.Context context) {
+    public AbstractJdbcSinkWriter createWriter(SinkWriter.Context context) {
         // Load the JDBC driver in to DriverManager
         try {
             Class.forName(jdbcSinkConfig.getJdbcConnectionConfig().getDriverName());
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState> sinkWriter;
+        AbstractJdbcSinkWriter sinkWriter;
         if (jdbcSinkConfig.isExactlyOnce()) {
             sinkWriter =
                     new JdbcExactlyOnceSinkWriter(

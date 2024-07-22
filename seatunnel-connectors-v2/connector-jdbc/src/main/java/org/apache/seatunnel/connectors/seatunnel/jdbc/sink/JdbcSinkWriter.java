@@ -18,8 +18,6 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.sink;
 
 import org.apache.seatunnel.api.sink.MultiTableResourceManager;
-import org.apache.seatunnel.api.sink.SinkWriter;
-import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
@@ -58,9 +56,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-public class JdbcSinkWriter
-        implements SinkWriter<SeaTunnelRow, XidInfo, JdbcSinkState>,
-                SupportMultiTableSinkWriter<ConnectionPoolManager> {
+public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager> {
     private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
     private final JdbcDialect dialect;
     private final TableSchema tableSchema;
