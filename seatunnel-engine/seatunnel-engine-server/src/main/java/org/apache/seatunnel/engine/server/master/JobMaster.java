@@ -74,7 +74,6 @@ import org.apache.seatunnel.engine.server.task.operation.CleanTaskGroupContextOp
 import org.apache.seatunnel.engine.server.task.operation.GetTaskGroupMetricsOperation;
 import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
 
-import com.google.common.collect.Lists;
 import com.hazelcast.cluster.Address;
 import com.hazelcast.core.HazelcastInstanceNotActiveException;
 import com.hazelcast.flakeidgen.FlakeIdGenerator;
@@ -102,6 +101,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -157,6 +158,8 @@ public class JobMaster implements DynamicMetricsProvider {
 
     private Map<Integer, CheckpointPlan> checkpointPlanMap;
 
+    private final Map<Integer, List<SlotProfile>> releasedSlotWhenTaskGroupFinished;
+
     private final IMap<Long, JobInfo> runningJobInfoIMap;
 
     private final IMap<Long, HashMap<TaskLocation, SeaTunnelMetricsContext>> metricsImap;
@@ -205,6 +208,7 @@ public class JobMaster implements DynamicMetricsProvider {
         this.seaTunnelServer = seaTunnelServer;
         this.metricsContext = new SeaTunnelMetricsContext();
         this.jobRestoreTimesCounter = metricsContext.counter(JOB_RESTORE_TIMES);
+        this.releasedSlotWhenTaskGroupFinished = new ConcurrentHashMap<>();
     }
 
     public void init(long initializationTimestamp, boolean restart, ClassLoader zetaClassLoader)
@@ -509,13 +513,17 @@ public class JobMaster implements DynamicMetricsProvider {
                                         jobImmutableInformation.getJobId(),
                                         Collections.singletonList(taskGroupSlotProfile))
                                 .join();
-
+                        releasedSlotWhenTaskGroupFinished
+                                .computeIfAbsent(
+                                        pipelineLocation.getPipelineId(),
+                                        k -> new CopyOnWriteArrayList<>())
+                                .add(taskGroupSlotProfile);
                         return null;
                     },
                     new RetryUtils.RetryMaterial(
                             Constant.OPERATION_RETRY_TIME,
                             true,
-                            exception -> ExceptionUtil.isOperationNeedRetryException(exception),
+                            ExceptionUtil::isOperationNeedRetryException,
                             Constant.OPERATION_RETRY_SLEEP));
         } catch (Exception e) {
             LOGGER.warning(
@@ -532,6 +540,11 @@ public class JobMaster implements DynamicMetricsProvider {
             if (taskGroupLocationSlotProfileMap == null) {
                 return;
             }
+            List<SlotProfile> alreadyReleased = new ArrayList<>();
+            if (releasedSlotWhenTaskGroupFinished.containsKey(subPlan.getPipelineId())) {
+                alreadyReleased.addAll(
+                        releasedSlotWhenTaskGroupFinished.get(subPlan.getPipelineId()));
+            }
 
             RetryUtils.retryWithException(
                     () -> {
@@ -542,10 +555,12 @@ public class JobMaster implements DynamicMetricsProvider {
                         resourceManager
                                 .releaseResources(
                                         jobImmutableInformation.getJobId(),
-                                        Lists.newArrayList(
-                                                taskGroupLocationSlotProfileMap.values()))
+                                        taskGroupLocationSlotProfileMap.values().stream()
+                                                .filter(p -> !alreadyReleased.contains(p))
+                                                .collect(Collectors.toList()))
                                 .join();
                         ownedSlotProfilesIMap.remove(subPlan.getPipelineLocation());
+                        releasedSlotWhenTaskGroupFinished.remove(subPlan.getPipelineId());
                         return null;
                     },
                     new RetryUtils.RetryMaterial(
