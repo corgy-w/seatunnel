@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -99,7 +100,8 @@ public class DwsGaussSqlGenerator implements Serializable {
                 + ")"
                 + " FROM STDIN DELIMITER '"
                 + delimiter
-                + "'";
+                + "'"
+                + " COMPATIBLE_ILLEGAL_CHARS";
     }
 
     public String getCopyInTargetTableSql() {
@@ -115,7 +117,8 @@ public class DwsGaussSqlGenerator implements Serializable {
                 + ")"
                 + " FROM STDIN DELIMITER '"
                 + delimiter
-                + "'";
+                + "'"
+                + " COMPATIBLE_ILLEGAL_CHARS";
     }
 
     public String getMergeInTargetTableSql(Long snapshotId) {
@@ -364,7 +367,18 @@ public class DwsGaussSqlGenerator implements Serializable {
         for (int i = 0; i < columns.size(); i++) {
             Function<Object, String> function = null;
             Column column = columns.get(i);
-            if (column == null || column.getDataType().getSqlType() != SqlType.ARRAY) {
+            if (column.getDataType().getSqlType() == SqlType.BYTES) {
+                function =
+                        new Function<Object, String>() {
+                            @Override
+                            public String apply(Object input) {
+                                if (input == null) {
+                                    return null;
+                                }
+                                return Base64.getEncoder().encodeToString((byte[]) input);
+                            }
+                        };
+            } else if (column.getDataType().getSqlType() != SqlType.ARRAY) {
                 function =
                         new Function<Object, String>() {
                             @Override
