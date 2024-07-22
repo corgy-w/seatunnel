@@ -98,7 +98,7 @@ public class DwsGaussSqlGeneratorTest {
         Assertions.assertEquals(
                 "COPY \"public\".\"st_temporary_t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '"
                         + delimiter
-                        + "'",
+                        + "' COMPATIBLE_ILLEGAL_CHARS",
                 copyInTemporaryTableSql);
     }
 
@@ -108,7 +108,7 @@ public class DwsGaussSqlGeneratorTest {
         Assertions.assertEquals(
                 "COPY \"public\".\"t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '"
                         + delimiter
-                        + "'",
+                        + "' COMPATIBLE_ILLEGAL_CHARS",
                 copyInTargetTableSql);
     }
 
@@ -214,7 +214,7 @@ public class DwsGaussSqlGeneratorTest {
         Assertions.assertEquals(
                 "COPY \"public\".\"st_temporary_t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '"
                         + delimiter
-                        + "'",
+                        + "' COMPATIBLE_ILLEGAL_CHARS",
                 dwsGaussSqlGenerator.getCopyInTemporaryTableSql());
     }
 
@@ -223,7 +223,7 @@ public class DwsGaussSqlGeneratorTest {
         Assertions.assertEquals(
                 "COPY \"public\".\"t_st_users\"(id,name,age,create_time) FROM STDIN DELIMITER '"
                         + delimiter
-                        + "'",
+                        + "' COMPATIBLE_ILLEGAL_CHARS",
                 dwsGaussSqlGenerator.getCopyInTargetTableSql());
     }
 
