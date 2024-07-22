@@ -69,7 +69,7 @@ jobs:
 
   changes:
     runs-on:
-      labels: wtci
+      labels: wtci_haiwai
     timeout-minutes: 30
     outputs:
       api: ${{ steps.filter.outputs.api }}
@@ -94,6 +94,7 @@ jobs:
       - name: Check for file changes by python
         id: filter
         run: |
+          source /home/citest/.bashrc
           current_branch='${{ steps.git_init.outputs.current_branch }}'
           target_branch='${{ steps.git_init.outputs.target_branch }}'
           /usr/bin/git fetch origin
@@ -183,11 +184,6 @@ jobs:
           modules=`python3 tools/update_modules_check/update_modules_check.py delete "$update_files"`
           echo $modules
           echo "modules=$modules" >> $GITHUB_OUTPUT  
-
-      - name: Build Project
-        id: build-project
-        run: |
-          ./mvnw -U -T 1C clean install -DskipTests -D"maven.test.skip"=true -D"maven.javadoc.skip"=true
 
       - name: Make unit test modules
         id: ut-modules
