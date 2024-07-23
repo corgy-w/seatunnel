@@ -177,6 +177,8 @@ public interface JdbcSourceChunkSplitter extends ChunkSplitter {
             case BIGINT:
             case DECIMAL:
             case STRING:
+            case DATE:
+            case TIMESTAMP:
                 return true;
             default:
                 return false;
