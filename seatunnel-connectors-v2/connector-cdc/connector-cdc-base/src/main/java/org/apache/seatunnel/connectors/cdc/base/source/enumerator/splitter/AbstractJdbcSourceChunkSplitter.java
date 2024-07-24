@@ -576,9 +576,10 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                 Column column = table.columnWithName(pkColumn);
                 if (isEvenlySplitColumn(column)) {
                     splitColumn = columnComparable(splitColumn, column);
-                    if (sqlTypePriority(splitColumn) == 1) {
-                        return splitColumn;
-                    }
+                    // It doesn't really make much sense here
+                    // if (sqlTypePriority(splitColumn) == 1) {
+                    return splitColumn;
+                    // }
                 }
             }
         } else {
