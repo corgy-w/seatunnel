@@ -57,7 +57,7 @@ public class JdbcSourceChunkSplitterTest {
         Column splitColumn =
                 testJdbcSourceChunkSplitter.getSplitColumn(
                         null, new TestSourceDialect(), new TableId("", "", ""));
-        Assertions.assertEquals(splitColumn.typeName(), "tinyint");
+        Assertions.assertEquals(splitColumn.typeName(), "varchar");
     }
 
     private class TestJdbcSourceChunkSplitter extends AbstractJdbcSourceChunkSplitter {
