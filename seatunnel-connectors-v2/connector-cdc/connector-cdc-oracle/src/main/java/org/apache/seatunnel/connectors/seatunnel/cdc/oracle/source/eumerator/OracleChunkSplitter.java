@@ -88,8 +88,9 @@ public class OracleChunkSplitter extends AbstractJdbcSourceChunkSplitter {
             TableId tableId,
             SeaTunnelRowType splitKeyType,
             boolean isFirstSplit,
-            boolean isLastSplit) {
-        return OracleUtils.buildSplitScanQuery(tableId, splitKeyType, isFirstSplit, isLastSplit);
+            boolean isLastSplit,
+            boolean isNull) {
+        return OracleUtils.buildSplitScanQuery(tableId, splitKeyType, isFirstSplit, isLastSplit, isNull);
     }
 
     @Override

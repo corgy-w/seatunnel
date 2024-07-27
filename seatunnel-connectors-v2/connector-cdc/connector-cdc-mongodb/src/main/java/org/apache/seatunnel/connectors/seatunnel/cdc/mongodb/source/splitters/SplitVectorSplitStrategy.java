@@ -101,7 +101,8 @@ public enum SplitVectorSplitStrategy implements SplitStrategy {
                             collectionId,
                             rowType,
                             boundOfId(lowerValue),
-                            boundOfId(splitKeyValue)));
+                            boundOfId(splitKeyValue),
+                            false));
             lowerValue = splitKeyValue;
         }
 
@@ -111,7 +112,8 @@ public enum SplitVectorSplitStrategy implements SplitStrategy {
                         collectionId,
                         rowType,
                         boundOfId(lowerValue),
-                        maxUpperBoundOfId());
+                        maxUpperBoundOfId(),
+                        false);
         snapshotSplits.add(lastSplit);
 
         return snapshotSplits;

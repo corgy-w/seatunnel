@@ -974,8 +974,8 @@ public class TaskExecutionService implements DynamicMetricsProvider {
             if (!isCancel.get() && ex != null) {
                 logger.info(
                         String.format(
-                                "%s is done, cancel other tasks in taskGroup %s",
-                                task.getTaskID(), taskGroupLocation));
+                                "task %s error with exception: [%s], cancel other task in taskGroup %s.",
+                                task.getTaskID(), ex, taskGroupLocation));
                 cancelAllTask(taskGroupLocation);
             }
         }

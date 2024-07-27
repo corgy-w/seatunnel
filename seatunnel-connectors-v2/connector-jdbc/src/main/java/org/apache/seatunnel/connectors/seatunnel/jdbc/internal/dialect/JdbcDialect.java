@@ -424,4 +424,8 @@ public interface JdbcDialect extends Serializable {
     default String convertType(String columnName, String columnType) {
         return columnName;
     }
+
+    default boolean supportHashSplitter() {
+        return true;
+    }
 }

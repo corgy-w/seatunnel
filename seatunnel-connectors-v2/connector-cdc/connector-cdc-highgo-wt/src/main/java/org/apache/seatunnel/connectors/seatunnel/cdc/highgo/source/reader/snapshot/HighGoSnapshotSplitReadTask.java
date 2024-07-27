@@ -180,7 +180,9 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
                         snapshotSplit.getTableId(),
                         snapshotSplit.getSplitKeyType(),
                         snapshotSplit.getSplitStart() == null,
-                        snapshotSplit.getSplitEnd() == null);
+                        snapshotSplit.getSplitEnd() == null,
+                        snapshotSplit.getSplitEnd(),
+                        snapshotSplit.isNull());
         log.info(
                 "For split '{}' of table {} using select statement: '{}'",
                 snapshotSplit.splitId(),
@@ -196,7 +198,8 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
                                 snapshotSplit.getSplitStart(),
                                 snapshotSplit.getSplitEnd(),
                                 snapshotSplit.getSplitKeyType(),
-                                connectorConfig.getQueryFetchSize());
+                                connectorConfig.getQueryFetchSize(),
+                                snapshotSplit.isNull());
                 ResultSet rs = selectStatement.executeQuery()) {
 
             ColumnUtils.ColumnArray columnArray = ColumnUtils.toArray(rs, table);

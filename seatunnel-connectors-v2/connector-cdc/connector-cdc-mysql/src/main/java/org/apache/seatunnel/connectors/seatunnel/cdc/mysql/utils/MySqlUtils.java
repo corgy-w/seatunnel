@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.mysql.utils;
 
+import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
@@ -233,8 +234,14 @@ public class MySqlUtils {
     }
 
     public static String buildSplitScanQuery(
-            TableId tableId, SeaTunnelRowType rowType, boolean isFirstSplit, boolean isLastSplit) {
-        return buildSplitQuery(tableId, rowType, isFirstSplit, isLastSplit, -1, true);
+            TableId tableId,
+            SeaTunnelRowType rowType,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            Object[] splitEnd,
+            boolean isNull) {
+        return buildSplitQuery(
+                tableId, rowType, isFirstSplit, isLastSplit, splitEnd, -1, true, isNull);
     }
 
     private static String buildSplitQuery(
@@ -242,14 +249,28 @@ public class MySqlUtils {
             SeaTunnelRowType rowType,
             boolean isFirstSplit,
             boolean isLastSplit,
+            Object[] splitEnd,
             int limitSize,
-            boolean isScanningData) {
+            boolean isScanningData,
+            boolean isNull) {
         final String condition;
-
-        if (isFirstSplit && isLastSplit) {
+        final StringBuilder sql;
+        if (isNull) {
+            sql = new StringBuilder();
+            addPrimaryKeyColumnsToCondition(rowType, sql, " IS NULL");
+            condition = sql.toString();
+        } else if (isFirstSplit && isLastSplit) {
             condition = null;
+        } else if (BasicType.STRING_TYPE.equals(rowType.getFieldType(0))) {
+            sql = new StringBuilder();
+            // only support single column to split
+            // splitStart[0] is the mod value
+            // splitEnd[0] is the mod base
+            sql.append(hashModForField(rowType.getFieldName(0), (int) splitEnd[0]));
+            sql.append(" = ?");
+            condition = sql.toString();
         } else if (isFirstSplit) {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(rowType, sql, " <= ?");
             if (isScanningData) {
                 sql.append(" AND NOT (");
@@ -258,11 +279,11 @@ public class MySqlUtils {
             }
             condition = sql.toString();
         } else if (isLastSplit) {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(rowType, sql, " >= ?");
             condition = sql.toString();
         } else {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(rowType, sql, " >= ?");
             if (isScanningData) {
                 sql.append(" AND NOT (");
@@ -289,6 +310,10 @@ public class MySqlUtils {
         }
     }
 
+    private static String hashModForField(String fieldName, int mod) {
+        return "ABS(MD5(" + quote(fieldName) + ") % " + mod + ")";
+    }
+
     public static PreparedStatement readTableSplitDataStatement(
             JdbcConnection jdbc,
             String sql,
@@ -297,10 +322,18 @@ public class MySqlUtils {
             Object[] splitStart,
             Object[] splitEnd,
             SeaTunnelRowType splitKeyType,
-            int fetchSize) {
+            int fetchSize,
+            boolean isNull) {
         try {
             final PreparedStatement statement = initStatement(jdbc, sql, fetchSize);
-            if (isFirstSplit && isLastSplit) {
+            if ((isFirstSplit && isLastSplit) || isNull) {
+                return statement;
+            }
+
+            if (BasicType.STRING_TYPE.equals(splitKeyType.getFieldType(0))) {
+                // splitStart[0] is the mod value
+                // splitEnd[0] is the mod base
+                statement.setObject(1, splitStart[0]);
                 return statement;
             }
             int primaryKeyNum = splitKeyType.getTotalFields();

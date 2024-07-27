@@ -190,6 +190,8 @@ public class OracleDialect implements JdbcDialect {
         // 3. If a query is configured with a WHERE clause, or a query statement is configured but
         // tablePath is TablePath.DEFAULT, use COUNT(*).
 
+        long count = 0;
+
         boolean useTableStats =
                 StringUtils.isBlank(table.getQuery())
                         || (!table.getQuery().toLowerCase().contains("where")
@@ -200,18 +202,12 @@ public class OracleDialect implements JdbcDialect {
 
         if (useTableStats) {
             TablePath tablePath = table.getTablePath();
-            String analyzeTable =
-                    String.format(
-                            "analyze table %s compute statistics for table",
-                            tableIdentifier(tablePath));
             String rowCountQuery =
                     String.format(
                             "select NUM_ROWS from all_tables where OWNER = '%s' AND TABLE_NAME = '%s' ",
                             tablePath.getSchemaName(), tablePath.getTableName());
 
             try (Statement stmt = connection.createStatement()) {
-                log.info("Split Chunk, approximateRowCntStatement: {}", analyzeTable);
-                stmt.execute(analyzeTable);
                 log.info("Split Chunk, approximateRowCntStatement: {}", rowCountQuery);
                 try (ResultSet rs = stmt.executeQuery(rowCountQuery)) {
                     if (!rs.next()) {
@@ -220,14 +216,19 @@ public class OracleDialect implements JdbcDialect {
                                         "No result returned after running query [%s]",
                                         rowCountQuery));
                     }
-                    return rs.getLong(1);
+                    count = rs.getLong(1);
                 }
             } catch (SQLException e) {
                 log.warn(
                         "Failed to get approximate row count from table status, fallback to count rows",
                         e);
-                return SQLUtils.countForTable(connection, tableIdentifier(table.getTablePath()));
             }
+
+            if (count == 0) {
+                count = SQLUtils.countForTable(connection, tableIdentifier(table.getTablePath()));
+            }
+
+            return count;
         }
         return SQLUtils.countForSubquery(connection, table.getQuery());
     }

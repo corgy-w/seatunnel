@@ -284,8 +284,12 @@ public class JdbcMysqlSplitIT extends TestSuiteBase implements TestResource {
         BigDecimal decimalValue = new BigDecimal("999999999999999999999999999899");
         LocalDate currentDate = LocalDate.of(2024, 1, 17);
 
+        LocalDateTime currLocalDateTime =
+                LocalDateTime.of(currentDate, LocalDateTime.now().toLocalTime());
+
         for (int i = 0; i < 100; i++) {
             currentDate = currentDate.plusDays(1);
+            currLocalDateTime = currLocalDateTime.plusDays(1);
             byte byteArr = Integer.valueOf(i).byteValue();
             SeaTunnelRow row =
                     new SeaTunnelRow(
@@ -327,8 +331,8 @@ public class JdbcMysqlSplitIT extends TestSuiteBase implements TestResource {
                                 String.format("{\"aa\":\"bb_%s\"}", i),
                                 String.format("f1_%s", i),
                                 Date.valueOf(currentDate),
-                                Timestamp.valueOf(LocalDateTime.now()),
-                                new Timestamp(System.currentTimeMillis()),
+                                Timestamp.valueOf(currLocalDateTime),
+                                Timestamp.valueOf(currLocalDateTime),
                                 "test".getBytes(),
                                 "test".getBytes(),
                                 "test".getBytes(),
@@ -373,97 +377,141 @@ public class JdbcMysqlSplitIT extends TestSuiteBase implements TestResource {
                         .catalogTable(table)
                         .build();
         Collection<JdbcSourceSplit> jdbcSourceSplits = splitter.generateSplits(jdbcSourceTable);
-        Assertions.assertEquals(10, jdbcSourceSplits.size());
+        Assertions.assertEquals(11, jdbcSourceSplits.size());
         JdbcSourceSplit[] splitArray = jdbcSourceSplits.toArray(new JdbcSourceSplit[0]);
         Assertions.assertEquals("id", splitArray[0].getSplitKeyName());
         assertNumSplit(splitArray, "");
 
         // use tinyint column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_tinyint", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_tinyint", 11);
         assertNumSplit(splitArray, "");
 
         // use tinyint_unsigned column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_tinyint_unsigned", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_tinyint_unsigned", 11);
         configMap.put("partition_column", "c_tinyint_unsigned");
         assertNumSplit(splitArray, "");
 
         // use smallint column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_smallint", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_smallint", 11);
         configMap.put("partition_column", "c_smallint");
         assertNumSplit(splitArray, "");
 
         // use smallint_unsigned column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_smallint_unsigned", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_smallint_unsigned", 11);
         configMap.put("partition_column", "c_smallint_unsigned");
         assertNumSplit(splitArray, "");
 
         // use int column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_int", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_int", 11);
         configMap.put("partition_column", "c_int");
         assertNumSplit(splitArray, "");
 
         // use int column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_integer", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_integer", 11);
         configMap.put("partition_column", "c_integer");
         assertNumSplit(splitArray, "");
 
         // use int_unsigned column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_int_unsigned", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_int_unsigned", 11);
         configMap.put("partition_column", "c_int_unsigned");
         assertNumSplit(splitArray, "");
 
         // use integer_unsigned column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_integer_unsigned", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_integer_unsigned", 11);
         configMap.put("partition_column", "c_integer_unsigned");
         assertNumSplit(splitArray, "");
 
         // use int column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_mediumint", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_mediumint", 11);
         configMap.put("partition_column", "c_mediumint");
         assertNumSplit(splitArray, "");
 
         // use int column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_mediumint_unsigned", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_mediumint_unsigned", 11);
         configMap.put("partition_column", "c_mediumint_unsigned");
         assertNumSplit(splitArray, "");
 
         // use bigint column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_bigint", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_bigint", 11);
         configMap.put("partition_column", "c_bigint");
         assertNumSplit(splitArray, "");
 
         // use bigint_unsigned column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_bigint_unsigned", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_bigint_unsigned", 11);
         configMap.put("partition_column", "c_bigint_unsigned");
         assertNumSplit(splitArray, "");
 
         // use decimal column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_decimal", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_decimal", 11);
         configMap.put("partition_column", "c_decimal");
         assertNumSplit(splitArray, "");
 
         // use decimal_unsigned column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_decimal_unsigned", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_decimal_unsigned", 11);
         configMap.put("partition_column", "c_decimal_unsigned");
         assertNumSplit(splitArray, ".0000000000");
 
         // use double column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_double", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_double", 11);
         configMap.put("partition_column", "c_double");
         assertNumSplit(splitArray, ".1");
 
         // use unsigned double column to split
-        splitArray = getCheckedSplitArray(configMap, table, "c_double_unsigned", 10);
+        splitArray = getCheckedSplitArray(configMap, table, "c_double_unsigned", 11);
         configMap.put("partition_column", "c_double_unsigned");
         assertNumSplit(splitArray, ".1");
 
         // use date column to split
         configMap.put("partition_column", "c_date");
-        splitArray = getCheckedSplitArray(configMap, table, "c_date", 13);
+        splitArray = getCheckedSplitArray(configMap, table, "c_date", 14);
         configMap.put("partition_column", "c_date");
         assertDateSplit(splitArray);
 
+        // use datetime column to split
+        configMap.put("partition_column", "c_datetime");
+        splitArray = getCheckedSplitArray(configMap, table, "c_datetime", 14);
+        configMap.put("partition_column", "c_datetime");
+        assertDateSplit(splitArray);
+
+        // use c_timestamp column to split
+        configMap.put("partition_column", "c_timestamp");
+        splitArray = getCheckedSplitArray(configMap, table, "c_timestamp", 14);
+        configMap.put("partition_column", "c_timestamp");
+        assertDateSplit(splitArray);
+
+        // string split column
+        configMap.put("split.enable-hash-split-for-string-column", false);
+        splitArray = getCheckedSplitArray(configMap, table, "c_varchar", 1);
+        configMap.put("partition_column", "c_varchar");
+        assertStringSingleSplit(splitArray);
+
+        // string split column
+        configMap.put("split.enable-hash-split-for-string-column", true);
+        splitArray = getCheckedSplitArray(configMap, table, "c_varchar", 12);
+        configMap.put("partition_column", "c_varchar");
+        assertStringSplit(splitArray);
+
         mySqlCatalog.close();
+    }
+
+    private void assertStringSingleSplit(JdbcSourceSplit[] splitArray) {
+        Assertions.assertEquals(1, splitArray.length);
+        Assertions.assertEquals(null, splitArray[0].getSplitStart());
+        Assertions.assertEquals(null, splitArray[0].getSplitEnd());
+        Assertions.assertEquals(null, splitArray[0].getSplitQuery());
+    }
+
+    private void assertStringSplit(JdbcSourceSplit[] splitArray) {
+        for (int i = 0; i < splitArray.length; i++) {
+            if (i == splitArray.length - 1) {
+                Assertions.assertTrue(splitArray[i].isNull());
+                continue;
+            }
+            Assertions.assertEquals(
+                    "SELECT * FROM auto.split_test WHERE ABS(MD5(`c_varchar`) % 11) = ?",
+                    splitArray[i].getSplitQuery());
+            Assertions.assertEquals(i, splitArray[i].getSplitStart());
+        }
     }
 
     private JdbcSourceSplit[] getCheckedSplitArray(
@@ -491,9 +539,12 @@ public class JdbcMysqlSplitIT extends TestSuiteBase implements TestResource {
                 Assertions.assertEquals(null, splitArray[i].getSplitStart());
                 Assertions.assertEquals("10" + info, splitArray[i].getSplitEnd().toString());
                 continue;
+            } else if (i == splitArray.length - 1) {
+                Assertions.assertEquals(true, splitArray[i].isNull());
+                continue;
             }
 
-            if (i == splitArray.length - 1 && i != 0) {
+            if (i == splitArray.length - 2 && i != 0) {
                 Assertions.assertEquals(10 * i + info, splitArray[i].getSplitStart().toString());
                 Assertions.assertEquals(null, splitArray[i].getSplitEnd());
                 continue;
@@ -514,11 +565,16 @@ public class JdbcMysqlSplitIT extends TestSuiteBase implements TestResource {
                 continue;
             }
 
-            if (i == splitArray.length - 1 && i != 0) {
+            if (i == splitArray.length - 2 && i != 0) {
                 Assertions.assertEquals(
                         currentDateOld.plusDays((i - 1) * 9).toString(),
                         splitArray[i].getSplitStart().toString());
                 Assertions.assertEquals(null, splitArray[i].getSplitEnd());
+                continue;
+            }
+
+            if (i == splitArray.length - 1) {
+                Assertions.assertEquals(true, splitArray[i].isNull());
                 continue;
             }
 

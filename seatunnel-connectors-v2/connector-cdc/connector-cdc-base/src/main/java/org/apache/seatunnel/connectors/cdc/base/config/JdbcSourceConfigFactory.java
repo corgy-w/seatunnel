@@ -50,6 +50,8 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
     protected int sampleShardingThreshold =
             JdbcSourceOptions.SAMPLE_SHARDING_THRESHOLD.defaultValue();
     protected int inverseSamplingRate = JdbcSourceOptions.INVERSE_SAMPLING_RATE.defaultValue();
+    protected boolean enableHashSplitterForStringColumn =
+            JdbcSourceOptions.SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN.defaultValue();
     protected int splitSize = SourceOptions.SNAPSHOT_SPLIT_SIZE.defaultValue();
     protected int fetchSize = SourceOptions.SNAPSHOT_FETCH_SIZE.defaultValue();
     protected String serverTimeZone = JdbcSourceOptions.SERVER_TIME_ZONE.defaultValue();
@@ -174,6 +176,12 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
         return this;
     }
 
+    public JdbcSourceConfigFactory enableHashSplitterForStringColumn(
+            boolean enableHashSplitterForStringColumn) {
+        this.enableHashSplitterForStringColumn = enableHashSplitterForStringColumn;
+        return this;
+    }
+
     /** The maximum fetch size for per poll when read table snapshot. */
     public JdbcSourceConfigFactory fetchSize(int fetchSize) {
         this.fetchSize = fetchSize;
@@ -238,6 +246,8 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
                 config.get(JdbcSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_LOWER_BOUND);
         this.sampleShardingThreshold = config.get(JdbcSourceOptions.SAMPLE_SHARDING_THRESHOLD);
         this.inverseSamplingRate = config.get(JdbcSourceOptions.INVERSE_SAMPLING_RATE);
+        this.enableHashSplitterForStringColumn =
+                config.get(JdbcSourceOptions.SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN);
         this.splitSize = config.get(SourceOptions.SNAPSHOT_SPLIT_SIZE);
         this.fetchSize = config.get(SourceOptions.SNAPSHOT_FETCH_SIZE);
         this.serverTimeZone = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);

@@ -35,6 +35,8 @@ public class InformixConnectionUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
+                        false,
+                        null,
                         false);
         Assertions.assertEquals(
                 "SELECT * FROM db1:schema1.table1 WHERE id  >= ?  AND id  <= ?  AND NOT (id  = ? )",
@@ -46,7 +48,9 @@ public class InformixConnectionUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
-                        true);
+                        true,
+                        null,
+                        false);
         Assertions.assertEquals("SELECT * FROM db1:schema1.table1", splitScanSQL);
 
         splitScanSQL =
@@ -55,6 +59,8 @@ public class InformixConnectionUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
+                        false,
+                        null,
                         false);
         Assertions.assertEquals(
                 "SELECT * FROM db1:schema1.table1 WHERE id  <= ?  AND NOT (id  = ? )",
@@ -66,7 +72,58 @@ public class InformixConnectionUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
-                        true);
+                        true,
+                        null,
+                        false);
         Assertions.assertEquals("SELECT * FROM db1:schema1.table1 WHERE id  >= ? ", splitScanSQL);
+        splitScanSQL =
+                InformixConnectionUtils.buildSplitQuery(
+                        TableId.parse("db1.schema1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
+                        false,
+                        true,
+                        null,
+                        true);
+        Assertions.assertEquals("SELECT * FROM db1:schema1.table1 WHERE id IS NULL", splitScanSQL);
+
+        splitScanSQL =
+                InformixConnectionUtils.buildSplitQuery(
+                        TableId.parse("db1.schema1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"name"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        false,
+                        true,
+                        null,
+                        true);
+        Assertions.assertEquals(
+                "SELECT * FROM db1:schema1.table1 WHERE name IS NULL", splitScanSQL);
+
+        splitScanSQL =
+                InformixConnectionUtils.buildSplitQuery(
+                        TableId.parse("db1.schema1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"name"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        true,
+                        true,
+                        null,
+                        false);
+        Assertions.assertEquals("SELECT * FROM db1:schema1.table1", splitScanSQL);
+
+        Assertions.assertThrowsExactly(
+                UnsupportedOperationException.class,
+                () -> {
+                    InformixConnectionUtils.buildSplitQuery(
+                            TableId.parse("db1.schema1.table1"),
+                            new SeaTunnelRowType(
+                                    new String[] {"name"},
+                                    new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                            false,
+                            false,
+                            new Object[] {10},
+                            false);
+                });
     }
 }

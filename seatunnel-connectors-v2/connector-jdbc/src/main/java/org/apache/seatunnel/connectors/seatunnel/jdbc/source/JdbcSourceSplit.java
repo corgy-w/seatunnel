@@ -29,6 +29,7 @@ import lombok.ToString;
 @ToString
 @AllArgsConstructor
 public class JdbcSourceSplit implements SourceSplit {
+    private static final long serialVersionUID = 1L;
     private final TablePath tablePath;
     private final String splitId;
     private final String splitQuery;
@@ -36,6 +37,7 @@ public class JdbcSourceSplit implements SourceSplit {
     private final SeaTunnelDataType splitKeyType;
     private final Object splitStart;
     private final Object splitEnd;
+    private final boolean isNull;
 
     @Override
     public String splitId() {

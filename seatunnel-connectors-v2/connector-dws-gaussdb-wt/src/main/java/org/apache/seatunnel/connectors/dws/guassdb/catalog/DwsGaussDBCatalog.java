@@ -78,6 +78,7 @@ import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBO
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.TABLE;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.URL;
 import static org.apache.seatunnel.connectors.dws.guassdb.config.BaseDwsGaussDBOption.USER;
+import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.COPY_FILE_FIELD_DELIMITER;
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.FIELD_IDE;
 import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption.PRIMARY_KEY;
 
@@ -259,9 +260,22 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName())
-                            .contains(tablePath.getSchemaAndTableName());
+            if (databaseExists(tablePath.getDatabaseName())) {
+                String urlFromDatabaseName = getUrlFromDatabaseName(tablePath.getDatabaseName());
+                BaseConnection connection = getConnection(urlFromDatabaseName);
+                try (PreparedStatement ps =
+                        connection.prepareStatement(
+                                "SELECT table_schema, table_name FROM information_schema.tables where table_schema = ? and table_name = ?")) {
+                    ps.setString(1, tablePath.getSchemaName());
+                    ps.setString(2, tablePath.getTableName());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        return rs.next();
+                    }
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return false;
         } catch (DatabaseNotExistException e) {
             return false;
         }
@@ -353,7 +367,10 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         DwsGaussSqlGenerator dwsGaussSqlGenerator =
                 new DwsGaussSqlGenerator(
-                        readonlyConfig.get(PRIMARY_KEY), readonlyConfig.get(FIELD_IDE), table);
+                        readonlyConfig.get(PRIMARY_KEY),
+                        readonlyConfig.get(FIELD_IDE),
+                        table,
+                        readonlyConfig.get(COPY_FILE_FIELD_DELIMITER));
         this.executeUpdateSql(dwsGaussSqlGenerator.getCreateTargetTableSql());
         log.info(
                 "Create table: {} success using: {}",
@@ -437,7 +454,8 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
                     new DwsGaussSqlGenerator(
                             readonlyConfig.get(PRIMARY_KEY),
                             readonlyConfig.get(FIELD_IDE),
-                            catalogTable.get());
+                            catalogTable.get(),
+                            readonlyConfig.get(COPY_FILE_FIELD_DELIMITER));
             String sql = dwsGaussSqlGenerator.getCreateTargetTableSql();
             if (readonlyConfig.get(DwsGaussDBSinkOption.WRITE_MODE)
                     == DwsGaussDBSinkOption.WriteMode.USING_TEMPORARY_TABLE) {

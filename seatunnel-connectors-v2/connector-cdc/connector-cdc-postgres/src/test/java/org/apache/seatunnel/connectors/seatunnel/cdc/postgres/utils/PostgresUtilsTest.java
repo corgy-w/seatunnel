@@ -42,6 +42,8 @@ public class PostgresUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
+                        false,
+                        null,
                         false);
         Assertions.assertEquals(
                 "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" >= ? AND NOT (\"id\" = ?) AND \"id\" <= ?",
@@ -53,7 +55,9 @@ public class PostgresUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
-                        true);
+                        true,
+                        null,
+                        false);
         Assertions.assertEquals("SELECT * FROM \"schema1\".\"table1\"", splitScanSQL);
 
         splitScanSQL =
@@ -62,6 +66,8 @@ public class PostgresUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
+                        false,
+                        null,
                         false);
         Assertions.assertEquals(
                 "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" <= ? AND NOT (\"id\" = ?)",
@@ -79,8 +85,66 @@ public class PostgresUtilsTest {
                                 new String[] {"id"},
                                 new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
                         false,
+                        true,
+                        new Object[] {10},
+                        false);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\" WHERE (ABS(HASHTEXT(\"id\")) % 10) = ?",
+                splitScanSQL);
+        splitScanSQL =
+                PostgresUtils.buildSplitScanQuery(
+                        table,
+                        new SeaTunnelRowType(
+                                new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
+                        false,
+                        true,
+                        null,
                         true);
         Assertions.assertEquals(
-                "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\"::text >= ?", splitScanSQL);
+                "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\"::text IS NULL", splitScanSQL);
+
+        table =
+                Table.editor()
+                        .tableId(TableId.parse("db1.schema1.table1"))
+                        .addColumn(Column.editor().name("name").type("varchar(100)").create())
+                        .create();
+        splitScanSQL =
+                PostgresUtils.buildSplitScanQuery(
+                        table,
+                        new SeaTunnelRowType(
+                                new String[] {"name"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        false,
+                        true,
+                        null,
+                        true);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\" WHERE \"name\" IS NULL", splitScanSQL);
+
+        splitScanSQL =
+                PostgresUtils.buildSplitScanQuery(
+                        table,
+                        new SeaTunnelRowType(
+                                new String[] {"name"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        true,
+                        true,
+                        null,
+                        false);
+        Assertions.assertEquals("SELECT * FROM \"schema1\".\"table1\"", splitScanSQL);
+
+        splitScanSQL =
+                PostgresUtils.buildSplitScanQuery(
+                        table,
+                        new SeaTunnelRowType(
+                                new String[] {"name"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        false,
+                        false,
+                        new Object[] {10},
+                        false);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\" WHERE (ABS(HASHTEXT(\"name\")) % 10) = ?",
+                splitScanSQL);
     }
 }

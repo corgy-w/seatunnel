@@ -44,6 +44,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 import io.debezium.connector.postgresql.PostgresConnectorConfig;
 import io.debezium.connector.postgresql.connection.PostgresConnection;
 import io.debezium.jdbc.JdbcConnection;
+import io.debezium.relational.Column;
 import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.TableChanges;
@@ -53,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils.PostgresConnectionUtils.newPostgresValueConverterBuilder;
 
@@ -171,5 +173,34 @@ public class PostgresDialect implements JdbcDataSourceDialect {
     @Override
     public List<ConstraintKey> getConstraintKeys(JdbcConnection jdbcConnection, TableId tableId) {
         return tableMap.get(tableId).getTableSchema().getConstraintKeys();
+    }
+
+    @Override
+    public List<ConstraintKey> getUniqueKeys(JdbcConnection jdbcConnection, TableId tableId)
+            throws SQLException {
+        final List<Column> columns = queryTableSchema(jdbcConnection, tableId).getTable().columns();
+        final List<String> columnNameList =
+                columns.stream().map(Column::name).collect(Collectors.toList());
+        return getConstraintKeys(jdbcConnection, tableId).stream()
+                .filter(
+                        constraintKey -> {
+                            final List<ConstraintKey.ConstraintKeyColumn> constraintKeyColumnNames =
+                                    constraintKey.getColumnNames();
+                            List<String> constraintKeyColumnNameStrList =
+                                    constraintKeyColumnNames.stream()
+                                            .map(ConstraintKey.ConstraintKeyColumn::getColumnName)
+                                            .collect(Collectors.toList());
+                            boolean isCanUniqueKey = true;
+                            for (String constraintKeyColumnName : constraintKeyColumnNameStrList) {
+                                if (!columnNameList.contains(constraintKeyColumnName)) {
+                                    isCanUniqueKey = false;
+                                    break;
+                                }
+                            }
+                            return isCanUniqueKey
+                                    && constraintKey.getConstraintType()
+                                            == ConstraintKey.ConstraintType.UNIQUE_KEY;
+                        })
+                .collect(Collectors.toList());
     }
 }

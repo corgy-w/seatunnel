@@ -155,7 +155,12 @@ public interface JdbcSourceChunkSplitter extends ChunkSplitter {
      * @return query sql.
      */
     String buildSplitScanQuery(
-            Table table, SeaTunnelRowType splitKeyType, boolean isFirstSplit, boolean isLastSplit);
+            Table table,
+            SeaTunnelRowType splitKeyType,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            Object[] splitEnd,
+            boolean isNull);
 
     /**
      * Checks whether split column is evenly distributed across its range.
@@ -172,6 +177,8 @@ public interface JdbcSourceChunkSplitter extends ChunkSplitter {
             case BIGINT:
             case DECIMAL:
             case STRING:
+            case DATE:
+            case TIMESTAMP:
                 return true;
             default:
                 return false;

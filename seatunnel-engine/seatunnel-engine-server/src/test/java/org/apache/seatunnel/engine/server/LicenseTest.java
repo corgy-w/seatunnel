@@ -17,80 +17,79 @@
 package org.apache.seatunnel.engine.server;
 
 import org.apache.seatunnel.engine.common.config.EngineConfig;
+import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseBillingServiceImpl;
 import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseServiceImpl;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.whaleops.license.LicenseManager;
 import org.whaleops.license.dto.LicenseInfo;
+import org.whaleops.license.enums.LicenseNodeEnum;
 import org.whaleops.license.utils.LicenseUtil;
 
 import lombok.SneakyThrows;
 
+import java.io.FileNotFoundException;
 import java.lang.reflect.Field;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.util.HashSet;
 
 public class LicenseTest {
 
     @Test
-    public void testLicense() {
-        Assertions.assertTrue(isPassedLicenseCheck());
-        Assertions.assertTrue(isPassedLicenseCheck2());
-        Assertions.assertTrue(isPassedLicenseCheck3());
+    @SneakyThrows
+    public void TestLicenseCheck() {
+        System.setProperty(
+                "SEATUNNEL_LICENCE_HOME", getTestConfigFile("/license/whaletunnel.license"));
+
+        LicenseManager licenseManager = generateLicenseManager();
+        licenseManager.refreshLicenseCache();
+        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
+        Assertions.assertTrue(LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo));
+        Assertions.assertTrue(
+                LicenseUtil.checkLicenseServer(
+                        latestValidLicenseInfo,
+                        new HashSet<>(),
+                        "172.18.22.204",
+                        LicenseNodeEnum.WT));
+        Assertions.assertTrue(
+                LicenseUtil.checkLicenseServer(
+                        latestValidLicenseInfo,
+                        new HashSet<>(),
+                        "172.18.22.207",
+                        LicenseNodeEnum.WT));
+        Assertions.assertTrue(
+                LicenseUtil.checkLicenseServer(
+                        latestValidLicenseInfo, new HashSet<>(), "127.0.0.1", LicenseNodeEnum.WT));
     }
 
     @SneakyThrows
-    private Boolean isPassedLicenseCheck() {
+    private static LicenseManager generateLicenseManager() {
         LicenseManager licenseManager = new LicenseManager();
         Class<?> clazz = licenseManager.getClass();
-        Field nameField = clazz.getDeclaredField("licenseService");
-        nameField.setAccessible(true);
-        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(getEngineConfig()));
+        Field licenseServiceField = clazz.getDeclaredField("licenseService");
+        licenseServiceField.setAccessible(true);
+        licenseServiceField.set(
+                licenseManager, new WhaleTunnelLicenseServiceImpl(getEngineConfig()));
 
-        licenseManager.init();
-        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
-        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
-            return false;
-        }
-        return LicenseUtil.checkLicenseServer(
-                latestValidLicenseInfo, new HashSet<>(), "172.18.22.204");
+        Field licenseBillingServiceField = clazz.getDeclaredField("licenseBillingService");
+        licenseBillingServiceField.setAccessible(true);
+        licenseBillingServiceField.set(licenseManager, new WhaleTunnelLicenseBillingServiceImpl());
+        return licenseManager;
     }
 
-    @SneakyThrows
-    private Boolean isPassedLicenseCheck2() {
-        LicenseManager licenseManager = new LicenseManager();
-        Class<?> clazz = licenseManager.getClass();
-        Field nameField = clazz.getDeclaredField("licenseService");
-        nameField.setAccessible(true);
-        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(getEngineConfig()));
-
-        licenseManager.init();
-        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
-        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
-            return false;
+    public static String getTestConfigFile(String configFile)
+            throws FileNotFoundException, URISyntaxException {
+        URL resource = LicenseTest.class.getResource(configFile);
+        if (resource == null) {
+            throw new FileNotFoundException("Can't find config file: " + configFile);
         }
-        return LicenseUtil.checkLicenseServer(
-                latestValidLicenseInfo, new HashSet<>(), "172.18.22.207");
+        return Paths.get(resource.toURI()).toString();
     }
 
-    @SneakyThrows
-    private Boolean isPassedLicenseCheck3() {
-        LicenseManager licenseManager = new LicenseManager();
-        Class<?> clazz = licenseManager.getClass();
-        Field nameField = clazz.getDeclaredField("licenseService");
-        nameField.setAccessible(true);
-        nameField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(getEngineConfig()));
-
-        licenseManager.init();
-        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
-        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
-            return false;
-        }
-        return LicenseUtil.checkLicenseServer(latestValidLicenseInfo, new HashSet<>(), "127.0.0.1");
-    }
-
-    private EngineConfig getEngineConfig() {
-        final EngineConfig engineConfig = new EngineConfig();
-        return engineConfig;
+    private static EngineConfig getEngineConfig() {
+        return new EngineConfig();
     }
 }
