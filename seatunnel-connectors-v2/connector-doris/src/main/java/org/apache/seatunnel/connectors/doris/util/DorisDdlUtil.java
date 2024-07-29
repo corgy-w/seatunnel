@@ -1,0 +1,155 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.seatunnel.connectors.doris.util;
+
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.converter.TypeConverter;
+import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
+import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableModifyColumnEvent;
+import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.connectors.doris.config.DorisConfig;
+
+import org.apache.commons.collections4.CollectionUtils;
+
+import lombok.extern.slf4j.Slf4j;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+@Slf4j
+public class DorisDdlUtil {
+
+    public static void executeDdl(
+            DorisConfig dorisConfig,
+            SchemaChangeEvent event,
+            CatalogTable catalogTable,
+            TypeConverter<BasicTypeDefine> typeConverter) {
+        final List<String> ddlSqlList = getDdlSqlList(event, catalogTable, typeConverter);
+        if (!CollectionUtils.isEmpty(ddlSqlList)) {
+            executeDdlSql(ddlSqlList, dorisConfig);
+        }
+    }
+
+    private static List<String> getDdlSqlList(
+            SchemaChangeEvent event,
+            CatalogTable catalogTable,
+            TypeConverter<BasicTypeDefine> typeConverter) {
+        TablePath tablePath = catalogTable.getTableId().toTablePath();
+        return getSQLFromSchemaChangeEvent(tablePath, event, typeConverter);
+    }
+
+    private static void executeDdlSql(List<String> ddlSqlList, DorisConfig dorisConfig) {
+        String jdbcUrl =
+                DorisCatalogUtil.getJdbcUrl(
+                        DorisCatalogUtil.randomFrontEndHost(dorisConfig.getFrontends().split(",")),
+                        dorisConfig.getQueryPort(),
+                        dorisConfig.getDatabase());
+        try (Connection conn =
+                DriverManager.getConnection(
+                        jdbcUrl, dorisConfig.getUsername(), dorisConfig.getPassword())) {
+            final Statement statement = conn.createStatement();
+            for (String ddlSql : ddlSqlList) {
+                statement.execute(ddlSql);
+            }
+        } catch (SQLException e) {
+            if (e.getMessage().contains("Nothing is changed")) {
+                log.warn(e.getMessage(), e);
+            } else {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static List<String> getSQLFromSchemaChangeEvent(
+            TablePath tablePath,
+            SchemaChangeEvent event,
+            TypeConverter<BasicTypeDefine> typeConverter) {
+        List<String> sqlList = new ArrayList<>();
+        if (event instanceof AlterTableColumnsEvent) {
+            ((AlterTableColumnsEvent) event)
+                    .getEvents()
+                    .forEach(
+                            column -> {
+                                if (column instanceof AlterTableChangeColumnEvent) {
+                                    String sql =
+                                            String.format(
+                                                    "alter table %s RENAME COLUMN %s %s",
+                                                    tablePath.getFullName(),
+                                                    ((AlterTableChangeColumnEvent) column)
+                                                            .getOldColumn(),
+                                                    ((AlterTableAddColumnEvent) column)
+                                                            .getColumn()
+                                                            .getName());
+                                    sqlList.add(sql);
+                                } else if (column instanceof AlterTableModifyColumnEvent) {
+                                    String sql =
+                                            String.format(
+                                                    "alter table %s MODIFY COLUMN %s",
+                                                    tablePath.getFullName(),
+                                                    DorisCatalogUtil.columnToDorisType(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn(),
+                                                            typeConverter));
+                                    sqlList.add(sql);
+                                } else if (column instanceof AlterTableAddColumnEvent) {
+                                    String sql =
+                                            String.format(
+                                                    "alter table %s add column %s DEFAULT %s",
+                                                    tablePath.getFullName(),
+                                                    DorisCatalogUtil.columnToDorisType(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn(),
+                                                            typeConverter),
+                                                    getDefaultValue(
+                                                            ((AlterTableAddColumnEvent) column)
+                                                                    .getColumn()
+                                                                    .getDefaultValue()));
+                                    sqlList.add(sql);
+                                } else if (column instanceof AlterTableDropColumnEvent) {
+                                    String sql =
+                                            String.format(
+                                                    "alter table %s drop column %s",
+                                                    tablePath.getFullName(),
+                                                    ((AlterTableDropColumnEvent) column)
+                                                            .getColumn());
+                                    sqlList.add(sql);
+                                } else {
+                                    throw new UnsupportedOperationException(
+                                            "Unsupported event: " + event);
+                                }
+                            });
+        }
+        return sqlList;
+    }
+
+    private static String getDefaultValue(Object defaultValue) {
+        if (defaultValue == null) {
+            return "null";
+        }
+        return String.format("\"%s\"", defaultValue.toString());
+    }
+}

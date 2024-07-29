@@ -209,7 +209,7 @@ public class DorisCatalogUtil {
         return template;
     }
 
-    private static String columnToDorisType(
+    public static String columnToDorisType(
             Column column, TypeConverter<BasicTypeDefine> typeConverter) {
         checkNotNull(column, "The column is required.");
         return String.format(
