@@ -24,6 +24,7 @@ import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.util.ArrayList;
@@ -140,7 +141,7 @@ public class TablePlaceholder {
     }
 
     public static String replaceTablePrimaryKey(String placeholder, PrimaryKey primaryKey) {
-        if (primaryKey != null && !primaryKey.getColumnNames().isEmpty()) {
+        if (primaryKey != null && !CollectionUtils.isEmpty(primaryKey.getColumnNames())) {
             String pkFieldsString = String.join(FIELD_DELIMITER, primaryKey.getColumnNames());
             return replacePlaceholders(placeholder, REPLACE_PRIMARY_KEY, pkFieldsString);
         }
