@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.email.sink;
 
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
 
+import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonError;
@@ -51,7 +52,8 @@ import java.io.IOException;
 import java.util.Properties;
 
 @Slf4j
-public class EmailSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void> {
+public class EmailSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
+        implements SupportMultiTableSinkWriter<Void> {
 
     private final SeaTunnelRowType seaTunnelRowType;
     private EmailSinkConfig config;
