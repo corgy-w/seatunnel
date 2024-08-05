@@ -56,6 +56,7 @@ import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
 import org.apache.commons.collections4.CollectionUtils;
 
 import com.google.common.collect.Lists;
+import com.hazelcast.core.OperationTimeoutException;
 import com.hazelcast.instance.impl.NodeState;
 import com.hazelcast.internal.metrics.DynamicMetricsProvider;
 import com.hazelcast.internal.metrics.MetricDescriptor;
@@ -625,9 +626,12 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                                     });
                 });
         if (localMap.size() > 0) {
+            boolean lockedIMap = false;
             try {
-                if (!metricsImap.tryLock(
-                        Constant.IMAP_RUNNING_JOB_METRICS_KEY, 5, TimeUnit.SECONDS)) {
+                lockedIMap =
+                        metricsImap.tryLock(
+                                Constant.IMAP_RUNNING_JOB_METRICS_KEY, 5, TimeUnit.SECONDS);
+                if (!lockedIMap) {
                     logger.warning("try lock failed in update metrics");
                     return;
                 }
@@ -641,10 +645,16 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                         "The Imap acquisition failed due to the hazelcast node being offline or restarted, and will be retried next time",
                         e);
             } finally {
-                try {
-                    metricsImap.unlock(Constant.IMAP_RUNNING_JOB_METRICS_KEY);
-                } catch (Throwable e) {
-                    logger.warning("unlock imap failed in update metrics", e);
+                if (lockedIMap) {
+                    boolean unLockedIMap = false;
+                    while (!unLockedIMap) {
+                        try {
+                            metricsImap.unlock(Constant.IMAP_RUNNING_JOB_METRICS_KEY);
+                            unLockedIMap = true;
+                        } catch (OperationTimeoutException e) {
+                            logger.warning("unlock imap failed in update metrics", e);
+                        }
+                    }
                 }
             }
         }
