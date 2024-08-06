@@ -543,7 +543,7 @@ jobs:
     needs: [ changes, sanity-check ]
     if: needs.changes.outputs.api == 'true'
     runs-on:
-      labels: wtci
+      labels: aliyun
     strategy:
       matrix:
         os: [ 'self-hosted' ]
