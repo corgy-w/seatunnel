@@ -146,7 +146,7 @@ public class JdbcSourceOptions extends SourceOptions {
     public static final Option<Boolean> SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN =
             Options.key("split.enable-hash-split-for-string-column")
                     .booleanType()
-                    .defaultValue(true)
+                    .defaultValue(false)
                     .withDescription("Enable hash split for string column, default is false.");
 
     public static final Option<List<JdbcSourceTableConfig>> TABLE_NAMES_CONFIG =

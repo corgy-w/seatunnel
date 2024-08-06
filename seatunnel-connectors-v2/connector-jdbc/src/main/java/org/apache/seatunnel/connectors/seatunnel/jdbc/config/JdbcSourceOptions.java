@@ -97,6 +97,6 @@ public interface JdbcSourceOptions {
     Option<Boolean> SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN =
             Options.key("split.enable-hash-split-for-string-column")
                     .booleanType()
-                    .defaultValue(true)
+                    .defaultValue(false)
                     .withDescription("Enable hash split for string column, default is false.");
 }

@@ -20,6 +20,11 @@ package org.apache.seatunnel.connectors.doris.sink.writer;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.converter.TypeConverter;
+import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.event.handler.DataTypeChangeEventDispatcher;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.doris.config.DorisConfig;
@@ -30,10 +35,12 @@ import org.apache.seatunnel.connectors.doris.serialize.DorisSerializer;
 import org.apache.seatunnel.connectors.doris.serialize.SeaTunnelRowSerializer;
 import org.apache.seatunnel.connectors.doris.sink.LoadStatus;
 import org.apache.seatunnel.connectors.doris.sink.committer.DorisCommitInfo;
+import org.apache.seatunnel.connectors.doris.util.DorisDdlUtil;
 import org.apache.seatunnel.connectors.doris.util.HttpUtil;
 import org.apache.seatunnel.connectors.doris.util.UnsupportedTypeConverterUtils;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -62,18 +69,21 @@ public class DorisSinkWriter
     private final String labelPrefix;
     private final LabelGenerator labelGenerator;
     private final int intervalTime;
-    private final DorisSerializer serializer;
-    private final CatalogTable catalogTable;
+    private DorisSerializer serializer;
+    private CatalogTable catalogTable;
     private final ScheduledExecutorService scheduledExecutorService;
     private Thread executorThread;
     private volatile Exception loadException = null;
+    private TypeConverter<BasicTypeDefine> typeConverter;
 
     public DorisSinkWriter(
             SinkWriter.Context context,
             List<DorisSinkState> state,
             CatalogTable catalogTable,
             DorisConfig dorisConfig,
-            String jobId) {
+            String jobId,
+            TypeConverter<BasicTypeDefine> typeConverter) {
+        this.typeConverter = typeConverter;
         this.dorisConfig = dorisConfig;
         this.catalogTable = catalogTable;
         this.lastCheckpointId = !state.isEmpty() ? state.get(0).getCheckpointId() : 0;
@@ -136,6 +146,23 @@ public class DorisSinkWriter
             flush();
             startLoad(labelGenerator.generateLabel(lastCheckpointId));
         }
+    }
+
+    @SneakyThrows
+    @Override
+    public void applySchemaChange(SchemaChangeEvent event) {
+        log.info("received schema change event: " + event);
+        DorisDdlUtil.executeDdl(dorisConfig, event, catalogTable, typeConverter);
+        // rebuild serializer
+        final DataTypeChangeEventDispatcher dataTypeChangeEventDispatcher =
+                new DataTypeChangeEventDispatcher();
+        dataTypeChangeEventDispatcher.reset(catalogTable.getSeaTunnelRowType());
+        // update catalog table
+        catalogTable =
+                CatalogTableUtil.newCatalogTable(
+                        catalogTable, dataTypeChangeEventDispatcher.handle(event));
+        serializer = createSerializer(dorisConfig, catalogTable.getSeaTunnelRowType());
+        serializer.open();
     }
 
     @Override

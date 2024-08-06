@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.doris.sink;
 
+import org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -26,12 +27,18 @@ import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.connector.TableSink;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.converter.TypeConverter;
+import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.common.constants.PluginType;
+import org.apache.seatunnel.connectors.doris.catalog.DorisCatalog;
 import org.apache.seatunnel.connectors.doris.config.DorisConfig;
 import org.apache.seatunnel.connectors.doris.config.DorisOptions;
+import org.apache.seatunnel.connectors.doris.exception.DorisConnectorException;
 import org.apache.seatunnel.connectors.doris.sink.committer.DorisCommitInfo;
 import org.apache.seatunnel.connectors.doris.sink.writer.DorisSinkState;
 import org.apache.seatunnel.connectors.doris.util.UnsupportedTypeConverterUtils;
@@ -51,6 +58,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
+import static org.apache.seatunnel.api.table.factory.FactoryUtil.discoverFactory;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_PATTERN;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.COLUMN_REPLACEMENT;
 import static org.apache.seatunnel.connectors.doris.config.DorisOptions.DATABASE;
@@ -74,6 +82,11 @@ public class DorisSinkFactory implements TableSinkFactory {
     @Override
     public TableSink<SeaTunnelRow, DorisSinkState, DorisCommitInfo, DorisCommitInfo> createSink(
             TableSinkFactoryContext context) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         ReadonlyConfig config = context.getOptions();
         CatalogTable catalogTable =
                 config.get(NEEDS_UNSUPPORTED_TYPE_CASTING)
@@ -81,7 +94,27 @@ public class DorisSinkFactory implements TableSinkFactory {
                                 context.getCatalogTable())
                         : context.getCatalogTable();
         final CatalogTable finalCatalogTable = this.renameCatalogTable(config, catalogTable);
-        return () -> new DorisSink(config, finalCatalogTable);
+        CatalogFactory catalogFactory =
+                discoverFactory(
+                        Thread.currentThread().getContextClassLoader(),
+                        CatalogFactory.class,
+                        "Doris");
+        if (catalogFactory == null) {
+            throw new DorisConnectorException(
+                    SeaTunnelAPIErrorCode.CONFIG_VALIDATION_FAILED,
+                    String.format(
+                            "PluginName: %s, PluginType: %s, Message: %s",
+                            factoryIdentifier(),
+                            PluginType.SINK,
+                            "Cannot find Doris catalog factory"));
+        }
+        DorisCatalog catalog =
+                (DorisCatalog)
+                        catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
+        catalog.open();
+        TypeConverter<BasicTypeDefine> typeConverter = catalog.getTypeConverter();
+        catalog.close();
+        return () -> new DorisSink(config, finalCatalogTable, typeConverter);
     }
 
     private CatalogTable renameCatalogTable(ReadonlyConfig options, CatalogTable catalogTable) {

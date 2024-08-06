@@ -56,6 +56,11 @@ public class SqliteDialect implements JdbcDialect {
             boolean isPrimaryKeyUpdated) {
         String updateClause =
                 Arrays.stream(fieldNames)
+                        .filter(
+                                fieldName ->
+                                        isPrimaryKeyUpdated
+                                                || !Arrays.asList(uniqueKeyFields)
+                                                        .contains(fieldName))
                         .map(
                                 fieldName ->
                                         quoteIdentifier(fieldName)

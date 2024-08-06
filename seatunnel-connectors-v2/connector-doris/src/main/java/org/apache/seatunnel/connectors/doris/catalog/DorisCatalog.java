@@ -49,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import lombok.Getter;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -88,7 +89,7 @@ public class DorisCatalog implements Catalog {
 
     private String dorisVersion;
 
-    private TypeConverter<BasicTypeDefine> typeConverter;
+    @Getter private TypeConverter<BasicTypeDefine> typeConverter;
 
     public static final String DUP_KEY = "rowtype_dup_key";
 
