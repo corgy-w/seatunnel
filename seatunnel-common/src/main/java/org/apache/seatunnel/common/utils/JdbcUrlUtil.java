@@ -33,8 +33,8 @@ public final class JdbcUrlUtil {
 
     private JdbcUrlUtil() {}
 
-    public static JdbcUrlUtil.UrlInfo getUrlInfo(String url) {
-        Matcher matcher = URL_PATTERN.matcher(url);
+    public static JdbcUrlUtil.UrlInfo getUrlInfo(String url, Pattern pattern) {
+        Matcher matcher = pattern.matcher(url);
         if (matcher.find()) {
             String urlWithoutDatabase = matcher.group("url");
             String database = matcher.group("database");
@@ -47,6 +47,10 @@ public final class JdbcUrlUtil {
                     matcher.group("suffix"));
         }
         throw new IllegalArgumentException("The jdbc url format is incorrect: " + url);
+    }
+
+    public static JdbcUrlUtil.UrlInfo getUrlInfo(String url) {
+        return getUrlInfo(url, URL_PATTERN);
     }
 
     @Data

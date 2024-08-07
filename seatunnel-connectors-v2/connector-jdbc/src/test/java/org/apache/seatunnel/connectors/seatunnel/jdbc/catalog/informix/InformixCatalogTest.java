@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.BasicType;
+import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -98,5 +99,23 @@ public class InformixCatalogTest {
                         + "PRIMARY KEY (test, test2)\n"
                         + ");",
                 sql);
+    }
+
+    @Test
+    public void testInformixWithDatabase() {
+        JdbcUrlUtil.UrlInfo urlInfo =
+                JdbcUrlUtil.getUrlInfo(
+                        "jdbc:informix-sqli://localhost:9088/sysmaster:INFORMIXSERVER=informix;NEWCODESET=gb18030,8859-1,819;DB_LOCALE=en_US.819;ifx_use_strenc=true",
+                        InformixCatalogFactory.URL_PATTERN);
+        Assertions.assertTrue(urlInfo.getUrlWithDatabase().isPresent());
+        Assertions.assertTrue(urlInfo.getDefaultDatabase().isPresent());
+        Assertions.assertEquals("sysmaster", urlInfo.getDefaultDatabase().get());
+        Assertions.assertEquals(
+                "jdbc:informix-sqli://localhost:9088/sysmaster:INFORMIXSERVER=informix;NEWCODESET=gb18030,8859-1,819;DB_LOCALE=en_US.819;ifx_use_strenc=true",
+                urlInfo.getUrlWithDatabase().get());
+        Assertions.assertEquals(
+                "jdbc:informix-sqli://localhost:9088", urlInfo.getUrlWithoutDatabase());
+        Assertions.assertEquals("localhost", urlInfo.getHost());
+        Assertions.assertEquals(9088, urlInfo.getPort());
     }
 }

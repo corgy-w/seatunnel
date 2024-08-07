@@ -28,11 +28,18 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
 
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @AutoService(Factory.class)
 public class InformixCatalogFactory implements CatalogFactory {
+
+    @VisibleForTesting
+    public static final Pattern URL_PATTERN =
+            Pattern.compile(
+                    "^(?<url>jdbc:.+?//(?<host>.+?):(?<port>\\d+?))(/(?<database>.*?))*(?<suffix>:.*)*$");
 
     @Override
     public String factoryIdentifier() {
@@ -42,7 +49,7 @@ public class InformixCatalogFactory implements CatalogFactory {
     @Override
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
         String urlWithDatabase = options.get(JdbcCatalogOptions.BASE_URL);
-        JdbcUrlUtil.UrlInfo urlInfo = JdbcUrlUtil.getUrlInfo(urlWithDatabase);
+        JdbcUrlUtil.UrlInfo urlInfo = JdbcUrlUtil.getUrlInfo(urlWithDatabase, URL_PATTERN);
         Optional<String> defaultDatabase = urlInfo.getDefaultDatabase();
         if (!defaultDatabase.isPresent()) {
             throw new OptionValidationException(JdbcCatalogOptions.BASE_URL);
