@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -300,40 +301,35 @@ public class TransformErrorTest {
         FieldReplacerTransformConfig.FieldReplacer t3 =
                 new FieldReplacerTransformConfig.FieldReplacer();
         t3.setTablePath("test.test.test");
-        t3.setPattern("source");
-        t3.setReplacement("target");
+        t3.setReplacements(new LinkedHashMap<>(Collections.singletonMap("source", "target")));
         t3.setReplaceField("name");
         transforms.add(t3);
 
         FieldReplacerTransformConfig.FieldReplacer t1 =
                 new FieldReplacerTransformConfig.FieldReplacer();
         t1.setTablePath("test.test.test");
-        t1.setPattern("source");
-        t1.setReplacement("target");
+        t1.setReplacements(new LinkedHashMap<>(Collections.singletonMap("source", "target")));
         t1.setReplaceField("field1");
         transforms.add(t1);
 
         FieldReplacerTransformConfig.FieldReplacer t2 =
                 new FieldReplacerTransformConfig.FieldReplacer();
         t2.setTablePath("test.test.testNotFound");
-        t2.setPattern("source");
-        t2.setReplacement("target");
+        t2.setReplacements(new LinkedHashMap<>(Collections.singletonMap("source", "target")));
         t2.setReplaceField("field1");
         transforms.add(t2);
 
         FieldReplacerTransformConfig.FieldReplacer t4 =
                 new FieldReplacerTransformConfig.FieldReplacer();
         t4.setTablePath("test.test.testNotFound2");
-        t4.setPattern("source");
-        t4.setReplacement("target");
+        t4.setReplacements(new LinkedHashMap<>(Collections.singletonMap("source", "target")));
         t4.setReplaceField("name");
         transforms.add(t4);
 
         FieldReplacerTransformConfig.FieldReplacer t5 =
                 new FieldReplacerTransformConfig.FieldReplacer();
         t5.setTablePath("test.test.test");
-        t5.setPattern("source");
-        t5.setReplacement("target");
+        t5.setReplacements(new LinkedHashMap<>(Collections.singletonMap("source", "target")));
         t5.setReplaceField("field2");
         transforms.add(t5);
 

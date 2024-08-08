@@ -24,11 +24,17 @@ import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 
+import org.apache.logging.log4j.util.Strings;
+
+import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Getter
@@ -54,11 +60,20 @@ public class FieldReplacerTransformConfig implements Serializable {
         @JsonAlias("replace_field")
         private String replaceField;
 
+        // TODO remove this after all the old configs are updated
+        @Deprecated
+        @Getter(AccessLevel.PRIVATE)
         @JsonAlias("pattern")
         private String pattern;
 
+        // TODO remove this after all the old configs are updated
+        @Deprecated
+        @Getter(AccessLevel.PRIVATE)
         @JsonAlias("replacement")
         private String replacement;
+
+        @JsonAlias("replacements")
+        private LinkedHashMap<String, String> replacements;
 
         @JsonAlias("is_regex")
         private Boolean isRegex;
@@ -71,6 +86,24 @@ public class FieldReplacerTransformConfig implements Serializable {
 
         @JsonAlias("replace_to_null")
         private Boolean replaceToNull;
+
+        private transient List<String> reversedReplacementsKey;
+
+        public LinkedHashMap<String, String> getReplacements() {
+            if (Strings.isNotBlank(pattern) && Strings.isNotBlank(replacement)) {
+                // TODO remove this after all the old configs are updated
+                return new LinkedHashMap<>(Collections.singletonMap(pattern, replacement));
+            }
+            return replacements;
+        }
+
+        public List<String> getReversedReplacementsKey() {
+            if (reversedReplacementsKey == null) {
+                reversedReplacementsKey = new ArrayList<>(replacements.keySet());
+                Collections.reverse(reversedReplacementsKey);
+            }
+            return reversedReplacementsKey;
+        }
     }
 
     public static FieldReplacerTransformConfig of(ReadonlyConfig config) {
