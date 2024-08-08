@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.kafka.common.TopicPartition;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.Objects;
 
@@ -33,6 +34,7 @@ public class KafkaSourceSplit implements SourceSplit {
     private long endOffset = -1L;
     private final int index;
     private final int splitCount;
+    @Setter private transient volatile boolean finish = false;
 
     public KafkaSourceSplit(TopicPartition topicPartition, int index, int splitCount) {
         this.topicPartition = topicPartition;
