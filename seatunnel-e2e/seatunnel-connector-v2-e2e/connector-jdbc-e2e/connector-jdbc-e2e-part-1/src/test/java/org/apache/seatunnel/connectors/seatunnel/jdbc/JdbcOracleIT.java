@@ -28,7 +28,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.source.JdbcSourceTable;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.OracleContainer;
@@ -49,7 +48,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Disabled("oracle docker image can not connector")
 public class JdbcOracleIT extends AbstractJdbcIT {
 
     private static final String ORACLE_IMAGE = "gvenzl/oracle-xe:18-slim-faststart";
@@ -110,6 +108,16 @@ public class JdbcOracleIT extends AbstractJdbcIT {
         JdbcSourceTable table =
                 JdbcSourceTable.builder()
                         .tablePath(TablePath.of(null, SCHEMA, SOURCE_TABLE))
+                        .build();
+        dialect.sampleDataFromColumn(connection, table, "INTEGER_COL", 1, 1024);
+
+        table =
+                JdbcSourceTable.builder()
+                        .tablePath(TablePath.of(null, SCHEMA, SOURCE_TABLE))
+                        .query(
+                                "select * from "
+                                        + quoteIdentifier(SOURCE_TABLE)
+                                        + " where INTEGER_COL = 1")
                         .build();
         dialect.sampleDataFromColumn(connection, table, "INTEGER_COL", 1, 1024);
     }
