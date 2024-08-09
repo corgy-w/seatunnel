@@ -27,8 +27,7 @@ import com.google.auto.service.AutoService;
 
 import static org.apache.seatunnel.transform.fieldrenamer.FieldRenamerConfig.CONVERT_CASE;
 import static org.apache.seatunnel.transform.fieldrenamer.FieldRenamerConfig.PREFIX;
-import static org.apache.seatunnel.transform.fieldrenamer.FieldRenamerConfig.REPLACE_FROM;
-import static org.apache.seatunnel.transform.fieldrenamer.FieldRenamerConfig.REPLACE_TO;
+import static org.apache.seatunnel.transform.fieldrenamer.FieldRenamerConfig.REPLACEMENTS;
 import static org.apache.seatunnel.transform.fieldrenamer.FieldRenamerConfig.SPECIFIC;
 import static org.apache.seatunnel.transform.fieldrenamer.FieldRenamerConfig.SUFFIX;
 import static org.apache.seatunnel.transform.fieldrenamer.FieldRenamerConfig.TABLE_MATCH_REGEX;
@@ -43,14 +42,7 @@ public class FieldRenamerTransformFactory implements TableTransformFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .optional(
-                        TABLE_MATCH_REGEX,
-                        CONVERT_CASE,
-                        PREFIX,
-                        SUFFIX,
-                        REPLACE_FROM,
-                        REPLACE_TO,
-                        SPECIFIC)
+                .optional(TABLE_MATCH_REGEX, CONVERT_CASE, PREFIX, SUFFIX, REPLACEMENTS, SPECIFIC)
                 .build();
     }
 

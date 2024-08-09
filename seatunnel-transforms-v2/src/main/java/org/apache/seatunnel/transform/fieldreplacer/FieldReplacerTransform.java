@@ -136,7 +136,7 @@ public class FieldReplacerTransform implements SeaTunnelTransform<SeaTunnelRow> 
         // 将空值替换为具体的值
         if (config.getReplaceNull() != null && config.getReplaceNull()) {
             if (null == inputFieldValue) {
-                return config.getReplacement();
+                return config.getReplacements().values().stream().findFirst().get();
             }
             return inputFieldValue;
         }
@@ -151,17 +151,37 @@ public class FieldReplacerTransform implements SeaTunnelTransform<SeaTunnelRow> 
         }
 
         boolean isRegex = config.getIsRegex() != null && config.getIsRegex();
-        if (isRegex) {
-            if (config.getReplaceFirst()) {
-                return inputFieldValue
-                        .toString()
-                        .replaceFirst(config.getPattern(), config.getReplacement());
+        for (String replacementKey : config.getReversedReplacementsKey()) {
+            String replacedValue = inputFieldValue.toString();
+            if (isRegex) {
+                if (config.getReplaceFirst()) {
+                    replacedValue =
+                            inputFieldValue
+                                    .toString()
+                                    .replaceFirst(
+                                            replacementKey,
+                                            config.getReplacements().get(replacementKey));
+                } else {
+                    replacedValue =
+                            inputFieldValue
+                                    .toString()
+                                    .replaceAll(
+                                            replacementKey,
+                                            config.getReplacements().get(replacementKey));
+                }
+            } else {
+                replacedValue =
+                        inputFieldValue
+                                .toString()
+                                .replace(
+                                        replacementKey,
+                                        config.getReplacements().get(replacementKey));
             }
-            return inputFieldValue
-                    .toString()
-                    .replaceAll(config.getPattern(), config.getReplacement());
+            if (!replacedValue.equals(inputFieldValue)) {
+                return replacedValue;
+            }
         }
-        return inputFieldValue.toString().replace(config.getPattern(), config.getReplacement());
+        return inputFieldValue;
     }
 
     private void reFresh() {

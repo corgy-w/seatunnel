@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 public class RenamerTest {
@@ -107,8 +108,7 @@ public class RenamerTest {
     @Test
     void testConvertName() {
         FieldRenamerConfig config = new FieldRenamerConfig();
-        config.setReplaceFrom("abc");
-        config.setReplaceTo("abc_");
+        config.setReplacements(new LinkedHashMap<>(Collections.singletonMap("abc", "abc_")));
         FieldRenamerTransform transform =
                 new FieldRenamerTransform(Collections.singletonList(DEFAULT_TABLE), config);
 
@@ -119,16 +119,14 @@ public class RenamerTest {
         Assertions.assertEquals("tabc_abc_1q23", transform.convertName("test2", "tabcabc1q23"));
 
         FieldRenamerConfig config2 = new FieldRenamerConfig();
-        config2.setReplaceFrom("abc");
-        config2.setReplaceTo("");
+        config2.setReplacements(new LinkedHashMap<>(Collections.singletonMap("abc", "")));
         FieldRenamerTransform transform2 =
                 new FieldRenamerTransform(Collections.singletonList(DEFAULT_TABLE), config2);
         Assertions.assertEquals("1q23", transform2.convertName("", "abc1q23"));
 
         FieldRenamerConfig config3 = new FieldRenamerConfig();
-        config3.setReplaceFrom("abc");
         config3.setConvertCase(ConvertCase.UPPER);
-        config3.setReplaceTo("abc_");
+        config3.setReplacements(new LinkedHashMap<>(Collections.singletonMap("abc", "abc_")));
         config3.setPrefix("abc");
         config3.setSuffix("ee");
         config3.setSpecific(
@@ -141,9 +139,8 @@ public class RenamerTest {
 
         FieldRenamerConfig config4 = new FieldRenamerConfig();
         config4.setTableMatchRegex("test2");
-        config4.setReplaceFrom("abc");
         config4.setConvertCase(ConvertCase.UPPER);
-        config4.setReplaceTo("abc_");
+        config4.setReplacements(new LinkedHashMap<>(Collections.singletonMap("abc", "abc_")));
         config4.setPrefix("abc");
         config4.setSuffix("ee");
         config4.setSpecific(
@@ -154,6 +151,26 @@ public class RenamerTest {
         Assertions.assertEquals("abcabc_1Q23ee", transform4.convertName("test2", "abc1q23"));
         Assertions.assertEquals("other", transform4.convertName("test", "abc1q232"));
         Assertions.assertEquals("abc1q23", transform4.convertName("test", "abc1q23"));
+
+        FieldRenamerConfig config5 = new FieldRenamerConfig();
+        config5.setTableMatchRegex("test2");
+        config5.setConvertCase(ConvertCase.UPPER);
+        config5.setPrefix("p_");
+        config5.setSuffix("_s");
+        LinkedHashMap<String, String> replacements = new LinkedHashMap<>();
+        replacements.put("a", "1");
+        replacements.put("b", "2");
+        config5.setReplacements(replacements);
+        config5.setSpecific(
+                Collections.singletonList(
+                        new FieldRenamerConfig.SpecificModify("test", "aaa", "other")));
+        FieldRenamerTransform transform5 =
+                new FieldRenamerTransform(Collections.singletonList(DEFAULT_TABLE), config5);
+        Assertions.assertEquals("other", transform5.convertName("test", "aaa"));
+        Assertions.assertEquals("a", transform5.convertName("test", "a"));
+        Assertions.assertEquals("p_1_TEST_s", transform5.convertName("test2", "a_test"));
+        Assertions.assertEquals("p_2_TEST_s", transform5.convertName("test2", "b_test"));
+        Assertions.assertEquals("p_A2_TEST_s", transform5.convertName("test2", "ab_test"));
     }
 
     @Test
@@ -268,9 +285,8 @@ public class RenamerTest {
     void testTableEventChange() {
         FieldRenamerConfig config = new FieldRenamerConfig();
         config.setTableMatchRegex("test.*");
-        config.setReplaceFrom("abc");
         config.setConvertCase(ConvertCase.UPPER);
-        config.setReplaceTo("abc_");
+        config.setReplacements(new LinkedHashMap<>(Collections.singletonMap("abc", "abc_")));
         config.setPrefix("abc");
         config.setSuffix("ee");
         config.setSpecific(
