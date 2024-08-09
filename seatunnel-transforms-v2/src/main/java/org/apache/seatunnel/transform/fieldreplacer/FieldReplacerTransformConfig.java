@@ -90,9 +90,11 @@ public class FieldReplacerTransformConfig implements Serializable {
         private transient List<String> reversedReplacementsKey;
 
         public LinkedHashMap<String, String> getReplacements() {
-            if (Strings.isNotBlank(pattern) && Strings.isNotBlank(replacement)) {
-                // TODO remove this after all the old configs are updated
-                return new LinkedHashMap<>(Collections.singletonMap(pattern, replacement));
+            if (replacements == null || replacements.isEmpty()) {
+                if (Strings.isNotBlank(pattern) && Strings.isNotBlank(replacement)) {
+                    // TODO remove this after all the old configs are updated
+                    return new LinkedHashMap<>(Collections.singletonMap(pattern, replacement));
+                }
             }
             return replacements;
         }

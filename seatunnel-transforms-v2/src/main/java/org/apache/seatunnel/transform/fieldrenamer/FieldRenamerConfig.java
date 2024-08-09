@@ -123,9 +123,11 @@ public class FieldRenamerConfig implements Serializable {
     private List<SpecificModify> specific;
 
     public LinkedHashMap<String, String> getReplacements() {
-        if (Strings.isNotBlank(replaceFrom) && Strings.isNotBlank(replaceTo)) {
-            // TODO remove this after all the old configs are updated
-            return new LinkedHashMap<>(Collections.singletonMap(replaceFrom, replaceTo));
+        if (replacements == null || replacements.isEmpty()) {
+            if (Strings.isNotBlank(replaceFrom) && Strings.isNotBlank(replaceTo)) {
+                // TODO remove this after all the old configs are updated
+                return new LinkedHashMap<>(Collections.singletonMap(replaceFrom, replaceTo));
+            }
         }
         return replacements;
     }
