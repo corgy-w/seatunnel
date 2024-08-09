@@ -81,9 +81,14 @@ public class SqlServerChunkSplitter extends AbstractJdbcSourceChunkSplitter {
 
     @Override
     public String buildSplitScanQuery(
-            Table table, SeaTunnelRowType splitKeyType, boolean isFirstSplit, boolean isLastSplit) {
+            Table table,
+            SeaTunnelRowType splitKeyType,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            Object[] splitEnd,
+            boolean isNull) {
         return SqlServerUtils.buildSplitScanQuery(
-                table.id(), splitKeyType, isFirstSplit, isLastSplit);
+                table.id(), splitKeyType, isFirstSplit, isLastSplit, splitEnd, isNull);
     }
 
     @Override

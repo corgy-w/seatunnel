@@ -53,6 +53,7 @@ public abstract class JdbcSourceConfig extends BaseSourceConfig {
             double distributionFactorLower,
             int sampleShardingThreshold,
             int inverseSamplingRate,
+            boolean enableHashSplitterForStringColumn,
             Properties dbzProperties,
             String driverClassName,
             String hostname,
@@ -75,6 +76,7 @@ public abstract class JdbcSourceConfig extends BaseSourceConfig {
                 sampleShardingThreshold,
                 inverseSamplingRate,
                 exactlyOnce,
+                enableHashSplitterForStringColumn,
                 dbzProperties);
         this.driverClassName = driverClassName;
         this.hostname = hostname;

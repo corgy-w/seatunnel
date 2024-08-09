@@ -196,7 +196,9 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
                         snapshotSplit.getTableId(),
                         snapshotSplit.getSplitKeyType(),
                         snapshotSplit.getSplitStart() == null,
-                        snapshotSplit.getSplitEnd() == null);
+                        snapshotSplit.getSplitEnd() == null,
+                        snapshotSplit.getSplitEnd(),
+                        snapshotSplit.isNull());
         log.info(
                 "For split '{}' of table {} using select statement: '{}'",
                 snapshotSplit.splitId(),
@@ -212,7 +214,8 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
                                 snapshotSplit.getSplitStart(),
                                 snapshotSplit.getSplitEnd(),
                                 snapshotSplit.getSplitKeyType(),
-                                connectorConfig.getSnapshotFetchSize());
+                                connectorConfig.getSnapshotFetchSize(),
+                                snapshotSplit.isNull());
                 ResultSet rs = selectStatement.executeQuery()) {
 
             ColumnUtils.ColumnArray columnArray = ColumnUtils.toArray(rs, table);

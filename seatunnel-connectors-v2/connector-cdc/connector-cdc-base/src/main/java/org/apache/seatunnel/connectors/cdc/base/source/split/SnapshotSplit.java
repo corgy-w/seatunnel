@@ -40,6 +40,8 @@ public class SnapshotSplit extends SourceSplitBase {
     private final int index;
     private final int splitCount;
 
+    private final boolean isNull;
+
     public SnapshotSplit(
             String splitId,
             TableId tableId,
@@ -47,8 +49,19 @@ public class SnapshotSplit extends SourceSplitBase {
             Object[] splitStart,
             Object[] splitEnd,
             int index,
-            int splitCount) {
-        this(splitId, tableId, splitKeyType, splitStart, splitEnd, null, null, index, splitCount);
+            int splitCount,
+            boolean isNull) {
+        this(
+                splitId,
+                tableId,
+                splitKeyType,
+                splitStart,
+                splitEnd,
+                null,
+                null,
+                index,
+                splitCount,
+                isNull);
     }
 
     public SnapshotSplit(
@@ -60,7 +73,8 @@ public class SnapshotSplit extends SourceSplitBase {
             Offset lowWatermark,
             Offset highWatermark,
             int index,
-            int splitCount) {
+            int splitCount,
+            boolean isNull) {
         super(splitId);
         this.tableId = tableId;
         this.splitKeyType = splitKeyType;
@@ -70,6 +84,7 @@ public class SnapshotSplit extends SourceSplitBase {
         this.highWatermark = highWatermark;
         this.index = index;
         this.splitCount = splitCount;
+        this.isNull = isNull;
     }
 
     @Override

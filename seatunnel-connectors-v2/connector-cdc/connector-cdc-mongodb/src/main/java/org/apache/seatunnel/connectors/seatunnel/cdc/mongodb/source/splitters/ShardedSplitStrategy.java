@@ -98,7 +98,8 @@ public class ShardedSplitStrategy implements SplitStrategy {
                             new Object[] {splitKeys, chunk.getDocument(MIN_FIELD)},
                             new Object[] {splitKeys, chunk.getDocument(MAX_FIELD)},
                             i,
-                            chunks.size()));
+                            chunks.size(),
+                            false));
         }
         return snapshotSplits;
     }

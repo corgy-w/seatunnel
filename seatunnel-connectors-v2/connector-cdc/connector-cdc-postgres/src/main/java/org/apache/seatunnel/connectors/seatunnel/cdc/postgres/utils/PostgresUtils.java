@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.postgres.utils;
 
+import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
@@ -315,8 +316,14 @@ public class PostgresUtils {
 
     /** Get split scan query for the given table. */
     public static String buildSplitScanQuery(
-            Table table, SeaTunnelRowType rowType, boolean isFirstSplit, boolean isLastSplit) {
-        return buildSplitQuery(table, rowType, isFirstSplit, isLastSplit, -1, true);
+            Table table,
+            SeaTunnelRowType rowType,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            Object[] splitEnd,
+            boolean isNull) {
+        return buildSplitQuery(
+                table, rowType, isFirstSplit, isLastSplit, splitEnd, -1, true, isNull);
     }
 
     /** Get table split data PreparedStatement. */
@@ -328,10 +335,18 @@ public class PostgresUtils {
             Object[] splitStart,
             Object[] splitEnd,
             SeaTunnelRowType splitKeyType,
-            int fetchSize) {
+            int fetchSize,
+            boolean isNull) {
         try {
             final PreparedStatement statement = initStatement(jdbc, sql, fetchSize);
-            if (isFirstSplit && isLastSplit) {
+            if ((isFirstSplit && isLastSplit) || isNull) {
+                return statement;
+            }
+
+            if (BasicType.STRING_TYPE.equals(splitKeyType.getFieldType(0))) {
+                // splitStart[0] is the mod value
+                // splitEnd[0] is the mod base
+                statement.setObject(1, splitStart[0]);
                 return statement;
             }
             int primaryKeyNum = splitKeyType.getTotalFields();
@@ -374,14 +389,28 @@ public class PostgresUtils {
             SeaTunnelRowType rowType,
             boolean isFirstSplit,
             boolean isLastSplit,
+            Object[] splitEnd,
             int limitSize,
-            boolean isScanningData) {
+            boolean isScanningData,
+            boolean isNull) {
         final String condition;
-
-        if (isFirstSplit && isLastSplit) {
+        final StringBuilder sql;
+        if (isNull) {
+            sql = new StringBuilder();
+            addPrimaryKeyColumnsToCondition(table, rowType, sql, " IS NULL");
+            condition = sql.toString();
+        } else if (isFirstSplit && isLastSplit) {
             condition = null;
+        } else if (BasicType.STRING_TYPE.equals(rowType.getFieldType(0))) {
+            // only support single column to split
+            // splitStart[0] is the mod value
+            // splitEnd[0] is the mod base
+            sql = new StringBuilder();
+            sql.append(hashModForField(rowType.getFieldName(0), (int) splitEnd[0]));
+            sql.append(" = ?");
+            condition = sql.toString();
         } else if (isFirstSplit) {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(table, rowType, sql, " <= ?");
             if (isScanningData) {
                 sql.append(" AND NOT (");
@@ -390,11 +419,11 @@ public class PostgresUtils {
             }
             condition = sql.toString();
         } else if (isLastSplit) {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(table, rowType, sql, " >= ?");
             condition = sql.toString();
         } else {
-            final StringBuilder sql = new StringBuilder();
+            sql = new StringBuilder();
             addPrimaryKeyColumnsToCondition(table, rowType, sql, " >= ?");
             if (isScanningData) {
                 sql.append(" AND NOT (");
@@ -419,6 +448,11 @@ public class PostgresUtils {
                     Optional.ofNullable(condition),
                     orderBy);
         }
+    }
+
+    private static String hashModForField(String fieldName, int mod) {
+        String quoteFieldName = quote(fieldName);
+        return "(ABS(HASHTEXT(" + quoteFieldName + ")) % " + mod + ")";
     }
 
     private static PreparedStatement initStatement(JdbcConnection jdbc, String sql, int fetchSize)

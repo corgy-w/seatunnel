@@ -68,6 +68,7 @@ public class MySqlIncrementalSourceFactory extends BaseChangeStreamTableSourceFa
                         JdbcSourceOptions.CONNECTION_POOL_SIZE,
                         JdbcSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_LOWER_BOUND,
                         JdbcSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_UPPER_BOUND,
+                        JdbcSourceOptions.SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN,
                         JdbcSourceOptions.SAMPLE_SHARDING_THRESHOLD,
                         JdbcSourceOptions.INVERSE_SAMPLING_RATE,
                         JdbcSourceOptions.TABLE_NAMES_CONFIG)

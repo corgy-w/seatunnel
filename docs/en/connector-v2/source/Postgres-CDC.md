@@ -20,7 +20,7 @@ describes how to setup the PostgreSQL CDC connector to run SQL queries against P
 ## Options
 
 |                      name                      |   type   | required | default value |
-|------------------------------------------------|----------|----------|---------------|
+|------------------------------------------------|----------|----------|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | hostname                                       | String   | Yes      | -             |
 | port                                           | Integer  | No       | 3306          |
 | username                                       | String   | Yes      | -             |
@@ -47,6 +47,7 @@ describes how to setup the PostgreSQL CDC connector to run SQL queries against P
 | connection.pool.size                           | Integer  | No       | 20            |
 | chunk-key.even-distribution.factor.upper-bound | Double   | No       | 100           |
 | chunk-key.even-distribution.factor.lower-bound | Double   | No       | 0.05          |
+| split.enable-hash-split-for-string-column      | Boolean  | No       | true          | Whether to enable hash split for string column, default value is false. If set to false and the split column type is string, will only have one split. |
 | sample-sharding.threshold                      | int      | No       | 1000          |
 | inverse-sampling.rate                          | int      | No       | 1000          |
 | exactly_once                                   | Boolean  | No       | true          |

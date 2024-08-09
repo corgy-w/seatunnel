@@ -81,8 +81,14 @@ public class HighGoChunkSplitter extends AbstractJdbcSourceChunkSplitter {
 
     @Override
     public String buildSplitScanQuery(
-            Table table, SeaTunnelRowType splitKeyType, boolean isFirstSplit, boolean isLastSplit) {
-        return HighGoUtils.buildSplitScanQuery(table.id(), splitKeyType, isFirstSplit, isLastSplit);
+            Table table,
+            SeaTunnelRowType splitKeyType,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            Object[] splitEnd,
+            boolean isNull) {
+        return HighGoUtils.buildSplitScanQuery(
+                table.id(), splitKeyType, isFirstSplit, isLastSplit, splitEnd, isNull);
     }
 
     @Override

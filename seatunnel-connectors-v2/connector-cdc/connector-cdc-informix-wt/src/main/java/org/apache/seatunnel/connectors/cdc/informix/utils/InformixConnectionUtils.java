@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.cdc.informix.utils;
 
+import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
 
@@ -133,10 +134,27 @@ public class InformixConnectionUtils {
     }
 
     public static String buildSplitQuery(
-            TableId tableId, SeaTunnelRowType rowType, boolean isFirstSplit, boolean isLastSplit) {
+            TableId tableId,
+            SeaTunnelRowType rowType,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            Object[] splitEnd,
+            boolean isNull) {
         final String condition;
-        if (isFirstSplit && isLastSplit) {
+        final StringBuilder tmpSql;
+
+        if (isNull) {
+            condition = quote(rowType.getFieldName(0)) + " IS NULL";
+        } else if (isFirstSplit && isLastSplit) {
             condition = null;
+        } else if (BasicType.STRING_TYPE.equals(rowType.getFieldType(0))) {
+            tmpSql = new StringBuilder();
+            // only support single column to split
+            // splitStart[0] is the mod value
+            // splitEnd[0] is the mod base
+            tmpSql.append(hashModForField(rowType.getFieldName(0), (int) splitEnd[0]));
+            tmpSql.append(" = ?");
+            condition = tmpSql.toString();
         } else if (isFirstSplit) {
             String filterCondition =
                     Arrays.stream(rowType.getFieldNames())
@@ -175,6 +193,10 @@ public class InformixConnectionUtils {
         return sql.toString();
     }
 
+    private static String hashModForField(String fieldName, int mod) {
+        throw new UnsupportedOperationException("Not support hash mod for field yet.");
+    }
+
     public static PreparedStatement createTableSplitDataStatement(
             JdbcConnection jdbc,
             String sql,
@@ -183,7 +205,8 @@ public class InformixConnectionUtils {
             Object[] splitStart,
             Object[] splitEnd,
             SeaTunnelRowType splitKeyType,
-            int fetchSize) {
+            int fetchSize,
+            boolean isNull) {
         try {
             IfxSqliConnect connection = (IfxSqliConnect) jdbc.connection();
             IfxPreparedStatement statement =
@@ -192,7 +215,14 @@ public class InformixConnectionUtils {
                                     sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             statement.setFetchSize(fetchSize);
             statement.setFetchBufferSize(100000);
-            if (isFirstSplit && isLastSplit) {
+            if ((isFirstSplit && isLastSplit) || isNull) {
+                return statement;
+            }
+
+            if (BasicType.STRING_TYPE.equals(splitKeyType.getFieldType(0))) {
+                // splitStart[0] is the mod value
+                // splitEnd[0] is the mod base
+                statement.setObject(1, splitStart[0]);
                 return statement;
             }
             int primaryKeyNum = splitKeyType.getTotalFields();

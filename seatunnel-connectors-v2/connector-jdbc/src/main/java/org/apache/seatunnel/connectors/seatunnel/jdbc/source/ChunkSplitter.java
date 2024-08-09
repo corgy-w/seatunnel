@@ -111,7 +111,7 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
     }
 
     protected abstract Collection<JdbcSourceSplit> createSplits(
-            JdbcSourceTable table, SeaTunnelRowType splitKeyType) throws SQLException, Exception;
+            JdbcSourceTable table, SeaTunnelRowType splitKeyType) throws Exception;
 
     public PreparedStatement generateSplitStatement(JdbcSourceSplit split, TableSchema schema)
             throws SQLException {
@@ -160,7 +160,8 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
                 null,
                 null,
                 0,
-                1);
+                1,
+                false);
     }
 
     protected PreparedStatement createSingleSplitStatement(JdbcSourceSplit split)
@@ -270,7 +271,9 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
             if (!isSupportSplitColumn(column)) {
                 throw new JdbcConnectorException(
                         CommonErrorCodeDeprecated.ILLEGAL_ARGUMENT,
-                        String.format("%s is not numeric/string type", partitionColumn));
+                        String.format(
+                                "unsupported split column:%s type:%s",
+                                partitionColumn, column.getDataType().getSqlType()));
             }
             return Optional.of(
                     new SeaTunnelRowType(
@@ -334,6 +337,7 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
             case DECIMAL:
             case STRING:
             case DATE:
+            case TIMESTAMP:
                 return true;
             default:
                 return false;

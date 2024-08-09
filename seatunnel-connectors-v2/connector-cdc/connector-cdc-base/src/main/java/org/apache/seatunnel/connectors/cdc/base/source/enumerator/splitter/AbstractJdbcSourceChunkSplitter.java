@@ -19,7 +19,10 @@ package org.apache.seatunnel.connectors.cdc.base.source.enumerator.splitter;
 
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.api.table.type.SqlType;
+import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SnapshotSplit;
@@ -32,7 +35,11 @@ import io.debezium.relational.TableId;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -71,13 +78,37 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                     tableId));
                 }
                 SnapshotSplit singleSplit =
-                        createSnapshotSplit(jdbc, tableId, 0, null, null, null, 0, 1);
+                        createSnapshotSplit(jdbc, tableId, 0, null, null, null, 0, 1, false);
                 splits.add(singleSplit);
                 log.warn(
                         "No evenly split column found for table {}, use single split {}",
                         tableId,
                         singleSplit);
             } else {
+                SeaTunnelDataType splitKeyType = fromDbzColumn(splitColumn);
+                if (SqlType.STRING.equals(splitKeyType.getSqlType())) {
+                    if (sourceConfig.isEnableHashSplitterForStringColumn()) {
+                        return createStringColumnSplits(
+                                jdbc,
+                                tableId,
+                                splitColumn.name(),
+                                splitColumn,
+                                sourceConfig.getSplitSize());
+                    } else {
+                        splits.add(
+                                new SnapshotSplit(
+                                        splitId(tableId, 0),
+                                        tableId,
+                                        getSplitType(splitColumn),
+                                        null,
+                                        null,
+                                        0,
+                                        1,
+                                        false));
+                        return splits;
+                    }
+                }
+
                 final List<ChunkRange> chunks;
                 try {
                     chunks = splitTableIntoChunks(jdbc, tableId, splitColumn);
@@ -87,6 +118,7 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
 
                 // convert chunks into splits
                 SeaTunnelRowType splitType = getSplitType(splitColumn);
+                int totalChunks = chunks.size() + 1;
                 for (int i = 0; i < chunks.size(); i++) {
                     ChunkRange chunk = chunks.get(i);
                     SnapshotSplit split =
@@ -98,9 +130,21 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                     chunk.getChunkStart(),
                                     chunk.getChunkEnd(),
                                     i,
-                                    chunks.size());
+                                    totalChunks,
+                                    false);
                     splits.add(split);
                 }
+
+                splits.add(
+                        new SnapshotSplit(
+                                splitId(tableId, chunks.size()),
+                                tableId,
+                                splitType,
+                                null,
+                                null,
+                                totalChunks - 1,
+                                totalChunks,
+                                true));
             }
 
             long end = System.currentTimeMillis();
@@ -116,6 +160,58 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
         }
     }
 
+    private Collection<SnapshotSplit> createStringColumnSplits(
+            JdbcConnection jdbc,
+            TableId tableId,
+            String splitKeyName,
+            Column splitColumn,
+            int chunkSize)
+            throws SQLException {
+        log.info("Use string chunks for table {}", tableId.table());
+        log.info(
+                "Splitting table {} into chunks, split column: {}, chunk size: {}",
+                tableId.table(),
+                splitKeyName,
+                chunkSize);
+
+        long approximateRowCnt = queryApproximateRowCnt(jdbc, tableId);
+        int shardCount = (int) (approximateRowCnt / chunkSize) + 1;
+        log.info(
+                "Splitting table {} into chunks, split column: {}, chunk size: {}, rows: {}, shard count: {}",
+                tableId.table(),
+                splitKeyName,
+                chunkSize,
+                approximateRowCnt,
+                shardCount);
+        List<SnapshotSplit> splits = new ArrayList<>(shardCount);
+        int totalChunks = shardCount + 1;
+        for (int i = 0; i < shardCount; i++) {
+            SnapshotSplit split =
+                    new SnapshotSplit(
+                            splitId(tableId, i),
+                            tableId,
+                            getSplitType(splitColumn),
+                            new Object[] {i},
+                            new Object[] {shardCount},
+                            i,
+                            totalChunks,
+                            false);
+            splits.add(split);
+        }
+        // add null split
+        splits.add(
+                new SnapshotSplit(
+                        splitId(tableId, shardCount),
+                        tableId,
+                        getSplitType(splitColumn),
+                        null,
+                        null,
+                        totalChunks - 1,
+                        totalChunks,
+                        true));
+        return splits;
+    }
+
     private List<ChunkRange> splitTableIntoChunks(
             JdbcConnection jdbc, TableId tableId, Column splitColumn) throws Exception {
         final String splitColumnName = splitColumn.name();
@@ -128,6 +224,109 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
         }
 
         final int chunkSize = sourceConfig.getSplitSize();
+        SeaTunnelDataType<?> seaTunnelDataType = fromDbzColumn(splitColumn);
+        switch (seaTunnelDataType.getSqlType()) {
+            case TINYINT:
+            case SMALLINT:
+            case INT:
+            case BIGINT:
+            case DECIMAL:
+            case DOUBLE:
+            case FLOAT:
+                return evenlyColumnSplitChunks(jdbc, tableId, splitColumn, min, max, chunkSize);
+            case DATE:
+            case TIMESTAMP:
+                return dateColumnSplitChunks(jdbc, tableId, splitColumnName, min, max, chunkSize);
+            default:
+                throw CommonError.unsupportedDataType(
+                        "CDC Split", seaTunnelDataType.getSqlType().toString(), splitColumnName);
+        }
+    }
+
+    /**
+     * split by date type column
+     *
+     * @param table
+     * @param splitColumnName
+     * @param min
+     * @param max
+     * @param chunkSize
+     * @return
+     * @throws SQLException
+     */
+    private List<ChunkRange> dateColumnSplitChunks(
+            JdbcConnection jdbc,
+            TableId table,
+            String splitColumnName,
+            Object min,
+            Object max,
+            int chunkSize)
+            throws SQLException {
+        log.info("Use date chunks for table {}", table.table());
+        final List<ChunkRange> splits = new ArrayList<>();
+        Date sqlDateMin = null;
+        Date sqlDateMax = null;
+        if (min instanceof Date) {
+            sqlDateMin = (Date) min;
+            sqlDateMax = (Date) max;
+        } else if (min instanceof Timestamp) {
+            sqlDateMin = new Date(((Timestamp) min).getTime());
+            sqlDateMax = new Date(((Timestamp) max).getTime());
+        } else if (min instanceof LocalDateTime) {
+            sqlDateMin = Date.valueOf(((LocalDateTime) min).toLocalDate());
+            sqlDateMax = Date.valueOf(((LocalDateTime) max).toLocalDate());
+        } else {
+            throw new IllegalStateException(
+                    "Unsupported operation type, the MIN value type is not Date, Timestamp or LocalDateTime.");
+        }
+        List<LocalDate> dateRange =
+                getDateRange(sqlDateMin.toLocalDate(), sqlDateMax.toLocalDate());
+        if (dateRange.size() > 20 * 365) {
+            // TODO: If dateRange granter than 20 year, need get the real date in the table
+        }
+
+        Long rowCnt = queryApproximateRowCnt(jdbc, table);
+        int step = 1;
+        if (rowCnt / dateRange.size() < chunkSize) {
+            int splitNum = (int) (rowCnt / chunkSize) + 1;
+            step = dateRange.size() / splitNum;
+        }
+
+        for (int i = 0; i < dateRange.size(); i = i + step) {
+            if (i == 0) {
+                splits.add(ChunkRange.of(null, dateRange.get(i)));
+            } else {
+                splits.add(ChunkRange.of(dateRange.get(i - step), dateRange.get(i)));
+            }
+
+            if ((i + step) >= dateRange.size()) {
+                splits.add(ChunkRange.of(dateRange.get(i), null));
+            }
+        }
+        return splits;
+    }
+
+    // obtaining date range
+    private static List<LocalDate> getDateRange(LocalDate startDate, LocalDate endDate) {
+        List<LocalDate> dateRange = new ArrayList<>();
+
+        LocalDate currentDate = startDate;
+        while (!currentDate.isAfter(endDate)) {
+            dateRange.add(currentDate);
+            currentDate = currentDate.plusDays(1);
+        }
+
+        return dateRange;
+    }
+
+    private List<ChunkRange> evenlyColumnSplitChunks(
+            JdbcConnection jdbc,
+            TableId tableId,
+            Column splitColumn,
+            Object min,
+            Object max,
+            int chunkSize)
+            throws Exception {
         final double distributionFactorUpper = sourceConfig.getDistributionFactorUpper();
         final double distributionFactorLower = sourceConfig.getDistributionFactorLower();
         final int sampleShardingThreshold = sourceConfig.getSampleShardingThreshold();
@@ -136,7 +335,7 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                 "Splitting table {} into chunks, split column: {}, min: {}, max: {}, chunk size: {}, "
                         + "distribution factor upper: {}, distribution factor lower: {}, sample sharding threshold: {}",
                 tableId,
-                splitColumnName,
+                splitColumn.name(),
                 min,
                 max,
                 chunkSize,
@@ -144,53 +343,49 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                 distributionFactorLower,
                 sampleShardingThreshold);
 
-        if (isEvenlySplitColumn(splitColumn)) {
-            long approximateRowCnt = queryApproximateRowCnt(jdbc, tableId);
-            double distributionFactor =
-                    calculateDistributionFactor(tableId, min, max, approximateRowCnt);
+        long approximateRowCnt = queryApproximateRowCnt(jdbc, tableId);
+        double distributionFactor =
+                calculateDistributionFactor(tableId, min, max, approximateRowCnt);
 
-            boolean dataIsEvenlyDistributed =
-                    doubleCompare(distributionFactor, distributionFactorLower) >= 0
-                            && doubleCompare(distributionFactor, distributionFactorUpper) <= 0;
+        boolean dataIsEvenlyDistributed =
+                doubleCompare(distributionFactor, distributionFactorLower) >= 0
+                        && doubleCompare(distributionFactor, distributionFactorUpper) <= 0;
 
-            if (dataIsEvenlyDistributed) {
-                // the minimum dynamic chunk size is at least 1
-                final int dynamicChunkSize = Math.max((int) (distributionFactor * chunkSize), 1);
-                return splitEvenlySizedChunks(
-                        tableId, min, max, approximateRowCnt, chunkSize, dynamicChunkSize);
-            } else {
-                int shardCount = (int) (approximateRowCnt / chunkSize);
-                int inverseSamplingRate = sourceConfig.getInverseSamplingRate();
-                if (sampleShardingThreshold < shardCount) {
-                    // It is necessary to ensure that the number of data rows sampled by the
-                    // sampling rate is greater than the number of shards.
-                    // Otherwise, if the sampling rate is too low, it may result in an insufficient
-                    // number of data rows for the shards, leading to an inadequate number of
-                    // shards.
-                    // Therefore, inverseSamplingRate should be less than chunkSize
-                    if (inverseSamplingRate > chunkSize) {
-                        log.warn(
-                                "The inverseSamplingRate is {}, which is greater than chunkSize {}, so we set inverseSamplingRate to chunkSize",
-                                inverseSamplingRate,
-                                chunkSize);
-                        inverseSamplingRate = chunkSize;
-                    }
-                    log.info(
-                            "Use sampling sharding for table {}, the sampling rate is {}",
-                            tableId,
-                            inverseSamplingRate);
-                    Object[] sample =
-                            sampleDataFromColumn(jdbc, tableId, splitColumn, inverseSamplingRate);
-                    log.info(
-                            "Sample data from table {} end, the sample size is {}",
-                            tableId,
-                            sample.length);
-                    return efficientShardingThroughSampling(
-                            tableId, sample, approximateRowCnt, shardCount);
-                }
-                return splitUnevenlySizedChunks(jdbc, tableId, splitColumn, min, max, chunkSize);
-            }
+        if (dataIsEvenlyDistributed) {
+            // the minimum dynamic chunk size is at least 1
+            final int dynamicChunkSize = Math.max((int) (distributionFactor * chunkSize), 1);
+            return splitEvenlySizedChunks(
+                    tableId, min, max, approximateRowCnt, chunkSize, dynamicChunkSize);
         } else {
+            int shardCount = (int) (approximateRowCnt / chunkSize);
+            int inverseSamplingRate = sourceConfig.getInverseSamplingRate();
+            if (sampleShardingThreshold < shardCount) {
+                // It is necessary to ensure that the number of data rows sampled by the
+                // sampling rate is greater than the number of shards.
+                // Otherwise, if the sampling rate is too low, it may result in an insufficient
+                // number of data rows for the shards, leading to an inadequate number of
+                // shards.
+                // Therefore, inverseSamplingRate should be less than chunkSize
+                if (inverseSamplingRate > chunkSize) {
+                    log.warn(
+                            "The inverseSamplingRate is {}, which is greater than chunkSize {}, so we set inverseSamplingRate to chunkSize",
+                            inverseSamplingRate,
+                            chunkSize);
+                    inverseSamplingRate = chunkSize;
+                }
+                log.info(
+                        "Use sampling sharding for table {}, the sampling rate is {}",
+                        tableId,
+                        inverseSamplingRate);
+                Object[] sample =
+                        sampleDataFromColumn(jdbc, tableId, splitColumn, inverseSamplingRate);
+                log.info(
+                        "Sample data from table {} end, the sample size is {}",
+                        tableId,
+                        sample.length);
+                return efficientShardingThroughSampling(
+                        tableId, sample, approximateRowCnt, shardCount);
+            }
             return splitUnevenlySizedChunks(jdbc, tableId, splitColumn, min, max, chunkSize);
         }
     }
@@ -373,7 +568,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
             Object chunkStart,
             Object chunkEnd,
             int index,
-            int splitCount) {
+            int splitCount,
+            boolean isNull) {
         // currently, we only support single split column
         Object[] splitStart = chunkStart == null ? null : new Object[] {chunkStart};
         Object[] splitEnd = chunkEnd == null ? null : new Object[] {chunkEnd};
@@ -384,7 +580,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                 splitStart,
                 splitEnd,
                 index,
-                splitCount);
+                splitCount,
+                isNull);
     }
 
     protected Column getSplitColumn(
@@ -400,9 +597,10 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                 Column column = table.columnWithName(pkColumn);
                 if (isEvenlySplitColumn(column)) {
                     splitColumn = columnComparable(splitColumn, column);
-                    if (sqlTypePriority(splitColumn) == 1) {
-                        return splitColumn;
-                    }
+                    // It doesn't really make much sense here
+                    // if (sqlTypePriority(splitColumn) == 1) {
+                    return splitColumn;
+                    // }
                 }
             }
         } else {

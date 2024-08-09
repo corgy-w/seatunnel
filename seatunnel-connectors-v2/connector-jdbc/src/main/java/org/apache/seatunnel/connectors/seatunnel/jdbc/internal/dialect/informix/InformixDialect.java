@@ -209,4 +209,9 @@ public class InformixDialect implements JdbcDialect {
             }
         }
     }
+
+    @Override
+    public boolean supportHashSplitter() {
+        return false;
+    }
 }

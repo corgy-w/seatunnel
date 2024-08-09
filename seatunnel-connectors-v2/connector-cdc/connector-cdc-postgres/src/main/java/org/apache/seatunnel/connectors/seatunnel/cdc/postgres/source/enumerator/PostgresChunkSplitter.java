@@ -114,8 +114,14 @@ public class PostgresChunkSplitter extends AbstractJdbcSourceChunkSplitter {
 
     @Override
     public String buildSplitScanQuery(
-            Table table, SeaTunnelRowType splitKeyType, boolean isFirstSplit, boolean isLastSplit) {
-        return PostgresUtils.buildSplitScanQuery(table, splitKeyType, isFirstSplit, isLastSplit);
+            Table table,
+            SeaTunnelRowType splitKeyType,
+            boolean isFirstSplit,
+            boolean isLastSplit,
+            Object[] splitEnd,
+            boolean isNull) {
+        return PostgresUtils.buildSplitScanQuery(
+                table, splitKeyType, isFirstSplit, isLastSplit, splitEnd, isNull);
     }
 
     @Override

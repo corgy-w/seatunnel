@@ -39,30 +39,31 @@ supports query SQL and can achieve projection effect.
 
 ## Options
 
-|                    name                    |  type  | required |  default value  |
-|--------------------------------------------|--------|----------|-----------------|
-| url                                        | String | Yes      | -               |
-| driver                                     | String | Yes      | -               |
-| user                                       | String | No       | -               |
-| password                                   | String | No       | -               |
-| query                                      | String | No       | -               |
-| compatible_mode                            | String | No       | -               |
-| connection_check_timeout_sec               | Int    | No       | 30              |
-| partition_column                           | String | No       | -               |
-| partition_upper_bound                      | Long   | No       | -               |
-| partition_lower_bound                      | Long   | No       | -               |
-| partition_num                              | Int    | No       | job parallelism |
-| fetch_size                                 | Int    | No       | 0               |
-| properties                                 | Map    | No       | -               |
-| table_path                                 | String | No       | -               |
-| table_list                                 | Array  | No       | -               |
-| where_condition                            | String | No       | -               |
-| split.size                                 | Int    | No       | 8096            |
-| split.even-distribution.factor.lower-bound | Double | No       | 0.05            |
-| split.even-distribution.factor.upper-bound | Double | No       | 100             |
-| split.sample-sharding.threshold            | Int    | No       | 1000            |
-| split.inverse-sampling.rate                | Int    | No       | 1000            |
-| common-options                             |        | No       | -               |
+|                    name                    |  type   | required |  default value  |
+|--------------------------------------------|---------|----------|-----------------|
+| url                                        | String  | Yes      | -               |
+| driver                                     | String  | Yes      | -               |
+| user                                       | String  | No       | -               |
+| password                                   | String  | No       | -               |
+| query                                      | String  | No       | -               |
+| compatible_mode                            | String  | No       | -               |
+| connection_check_timeout_sec               | Int     | No       | 30              |
+| partition_column                           | String  | No       | -               |
+| partition_upper_bound                      | Long    | No       | -               |
+| partition_lower_bound                      | Long    | No       | -               |
+| partition_num                              | Int     | No       | job parallelism |
+| fetch_size                                 | Int     | No       | 0               |
+| properties                                 | Map     | No       | -               |
+| table_path                                 | String  | No       | -               |
+| table_list                                 | Array   | No       | -               |
+| where_condition                            | String  | No       | -               |
+| split.size                                 | Int     | No       | 8096            |
+| split.even-distribution.factor.lower-bound | Double  | No       | 0.05            |
+| split.even-distribution.factor.upper-bound | Double  | No       | 100             |
+| split.sample-sharding.threshold            | Int     | No       | 1000            |
+| split.inverse-sampling.rate                | Int     | No       | 1000            |
+| split.enable-hash-split-for-string-column  | Boolean | No       | true            |
+| common-options                             |         | No       | -               |
 
 ### driver [string]
 
@@ -177,6 +178,10 @@ This configuration specifies the threshold of estimated shard count to trigger t
 #### split.inverse-sampling.rate
 
 The inverse of the sampling rate used in the sample sharding strategy. For example, if this value is set to 1000, it means a 1/1000 sampling rate is applied during the sampling process. This option provides flexibility in controlling the granularity of the sampling, thus affecting the final number of shards. It's especially useful when dealing with very large datasets where a lower sampling rate is preferred. The default value is 1000.
+
+#### split.enable-hash-split-for-string-column
+
+Whether to enable hash split for string column, default value is true. If set to false and the split column type is string, will only have one split.
 
 #### partition_column [string]
 

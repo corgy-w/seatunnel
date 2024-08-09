@@ -69,7 +69,8 @@ public class DynamicChunkSplitterTest {
                         1,
                         10,
                         -1,
-                        -1);
+                        -1,
+                        false);
         String splitQuerySQL = splitter.createDynamicSplitQuerySQL(split, tableSchema);
         Assertions.assertEquals(
                 "SELECT * FROM \"db1\".\"schema1\".\"table1\" WHERE \"id\" >= ? AND NOT (\"id\" = ?) AND \"id\" <= ?",
@@ -85,7 +86,8 @@ public class DynamicChunkSplitterTest {
                         1,
                         10,
                         -1,
-                        -1);
+                        -1,
+                        false);
         splitQuerySQL = splitter.createDynamicSplitQuerySQL(split, tableSchema);
         Assertions.assertEquals(
                 "SELECT * FROM (select * from table1) tmp WHERE \"id\" >= ? AND NOT (\"id\" = ?) AND \"id\" <= ?",
@@ -111,10 +113,28 @@ public class DynamicChunkSplitterTest {
                         1,
                         10,
                         -1,
-                        -1);
+                        -1,
+                        false);
         splitQuerySQL = splitter.createDynamicSplitQuerySQL(split, tableSchema);
         Assertions.assertEquals(
                 "SELECT * FROM (select * from table1) tmp WHERE \"id\"::text >= ? AND NOT (\"id\"::text = ?) AND \"id\"::text <= ?",
+                splitQuerySQL);
+
+        split =
+                new JdbcSourceSplit(
+                        TablePath.of("db1", "schema1", "table1"),
+                        "split1",
+                        null,
+                        "id",
+                        BasicType.STRING_TYPE,
+                        null,
+                        null,
+                        -1,
+                        -1,
+                        true);
+        splitQuerySQL = splitter.createDynamicSplitQuerySQL(split, tableSchema);
+        Assertions.assertEquals(
+                "SELECT * FROM \"db1\".\"schema1\".\"table1\" WHERE \"id\"::text IS NULL",
                 splitQuerySQL);
     }
 

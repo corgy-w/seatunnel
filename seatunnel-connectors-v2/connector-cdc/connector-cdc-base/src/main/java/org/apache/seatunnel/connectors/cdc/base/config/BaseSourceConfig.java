@@ -40,6 +40,7 @@ public abstract class BaseSourceConfig implements SourceConfig {
     @Getter protected final int sampleShardingThreshold;
     @Getter protected final int inverseSamplingRate;
     @Getter protected final boolean exactlyOnce;
+    @Getter protected final boolean enableHashSplitterForStringColumn;
 
     // --------------------------------------------------------------------------------------------
     // Debezium Configurations
@@ -55,6 +56,7 @@ public abstract class BaseSourceConfig implements SourceConfig {
             int sampleShardingThreshold,
             int inverseSamplingRate,
             boolean exactlyOnce,
+            boolean enableHashSplitterForStringColumn,
             Properties dbzProperties) {
         this.startupConfig = startupConfig;
         this.stopConfig = stopConfig;
@@ -64,6 +66,7 @@ public abstract class BaseSourceConfig implements SourceConfig {
         this.sampleShardingThreshold = sampleShardingThreshold;
         this.inverseSamplingRate = inverseSamplingRate;
         this.exactlyOnce = exactlyOnce;
+        this.enableHashSplitterForStringColumn = enableHashSplitterForStringColumn;
         this.dbzProperties = dbzProperties;
     }
 

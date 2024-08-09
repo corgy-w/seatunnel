@@ -35,6 +35,8 @@ public class OracleUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         false,
+                        false,
+                        null,
                         false);
         Assertions.assertEquals(
                 "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" >= ? AND NOT (\"id\" = ?) AND \"id\" <= ?",
@@ -46,7 +48,9 @@ public class OracleUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
-                        true);
+                        true,
+                        null,
+                        false);
         Assertions.assertEquals("SELECT * FROM \"schema1\".\"table1\"", splitScanSQL);
 
         splitScanSQL =
@@ -55,6 +59,8 @@ public class OracleUtilsTest {
                         new SeaTunnelRowType(
                                 new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
                         true,
+                        false,
+                        null,
                         false);
         Assertions.assertEquals(
                 "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" <= ? AND NOT (\"id\" = ?)",
@@ -69,5 +75,59 @@ public class OracleUtilsTest {
                         true);
         Assertions.assertEquals(
                 "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" >= ?", splitScanSQL);
+                        true,
+                        null,
+                        false);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" >= ?", splitScanSQL);
+        splitScanSQL =
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"id"}, new SeaTunnelDataType[] {BasicType.LONG_TYPE}),
+                        false,
+                        true,
+                        null,
+                        true);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\" WHERE \"id\" IS NULL", splitScanSQL);
+
+        splitScanSQL =
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"name"}, new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        false,
+                        true,
+                        null,
+                        true);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\" WHERE \"name\" IS NULL", splitScanSQL);
+
+
+        splitScanSQL =
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"name"}, new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        true,
+                        true,
+                        null,
+                        false);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\"", splitScanSQL);
+
+        splitScanSQL =
+                OracleUtils.buildSplitScanQuery(
+                        TableId.parse("db1.schema1.table1"),
+                        new SeaTunnelRowType(
+                                new String[] {"name"}, new SeaTunnelDataType[] {BasicType.STRING_TYPE}),
+                        false,
+                        false,
+                        new Object[]{10},
+                        false);
+        Assertions.assertEquals(
+                "SELECT * FROM \"schema1\".\"table1\" WHERE MOD(ORA_HASH(\"name\"),10) = ?", splitScanSQL);
+
     }
 }

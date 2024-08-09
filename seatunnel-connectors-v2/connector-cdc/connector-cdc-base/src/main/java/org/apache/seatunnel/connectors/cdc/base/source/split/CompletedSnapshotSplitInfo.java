@@ -59,6 +59,7 @@ public class CompletedSnapshotSplitInfo implements Serializable {
                 watermark.getLowWatermark(),
                 watermark.getHighWatermark(),
                 0,
-                1);
+                1,
+                false);
     }
 }

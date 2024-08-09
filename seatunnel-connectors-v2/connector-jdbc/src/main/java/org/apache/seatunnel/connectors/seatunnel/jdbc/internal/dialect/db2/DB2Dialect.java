@@ -127,4 +127,11 @@ public class DB2Dialect implements JdbcDialect {
     public TablePath parse(String tablePath) {
         return TablePath.of(tablePath, true);
     }
+
+    @Override
+    public String hashModForField(String fieldName, int mod) {
+        return String.format(
+                "ABS(MOD(DBMS_UTILITY.GET_HASH_VALUE(%s,1,100000000), %d))",
+                quoteIdentifier(fieldName), mod);
+    }
 }
