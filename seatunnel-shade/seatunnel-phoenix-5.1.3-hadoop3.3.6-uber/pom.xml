@@ -61,10 +61,6 @@
                     <artifactId>hbase-mapreduce</artifactId>
                 </exclusion>
                 <exclusion>
-                    <groupId>org.apache.hbase</groupId>
-                    <artifactId>hbase-server</artifactId>
-                </exclusion>
-                <exclusion>
                     <groupId>org.apache.omid</groupId>
                     <artifactId>omid-hbase-shims-hbase2.x</artifactId>
                 </exclusion>
