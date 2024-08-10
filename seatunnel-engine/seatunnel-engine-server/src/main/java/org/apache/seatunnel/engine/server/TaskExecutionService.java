@@ -971,7 +971,11 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                         taskGroupLocation, executionContexts.remove(taskGroupLocation));
                 cancellationFutures.remove(taskGroupLocation);
                 cancelAsyncFunction(taskGroupLocation);
-                updateMetricsContextInImap();
+                try {
+                    updateMetricsContextInImap();
+                } catch (Throwable t) {
+                    logger.warning("update metrics context in imap failed", t);
+                }
                 if (ex == null) {
                     future.complete(
                             new TaskExecutionState(taskGroupLocation, ExecutionState.FINISHED));
