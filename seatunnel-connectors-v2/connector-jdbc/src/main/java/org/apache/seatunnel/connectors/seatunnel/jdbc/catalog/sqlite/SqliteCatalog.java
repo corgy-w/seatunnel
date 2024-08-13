@@ -129,12 +129,10 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            return listTables(tablePath.getDatabaseName()).contains(tablePath.getTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
-        }
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                "select * from sqlite_master where type = \"table\" and name = \"%s\";",
+                tablePath.getTableName());
     }
 
     @Override

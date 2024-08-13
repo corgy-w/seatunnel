@@ -23,7 +23,6 @@ import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
-import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -86,22 +85,13 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                         .getCatalogName(1));
     }
 
-    @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getSchemaAndTableName());
-            }
-            return listTables().contains(tablePath.getSchemaAndTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
-        }
-    }
-
-    private List<String> listTables() {
-        return listTables(defaultDatabase);
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return getListTableSql(tablePath.getDatabaseName())
+                + "  and TABSCHEMA = '"
+                + tablePath.getSchemaName()
+                + "' and TABNAME = '"
+                + tablePath.getTableName()
+                + "'";
     }
 
     @Override
