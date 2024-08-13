@@ -85,6 +85,8 @@
 - [zeta] dynamically replace the value of the variable at runtime (#4950)
 - [Zeta] Add from_unixtime function (#5462)
 - [zeta] Fix CDC task restore throw NPE (#5507)
+- [zeta] Add S3 to zeta engine lib
+
 
 ### E2E
 

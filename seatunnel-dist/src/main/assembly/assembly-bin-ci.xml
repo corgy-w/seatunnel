@@ -197,6 +197,8 @@
                 <!--Add hadoop jar -->
                 <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
                 <include>org.apache.seatunnel:checkpoint-storage-hdfs:jar</include>
+                <include>org.apache.hadoop:hadoop-aws:jar</include>
+                <include>org.apache.seatunnel:connector-file-s3:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/starter/zeta</outputDirectory>
