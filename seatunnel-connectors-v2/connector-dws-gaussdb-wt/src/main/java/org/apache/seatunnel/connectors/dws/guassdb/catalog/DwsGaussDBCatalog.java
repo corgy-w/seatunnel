@@ -205,10 +205,10 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
     public List<String> listDatabases() throws CatalogException {
         BaseConnection defaultConnection = getDefaultConnection();
         try (PreparedStatement ps =
-                defaultConnection.prepareStatement("select datname from pg_database;")) {
+                        defaultConnection.prepareStatement("select datname from pg_database;");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> databases = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
                 String databaseName = rs.getString(1);
@@ -234,10 +234,9 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
         BaseConnection connection = getConnection(urlFromDatabaseName);
 
         try (PreparedStatement ps =
-                connection.prepareStatement(
-                        "SELECT table_schema, table_name FROM information_schema.tables;")) {
-
-            ResultSet rs = ps.executeQuery();
+                        connection.prepareStatement(
+                                "SELECT table_schema, table_name FROM information_schema.tables;");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> tables = new ArrayList<>();
 
@@ -539,22 +538,22 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
     protected Optional<PrimaryKey> getPrimaryKey(
             DatabaseMetaData metaData, String database, String schema, String table)
             throws SQLException {
+        // seq -> column name
+        List<Pair<Integer, String>> primaryKeyColumns = new ArrayList<>();
+        String pkName = null;
 
         // According to the Javadoc of java.sql.DatabaseMetaData#getPrimaryKeys,
         // the returned primary key columns are ordered by COLUMN_NAME, not by KEY_SEQ.
         // We need to sort them based on the KEY_SEQ value.
-        ResultSet rs = metaData.getPrimaryKeys(database, schema, table);
-
-        // seq -> column name
-        List<Pair<Integer, String>> primaryKeyColumns = new ArrayList<>();
-        String pkName = null;
-        while (rs.next()) {
-            String columnName = rs.getString("COLUMN_NAME");
-            // all the PK_NAME should be the same
-            pkName = rs.getString("PK_NAME");
-            int keySeq = rs.getInt("KEY_SEQ");
-            // KEY_SEQ is 1-based index
-            primaryKeyColumns.add(Pair.of(keySeq, columnName));
+        try (ResultSet rs = metaData.getPrimaryKeys(database, schema, table)) {
+            while (rs.next()) {
+                String columnName = rs.getString("COLUMN_NAME");
+                // all the PK_NAME should be the same
+                pkName = rs.getString("PK_NAME");
+                int keySeq = rs.getInt("KEY_SEQ");
+                // KEY_SEQ is 1-based index
+                primaryKeyColumns.add(Pair.of(keySeq, columnName));
+            }
         }
         // initialize size
         List<String> pkFields =
@@ -576,39 +575,40 @@ public class DwsGaussDBCatalog implements Catalog, Serializable {
     protected List<ConstraintKey> getConstraintKeys(
             DatabaseMetaData metaData, String database, String schema, String table)
             throws SQLException {
-        ResultSet resultSet = metaData.getIndexInfo(database, schema, table, false, false);
-        // index name -> index
-        Map<String, ConstraintKey> constraintKeyMap = new HashMap<>();
-        while (resultSet.next()) {
-            String columnName = resultSet.getString("COLUMN_NAME");
-            if (columnName == null) {
-                continue;
+        try (ResultSet resultSet = metaData.getIndexInfo(database, schema, table, false, false)) {
+            // index name -> index
+            Map<String, ConstraintKey> constraintKeyMap = new HashMap<>();
+            while (resultSet.next()) {
+                String columnName = resultSet.getString("COLUMN_NAME");
+                if (columnName == null) {
+                    continue;
+                }
+                String indexName = resultSet.getString("INDEX_NAME");
+                boolean noUnique = resultSet.getBoolean("NON_UNIQUE");
+
+                ConstraintKey constraintKey =
+                        constraintKeyMap.computeIfAbsent(
+                                indexName,
+                                s -> {
+                                    ConstraintKey.ConstraintType constraintType =
+                                            ConstraintKey.ConstraintType.INDEX_KEY;
+                                    if (!noUnique) {
+                                        constraintType = ConstraintKey.ConstraintType.UNIQUE_KEY;
+                                    }
+                                    return ConstraintKey.of(
+                                            constraintType, indexName, new ArrayList<>());
+                                });
+
+                ConstraintKey.ColumnSortType sortType =
+                        "A".equals(resultSet.getString("ASC_OR_DESC"))
+                                ? ConstraintKey.ColumnSortType.ASC
+                                : ConstraintKey.ColumnSortType.DESC;
+                ConstraintKey.ConstraintKeyColumn constraintKeyColumn =
+                        new ConstraintKey.ConstraintKeyColumn(columnName, sortType);
+                constraintKey.getColumnNames().add(constraintKeyColumn);
             }
-            String indexName = resultSet.getString("INDEX_NAME");
-            boolean noUnique = resultSet.getBoolean("NON_UNIQUE");
-
-            ConstraintKey constraintKey =
-                    constraintKeyMap.computeIfAbsent(
-                            indexName,
-                            s -> {
-                                ConstraintKey.ConstraintType constraintType =
-                                        ConstraintKey.ConstraintType.INDEX_KEY;
-                                if (!noUnique) {
-                                    constraintType = ConstraintKey.ConstraintType.UNIQUE_KEY;
-                                }
-                                return ConstraintKey.of(
-                                        constraintType, indexName, new ArrayList<>());
-                            });
-
-            ConstraintKey.ColumnSortType sortType =
-                    "A".equals(resultSet.getString("ASC_OR_DESC"))
-                            ? ConstraintKey.ColumnSortType.ASC
-                            : ConstraintKey.ColumnSortType.DESC;
-            ConstraintKey.ConstraintKeyColumn constraintKeyColumn =
-                    new ConstraintKey.ConstraintKeyColumn(columnName, sortType);
-            constraintKey.getColumnNames().add(constraintKeyColumn);
+            return new ArrayList<>(constraintKeyMap.values());
         }
-        return new ArrayList<>(constraintKeyMap.values());
     }
 
     private Column buildColumn(ResultSet resultSet) throws SQLException {

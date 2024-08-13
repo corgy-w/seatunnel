@@ -106,13 +106,11 @@ public class SelectDBCatalog implements Catalog {
 
     @Override
     public List<String> listDatabases() throws CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-
-            PreparedStatement ps = conn.prepareStatement("SHOW DATABASES;");
+        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd);
+                PreparedStatement ps = conn.prepareStatement("SHOW DATABASES;");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> databases = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
                 String databaseName = rs.getString(1);
                 if (!SYS_DATABASES.contains(databaseName)) {
@@ -135,11 +133,10 @@ public class SelectDBCatalog implements Catalog {
         }
 
         try (Connection conn =
-                DriverManager.getConnection(
-                        urlInfo.getUrlWithDatabase(databaseName), username, pwd)) {
-            PreparedStatement ps = conn.prepareStatement("SHOW TABLES;");
-
-            ResultSet rs = ps.executeQuery();
+                        DriverManager.getConnection(
+                                urlInfo.getUrlWithDatabase(databaseName), username, pwd);
+                PreparedStatement ps = conn.prepareStatement("SHOW TABLES;");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> tables = new ArrayList<>();
 

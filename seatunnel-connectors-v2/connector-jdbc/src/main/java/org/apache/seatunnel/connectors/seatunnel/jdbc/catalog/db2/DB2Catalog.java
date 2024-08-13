@@ -78,12 +78,12 @@ public class DB2Catalog extends AbstractJdbcCatalog {
     @SneakyThrows
     @Override
     public List<String> listDatabases() throws CatalogException {
-        return Collections.singletonList(
+        try (ResultSet resultSet =
                 getConnection(getUrlFromDatabaseName(defaultDatabase))
                         .getMetaData()
-                        .getCatalogs()
-                        .getMetaData()
-                        .getCatalogName(1));
+                        .getCatalogs()) {
+            return Collections.singletonList(resultSet.getMetaData().getCatalogName(1));
+        }
     }
 
     @Override
@@ -152,8 +152,9 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                         schema, table);
         Connection connection = getConnection(getUrlFromDatabaseName(defaultDatabase));
         List<String> primaryKeyColNameList = new ArrayList<>();
-        try (Statement ps = connection.createStatement()) {
-            ResultSet resultSet = ps.executeQuery(getPrimaryKeyFieldSql);
+        try (Statement ps = connection.createStatement();
+                ResultSet resultSet = ps.executeQuery(getPrimaryKeyFieldSql)) {
+
             while (resultSet.next()) {
                 String primaryKeyColName = resultSet.getString("COLNAME");
                 primaryKeyColNameList.add(primaryKeyColName);
@@ -171,8 +172,9 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                         "SELECT INDNAME FROM SYSCAT.INDEXES WHERE UNIQUERULE = 'P' AND TABSCHEMA  = '%s' AND TABNAME = '%s' ;",
                         schema, table);
         Connection connection = getConnection(getUrlFromDatabaseName(defaultDatabase));
-        try (Statement ps = connection.createStatement()) {
-            ResultSet resultSet = ps.executeQuery(getPrimaryKeyNameSql);
+        try (Statement ps = connection.createStatement();
+                ResultSet resultSet = ps.executeQuery(getPrimaryKeyNameSql)) {
+
             while (resultSet.next()) {
                 String primaryKeyColName = resultSet.getString("INDNAME");
                 if (StringUtils.isNotEmpty(primaryKeyColName)) {

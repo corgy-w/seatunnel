@@ -486,7 +486,9 @@ public class PostgresReplicationConnection extends JdbcConnection implements Rep
             // when we are in Postgres 9.4+, we can parse the slot creation info,
             // otherwise, it returns nothing
             if (canExportSnapshot) {
-                this.slotCreationInfo = parseSlotCreation(stmt.getResultSet());
+                try (ResultSet rs = stmt.getResultSet()) {
+                    this.slotCreationInfo = parseSlotCreation(rs);
+                }
             }
 
             return Optional.ofNullable(slotCreationInfo);

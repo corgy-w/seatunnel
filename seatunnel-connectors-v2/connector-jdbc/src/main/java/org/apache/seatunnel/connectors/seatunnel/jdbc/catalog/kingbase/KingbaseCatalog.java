@@ -165,8 +165,8 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
         List<String> dbNames = new ArrayList<>();
         try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd);
                 PreparedStatement statement =
-                        connection.prepareStatement("select datname from sys_database;")) {
-            ResultSet re = statement.executeQuery();
+                        connection.prepareStatement("select datname from sys_database;");
+                ResultSet re = statement.executeQuery()) {
             while (re.next()) {
                 String dbName = re.getString("datname");
                 if (StringUtils.isNotBlank(dbName) && !KINGBASE_SYSTEM_DATABASES.contains(dbName)) {

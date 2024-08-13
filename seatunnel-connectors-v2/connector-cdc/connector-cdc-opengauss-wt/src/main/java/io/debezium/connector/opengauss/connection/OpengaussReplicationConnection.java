@@ -293,14 +293,15 @@ public class OpengaussReplicationConnection extends JdbcConnection
             final String identifySystemStatement = "IDENTIFY_SYSTEM";
             LOGGER.debug(
                     "running '{}' to validate replication connection", identifySystemStatement);
-
-            final ResultSet resultSet =
-                    this.connection.createStatement().executeQuery(identifySystemStatement);
-            if (!resultSet.next()) {
-                throw new IllegalStateException(
-                        "The DB connection is not a valid replication connection");
+            String xlogpos;
+            try (final ResultSet resultSet =
+                    this.connection.createStatement().executeQuery(identifySystemStatement)) {
+                if (!resultSet.next()) {
+                    throw new IllegalStateException(
+                            "The DB connection is not a valid replication connection");
+                }
+                xlogpos = resultSet.getString("xlogpos");
             }
-            String xlogpos = resultSet.getString("xlogpos");
             LOGGER.debug("received latest xlogpos '{}'", xlogpos);
             final Lsn xlogStart = Lsn.valueOf(xlogpos);
 
@@ -450,14 +451,12 @@ public class OpengaussReplicationConnection extends JdbcConnection
     }
 
     private boolean isExistSlot(String slotName) {
-        try {
-            final ResultSet resultSet =
-                    pgConnection()
-                            .createStatement()
-                            .executeQuery(
-                                    String.format(
-                                            "select * from pg_replication_slots where slot_name = '%s' and plugin = 'pgoutput';",
-                                            slotName));
+        try (Statement statement = pgConnection().createStatement();
+                final ResultSet resultSet =
+                        statement.executeQuery(
+                                String.format(
+                                        "select * from pg_replication_slots where slot_name = '%s' and plugin = 'pgoutput';",
+                                        slotName))) {
             return resultSet.next();
         } catch (SQLException throwables) {
             LOGGER.warn("executer error {}", slotName);

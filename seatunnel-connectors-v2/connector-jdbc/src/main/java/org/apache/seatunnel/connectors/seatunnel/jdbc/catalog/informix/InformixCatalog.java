@@ -123,10 +123,11 @@ public class InformixCatalog extends AbstractJdbcCatalog {
         String dbUrl = getUrlFromDatabaseName(databaseName);
         Connection connection = getConnection(dbUrl);
         try (PreparedStatement ps =
-                connection.prepareStatement(
-                        "SELECT owner, tabname FROM " + databaseName + ":informix.systables")) {
-
-            ResultSet rs = ps.executeQuery();
+                        connection.prepareStatement(
+                                "SELECT owner, tabname FROM "
+                                        + databaseName
+                                        + ":informix.systables");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> tables = new ArrayList<>();
 
