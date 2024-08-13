@@ -240,7 +240,9 @@ public interface JdbcDialect extends Serializable {
 
     default ResultSetMetaData getResultSetMetaData(Connection conn, String query)
             throws SQLException {
-        return conn.prepareStatement(query).getMetaData();
+        try (PreparedStatement preparedStatement = conn.prepareStatement(query)) {
+            return preparedStatement.getMetaData();
+        }
     }
 
     default String extractTableName(TablePath tablePath) {

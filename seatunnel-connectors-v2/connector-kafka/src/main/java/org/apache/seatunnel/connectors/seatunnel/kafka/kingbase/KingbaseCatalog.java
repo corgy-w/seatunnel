@@ -132,8 +132,8 @@ public class KingbaseCatalog implements Catalog {
         List<String> dbNames = new ArrayList<>();
         try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd);
                 PreparedStatement statement =
-                        connection.prepareStatement("select datname from sys_database;")) {
-            ResultSet re = statement.executeQuery();
+                        connection.prepareStatement("select datname from sys_database;");
+                ResultSet re = statement.executeQuery()) {
             while (re.next()) {
                 String dbName = re.getString("datname");
                 if (StringUtils.isNotBlank(dbName) && !KINGBASE_SYSTEM_DATABASES.contains(dbName)) {
@@ -273,11 +273,12 @@ public class KingbaseCatalog implements Catalog {
     private Optional<PrimaryKey> getPrimaryKey(
             DatabaseMetaData metaData, String dbName, String schema, String tableName)
             throws SQLException {
-        ResultSet primaryKeysInfo = metaData.getPrimaryKeys(dbName, schema, tableName);
-        if (primaryKeysInfo.next()) {
-            String column = primaryKeysInfo.getString("COLUMN_NAME");
-            String name = primaryKeysInfo.getString("PK_NAME");
-            return Optional.of(PrimaryKey.of(name, Collections.singletonList(column)));
+        try (ResultSet primaryKeysInfo = metaData.getPrimaryKeys(dbName, schema, tableName)) {
+            if (primaryKeysInfo.next()) {
+                String column = primaryKeysInfo.getString("COLUMN_NAME");
+                String name = primaryKeysInfo.getString("PK_NAME");
+                return Optional.of(PrimaryKey.of(name, Collections.singletonList(column)));
+            }
         }
         return Optional.empty();
     }

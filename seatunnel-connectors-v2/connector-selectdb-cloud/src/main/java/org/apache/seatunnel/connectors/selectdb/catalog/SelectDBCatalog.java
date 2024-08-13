@@ -116,13 +116,10 @@ public class SelectDBCatalog implements Catalog {
 
     @Override
     public List<String> listDatabases() throws CatalogException {
-        try {
-
-            PreparedStatement ps = conn.prepareStatement("SHOW DATABASES;");
+        try (PreparedStatement ps = conn.prepareStatement("SHOW DATABASES;");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> databases = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
                 String databaseName = rs.getString(1);
                 if (!SYS_DATABASES.contains(databaseName)) {
@@ -144,10 +141,8 @@ public class SelectDBCatalog implements Catalog {
             throw new DatabaseNotExistException(this.catalogName, databaseName);
         }
 
-        try {
-            PreparedStatement ps = conn.prepareStatement("SHOW TABLES;");
-
-            ResultSet rs = ps.executeQuery();
+        try (PreparedStatement ps = conn.prepareStatement("SHOW TABLES;");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> tables = new ArrayList<>();
 

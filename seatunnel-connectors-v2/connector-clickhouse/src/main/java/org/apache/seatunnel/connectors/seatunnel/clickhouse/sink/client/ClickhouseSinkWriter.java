@@ -207,8 +207,9 @@ public class ClickhouseSinkWriter
     private static boolean clickhouseServerEnableExperimentalLightweightDelete(
             ClickHouseConnectionImpl clickhouseConnection) {
         String configKey = "allow_experimental_lightweight_delete";
-        try (Statement stmt = clickhouseConnection.createStatement()) {
-            ResultSet resultSet = stmt.executeQuery("SHOW SETTINGS ILIKE '%" + configKey + "%'");
+        try (Statement stmt = clickhouseConnection.createStatement();
+                ResultSet resultSet =
+                        stmt.executeQuery("SHOW SETTINGS ILIKE '%" + configKey + "%'")) {
             while (resultSet.next()) {
                 String name = resultSet.getString("name");
                 if (name.equalsIgnoreCase(configKey)) {

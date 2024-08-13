@@ -254,8 +254,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     String.format(
                             "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
                             tablePath.getDatabaseName(), tablePath.getTableName());
-            try (PreparedStatement statement = conn.prepareStatement(sql)) {
-                final ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = conn.prepareStatement(sql);
+                    final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
                     final String refTableName = resultSet.getString("OBJECT_NAME");
@@ -315,8 +315,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     String.format(
                             "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
                             tablePath.getDatabaseName(), tablePath.getTableName());
-            try (PreparedStatement statement = conn.prepareStatement(sql)) {
-                final ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = conn.prepareStatement(sql);
+                    final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
                     final String refTableName = resultSet.getString("OBJECT_NAME");
@@ -378,8 +378,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                         "SELECT COLUMN_NAME,CONSTRAINT_NAME FROM SYS.CONSTRAINTS WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s' AND IS_PRIMARY_KEY = 'TRUE' ",
                         database, table);
         try (final PreparedStatement preparedStatement =
-                metaData.getConnection().prepareStatement(sql)) {
-            final ResultSet resultSet = preparedStatement.executeQuery();
+                        metaData.getConnection().prepareStatement(sql);
+                final ResultSet resultSet = preparedStatement.executeQuery()) {
             while (resultSet.next()) {
                 primaryKeyList.add(resultSet.getString("COLUMN_NAME"));
                 pkName = resultSet.getString("CONSTRAINT_NAME");
