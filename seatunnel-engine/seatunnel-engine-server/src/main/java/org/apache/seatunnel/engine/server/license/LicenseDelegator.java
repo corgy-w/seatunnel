@@ -25,41 +25,32 @@ import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.server.utils.HttpUtils;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.whaleops.license.dto.LicensePackageDto;
+import org.whaleops.license.dto.LicenseInfo;
+import org.whaleops.license.dto.SystemId;
 import org.whaleops.license.dto.SystemLicenseInfo;
-import org.whaleops.license.enums.LicenseVersionEnum;
-import org.whaleops.license.service.LicenseService;
+import org.whaleops.license.entity.LicenseParams;
+import org.whaleops.license.utils.LicenseDecryptUtil;
+import org.whaleops.license.utils.LicenseUtil;
+import org.whaleops.license.utils.SystemIdUtil;
 
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-@Service
-public class WhaleTunnelLicenseServiceImpl implements LicenseService {
-
-    private static final Logger log = LoggerFactory.getLogger(WhaleTunnelLicenseServiceImpl.class);
+@Slf4j
+public class LicenseDelegator {
 
     private EngineConfig engineConfig;
 
@@ -68,14 +59,14 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
                     ? "/etc/seatunnel/whaletunnel.license"
                     : System.getProperty("SEATUNNEL_LICENCE_HOME");
 
-    public WhaleTunnelLicenseServiceImpl(EngineConfig engineConfig) {
+    public LicenseDelegator(EngineConfig engineConfig) {
         this.engineConfig = engineConfig;
     }
 
     @SneakyThrows
-    @Override
-    public List<SystemLicenseInfo> loadSystemLicenseList() {
+    public LicenseInfo loadSystemLicense() {
         final SystemLicenseInfo systemLicenseInfo = new SystemLicenseInfo();
+
         final String licenseStringFromApi = getLicenseStringFromApi();
         if (StringUtils.isNotEmpty(licenseStringFromApi)) {
             systemLicenseInfo.setLicense(licenseStringFromApi);
@@ -83,10 +74,15 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
             final String licenseFromFile = getLicenseFromFile();
             systemLicenseInfo.setLicense(licenseFromFile);
         }
+
         systemLicenseInfo.setStatus(1);
-        List<SystemLicenseInfo> systemLicenseInfoList = new ArrayList<>(1);
-        systemLicenseInfoList.add(systemLicenseInfo);
-        return systemLicenseInfoList;
+
+        final LicenseParams licenseParams =
+                LicenseDecryptUtil.decrypt2License(systemLicenseInfo.getLicense());
+        final SystemId systemId = SystemIdUtil.decrypt2SystemId(licenseParams.getSystemId());
+        LicenseUtil.recalculateIpSet(
+                systemLicenseInfo.getLicense(), systemId.getWsIpList(), systemId.getWtIpList());
+        return new LicenseInfo(systemLicenseInfo, licenseParams, systemId);
     }
 
     private String getLicenseFromFile() {
@@ -115,7 +111,7 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
             licenseGetHttpHeaders.forEach(requestBuilder::header);
             Response response = httpClient.newCall(requestBuilder.build()).execute();
             if (!response.isSuccessful()) {
-                log.info("get license fail:{}", response.toString());
+                log.info("get license fail:{}", response);
                 return null;
             }
             final String body = response.body().string();
@@ -129,73 +125,6 @@ public class WhaleTunnelLicenseServiceImpl implements LicenseService {
             log.error("get license error:{}", e.getMessage());
             e.printStackTrace();
         }
-        return null;
-    }
-
-    @Override
-    public SystemLicenseInfo getValidLicense() {
-        return null;
-    }
-
-    @Override
-    public List<String> getFeatureList(LicenseVersionEnum licenseVersionEnum) {
-        return null;
-    }
-
-    @Override
-    public List<String> getExcludeFeatureList(LicenseVersionEnum licenseVersionEnum) {
-        return null;
-    }
-
-    @Override
-    public List<LicensePackageDto> queryBaseLicenseImportIncrementalPackages(Integer integer) {
-        return new ArrayList<>();
-    }
-
-    @Deprecated
-    @Override
-    public List<String> getAllServerIpListWithCache() {
-        return Collections.emptyList();
-    }
-
-    @Deprecated
-    @Override
-    public Set<String> getAllServerIpList() {
-        Set<String> hosts = getWtIpSet();
-        if (CollectionUtils.isEmpty(hosts)) {
-            return hosts;
-        }
-        return hosts.stream()
-                .map(
-                        host -> {
-                            int lastColonIndex = host.lastIndexOf(":");
-                            if (lastColonIndex > 0) {
-                                return host.substring(0, lastColonIndex);
-                            } else {
-                                return host;
-                            }
-                        })
-                .sorted()
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
-    @Override
-    public Set<String> getWsIpSet() {
-        return new HashSet<>();
-    }
-
-    @Override
-    public Set<String> getWtIpSet() {
-        return new HashSet<>();
-    }
-
-    @Override
-    public String getDBUrl() {
-        return null;
-    }
-
-    @Override
-    public String getHost() {
         return null;
     }
 }
