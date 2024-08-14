@@ -18,6 +18,10 @@
 package org.apache.seatunnel.connectors.seatunnel.starrocks.sink;
 
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.schema.handler.DataTypeChangeEventDispatcher;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
@@ -30,6 +34,7 @@ import org.apache.seatunnel.connectors.seatunnel.starrocks.serialize.StarRocksCs
 import org.apache.seatunnel.connectors.seatunnel.starrocks.serialize.StarRocksISerializer;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.serialize.StarRocksJsonSerializer;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.serialize.StarRocksSinkOP;
+import org.apache.seatunnel.connectors.seatunnel.starrocks.util.StarrocksDdlUtil;
 
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -44,17 +49,22 @@ import java.util.stream.Collectors;
 public class StarRocksSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
         implements SupportMultiTableSinkWriter<ConnectionPoolManager> {
 
-    private final StarRocksISerializer serializer;
-    private final StarRocksSinkManager manager;
+    private StarRocksISerializer serializer;
+    private StarRocksSinkManager manager;
+    private final SinkConfig sinkConfig;
+    private CatalogTable catalogTable;
 
-    public StarRocksSinkWriter(SinkConfig sinkConfig, SeaTunnelRowType seaTunnelRowType) {
+    public StarRocksSinkWriter(SinkConfig sinkConfig, CatalogTable catalogTable) {
         List<String> fieldNames =
-                Arrays.stream(seaTunnelRowType.getFieldNames()).collect(Collectors.toList());
+                Arrays.stream(catalogTable.getSeaTunnelRowType().getFieldNames())
+                        .collect(Collectors.toList());
         if (sinkConfig.isEnableUpsertDelete()) {
             fieldNames.add(StarRocksSinkOP.COLUMN_KEY);
         }
-        this.serializer = createSerializer(sinkConfig, seaTunnelRowType);
+        this.serializer = createSerializer(sinkConfig, catalogTable.getSeaTunnelRowType());
         this.manager = new StarRocksSinkManager(sinkConfig, fieldNames);
+        this.sinkConfig = sinkConfig;
+        this.catalogTable = catalogTable;
     }
 
     @Override
@@ -69,6 +79,26 @@ public class StarRocksSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
                     e);
         }
         manager.write(record);
+    }
+
+    @SneakyThrows
+    @Override
+    public void applySchemaChange(SchemaChangeEvent event) {
+        log.info("received schema change event: " + event);
+        manager.flush();
+        manager.close();
+        StarrocksDdlUtil.executeDdl(sinkConfig, event, catalogTable);
+        final DataTypeChangeEventDispatcher dataTypeChangeEventDispatcher =
+                new DataTypeChangeEventDispatcher();
+        dataTypeChangeEventDispatcher.reset(catalogTable.getSeaTunnelRowType());
+        // update catalog table
+        catalogTable =
+                CatalogTableUtil.newCatalogTable(
+                        catalogTable, dataTypeChangeEventDispatcher.handle(event));
+        this.serializer = createSerializer(sinkConfig, catalogTable.getSeaTunnelRowType());
+        this.manager =
+                new StarRocksSinkManager(
+                        sinkConfig, Arrays.asList(catalogTable.getTableSchema().getFieldNames()));
     }
 
     @SneakyThrows

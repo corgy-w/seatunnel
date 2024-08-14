@@ -99,6 +99,7 @@ public abstract class AbstractDorisIT extends TestSuiteBase implements TestResou
                 resultSet = statement.executeQuery(SHOW_BE);
             } while (!isBeReady(resultSet, Duration.ofSeconds(1L)));
         }
+        log.info("initializeJdbcConnection success");
     }
 
     private boolean isBeReady(ResultSet rs, Duration duration) throws SQLException {

@@ -28,11 +28,13 @@ import org.apache.seatunnel.api.sink.SinkCommitter;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSink;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
-import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.constants.PluginType;
+import org.apache.seatunnel.connectors.doris.catalog.DorisCatalog;
 import org.apache.seatunnel.connectors.doris.config.DorisConfig;
 import org.apache.seatunnel.connectors.doris.config.DorisOptions;
 import org.apache.seatunnel.connectors.doris.exception.DorisConnectorException;
@@ -59,8 +61,12 @@ public class DorisSink
     private final ReadonlyConfig config;
     private final CatalogTable catalogTable;
     private String jobId;
+    private TypeConverter<BasicTypeDefine> typeConverter;
 
-    public DorisSink(ReadonlyConfig config, CatalogTable catalogTable) {
+    public DorisSink(
+            ReadonlyConfig config,
+            CatalogTable catalogTable,
+            TypeConverter<BasicTypeDefine> typeConverter) {
         this.config = config;
         this.catalogTable = catalogTable;
         this.dorisConfig = DorisConfig.of(config);
@@ -70,6 +76,7 @@ public class DorisSink
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+        this.typeConverter = typeConverter;
     }
 
     @Override
@@ -91,7 +98,7 @@ public class DorisSink
             throw new RuntimeException(e);
         }
         return new DorisSinkWriter(
-                context, Collections.emptyList(), catalogTable, dorisConfig, jobId);
+                context, Collections.emptyList(), catalogTable, dorisConfig, jobId, typeConverter);
     }
 
     @Override
@@ -103,7 +110,8 @@ public class DorisSink
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        return new DorisSinkWriter(context, states, catalogTable, dorisConfig, jobId);
+        return new DorisSinkWriter(
+                context, states, catalogTable, dorisConfig, jobId, typeConverter);
     }
 
     @Override
@@ -129,6 +137,23 @@ public class DorisSink
 
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
+        DorisCatalog catalog = createDorisCatalog();
+
+        return Optional.of(
+                new DefaultSaveModeHandler(
+                        config.get(DorisOptions.SCHEMA_SAVE_MODE),
+                        config.get(DorisOptions.DATA_SAVE_MODE),
+                        catalog,
+                        catalogTable,
+                        config.get(DorisOptions.CUSTOM_SQL)));
+    }
+
+    /**
+     * Catalog not implement serializable, so we need to create it in each task.
+     *
+     * @return
+     */
+    private DorisCatalog createDorisCatalog() {
         // Load the JDBC driver in to DriverManager
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -147,15 +172,10 @@ public class DorisSink
                             "PluginName: %s, PluginType: %s, Message: %s",
                             getPluginName(), PluginType.SINK, "Cannot find Doris catalog factory"));
         }
-
-        Catalog catalog = catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
+        DorisCatalog catalog =
+                (DorisCatalog)
+                        catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
         catalog.open();
-        return Optional.of(
-                new DefaultSaveModeHandler(
-                        config.get(DorisOptions.SCHEMA_SAVE_MODE),
-                        config.get(DorisOptions.DATA_SAVE_MODE),
-                        catalog,
-                        catalogTable,
-                        config.get(DorisOptions.CUSTOM_SQL)));
+        return catalog;
     }
 }

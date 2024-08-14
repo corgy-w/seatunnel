@@ -119,7 +119,7 @@ public class DorisCatalogIT extends AbstractDorisIT {
 
     @Test
     public void testCatalog() {
-
+        log.info("testCatalog start");
         if (catalog == null) {
             return;
         }
@@ -148,10 +148,12 @@ public class DorisCatalogIT extends AbstractDorisIT {
             catalog.dropDatabase(tablePath, false);
             Assertions.assertFalse(catalog.databaseExists(tablePath.getDatabaseName()));
         }
+        log.info("testCatalog complete");
     }
 
     @Test
     void testSaveMode() {
+        log.info("testSaveMode start");
         CatalogTable upstreamTable =
                 CatalogTable.of(
                         TableIdentifier.of("doris", TablePath.of("test.test")), catalogTable);
@@ -233,6 +235,7 @@ public class DorisCatalogIT extends AbstractDorisIT {
         CatalogTable newTable = assertCreateTable(upstreamTable, config5, "test4.test4");
         Assertions.assertEquals(
                 BasicType.DOUBLE_TYPE, newTable.getTableSchema().getColumns().get(4).getDataType());
+        log.info("testSaveMode complete");
     }
 
     private CatalogTable assertCreateTable(
@@ -262,6 +265,7 @@ public class DorisCatalogIT extends AbstractDorisIT {
 
     @Test
     public void testDorisSourceSelectFieldsNotLossKeysInformation() {
+        log.info("testDorisSourceSelectFieldsNotLossKeysInformation start");
         catalog.createTable(tablePath, catalogTable, true);
         DorisSourceFactory dorisSourceFactory = new DorisSourceFactory();
         SeaTunnelSource dorisSource =
@@ -295,6 +299,7 @@ public class DorisCatalogIT extends AbstractDorisIT {
                 Arrays.asList("k1", "k2"), table.getTableSchema().getPrimaryKey().getColumnNames());
         catalog.dropTable(tablePath, false);
         Assertions.assertFalse(catalog.tableExists(tablePath));
+        log.info("testDorisSourceSelectFieldsNotLossKeysInformation complete");
     }
 
     @AfterAll

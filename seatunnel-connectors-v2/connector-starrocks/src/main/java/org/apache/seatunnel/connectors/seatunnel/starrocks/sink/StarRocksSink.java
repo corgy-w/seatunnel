@@ -23,6 +23,7 @@ import org.apache.seatunnel.api.sink.DefaultSaveModeHandler;
 import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
 import org.apache.seatunnel.api.sink.SinkWriter;
+import org.apache.seatunnel.api.sink.SupportMultiTableSink;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -30,7 +31,6 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSimpleSink;
-import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSinkWriter;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.catalog.StarRocksCatalog;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.catalog.StarRocksCatalogFactory;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.config.SinkConfig;
@@ -38,7 +38,7 @@ import org.apache.seatunnel.connectors.seatunnel.starrocks.config.SinkConfig;
 import java.util.Optional;
 
 public class StarRocksSink extends AbstractSimpleSink<SeaTunnelRow, Void>
-        implements SupportSaveMode {
+        implements SupportSaveMode, SupportMultiTableSink {
 
     private SeaTunnelRowType seaTunnelRowType;
     private final SinkConfig sinkConfig;
@@ -67,14 +67,14 @@ public class StarRocksSink extends AbstractSimpleSink<SeaTunnelRow, Void>
     }
 
     @Override
-    public AbstractSinkWriter<SeaTunnelRow, Void> createWriter(SinkWriter.Context context) {
+    public StarRocksSinkWriter createWriter(SinkWriter.Context context) {
         // Load the JDBC driver in to DriverManager
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-        return new StarRocksSinkWriter(sinkConfig, seaTunnelRowType);
+        return new StarRocksSinkWriter(sinkConfig, catalogTable);
     }
 
     @Override
