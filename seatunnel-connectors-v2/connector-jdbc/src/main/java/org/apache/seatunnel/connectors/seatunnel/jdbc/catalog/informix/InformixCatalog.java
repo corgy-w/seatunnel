@@ -255,22 +255,20 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateDatabaseSql(String databaseName) {
-        return "CREATE DATABASE \"" + databaseName + "\"";
+    protected String getDatabaseWithConditionSql(String databaseName) {
+        return String.format(getListDatabaseSql() + " WHERE TRIM(name) = '%s'", databaseName);
     }
 
     @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getSchemaAndTableName());
-            }
-            return listTables(defaultDatabase).contains(tablePath.getSchemaAndTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
-        }
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                "SELECT owner, tabname FROM %s:informix.systables WHERE owner = '%s' AND tabname = '%s'",
+                tablePath.getDatabaseName(), tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected String getCreateDatabaseSql(String databaseName) {
+        return "CREATE DATABASE \"" + databaseName + "\"";
     }
 
     @Override

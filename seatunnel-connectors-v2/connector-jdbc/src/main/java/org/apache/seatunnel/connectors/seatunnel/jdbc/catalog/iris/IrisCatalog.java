@@ -143,13 +143,10 @@ public class IrisCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            return listTables(tablePath.getSchemaName())
-                    .contains(tablePath.getSchemaAndTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
-        }
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                getListTableSql(tablePath.getSchemaName()) + " and TABLE_NAME = '%s'",
+                tablePath.getTableName());
     }
 
     @Override

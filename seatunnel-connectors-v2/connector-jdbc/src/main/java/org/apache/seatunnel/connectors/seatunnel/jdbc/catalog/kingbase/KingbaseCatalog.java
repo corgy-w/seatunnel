@@ -151,6 +151,18 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
+    protected String getDatabaseWithConditionSql(String databaseName) {
+        return String.format("select datname from sys_database WHERE datname = '%s'", databaseName);
+    }
+
+    @Override
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                "SELECT table_schema, table_name FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s'",
+                tablePath.getSchemaName(), tablePath.getTableName());
+    }
+
+    @Override
     protected String getCreateDatabaseSql(String databaseName) {
         return "CREATE DATABASE \"" + databaseName + "\"";
     }
@@ -199,21 +211,6 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
             return tableNames;
         } catch (Exception e) {
             throw new CatalogException("get table names failed", e);
-        }
-    }
-
-    @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getSchemaAndTableName());
-            }
-
-            return listTables(defaultDatabase).contains(tablePath.getSchemaAndTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
         }
     }
 

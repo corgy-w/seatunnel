@@ -114,6 +114,18 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
+    protected String getDatabaseWithConditionSql(String databaseName) {
+        return String.format(getListDatabaseSql() + " where SCHEMA_NAME = '%s'", databaseName);
+    }
+
+    @Override
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                getListTableSql(tablePath.getDatabaseName()) + " and TABLE_NAME = '%s'",
+                tablePath.getTableName());
+    }
+
+    @Override
     protected String getListDatabaseSql() {
         return "SELECT SCHEMA_NAME FROM SCHEMAS";
     }
@@ -145,6 +157,16 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     protected String getListTableSql(String databaseName) {
         return String.format(
                 "SELECT TABLE_NAME FROM TABLES WHERE SCHEMA_NAME = '%s'", databaseName);
+    }
+
+    public String getListViewSql(String databaseName) {
+        return String.format(
+                "SELECT VIEW_NAME FROM SYS.VIEWS WHERE SCHEMA_NAME = '%s'", databaseName);
+    }
+
+    public String getListSynonymSql(String databaseName) {
+        return String.format(
+                "SELECT SYNONYM_NAME FROM SYNONYMS WHERE SCHEMA_NAME = '%s';", databaseName);
     }
 
     @Override
@@ -207,19 +229,28 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
             if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getTableName());
+                return querySQLResultExists(
+                                this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
+                                getTableWithConditionSql(tablePath))
+                        || querySQLResultExists(
+                                this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
+                                String.format(
+                                        getListViewSql(tablePath.getDatabaseName())
+                                                + " and VIEW_NAME = '%s'",
+                                        tablePath.getTableName()))
+                        || querySQLResultExists(
+                                this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
+                                String.format(
+                                        getListSynonymSql(tablePath.getDatabaseName())
+                                                + " and SYNONYM_NAME = '%s'",
+                                        tablePath.getSchemaAndTableName()));
             }
-            return listTables().contains(tablePath.getSchemaAndTableName());
+            return querySQLResultExists(
+                    this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
+                    getTableWithConditionSql(tablePath));
         } catch (DatabaseNotExistException e) {
             return false;
         }
-    }
-
-    private List<String> listTables() {
-        List<String> databases = listDatabases();
-        return listTables(databases.get(0));
     }
 
     @Override

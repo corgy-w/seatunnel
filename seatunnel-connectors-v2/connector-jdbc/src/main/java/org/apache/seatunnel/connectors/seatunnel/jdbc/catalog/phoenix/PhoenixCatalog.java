@@ -196,18 +196,10 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getSchemaAndTableName());
-            }
-
-            return listTables(defaultDatabase).contains(tablePath.getSchemaAndTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
-        }
+    public String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                "select * from system.catalog where table_type = 'u' and TABLE_SCHEM = '%s' AND TABLE_NAME = '%s'",
+                tablePath.getSchemaName(), tablePath.getTableName());
     }
 
     @SneakyThrows
