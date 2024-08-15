@@ -58,5 +58,6 @@ header:
     - 'maven-settings.xml'
     - 'tools/build/packaging.sh'
     - '**/*.license'
+    - 'seatunnel-shade/seatunnel-hazelcast/seatunnel-hazelcast-shade/src/main/java/com/hazelcast/**'
 
   comment: on-failure

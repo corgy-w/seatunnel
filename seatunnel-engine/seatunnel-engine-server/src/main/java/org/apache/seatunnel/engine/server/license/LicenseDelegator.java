@@ -52,7 +52,7 @@ import java.util.Map;
 @Slf4j
 public class LicenseDelegator {
 
-    private EngineConfig engineConfig;
+    private final EngineConfig engineConfig;
 
     private static final String LICENSE_PATH =
             System.getProperty("SEATUNNEL_LICENCE_HOME") == null

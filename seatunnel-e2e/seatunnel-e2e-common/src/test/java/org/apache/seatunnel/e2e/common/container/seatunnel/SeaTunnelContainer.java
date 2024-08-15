@@ -96,7 +96,7 @@ public class SeaTunnelContainer extends AbstractTestContainer {
                                 new Slf4jLogConsumer(
                                         DockerLoggerFactory.getLogger(
                                                 "seatunnel-engine:" + JDK_DOCKER_IMAGE)))
-                        .waitingFor(Wait.forListeningPort());
+                        .waitingFor(Wait.forLogMessage(".*received new worker register:.*", 1));
         copySeaTunnelStarterToContainer(server);
         server.setPortBindings(Collections.singletonList("5801:5801"));
         server.withCopyFileToContainer(
@@ -140,7 +140,7 @@ public class SeaTunnelContainer extends AbstractTestContainer {
                                 new Slf4jLogConsumer(
                                         DockerLoggerFactory.getLogger(
                                                 "seatunnel-engine:" + JDK_DOCKER_IMAGE)))
-                        .waitingFor(Wait.forListeningPort());
+                        .waitingFor(Wait.forLogMessage(".*received new worker register:.*", 1));
         copySeaTunnelStarterToContainer(server);
         server.setPortBindings(Collections.singletonList("5801:5801"));
         server.setExposedPorts(Collections.singletonList(5801));

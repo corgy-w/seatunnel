@@ -45,7 +45,7 @@ public class StandaloneResourceManager extends AbstractResourceManager {
     private final LicenseDelegator licenseDelegator;
 
     public StandaloneResourceManager(NodeEngine nodeEngine, EngineConfig engineConfig) {
-        super(nodeEngine);
+        super(nodeEngine, engineConfig);
         this.engineConfig = engineConfig;
         this.licenseDelegator = new LicenseDelegator(engineConfig);
     }

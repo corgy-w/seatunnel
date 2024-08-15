@@ -244,3 +244,5 @@ seatunnel-transforms-v2/src/main/java/org/apache/seatunnel/transform/sqlengine/z
 seatunnel-transforms-v2/src/main/java/org/apache/seatunnel/transform/sqlengine/zeta/ZetaSQLFilter.java                                      from https://github.com/JSQLParser/JSqlParser
 seatunnel-transforms-v2/src/main/java/org/apache/seatunnel/transform/sqlengine/zeta/ZetaSQLFunction.java                                    from https://github.com/JSQLParser/JSqlParser
 seatunnel-connectors-v2/connector-file/connector-file-base/src/main/java/org/apache/orc/OrcConf.java                                        from https://github.com/apache/orc
+seatunnel-shade/seatunnel-hazelcast/seatunnel-hazelcast-shade/src/main/java/com/hazelcast/**                                                from https://github.com/hazelcast/hazelcast
+seatunnel-engine/seatunnel-engine-server/src/main/java/org/apache/seatunnel/engine/server/LiteNodeDropOutTcpIpJoiner.java                   from https://github.com/hazelcast/hazelcast

@@ -429,7 +429,7 @@ public class JobMaster implements DynamicMetricsProvider {
     private void reportEventOfSaveMode(
             long jobId, TablePath tablePath, int indexOfCount, long startTime, long finishedTime) {
         seaTunnelServer
-                .getTaskExecutionService()
+                .getEventService()
                 .reportEvent(
                         new SaveModeFinishedEvent(
                                 jobId, tablePath, indexOfCount, startTime, finishedTime));
@@ -928,6 +928,10 @@ public class JobMaster implements DynamicMetricsProvider {
 
     public void neverNeedRestore() {
         this.needRestore = false;
+    }
+
+    public EngineConfig getEngineConfig() {
+        return this.engineConfig;
     }
 
     @Override

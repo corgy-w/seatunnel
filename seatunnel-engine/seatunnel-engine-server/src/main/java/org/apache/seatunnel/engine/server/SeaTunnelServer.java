@@ -21,6 +21,7 @@ import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.common.utils.FileUtils;
 import org.apache.seatunnel.common.utils.RetryUtils;
 import org.apache.seatunnel.engine.common.Constant;
+import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
 import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
 import org.apache.seatunnel.engine.core.classloader.ClassLoaderService;
@@ -93,6 +94,8 @@ public class SeaTunnelServer
 
     private volatile boolean isRunning = true;
 
+    @Getter private EventService eventService;
+
     public SeaTunnelServer(@NonNull SeaTunnelConfig seaTunnelConfig) {
         this.liveOperationRegistry = new LiveOperationRegistry();
         this.seaTunnelConfig = seaTunnelConfig;
@@ -122,16 +125,29 @@ public class SeaTunnelServer
         this.nodeEngine = (NodeEngineImpl) engine;
         // TODO Determine whether to execute there method on the master node according to the deploy
         // type
+
         classLoaderService =
                 new DefaultClassLoaderService(
                         seaTunnelConfig.getEngineConfig().isClassloaderCacheMode());
-        taskExecutionService =
-                new TaskExecutionService(
-                        classLoaderService, nodeEngine, nodeEngine.getProperties());
-        nodeEngine.getMetricsRegistry().registerDynamicMetricsProvider(taskExecutionService);
-        taskExecutionService.start();
-        getSlotService();
 
+        eventService = new EventService(nodeEngine);
+
+        if (EngineConfig.ClusterRole.MASTER_AND_WORKER.ordinal()
+                == seaTunnelConfig.getEngineConfig().getClusterRole().ordinal()) {
+            startWorker();
+            startMaster();
+
+        } else if (EngineConfig.ClusterRole.WORKER.ordinal()
+                == seaTunnelConfig.getEngineConfig().getClusterRole().ordinal()) {
+            startWorker();
+        } else {
+            startMaster();
+        }
+
+        seaTunnelHealthMonitor = new SeaTunnelHealthMonitor(((NodeEngineImpl) engine).getNode());
+    }
+
+    private void startMaster() {
         List<URL> jars;
         try {
             jars = FileUtils.searchJarFiles(Common.appStarterDir().resolve("zeta"));
@@ -143,6 +159,7 @@ public class SeaTunnelServer
         LOGGER.info("init seatunnel server with jars: " + jars);
 
         Thread.currentThread().setContextClassLoader(classLoader);
+
         coordinatorService =
                 new CoordinatorService(
                         nodeEngine, this, seaTunnelConfig.getEngineConfig(), classLoader);
@@ -154,10 +171,16 @@ public class SeaTunnelServer
                 0,
                 seaTunnelConfig.getEngineConfig().getPrintExecutionInfoInterval(),
                 TimeUnit.SECONDS);
-
-        seaTunnelHealthMonitor = new SeaTunnelHealthMonitor(((NodeEngineImpl) engine).getNode());
-
         Thread.currentThread().setContextClassLoader(appClassLoader);
+    }
+
+    private void startWorker() {
+        taskExecutionService =
+                new TaskExecutionService(
+                        classLoaderService, nodeEngine, nodeEngine.getProperties(), eventService);
+        nodeEngine.getMetricsRegistry().registerDynamicMetricsProvider(taskExecutionService);
+        taskExecutionService.start();
+        getSlotService();
     }
 
     @Override
@@ -180,6 +203,10 @@ public class SeaTunnelServer
         }
         if (coordinatorService != null) {
             coordinatorService.shutdown();
+        }
+
+        if (eventService != null) {
+            eventService.shutdownNow();
         }
     }
 
