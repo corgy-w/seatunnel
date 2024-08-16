@@ -38,7 +38,7 @@
         <!--  SeaTunnel Engine use     -->
         <disruptor.version>3.4.4</disruptor.version>
         <okhttp.version>2.7.5</okhttp.version>
-        <license.sdk.version>2.6.34</license.sdk.version>
+        <license.sdk.version>2.6.39</license.sdk.version>
     </properties>
 
     <dependencyManagement>
