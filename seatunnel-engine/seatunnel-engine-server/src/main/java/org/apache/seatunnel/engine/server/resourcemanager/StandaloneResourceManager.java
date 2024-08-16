@@ -68,6 +68,9 @@ public class StandaloneResourceManager extends AbstractResourceManager {
 
     @SneakyThrows
     private Boolean isPassedLicenseCheck(String ip) {
+        if (!LicenseUtil.isNeedCheckLicense()) {
+            return Boolean.TRUE;
+        }
         final LicenseInfo licenseInfo = licenseDelegator.loadSystemLicense();
         final Set<String> activeHostIps =
                 registerWorker.keySet().stream().map(Address::getHost).collect(Collectors.toSet());
