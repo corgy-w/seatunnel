@@ -42,7 +42,7 @@ public class LicenseTest {
                 "SEATUNNEL_LICENCE_HOME", getTestConfigFile("/license/whaletunnel.license"));
 
         LicenseDelegator licenseDelegator = new LicenseDelegator(getEngineConfig());
-        final LicenseInfo latestValidLicenseInfo = licenseDelegator.loadSystemLicense();
+        final LicenseInfo latestValidLicenseInfo = licenseDelegator.getSystemLicense();
         Assertions.assertTrue(LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo));
         Assertions.assertTrue(
                 LicenseUtil.checkLicenseServer(

@@ -21,7 +21,6 @@ import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.node.ObjectNode;
 
 import org.apache.seatunnel.common.utils.JsonUtils;
-import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.server.utils.HttpUtils;
 
@@ -44,15 +43,19 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class LicenseDelegator {
 
-    private EngineConfig engineConfig;
+    private final EngineConfig engineConfig;
+
+    private volatile LicenseInfo licenseInfo;
 
     private static final String LICENSE_PATH =
             System.getProperty("SEATUNNEL_LICENCE_HOME") == null
@@ -61,31 +64,53 @@ public class LicenseDelegator {
 
     public LicenseDelegator(EngineConfig engineConfig) {
         this.engineConfig = engineConfig;
+        Executors.newSingleThreadScheduledExecutor()
+                .scheduleAtFixedRate(this::refreshSystemLicense, 1L, 1L, TimeUnit.HOURS);
+    }
+
+    /**
+     * Get the system license.
+     *
+     * <p>If the license is not initialized, will refresh the license.
+     */
+    public LicenseInfo getSystemLicense() {
+        if (licenseInfo == null) {
+            refreshSystemLicense();
+        }
+        return licenseInfo;
+    }
+
+    /** Mark the license as invalidated. Then we will refresh the license next time fetch. */
+    public void markLicenseInvalidated() {
+        licenseInfo = null;
     }
 
     @SneakyThrows
-    public LicenseInfo loadSystemLicense() {
-        final SystemLicenseInfo systemLicenseInfo = new SystemLicenseInfo();
+    private synchronized void refreshSystemLicense() {
+        try {
+            final SystemLicenseInfo systemLicenseInfo = new SystemLicenseInfo();
+            final Optional<String> apiLicenseOptional = fetchLicenseStringFromApi();
+            if (apiLicenseOptional.isPresent()) {
+                systemLicenseInfo.setLicense(apiLicenseOptional.get());
+            } else {
+                final String fileLicense = loadLicenseFromFile();
+                systemLicenseInfo.setLicense(fileLicense);
+            }
 
-        final String licenseStringFromApi = getLicenseStringFromApi();
-        if (StringUtils.isNotEmpty(licenseStringFromApi)) {
-            systemLicenseInfo.setLicense(licenseStringFromApi);
-        } else {
-            final String licenseFromFile = getLicenseFromFile();
-            systemLicenseInfo.setLicense(licenseFromFile);
+            systemLicenseInfo.setStatus(1);
+
+            final LicenseParams licenseParams =
+                    LicenseDecryptUtil.decrypt2License(systemLicenseInfo.getLicense());
+            final SystemId systemId = SystemIdUtil.decrypt2SystemId(licenseParams.getSystemId());
+            LicenseUtil.recalculateIpSet(
+                    systemLicenseInfo.getLicense(), systemId.getWsIpList(), systemId.getWtIpList());
+            licenseInfo = new LicenseInfo(systemLicenseInfo, licenseParams, systemId);
+        } catch (Exception ex) {
+            log.error("Refresh license failed.", ex);
         }
-
-        systemLicenseInfo.setStatus(1);
-
-        final LicenseParams licenseParams =
-                LicenseDecryptUtil.decrypt2License(systemLicenseInfo.getLicense());
-        final SystemId systemId = SystemIdUtil.decrypt2SystemId(licenseParams.getSystemId());
-        LicenseUtil.recalculateIpSet(
-                systemLicenseInfo.getLicense(), systemId.getWsIpList(), systemId.getWtIpList());
-        return new LicenseInfo(systemLicenseInfo, licenseParams, systemId);
     }
 
-    private String getLicenseFromFile() {
+    private String loadLicenseFromFile() {
         StringBuilder stringBuilder = new StringBuilder();
         try (InputStream inputStream = new FileInputStream(LICENSE_PATH);
                 BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
@@ -93,17 +118,17 @@ public class LicenseDelegator {
             while ((line = reader.readLine()) != null) {
                 stringBuilder.append(line);
             }
-        } catch (IOException e) {
-            throw new SeaTunnelException(e);
+            return stringBuilder.toString();
+        } catch (Exception ex) {
+            throw new RuntimeException("Load license from file: " + LICENSE_PATH + " error", ex);
         }
-        return stringBuilder.toString();
     }
 
-    private String getLicenseStringFromApi() {
+    private Optional<String> fetchLicenseStringFromApi() {
         final String licenseGetHttpApi = engineConfig.getLicenseGetHttpApi();
         final Map<String, String> licenseGetHttpHeaders = engineConfig.getLicenseGetHttpHeaders();
         if (StringUtils.isBlank(licenseGetHttpApi) || MapUtils.isEmpty(licenseGetHttpHeaders)) {
-            return null;
+            return Optional.empty();
         }
         OkHttpClient httpClient = HttpUtils.getInstance();
         try {
@@ -112,7 +137,7 @@ public class LicenseDelegator {
             Response response = httpClient.newCall(requestBuilder.build()).execute();
             if (!response.isSuccessful()) {
                 log.info("get license fail:{}", response);
-                return null;
+                return Optional.empty();
             }
             final String body = response.body().string();
             final ObjectNode jsonNodes = JsonUtils.parseObject(body);
@@ -120,11 +145,10 @@ public class LicenseDelegator {
             final JsonNode systemLicense = data.get("systemLicense");
             final JsonNode licenseStrNode = systemLicense.get("license");
             final String license = licenseStrNode.asText();
-            return license;
+            return Optional.ofNullable(license);
         } catch (Exception e) {
-            log.error("get license error:{}", e.getMessage());
-            e.printStackTrace();
+            log.error("Fetch license from API error", e);
+            return Optional.empty();
         }
-        return null;
     }
 }

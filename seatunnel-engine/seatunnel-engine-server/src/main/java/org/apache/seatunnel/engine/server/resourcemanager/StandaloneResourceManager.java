@@ -71,17 +71,27 @@ public class StandaloneResourceManager extends AbstractResourceManager {
         if (!LicenseUtil.isNeedCheckLicense()) {
             return Boolean.TRUE;
         }
-        final LicenseInfo licenseInfo = licenseDelegator.loadSystemLicense();
-        final Set<String> activeHostIps =
-                registerWorker.keySet().stream().map(Address::getHost).collect(Collectors.toSet());
-        if (LicenseUtil.checkLicenseServer(licenseInfo, activeHostIps, ip, LicenseNodeEnum.WT)) {
-            return true;
+        try {
+            final LicenseInfo licenseInfo = licenseDelegator.getSystemLicense();
+            final Set<String> activeHostIps =
+                    registerWorker.keySet().stream()
+                            .map(Address::getHost)
+                            .collect(Collectors.toSet());
+            if (LicenseUtil.checkLicenseServer(
+                    licenseInfo, activeHostIps, ip, LicenseNodeEnum.WT)) {
+                return true;
+            }
+            // for test
+            if (LicenseUtil.checkLicenseServer(
+                    licenseInfo, activeHostIps, "127.0.0.1", LicenseNodeEnum.WT)) {
+                return true;
+            }
+            licenseDelegator.markLicenseInvalidated();
+            return false;
+        } catch (Exception ex) {
+            licenseDelegator.markLicenseInvalidated();
+            log.error("Check license failed", ex);
+            return false;
         }
-        // for test
-        if (LicenseUtil.checkLicenseServer(
-                licenseInfo, activeHostIps, "127.0.0.1", LicenseNodeEnum.WT)) {
-            return true;
-        }
-        return false;
     }
 }
