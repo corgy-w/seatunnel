@@ -66,6 +66,10 @@ public class StandaloneResourceManager extends AbstractResourceManager {
         return afterFilteringRegisterWorker;
     }
 
+    public LicenseDelegator getLicenseDelegator() {
+        return licenseDelegator;
+    }
+
     @SneakyThrows
     private Boolean isPassedLicenseCheck(String ip) {
         if (!LicenseUtil.isNeedCheckLicense()) {

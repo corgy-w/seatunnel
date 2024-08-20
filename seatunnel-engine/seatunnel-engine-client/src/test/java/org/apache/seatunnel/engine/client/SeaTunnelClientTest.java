@@ -91,6 +91,16 @@ public class SeaTunnelClientTest {
     }
 
     @Test
+    public void testRefreshLicense() {
+        final SeaTunnelClient seaTunnelClient = createSeaTunnelClient();
+        try {
+            seaTunnelClient.refreshMasterLicense();
+        } finally {
+            seaTunnelClient.close();
+        }
+    }
+
+    @Test
     public void testExecuteJob() {
         Common.setDeployMode(DeployMode.CLIENT);
         String filePath = TestUtils.getResource("/client_test.conf");
