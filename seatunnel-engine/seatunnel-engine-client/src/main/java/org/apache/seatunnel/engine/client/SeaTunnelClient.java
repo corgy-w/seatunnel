@@ -23,9 +23,11 @@ import org.apache.seatunnel.engine.client.job.JobClient;
 import org.apache.seatunnel.engine.client.job.JobMetricsRunner.JobMetricsSummary;
 import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
+import org.apache.seatunnel.engine.common.utils.PassiveCompletableFuture;
 import org.apache.seatunnel.engine.core.job.JobDAGInfo;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetClusterHealthMetricsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelPrintMessageCodec;
+import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelRefreshLicenseCodec;
 
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.cluster.Member;
@@ -85,6 +87,13 @@ public class SeaTunnelClient implements SeaTunnelClientInstance, AutoCloseable {
         return hazelcastClient.requestOnMasterAndDecodeResponse(
                 SeaTunnelPrintMessageCodec.encodeRequest(msg),
                 SeaTunnelPrintMessageCodec::decodeResponse);
+    }
+
+    public void refreshMasterLicense() {
+        PassiveCompletableFuture<Void> passiveCompletableFuture =
+                hazelcastClient.requestOnMasterAndGetCompletableFuture(
+                        SeaTunnelRefreshLicenseCodec.encodeRequest());
+        passiveCompletableFuture.join();
     }
 
     /**

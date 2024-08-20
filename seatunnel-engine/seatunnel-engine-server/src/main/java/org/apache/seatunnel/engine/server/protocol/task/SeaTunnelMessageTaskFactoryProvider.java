@@ -26,6 +26,7 @@ import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobStatusCode
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetRunningJobMetricsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelListJobStatusCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelPrintMessageCodec;
+import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelRefreshLicenseCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelSavePointJobCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelSubmitJobCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelUploadConnectorJarCodec;
@@ -102,5 +103,9 @@ public class SeaTunnelMessageTaskFactoryProvider implements MessageTaskFactoryPr
                 SeaTunnelUploadConnectorJarCodec.REQUEST_MESSAGE_TYPE,
                 (clientMessage, connection) ->
                         new UploadConnectorJarTask(clientMessage, node, connection));
+        factories.put(
+                SeaTunnelRefreshLicenseCodec.REQUEST_MESSAGE_TYPE,
+                (clientMessage, connection) ->
+                        new SeaTunnelRefreshLicenseTask(clientMessage, node, connection));
     }
 }

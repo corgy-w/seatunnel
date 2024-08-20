@@ -26,6 +26,7 @@ import org.apache.seatunnel.engine.server.operation.GetJobMetricsOperation;
 import org.apache.seatunnel.engine.server.operation.GetJobStatusOperation;
 import org.apache.seatunnel.engine.server.operation.GetRunningJobMetricsOperation;
 import org.apache.seatunnel.engine.server.operation.PrintMessageOperation;
+import org.apache.seatunnel.engine.server.operation.RefreshLicenseOperation;
 import org.apache.seatunnel.engine.server.operation.SavePointJobOperation;
 import org.apache.seatunnel.engine.server.operation.SubmitJobOperation;
 import org.apache.seatunnel.engine.server.operation.UploadConnectorJarOperation;
@@ -65,6 +66,8 @@ public final class ClientToServerOperationDataSerializerHook implements DataSeri
     public static final int GET_RUNNING_JOB_METRICS_OPERATOR = 10;
 
     public static final int UPLOAD_CONNECTOR_JAR_OPERATION = 11;
+
+    public static final int REFRESH_LICENSE_OPERATION = 100;
 
     public static final int FACTORY_ID =
             FactoryIdHelper.getFactoryId(
@@ -109,6 +112,8 @@ public final class ClientToServerOperationDataSerializerHook implements DataSeri
                     return new GetRunningJobMetricsOperation();
                 case UPLOAD_CONNECTOR_JAR_OPERATION:
                     return new UploadConnectorJarOperation();
+                case REFRESH_LICENSE_OPERATION:
+                    return new RefreshLicenseOperation();
                 default:
                     throw new IllegalArgumentException("Unknown type id " + typeId);
             }

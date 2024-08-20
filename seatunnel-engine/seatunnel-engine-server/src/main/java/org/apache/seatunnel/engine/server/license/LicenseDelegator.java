@@ -86,7 +86,7 @@ public class LicenseDelegator {
     }
 
     @SneakyThrows
-    private synchronized void refreshSystemLicense() {
+    public synchronized void refreshSystemLicense() {
         try {
             final SystemLicenseInfo systemLicenseInfo = new SystemLicenseInfo();
             final Optional<String> apiLicenseOptional = fetchLicenseStringFromApi();
