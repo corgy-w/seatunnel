@@ -31,6 +31,7 @@ import org.apache.seatunnel.connectors.dws.guassdb.sink.exception.DwsGaussDBConn
 import org.apache.seatunnel.connectors.dws.guassdb.sink.exception.DwsGaussDBConnectorException;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.sql.DwsGaussSqlGenerator;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.state.DwsGaussDBSinkState;
+import org.apache.seatunnel.connectors.dws.guassdb.sink.utils.DwsGaussDBReplaceUtils;
 
 import com.huawei.gauss200.jdbc.copy.CopyManager;
 import com.huawei.gauss200.jdbc.core.BaseConnection;
@@ -79,6 +80,7 @@ public class DwsGaussDBAppendOnlySinkWriter
     @Override
     public void write(SeaTunnelRow element) throws IOException {
         // todo: Do we need to handle the delete/update element in append_only mode?
+        DwsGaussDBReplaceUtils.replace(element);
         appendRows.offer(element);
         if (appendRows.size() > batchSize) {
             try {

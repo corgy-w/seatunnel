@@ -69,6 +69,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class SelectDBCatalog implements Catalog {
 
+    public static final String DATABASE_QUERY =
+            "SELECT SCHEMA_NAME FROM information_schema.schemata "
+                    + "WHERE CATALOG_NAME = 'internal' AND SCHEMA_NAME = ? "
+                    + "ORDER BY SCHEMA_NAME";
+    public static final String TABLES_QUERY_WITH_IDENTIFIER_QUERY =
+            "SELECT TABLE_NAME FROM information_schema.tables "
+                    + "WHERE TABLE_CATALOG = 'internal' AND TABLE_SCHEMA = ? AND TABLE_NAME = ? "
+                    + "ORDER BY TABLE_NAME";
+
     protected final String catalogName;
     protected String defaultDatabase = "information_schema";
     protected final String username;
@@ -77,6 +86,7 @@ public class SelectDBCatalog implements Catalog {
     private final String template;
     protected String defaultUrl;
     private final JdbcUrlUtil.UrlInfo urlInfo;
+    private Connection conn;
 
     private static final Set<String> SYS_DATABASES = new HashSet<>();
     private static final Logger LOG = LoggerFactory.getLogger(SelectDBCatalog.class);
@@ -106,13 +116,10 @@ public class SelectDBCatalog implements Catalog {
 
     @Override
     public List<String> listDatabases() throws CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
-
-            PreparedStatement ps = conn.prepareStatement("SHOW DATABASES;");
+        try (PreparedStatement ps = conn.prepareStatement("SHOW DATABASES;");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> databases = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
                 String databaseName = rs.getString(1);
                 if (!SYS_DATABASES.contains(databaseName)) {
@@ -134,12 +141,8 @@ public class SelectDBCatalog implements Catalog {
             throw new DatabaseNotExistException(this.catalogName, databaseName);
         }
 
-        try (Connection conn =
-                DriverManager.getConnection(
-                        urlInfo.getUrlWithDatabase(databaseName), username, pwd)) {
-            PreparedStatement ps = conn.prepareStatement("SHOW TABLES;");
-
-            ResultSet rs = ps.executeQuery();
+        try (PreparedStatement ps = conn.prepareStatement("SHOW TABLES;");
+                ResultSet rs = ps.executeQuery()) {
 
             List<String> tables = new ArrayList<>();
 
@@ -161,8 +164,7 @@ public class SelectDBCatalog implements Catalog {
             throw new TableNotExistException(catalogName, tablePath);
         }
 
-        String dbUrl = urlInfo.getUrlWithDatabase(tablePath.getDatabaseName());
-        try (Connection conn = DriverManager.getConnection(dbUrl, username, pwd)) {
+        try {
             Optional<PrimaryKey> primaryKey =
                     getPrimaryKey(tablePath.getDatabaseName(), tablePath.getTableName());
 
@@ -225,7 +227,7 @@ public class SelectDBCatalog implements Catalog {
     @Override
     public void dropTable(TablePath tablePath, boolean ignoreIfNotExists)
             throws TableNotExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
+        try {
             conn.createStatement().execute(getDropTableSql(tablePath));
         } catch (Exception e) {
             throw new CatalogException(
@@ -257,8 +259,7 @@ public class SelectDBCatalog implements Catalog {
     public boolean isExistsData(TablePath tablePath) {
         String tableName = tablePath.getFullName();
         String sql = String.format("select * from %s limit 1;", tableName);
-        try (Connection connection = DriverManager.getConnection(defaultUrl, username, pwd);
-                PreparedStatement ps = connection.prepareStatement(sql);
+        try (PreparedStatement ps = conn.prepareStatement(sql);
                 ResultSet resultSet = ps.executeQuery()) {
             if (resultSet == null) {
                 return false;
@@ -272,7 +273,7 @@ public class SelectDBCatalog implements Catalog {
     @Override
     public void createDatabase(TablePath tablePath, boolean ignoreIfExists)
             throws DatabaseAlreadyExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
+        try {
 
             conn.createStatement().execute(getCreateDatabaseSql(tablePath, ignoreIfExists));
         } catch (Exception e) {
@@ -292,7 +293,7 @@ public class SelectDBCatalog implements Catalog {
     @Override
     public void dropDatabase(TablePath tablePath, boolean ignoreIfNotExists)
             throws DatabaseNotExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
+        try {
             if (ignoreIfNotExists) {
                 conn.createStatement()
                         .execute("DROP DATABASE IF EXISTS `" + tablePath.getDatabaseName() + "`");
@@ -387,7 +388,7 @@ public class SelectDBCatalog implements Catalog {
 
     private void createTable(String sql)
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
+        try {
             conn.createStatement().execute(sql);
         } catch (Exception e) {
             throw new CatalogException(
@@ -403,7 +404,8 @@ public class SelectDBCatalog implements Catalog {
 
     @Override
     public void open() throws CatalogException {
-        try (Connection conn = DriverManager.getConnection(defaultUrl, username, pwd)) {
+        try {
+            conn = DriverManager.getConnection(defaultUrl, username, pwd);
             // test connection, fail early if we cannot connect to database
             conn.getCatalog();
         } catch (SQLException e) {
@@ -416,6 +418,14 @@ public class SelectDBCatalog implements Catalog {
 
     @Override
     public void close() throws CatalogException {
+        try {
+            if (conn != null) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            throw new CatalogException(
+                    String.format("Failed closing connection to %s via JDBC.", defaultUrl), e);
+        }
         LOG.info("Catalog {} closing", catalogName);
     }
 
@@ -449,18 +459,25 @@ public class SelectDBCatalog implements Catalog {
 
     @Override
     public boolean databaseExists(String databaseName) throws CatalogException {
-        checkArgument(StringUtils.isNotBlank(databaseName));
-
-        return listDatabases().contains(databaseName);
+        try (PreparedStatement ps = conn.prepareStatement(DATABASE_QUERY)) {
+            ps.setString(1, databaseName);
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            throw new CatalogException("check database exists failed", e);
+        }
     }
 
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName()).contains(tablePath.getTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
+        try (PreparedStatement ps = conn.prepareStatement(TABLES_QUERY_WITH_IDENTIFIER_QUERY)) {
+            ps.setString(1, tablePath.getDatabaseName());
+            ps.setString(2, tablePath.getTableName());
+            ResultSet rs = ps.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            throw new CatalogException(
+                    String.format("check table [%s] exists failed", tablePath.getFullName()), e);
         }
     }
 

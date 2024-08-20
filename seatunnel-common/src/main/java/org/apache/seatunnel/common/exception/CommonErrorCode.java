@@ -53,7 +53,9 @@ public enum CommonErrorCode implements SeaTunnelErrorCode {
 
     VERSION_NOT_SUPPORTED("COMMON-25", "<identifier> <version> is unsupported."),
 
-    OPERATION_NOT_SUPPORTED("COMMON-26", "<identifier> <operation> is unsupported.");
+    OPERATION_NOT_SUPPORTED("COMMON-26", "<identifier> <operation> is unsupported."),
+
+    UNSUPPORTED_METHOD("COMMON-34", "'<identifier>' unsupported the method '<methodName>'");
 
     private final String code;
     private final String description;

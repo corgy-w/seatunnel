@@ -71,10 +71,10 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
             throws CatalogException, DatabaseNotExistException {
         List<String> tableNames = new ArrayList<>();
         String querySql = "select * from system.catalog where table_type = 'u'";
-        ResultSet resultSet = null;
-        try {
-            Connection connection = getConnection(baseUrl);
-            resultSet = connection.createStatement().executeQuery(querySql);
+        try (Connection connection = getConnection(baseUrl);
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(querySql)) {
+
             while (resultSet.next()) {
                 String tableSchema = resultSet.getString("TABLE_SCHEM");
                 String tableName = resultSet.getString("TABLE_NAME");
@@ -88,16 +88,6 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
         } catch (SQLException e) {
             throw new CatalogException(
                     String.format("Failed listing database in catalog %s", catalogName), e);
-        } finally {
-            try {
-                if (resultSet != null) {
-                    resultSet.close();
-                }
-            } catch (SQLException throwables) {
-                throw new CatalogException(
-                        String.format("Failed listing database in catalog %s", catalogName),
-                        throwables);
-            }
         }
     }
 
@@ -206,18 +196,10 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getSchemaAndTableName());
-            }
-
-            return listTables(defaultDatabase).contains(tablePath.getSchemaAndTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
-        }
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                "select * from system.catalog where table_type = 'u' and TABLE_SCHEM = '%s' AND TABLE_NAME = '%s'",
+                tablePath.getSchemaName(), tablePath.getTableName());
     }
 
     @SneakyThrows

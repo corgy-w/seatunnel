@@ -66,12 +66,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.seatunnel.common.exception.CommonErrorCode.UNSUPPORTED_METHOD;
 
 @Slf4j
 public abstract class AbstractJdbcCatalog implements Catalog {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJdbcCatalog.class);
 
     protected static final Set<String> SYS_DATABASES = new HashSet<>();
+    protected static final Set<String> EXCLUDED_SCHEMAS = new HashSet<>();
 
     protected final String catalogName;
     protected final String defaultDatabase;
@@ -316,6 +318,10 @@ public abstract class AbstractJdbcCatalog implements Catalog {
         throw new UnsupportedOperationException();
     }
 
+    protected String getDatabaseWithConditionSql(String databaseName) {
+        throw CommonError.unsupportedMethod(this.catalogName, "getDatabaseWithConditionSql");
+    }
+
     @Override
     public List<String> listDatabases() throws CatalogException {
         try {
@@ -334,9 +340,25 @@ public abstract class AbstractJdbcCatalog implements Catalog {
 
     @Override
     public boolean databaseExists(String databaseName) throws CatalogException {
-        checkArgument(StringUtils.isNotBlank(databaseName));
-
-        return listDatabases().contains(databaseName);
+        if (StringUtils.isBlank(databaseName)) {
+            return false;
+        }
+        if (SYS_DATABASES.contains(databaseName)) {
+            return false;
+        }
+        try {
+            return querySQLResultExists(
+                    getUrlFromDatabaseName(databaseName),
+                    getDatabaseWithConditionSql(databaseName));
+        } catch (SeaTunnelRuntimeException e) {
+            if (e.getSeaTunnelErrorCode().getCode().equals(UNSUPPORTED_METHOD.getCode())) {
+                log.warn(
+                        "The catalog: {} is not supported the getDatabaseWithConditionSql for databaseExists",
+                        this.catalogName);
+                return listDatabases().contains(databaseName);
+            }
+            throw e;
+        }
     }
 
     protected String getListTableSql(String databaseName) {
@@ -349,6 +371,10 @@ public abstract class AbstractJdbcCatalog implements Catalog {
 
     protected String getListSynonymSql(String databaseName) {
         throw new UnsupportedOperationException();
+    }
+
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        throw CommonError.unsupportedMethod(this.catalogName, "getTableWithConditionSql");
     }
 
     protected String getTableName(ResultSet rs) throws SQLException {
@@ -410,11 +436,27 @@ public abstract class AbstractJdbcCatalog implements Catalog {
 
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            return databaseExists(tablePath.getDatabaseName())
-                    && listTables(tablePath.getDatabaseName()).contains(getTableName(tablePath));
-        } catch (DatabaseNotExistException e) {
+        String databaseName = tablePath.getDatabaseName();
+        if (EXCLUDED_SCHEMAS.contains(tablePath.getSchemaName())) {
             return false;
+        }
+        try {
+            return querySQLResultExists(
+                    this.getUrlFromDatabaseName(databaseName), getTableWithConditionSql(tablePath));
+        } catch (SeaTunnelRuntimeException e1) {
+            if (e1.getSeaTunnelErrorCode().getCode().equals(UNSUPPORTED_METHOD.getCode())) {
+                log.warn(
+                        "The catalog: {} is not supported the getTableWithConditionSql for tableExists ",
+                        this.catalogName);
+                try {
+                    return databaseExists(tablePath.getDatabaseName())
+                            && listTables(tablePath.getDatabaseName())
+                                    .contains(getTableName(tablePath));
+                } catch (DatabaseNotExistException e2) {
+                    return false;
+                }
+            }
+            throw e1;
         }
     }
 
@@ -613,9 +655,9 @@ public abstract class AbstractJdbcCatalog implements Catalog {
 
     protected List<String> queryString(String url, String sql, ResultSetConsumer<String> consumer)
             throws SQLException {
-        try (PreparedStatement ps = getConnection(url).prepareStatement(sql)) {
+        try (PreparedStatement ps = getConnection(url).prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
             List<String> result = new ArrayList<>();
-            ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 String value = consumer.apply(rs);
                 if (value != null) {
@@ -623,6 +665,17 @@ public abstract class AbstractJdbcCatalog implements Catalog {
                 }
             }
             return result;
+        }
+    }
+
+    protected boolean querySQLResultExists(String dbUrl, String sql) {
+        try (PreparedStatement stmt = getConnection(dbUrl).prepareStatement(sql)) {
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (Exception e) {
+            log.info("query exists error", e);
+            return false;
         }
     }
 
@@ -675,8 +728,9 @@ public abstract class AbstractJdbcCatalog implements Catalog {
         String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
         Connection connection = getConnection(dbUrl);
         String sql = getExistDataSql(tablePath);
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ResultSet resultSet = ps.executeQuery();
+        try (PreparedStatement ps = connection.prepareStatement(sql);
+                ResultSet resultSet = ps.executeQuery()) {
+
             return resultSet.next();
         } catch (SQLException e) {
             throw new CatalogException(String.format("Failed executeSql error %s", sql), e);

@@ -28,6 +28,7 @@ import org.apache.seatunnel.engine.client.job.ClientJobProxy;
 import org.apache.seatunnel.engine.common.config.ConfigProvider;
 import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
+import org.apache.seatunnel.engine.core.job.JobResult;
 import org.apache.seatunnel.engine.core.job.JobStatus;
 import org.apache.seatunnel.engine.server.SeaTunnelServerStarter;
 
@@ -544,8 +545,8 @@ public class ClusterFaultToleranceIT {
                             testResources.getRight(), jobConfig, seaTunnelConfig);
             ClientJobProxy clientJobProxy = jobExecutionEnv.execute();
 
-            CompletableFuture<JobStatus> objectCompletableFuture =
-                    CompletableFuture.supplyAsync(clientJobProxy::waitForJobComplete);
+            CompletableFuture<JobResult> objectCompletableFuture =
+                    CompletableFuture.supplyAsync(clientJobProxy::waitForJobCompleteV2);
 
             Awaitility.await()
                     .atMost(60000, TimeUnit.MILLISECONDS)
@@ -559,12 +560,16 @@ public class ClusterFaultToleranceIT {
                                                         testResources.getLeft())
                                                 + "=================================\n");
                                 Assertions.assertTrue(
-                                        JobStatus.RUNNING.equals(clientJobProxy.getJobStatus())
-                                                && FileUtils.getFileLineNumberFromDir(
-                                                                testResources.getLeft())
-                                                        > 1);
+                                        (JobStatus.RUNNING.equals(clientJobProxy.getJobStatus())
+                                                        && FileUtils.getFileLineNumberFromDir(
+                                                                        testResources.getLeft())
+                                                                > 1)
+                                                || objectCompletableFuture.isDone());
                             });
 
+            if (objectCompletableFuture.isDone()) {
+                throw new RuntimeException(objectCompletableFuture.get().getError());
+            }
             // shutdown master node
             node1.shutdown();
 
@@ -581,7 +586,7 @@ public class ClusterFaultToleranceIT {
                                 Assertions.assertTrue(
                                         objectCompletableFuture.isDone()
                                                 && JobStatus.FINISHED.equals(
-                                                        objectCompletableFuture.get()));
+                                                        objectCompletableFuture.get().getStatus()));
                             });
 
             Long fileLineNumberFromDir =

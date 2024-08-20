@@ -23,6 +23,9 @@ import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 
+import org.apache.logging.log4j.util.Strings;
+
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
@@ -30,7 +33,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -60,17 +66,25 @@ public class FieldRenamerConfig implements Serializable {
                     .noDefaultValue()
                     .withDescription("Add suffix for field name");
 
+    @Deprecated
     public static final Option<String> REPLACE_FROM =
             Options.key("replace_from")
                     .stringType()
                     .noDefaultValue()
                     .withDescription("The regex of replace field name from");
 
+    @Deprecated
     public static final Option<String> REPLACE_TO =
             Options.key("replace_to")
                     .stringType()
                     .defaultValue("")
                     .withDescription("The regex of replace field name to ");
+
+    public static final Option<Map<String, String>> REPLACEMENTS =
+            Options.key("replacements")
+                    .mapType()
+                    .noDefaultValue()
+                    .withDescription("The regex of replace fields name to ");
 
     public static final Option<List<SpecificModify>> SPECIFIC =
             Options.key("specific")
@@ -90,14 +104,33 @@ public class FieldRenamerConfig implements Serializable {
     @JsonAlias("suffix")
     private String suffix;
 
+    // TODO remove this after all the old configs are updated
+    @Deprecated
+    @Getter(AccessLevel.PRIVATE)
     @JsonAlias("replace_from")
     private String replaceFrom;
 
+    // TODO remove this after all the old configs are updated
+    @Deprecated
+    @Getter(AccessLevel.PRIVATE)
     @JsonAlias("replace_to")
     private String replaceTo;
 
+    @JsonAlias("replacements")
+    private LinkedHashMap<String, String> replacements;
+
     @JsonAlias("specific")
     private List<SpecificModify> specific;
+
+    public LinkedHashMap<String, String> getReplacements() {
+        if (replacements == null || replacements.isEmpty()) {
+            if (Strings.isNotBlank(replaceFrom) && Strings.isNotBlank(replaceTo)) {
+                // TODO remove this after all the old configs are updated
+                return new LinkedHashMap<>(Collections.singletonMap(replaceFrom, replaceTo));
+            }
+        }
+        return replacements;
+    }
 
     @Data
     @AllArgsConstructor
@@ -119,9 +152,14 @@ public class FieldRenamerConfig implements Serializable {
         fieldRenamerConfig.setConvertCase(config.get(CONVERT_CASE));
         fieldRenamerConfig.setPrefix(config.get(PREFIX));
         fieldRenamerConfig.setSuffix(config.get(SUFFIX));
+        fieldRenamerConfig.setReplacements(
+                (LinkedHashMap<String, String>) config.get(REPLACEMENTS));
+        fieldRenamerConfig.setSpecific(config.get(SPECIFIC));
+
+        // TODO remove this after all the old configs are updated
         fieldRenamerConfig.setReplaceFrom(config.get(REPLACE_FROM));
         fieldRenamerConfig.setReplaceTo(config.get(REPLACE_TO));
-        fieldRenamerConfig.setSpecific(config.get(SPECIFIC));
+
         return fieldRenamerConfig;
     }
 }

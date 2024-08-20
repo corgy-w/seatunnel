@@ -103,15 +103,17 @@ public class RedshiftJdbcClient implements AutoCloseable {
     }
 
     public boolean existDataForSql(String sql) throws SQLException {
-        try (Connection connection = getConnection()) {
-            ResultSet resultSet = connection.createStatement().executeQuery(sql);
+        try (Connection connection = getConnection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(sql)) {
             return resultSet.next();
         }
     }
 
     public Integer executeQueryCount(String sql) throws SQLException {
-        try (Connection connection = getConnection()) {
-            ResultSet resultSet = connection.createStatement().executeQuery(sql);
+        try (Connection connection = getConnection();
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(sql)) {
             if (!resultSet.next()) {
                 return 0;
             }
@@ -123,8 +125,8 @@ public class RedshiftJdbcClient implements AutoCloseable {
             throws Exception {
         Map<String, ImmutablePair<Object, Object>> result = new HashMap<>();
         try (Connection connection = getConnection();
-                Statement statement = connection.createStatement()) {
-            ResultSet resultSet = statement.executeQuery(sql);
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(sql)) {
             while (resultSet.next()) {
                 for (int i = 1; i < sortKeys.length + 1; i++) {
                     int j = i * 2;

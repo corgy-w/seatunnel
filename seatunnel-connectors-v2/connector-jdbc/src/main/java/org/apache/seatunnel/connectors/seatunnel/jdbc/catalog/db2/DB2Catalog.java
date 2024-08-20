@@ -23,7 +23,6 @@ import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
-import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
@@ -78,30 +77,21 @@ public class DB2Catalog extends AbstractJdbcCatalog {
     @SneakyThrows
     @Override
     public List<String> listDatabases() throws CatalogException {
-        return Collections.singletonList(
+        try (ResultSet resultSet =
                 getConnection(getUrlFromDatabaseName(defaultDatabase))
                         .getMetaData()
-                        .getCatalogs()
-                        .getMetaData()
-                        .getCatalogName(1));
-    }
-
-    @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && listTables(tablePath.getDatabaseName())
-                                .contains(tablePath.getSchemaAndTableName());
-            }
-            return listTables().contains(tablePath.getSchemaAndTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
+                        .getCatalogs()) {
+            return Collections.singletonList(resultSet.getMetaData().getCatalogName(1));
         }
     }
 
-    private List<String> listTables() {
-        return listTables(defaultDatabase);
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return getListTableSql(tablePath.getDatabaseName())
+                + "  and TABSCHEMA = '"
+                + tablePath.getSchemaName()
+                + "' and TABNAME = '"
+                + tablePath.getTableName()
+                + "'";
     }
 
     @Override
@@ -152,8 +142,9 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                         schema, table);
         Connection connection = getConnection(getUrlFromDatabaseName(defaultDatabase));
         List<String> primaryKeyColNameList = new ArrayList<>();
-        try (Statement ps = connection.createStatement()) {
-            ResultSet resultSet = ps.executeQuery(getPrimaryKeyFieldSql);
+        try (Statement ps = connection.createStatement();
+                ResultSet resultSet = ps.executeQuery(getPrimaryKeyFieldSql)) {
+
             while (resultSet.next()) {
                 String primaryKeyColName = resultSet.getString("COLNAME");
                 primaryKeyColNameList.add(primaryKeyColName);
@@ -171,8 +162,9 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                         "SELECT INDNAME FROM SYSCAT.INDEXES WHERE UNIQUERULE = 'P' AND TABSCHEMA  = '%s' AND TABNAME = '%s' ;",
                         schema, table);
         Connection connection = getConnection(getUrlFromDatabaseName(defaultDatabase));
-        try (Statement ps = connection.createStatement()) {
-            ResultSet resultSet = ps.executeQuery(getPrimaryKeyNameSql);
+        try (Statement ps = connection.createStatement();
+                ResultSet resultSet = ps.executeQuery(getPrimaryKeyNameSql)) {
+
             while (resultSet.next()) {
                 String primaryKeyColName = resultSet.getString("INDNAME");
                 if (StringUtils.isNotEmpty(primaryKeyColName)) {

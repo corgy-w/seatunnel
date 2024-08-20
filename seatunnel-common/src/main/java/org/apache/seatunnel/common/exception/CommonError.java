@@ -192,4 +192,12 @@ public class CommonError {
         params.put("operation", operation);
         return new SeaTunnelRuntimeException(OPERATION_NOT_SUPPORTED, params);
     }
+
+    public static SeaTunnelRuntimeException unsupportedMethod(
+            String identifier, String methodName) {
+        Map<String, String> params = new HashMap<>();
+        params.put("identifier", identifier);
+        params.put("methodName", methodName);
+        return new SeaTunnelRuntimeException(CommonErrorCode.UNSUPPORTED_METHOD, params);
+    }
 }

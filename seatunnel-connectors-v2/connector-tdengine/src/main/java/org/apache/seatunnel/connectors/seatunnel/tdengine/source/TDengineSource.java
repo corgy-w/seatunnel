@@ -139,10 +139,11 @@ public class TDengineSource
         // check td driver whether exist and if not, try to register
         checkDriverExist(jdbcUrl);
         try (Connection conn = DriverManager.getConnection(jdbcUrl)) {
-            try (Statement statement = conn.createStatement()) {
-                ResultSet metaResultSet =
-                        statement.executeQuery(
-                                "desc " + config.getDatabase() + "." + config.getStable());
+            try (Statement statement = conn.createStatement();
+                    ResultSet metaResultSet =
+                            statement.executeQuery(
+                                    "desc " + config.getDatabase() + "." + config.getStable())) {
+
                 while (metaResultSet.next()) {
                     if (timestampFieldName == null) {
                         timestampFieldName = metaResultSet.getString(1);
@@ -151,14 +152,15 @@ public class TDengineSource
                     fieldTypes.add(TDengineTypeMapper.mapping(metaResultSet.getString(2)));
                 }
             }
-            try (Statement statement = conn.createStatement()) {
-                String metaSQL =
-                        "select table_name from information_schema.ins_tables where db_name = '"
-                                + config.getDatabase()
-                                + "' and stable_name='"
-                                + config.getStable()
-                                + "';";
-                ResultSet subTableNameResultSet = statement.executeQuery(metaSQL);
+            String metaSQL =
+                    "select table_name from information_schema.ins_tables where db_name = '"
+                            + config.getDatabase()
+                            + "' and stable_name='"
+                            + config.getStable()
+                            + "';";
+            try (Statement statement = conn.createStatement();
+                    ResultSet subTableNameResultSet = statement.executeQuery(metaSQL)) {
+
                 while (subTableNameResultSet.next()) {
                     String subTableName = subTableNameResultSet.getString(1);
                     subTableNames.add(subTableName);

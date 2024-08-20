@@ -18,13 +18,11 @@
 package org.apache.seatunnel.engine.server.resourcemanager;
 
 import org.apache.seatunnel.engine.common.config.EngineConfig;
-import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseBillingServiceImpl;
-import org.apache.seatunnel.engine.server.license.WhaleTunnelLicenseServiceImpl;
+import org.apache.seatunnel.engine.server.license.LicenseDelegator;
 import org.apache.seatunnel.engine.server.resourcemanager.worker.WorkerProfile;
 
 import org.apache.commons.collections4.MapUtils;
 
-import org.whaleops.license.LicenseManager;
 import org.whaleops.license.dto.LicenseInfo;
 import org.whaleops.license.enums.LicenseNodeEnum;
 import org.whaleops.license.utils.LicenseUtil;
@@ -34,19 +32,22 @@ import com.hazelcast.spi.impl.NodeEngine;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
-import java.lang.reflect.Field;
-import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class StandaloneResourceManager extends AbstractResourceManager {
 
     private final EngineConfig engineConfig;
 
+    private final LicenseDelegator licenseDelegator;
+
     public StandaloneResourceManager(NodeEngine nodeEngine, EngineConfig engineConfig) {
         super(nodeEngine);
         this.engineConfig = engineConfig;
+        this.licenseDelegator = new LicenseDelegator(engineConfig);
     }
 
     protected ConcurrentMap<Address, WorkerProfile> filterRegisterWorker(
@@ -67,30 +68,30 @@ public class StandaloneResourceManager extends AbstractResourceManager {
 
     @SneakyThrows
     private Boolean isPassedLicenseCheck(String ip) {
-        LicenseManager licenseManager = new LicenseManager();
-        Class<?> clazz = licenseManager.getClass();
-        Field licenseServiceField = clazz.getDeclaredField("licenseService");
-        licenseServiceField.setAccessible(true);
-        licenseServiceField.set(licenseManager, new WhaleTunnelLicenseServiceImpl(engineConfig));
-
-        Field licenseBillingServiceField = clazz.getDeclaredField("licenseBillingService");
-        licenseBillingServiceField.setAccessible(true);
-        licenseBillingServiceField.set(licenseManager, new WhaleTunnelLicenseBillingServiceImpl());
-
-        licenseManager.refreshLicenseCache();
-        final LicenseInfo latestValidLicenseInfo = licenseManager.getLatestValidLicenseInfo();
-        if (!LicenseUtil.checkLicenseStartAndEndTime(latestValidLicenseInfo)) {
+        if (!LicenseUtil.isNeedCheckLicense()) {
+            return Boolean.TRUE;
+        }
+        try {
+            final LicenseInfo licenseInfo = licenseDelegator.getSystemLicense();
+            final Set<String> activeHostIps =
+                    registerWorker.keySet().stream()
+                            .map(Address::getHost)
+                            .collect(Collectors.toSet());
+            if (LicenseUtil.checkLicenseServer(
+                    licenseInfo, activeHostIps, ip, LicenseNodeEnum.WT)) {
+                return true;
+            }
+            // for test
+            if (LicenseUtil.checkLicenseServer(
+                    licenseInfo, activeHostIps, "127.0.0.1", LicenseNodeEnum.WT)) {
+                return true;
+            }
+            licenseDelegator.markLicenseInvalidated();
+            return false;
+        } catch (Exception ex) {
+            licenseDelegator.markLicenseInvalidated();
+            log.error("Check license failed", ex);
             return false;
         }
-        if (LicenseUtil.checkLicenseServer(
-                latestValidLicenseInfo, new HashSet<>(), ip, LicenseNodeEnum.WT)) {
-            return true;
-        }
-        // for test
-        if (LicenseUtil.checkLicenseServer(
-                latestValidLicenseInfo, new HashSet<>(), "127.0.0.1", LicenseNodeEnum.WT)) {
-            return true;
-        }
-        return false;
     }
 }

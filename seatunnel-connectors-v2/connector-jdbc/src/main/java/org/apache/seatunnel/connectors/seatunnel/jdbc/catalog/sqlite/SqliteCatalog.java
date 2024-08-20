@@ -110,11 +110,9 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
         // sqlite nonsupport update databaseName
         Connection connection = getConnection(defaultUrl);
         try (PreparedStatement ps =
-                connection.prepareStatement(
-                        "select name from sqlite_master where type = \"table\";")) {
-
-            ResultSet rs = ps.executeQuery();
-
+                        connection.prepareStatement(
+                                "select name from sqlite_master where type = \"table\";");
+                ResultSet rs = ps.executeQuery()) {
             List<String> tables = new ArrayList<>();
 
             while (rs.next()) {
@@ -129,12 +127,10 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    public boolean tableExists(TablePath tablePath) throws CatalogException {
-        try {
-            return listTables(tablePath.getDatabaseName()).contains(tablePath.getTableName());
-        } catch (DatabaseNotExistException e) {
-            return false;
-        }
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                "select * from sqlite_master where type = \"table\" and name = \"%s\";",
+                tablePath.getTableName());
     }
 
     @Override
@@ -182,8 +178,8 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
         queryBuf.append(StringUtils.quoteIdentifier(tablePath.getTableName(), "`", false));
         queryBuf.append(" FROM ");
         queryBuf.append(StringUtils.quoteIdentifier(tablePath.getDatabaseName(), "`", false));
-        try (PreparedStatement ps2 = conn.prepareStatement(queryBuf.toString())) {
-            ResultSet rs = ps2.executeQuery();
+        try (PreparedStatement ps2 = conn.prepareStatement(queryBuf.toString());
+                ResultSet rs = ps2.executeQuery()) {
             Map<String, Object> result = new HashMap<>();
             while (rs.next()) {
                 String field = rs.getString("Field");

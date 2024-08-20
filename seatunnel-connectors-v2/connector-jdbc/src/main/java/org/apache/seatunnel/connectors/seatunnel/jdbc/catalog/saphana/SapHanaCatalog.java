@@ -91,6 +91,18 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
+    protected String getDatabaseWithConditionSql(String databaseName) {
+        return String.format(getListDatabaseSql() + " where SCHEMA_NAME = '%s'", databaseName);
+    }
+
+    @Override
+    protected String getTableWithConditionSql(TablePath tablePath) {
+        return String.format(
+                getListTableSql(tablePath.getDatabaseName()) + " and TABLE_NAME = '%s'",
+                tablePath.getTableName());
+    }
+
+    @Override
     protected String getListDatabaseSql() {
         return "SELECT SCHEMA_NAME FROM SCHEMAS";
     }
@@ -194,23 +206,28 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         try {
             if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
-                return databaseExists(tablePath.getDatabaseName())
-                        && (listTables(tablePath.getDatabaseName())
-                                        .contains(tablePath.getTableName())
-                                || listViews(tablePath.getDatabaseName())
-                                        .contains(tablePath.getTableName())
-                                || listSynonym(tablePath.getDatabaseName())
-                                        .contains(tablePath.getSchemaAndTableName()));
+                return querySQLResultExists(
+                                this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
+                                getTableWithConditionSql(tablePath))
+                        || querySQLResultExists(
+                                this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
+                                String.format(
+                                        getListViewSql(tablePath.getDatabaseName())
+                                                + " and VIEW_NAME = '%s'",
+                                        tablePath.getTableName()))
+                        || querySQLResultExists(
+                                this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
+                                String.format(
+                                        getListSynonymSql(tablePath.getDatabaseName())
+                                                + " and SYNONYM_NAME = '%s'",
+                                        tablePath.getSchemaAndTableName()));
             }
-            return listTables().contains(tablePath.getSchemaAndTableName());
+            return querySQLResultExists(
+                    this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
+                    getTableWithConditionSql(tablePath));
         } catch (DatabaseNotExistException e) {
             return false;
         }
-    }
-
-    private List<String> listTables() {
-        List<String> databases = listDatabases();
-        return listTables(databases.get(0));
     }
 
     @Override
@@ -237,8 +254,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     String.format(
                             "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
                             tablePath.getDatabaseName(), tablePath.getTableName());
-            try (PreparedStatement statement = conn.prepareStatement(sql)) {
-                final ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = conn.prepareStatement(sql);
+                    final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
                     final String refTableName = resultSet.getString("OBJECT_NAME");
@@ -298,8 +315,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     String.format(
                             "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
                             tablePath.getDatabaseName(), tablePath.getTableName());
-            try (PreparedStatement statement = conn.prepareStatement(sql)) {
-                final ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = conn.prepareStatement(sql);
+                    final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
                     final String refTableName = resultSet.getString("OBJECT_NAME");
@@ -361,8 +378,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                         "SELECT COLUMN_NAME,CONSTRAINT_NAME FROM SYS.CONSTRAINTS WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s' AND IS_PRIMARY_KEY = 'TRUE' ",
                         database, table);
         try (final PreparedStatement preparedStatement =
-                metaData.getConnection().prepareStatement(sql)) {
-            final ResultSet resultSet = preparedStatement.executeQuery();
+                        metaData.getConnection().prepareStatement(sql);
+                final ResultSet resultSet = preparedStatement.executeQuery()) {
             while (resultSet.next()) {
                 primaryKeyList.add(resultSet.getString("COLUMN_NAME"));
                 pkName = resultSet.getString("CONSTRAINT_NAME");
