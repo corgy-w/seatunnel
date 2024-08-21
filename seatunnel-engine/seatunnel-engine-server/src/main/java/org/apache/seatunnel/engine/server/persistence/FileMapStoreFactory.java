@@ -17,44 +17,17 @@
 
 package org.apache.seatunnel.engine.server.persistence;
 
-import org.apache.seatunnel.common.config.Common;
-import org.apache.seatunnel.common.utils.ExceptionUtils;
-import org.apache.seatunnel.common.utils.FileUtils;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.hazelcast.map.MapLoader;
 import com.hazelcast.map.MapStoreFactory;
 
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.List;
 import java.util.Properties;
 
 public class FileMapStoreFactory implements MapStoreFactory<Object, Object> {
-    public static final Logger logger = LoggerFactory.getLogger(FileMapStoreFactory.class);
-    public static ClassLoader zetaClassLoader;
-
-    static {
-        List<URL> jars;
-        try {
-            jars = FileUtils.searchJarFiles(Common.appStarterDir().resolve("zeta"));
-        } catch (IOException e) {
-            logger.error(ExceptionUtils.getMessage(e));
-            throw new RuntimeException(e);
-        }
-        zetaClassLoader = new URLClassLoader(jars.toArray(new URL[0]));
-    }
 
     @Override
     public MapLoader<Object, Object> newMapStore(String mapName, Properties properties) {
-        ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(zetaClassLoader);
         properties.setProperty("businessName", mapName);
         FileMapStore fileMapStore = new FileMapStore();
-        Thread.currentThread().setContextClassLoader(contextClassLoader);
         return fileMapStore;
     }
 }
