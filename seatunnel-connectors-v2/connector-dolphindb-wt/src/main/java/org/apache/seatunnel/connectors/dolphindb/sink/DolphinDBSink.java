@@ -22,7 +22,6 @@ import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.Catalog;
-import org.apache.seatunnel.api.table.catalog.CatalogOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -34,8 +33,6 @@ import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSimpleSink;
 import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSinkWriter;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.apache.seatunnel.api.common.CommonOptions.PLUGIN_NAME;
@@ -74,7 +71,6 @@ public class DolphinDBSink extends AbstractSimpleSink<SeaTunnelRow, Void>
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
         DolphinDBCatalog catalog = createCatalog();
-        catalog.open();
         return Optional.of(
                 new DolphinDBSaveModeHandler(
                         readonlyConfig.get(DolphinDBConfig.SCHEMA_SAVE_MODE),
@@ -85,8 +81,6 @@ public class DolphinDBSink extends AbstractSimpleSink<SeaTunnelRow, Void>
     }
 
     private DolphinDBCatalog createCatalog() {
-        Map<String, String> catalogOptions =
-                readonlyConfig.getOptional(CatalogOptions.CATALOG_OPTIONS).orElse(new HashMap<>());
         String factoryId = readonlyConfig.get(PLUGIN_NAME);
         CatalogFactory catalogFactory =
                 discoverFactory(

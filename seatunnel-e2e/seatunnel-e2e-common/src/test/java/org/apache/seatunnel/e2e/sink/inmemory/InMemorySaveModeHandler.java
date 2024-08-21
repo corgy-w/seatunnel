@@ -38,6 +38,9 @@ public class InMemorySaveModeHandler implements SaveModeHandler {
 
     private final CatalogTable catalogTable;
 
+    @Override
+    public void open() {}
+
     public InMemorySaveModeHandler(CatalogTable catalogTable) {
         this.catalogTable = catalogTable;
     }

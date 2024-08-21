@@ -142,7 +142,6 @@ public class SelectDBSink
 
         Catalog catalog =
                 catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), readonlyConfig);
-        catalog.open();
 
         return Optional.of(new SelectDBSaveModeHandler(selectDBConfig, catalog, catalogTable));
     }

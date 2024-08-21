@@ -397,6 +397,7 @@ public class JobMaster implements DynamicMetricsProvider {
             if (saveModeHandler.isPresent()) {
                 long startTime = System.currentTimeMillis();
                 try (SaveModeHandler handler = saveModeHandler.get()) {
+                    handler.open();
                     if (!isStartWithSavePoint) {
                         new SaveModeExecuteWrapper(handler).execute();
                     } else {
