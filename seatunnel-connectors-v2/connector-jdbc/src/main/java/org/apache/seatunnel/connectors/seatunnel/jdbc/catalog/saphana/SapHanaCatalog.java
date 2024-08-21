@@ -166,7 +166,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
 
     public String getListSynonymSql(String databaseName) {
         return String.format(
-                "SELECT SYNONYM_NAME FROM SYNONYMS WHERE SCHEMA_NAME = '%s';", databaseName);
+                "SELECT SYNONYM_NAME FROM SYNONYMS WHERE SCHEMA_NAME = '%s'", databaseName);
     }
 
     @Override
@@ -236,13 +236,13 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                                 this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
                                 String.format(
                                         getListViewSql(tablePath.getDatabaseName())
-                                                + " and VIEW_NAME = '%s'",
+                                                + " AND VIEW_NAME = '%s'",
                                         tablePath.getTableName()))
                         || querySQLResultExists(
                                 this.getUrlFromDatabaseName(tablePath.getDatabaseName()),
                                 String.format(
                                         getListSynonymSql(tablePath.getDatabaseName())
-                                                + " and SYNONYM_NAME = '%s'",
+                                                + " AND SYNONYM_NAME = '%s'",
                                         tablePath.getSchemaAndTableName()));
             }
             return querySQLResultExists(
