@@ -92,7 +92,6 @@ public class StarRocksSink extends AbstractSimpleSink<SeaTunnelRow, Void>
                         sinkConfig.getPassword(),
                         sinkConfig.getJdbcUrl(),
                         sinkConfig.getSaveModeCreateTemplate());
-        catalog.open();
         return Optional.of(
                 new DefaultSaveModeHandler(
                         schemaSaveMode,

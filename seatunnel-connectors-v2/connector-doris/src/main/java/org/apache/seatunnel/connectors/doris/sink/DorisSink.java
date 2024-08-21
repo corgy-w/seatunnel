@@ -167,10 +167,7 @@ public class DorisSink
                             "PluginName: %s, PluginType: %s, Message: %s",
                             getPluginName(), PluginType.SINK, "Cannot find Doris catalog factory"));
         }
-        DorisCatalog catalog =
-                (DorisCatalog)
-                        catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
-        catalog.open();
-        return catalog;
+        return (DorisCatalog)
+                catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
     }
 }
