@@ -54,12 +54,6 @@ public class S3RedshiftConfig extends S3ConfigOptions {
     public static final Option<String> DATABASE =
             Options.key("database").stringType().noDefaultValue().withDescription("database");
 
-    public static final Option<String> SCHEMA_NAME =
-            Options.key("schema_name")
-                    .stringType()
-                    .defaultValue("public")
-                    .withDescription("Redshift JDBC schema");
-
     public static final Option<String> TIMEZONE =
             Options.key("timezone")
                     .stringType()
