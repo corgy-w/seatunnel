@@ -46,4 +46,6 @@ public interface TestContainer extends TestResource {
     }
 
     String getServerLogs();
+
+    void copyFileToContainer(String path, String targetPath);
 }
