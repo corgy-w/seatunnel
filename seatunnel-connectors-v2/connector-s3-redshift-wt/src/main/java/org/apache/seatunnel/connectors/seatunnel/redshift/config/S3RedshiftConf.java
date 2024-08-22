@@ -95,7 +95,6 @@ public class S3RedshiftConf implements Serializable {
         builder.jdbcUser(readonlyConfig.get(S3RedshiftConfig.JDBC_USER));
         builder.jdbcPassword(readonlyConfig.get(S3RedshiftConfig.JDBC_PASSWORD));
         builder.database(readonlyConfig.get(S3RedshiftConfig.DATABASE));
-        builder.schema(readonlyConfig.get(S3RedshiftConfig.SCHEMA_NAME));
         builder.timezone(readonlyConfig.get(S3RedshiftConfig.TIMEZONE));
 
         checkBucket(readonlyConfig.get(S3RedshiftConfig.S3_BUCKET));
