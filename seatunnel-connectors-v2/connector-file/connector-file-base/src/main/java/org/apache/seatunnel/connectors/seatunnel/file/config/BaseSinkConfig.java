@@ -263,4 +263,11 @@ public class BaseSinkConfig {
                     .defaultValue(APPEND_DATA)
                     .withDescription(
                             "Before the synchronization task begins, different processing of data files that already exist in the directory");
+
+    public static final Option<Long> FILE_BLOCK_SIZE =
+            Options.key("file_block_size")
+                    .longType()
+                    .defaultValue(128 * 1024 * 1024L)
+                    .withDescription(
+                            "When the data in the buff reaches a certain value, it will be written");
 }
