@@ -59,7 +59,6 @@ public abstract class BaseMultipleTableFileSink
     private final HadoopConf hadoopConf;
     private final HadoopFileSystemProxy hadoopFileSystemProxy;
     private final FileSinkConfig fileSinkConfig;
-    private final WriteStrategy writeStrategy;
     private String jobId;
     private final CatalogTable catalogTable;
     private final ReadonlyConfig readonlyConfig;
@@ -73,10 +72,7 @@ public abstract class BaseMultipleTableFileSink
         this.readonlyConfig = readonlyConfig;
         this.fileSinkConfig =
                 new FileSinkConfig(readonlyConfig.toConfig(), catalogTable.getSeaTunnelRowType());
-        this.writeStrategy =
-                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
         this.hadoopFileSystemProxy = new HadoopFileSystemProxy(hadoopConf);
-        this.writeStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
     }
 
     @Override
@@ -87,7 +83,7 @@ public abstract class BaseMultipleTableFileSink
     @Override
     public SinkWriter<SeaTunnelRow, FileCommitInfo, FileSinkState> restoreWriter(
             SinkWriter.Context context, List<FileSinkState> states) {
-        return new BaseFileSinkWriter(writeStrategy, hadoopConf, context, jobId, states);
+        return new BaseFileSinkWriter(createWriteStrategy(), hadoopConf, context, jobId, states);
     }
 
     @Override
@@ -99,7 +95,7 @@ public abstract class BaseMultipleTableFileSink
     @Override
     public SinkWriter<SeaTunnelRow, FileCommitInfo, FileSinkState> createWriter(
             SinkWriter.Context context) {
-        return new BaseFileSinkWriter(writeStrategy, hadoopConf, context, jobId);
+        return new BaseFileSinkWriter(createWriteStrategy(), hadoopConf, context, jobId);
     }
 
     @Override
@@ -134,5 +130,12 @@ public abstract class BaseMultipleTableFileSink
         return Optional.of(
                 new DefaultSaveModeHandler(
                         schemaSaveMode, dataSaveMode, catalog, catalogTable, null));
+    }
+
+    protected WriteStrategy createWriteStrategy() {
+        WriteStrategy writeStrategy =
+                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
+        writeStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
+        return writeStrategy;
     }
 }
