@@ -104,6 +104,7 @@
                 <snowflake.version>3.13.29</snowflake.version>
                 <dws-gaussdb.version>8.2.1.300-200</dws-gaussdb.version>
                 <iceberg-aws.version>1.4.2</iceberg-aws.version>
+                <software.amazon.version>2.27.12</software.amazon.version>
 
                 <!-- Imap storage dependency package  -->
                 <hadoop-aliyun.version>3.3.6</hadoop-aliyun.version>
@@ -572,6 +573,12 @@
                     <groupId>com.amazonaws</groupId>
                     <artifactId>aws-java-sdk-bundle</artifactId>
                     <version>${aws-java-sdk.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>bundle</artifactId>
+                    <version>${software.amazon.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
