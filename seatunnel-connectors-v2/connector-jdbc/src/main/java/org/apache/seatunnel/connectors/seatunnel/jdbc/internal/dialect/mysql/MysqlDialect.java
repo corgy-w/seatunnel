@@ -87,6 +87,11 @@ public class MysqlDialect implements JdbcDialect {
     }
 
     @Override
+    public String tableIdentifier(TablePath tablePath) {
+        return tableIdentifier(tablePath.getDatabaseName(), tablePath.getTableName());
+    }
+
+    @Override
     public Optional<String> getUpsertStatement(
             String database,
             String tableName,
