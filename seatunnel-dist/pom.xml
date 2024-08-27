@@ -500,6 +500,7 @@
                     <groupId>org.apache.iceberg</groupId>
                     <artifactId>iceberg-aws</artifactId>
                     <version>${iceberg-aws.version}</version>
+                    <scope>provided</scope>
                 </dependency>
 
                 <dependency>
