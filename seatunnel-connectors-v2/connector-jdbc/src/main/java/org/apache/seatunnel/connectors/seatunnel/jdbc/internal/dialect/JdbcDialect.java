@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect;
 
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionProvider;
@@ -123,6 +124,25 @@ public interface JdbcDialect extends Serializable {
     }
 
     /**
+     * Constructs the dialects insert statement for a single row. The returned string will be used
+     * as a {@link java.sql.PreparedStatement}. Fields in the statement must be in the same order as
+     * the {@code fieldNames} parameter.
+     *
+     * <pre>{@code
+     * INSERT INTO table_name (column_name [, ...]) VALUES (value [, ...])
+     * }</pre>
+     *
+     * @return the dialects {@code INSERT INTO} statement.
+     */
+    default String getInsertIntoStatement(
+            String database,
+            String tableName,
+            String[] fieldNames,
+            List<? extends SeaTunnelDataType<?>> columnTypeList) {
+        return getInsertIntoStatement(database, tableName, fieldNames);
+    }
+
+    /**
      * Constructs the dialects update statement for a single row with the given condition. The
      * returned string will be used as a {@link java.sql.PreparedStatement}. Fields in the statement
      * must be in the same order as the {@code fieldNames} parameter.
@@ -221,6 +241,29 @@ public interface JdbcDialect extends Serializable {
             String[] fieldNames,
             String[] uniqueKeyFields,
             boolean isPrimaryKeyUpdated);
+
+    /**
+     * Constructs the dialects upsert statement if supported; such as MySQL's {@code DUPLICATE KEY
+     * UPDATE}, or PostgreSQL's {@code ON CONFLICT... DO UPDATE SET..}.
+     *
+     * <p>If supported, the returned string will be used as a {@link java.sql.PreparedStatement}.
+     * Fields in the statement must be in the same order as the {@code fieldNames} parameter.
+     *
+     * <p>If the dialect does not support native upsert statements, the writer will fallback to
+     * {@code SELECT ROW Exists} + {@code UPDATE}/{@code INSERT} which may have poor performance.
+     *
+     * @return the dialects {@code UPSERT} statement or {@link Optional#empty()}.
+     */
+    default Optional<String> getUpsertStatement(
+            String database,
+            String tableName,
+            String[] fieldNames,
+            String[] uniqueKeyFields,
+            boolean isPrimaryKeyUpdated,
+            List<? extends SeaTunnelDataType<?>> columnTypeList) {
+        return getUpsertStatement(
+                database, tableName, fieldNames, uniqueKeyFields, isPrimaryKeyUpdated);
+    }
 
     /**
      * Different dialects optimize their PreparedStatement

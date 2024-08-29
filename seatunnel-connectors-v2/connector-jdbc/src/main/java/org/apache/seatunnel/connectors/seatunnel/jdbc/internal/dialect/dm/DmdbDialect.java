@@ -17,7 +17,11 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.type.LocalTimeType;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
@@ -33,9 +37,15 @@ import static java.lang.String.format;
 public class DmdbDialect implements JdbcDialect {
 
     public String fieldIde;
+    public ReadonlyConfig config;
 
     public DmdbDialect(String fieldIde) {
         this.fieldIde = fieldIde;
+    }
+
+    public DmdbDialect(String fieldIde, ReadonlyConfig config) {
+        this.fieldIde = fieldIde;
+        this.config = config;
     }
 
     @Override
@@ -60,14 +70,84 @@ public class DmdbDialect implements JdbcDialect {
             String[] fieldNames,
             String[] uniqueKeyFields,
             boolean isPrimaryKeyUpdated) {
+        return Optional.empty();
+    }
+
+    @Override
+    public String getInsertIntoStatement(
+            String database,
+            String tableName,
+            String[] fieldNames,
+            List<? extends SeaTunnelDataType<?>> columnTypeList) {
+        String columns =
+                Arrays.stream(fieldNames)
+                        .map(this::quoteIdentifier)
+                        .collect(Collectors.joining(", "));
+        StringBuilder stringBuilder = new StringBuilder();
+        String dateFormat = config.get(JdbcOptions.DATE_FORMAT);
+        for (int i = 0; i < fieldNames.length; i++) {
+            final SeaTunnelDataType<?> seaTunnelDataType = columnTypeList.get(i);
+            if (i != fieldNames.length - 1) {
+                if (seaTunnelDataType instanceof LocalTimeType) {
+                    stringBuilder.append("to_date( ? ,'").append(dateFormat).append("') ");
+                } else {
+                    stringBuilder.append("? ").append(",");
+                }
+            } else {
+                if (seaTunnelDataType instanceof LocalTimeType) {
+                    stringBuilder.append("to_date( ? ,'").append(dateFormat).append("') ");
+                } else {
+                    stringBuilder.append("? ");
+                }
+            }
+        }
+        String placeholders = stringBuilder.toString();
+        return String.format(
+                "INSERT INTO %s (%s) VALUES (%s)",
+                tableIdentifier(database, tableName), columns, placeholders);
+    }
+
+    @Override
+    public Optional<String> getUpsertStatement(
+            String database,
+            String tableName,
+            String[] fieldNames,
+            String[] uniqueKeyFields,
+            boolean isPrimaryKeyUpdated,
+            List<? extends SeaTunnelDataType<?>> columnTypeList) {
         List<String> nonUniqueKeyFields =
                 Arrays.stream(fieldNames)
                         .filter(fieldName -> !Arrays.asList(uniqueKeyFields).contains(fieldName))
                         .collect(Collectors.toList());
-        String valuesBinding =
-                Arrays.stream(fieldNames)
-                        .map(fieldName -> ":" + fieldName + " " + quoteIdentifier(fieldName))
-                        .collect(Collectors.joining(", "));
+        StringBuilder stringBuilder = new StringBuilder();
+        String dateFormat = config.get(JdbcOptions.DATE_FORMAT);
+        for (int i = 0; i < fieldNames.length; i++) {
+            String fieldName = fieldNames[i];
+            final SeaTunnelDataType<?> seaTunnelDataType = columnTypeList.get(i);
+            if (i != fieldNames.length - 1) {
+                if (seaTunnelDataType instanceof LocalTimeType) {
+                    stringBuilder
+                            .append("to_date( ? ,'")
+                            .append(dateFormat)
+                            .append("') ")
+                            .append(quoteIdentifier(fieldName))
+                            .append(",");
+                } else {
+                    stringBuilder.append("? ").append(quoteIdentifier(fieldName)).append(",");
+                }
+            } else {
+                if (seaTunnelDataType instanceof LocalTimeType) {
+                    stringBuilder
+                            .append("to_date( ? ,'")
+                            .append(dateFormat)
+                            .append("') ")
+                            .append(quoteIdentifier(fieldName));
+                } else {
+                    stringBuilder.append("? ").append(quoteIdentifier(fieldName));
+                }
+            }
+        }
+        String valuesBinding = stringBuilder.toString();
         String usingClause = String.format("SELECT %s", valuesBinding);
         String onConditions =
                 Arrays.stream(uniqueKeyFields)

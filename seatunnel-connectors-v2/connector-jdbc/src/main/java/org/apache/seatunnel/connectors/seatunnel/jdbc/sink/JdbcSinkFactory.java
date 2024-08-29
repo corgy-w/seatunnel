@@ -60,6 +60,7 @@ import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATABASE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATABASE_SCHEMA;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATA_SAVE_MODE;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATE_FORMAT;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DRIVER;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.ENABLE_UPSERT;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.GENERATE_SINK_SQL;
@@ -236,7 +237,8 @@ public class JdbcSinkFactory implements TableSinkFactory {
                 JdbcDialectLoader.load(
                         sinkConfig.getJdbcConnectionConfig().getUrl(),
                         sinkConfig.getJdbcConnectionConfig().getCompatibleMode(),
-                        fieldIdeEnum == null ? null : fieldIdeEnum.getValue());
+                        fieldIdeEnum == null ? null : fieldIdeEnum.getValue(),
+                        config);
         dialect.connectionUrlParse(
                 sinkConfig.getJdbcConnectionConfig().getUrl(),
                 sinkConfig.getJdbcConnectionConfig().getProperties(),
@@ -286,7 +288,8 @@ public class JdbcSinkFactory implements TableSinkFactory {
                         COMPATIBLE_MODE,
                         SUPPORT_UPSERT_BY_INSERT_ONLY,
                         IS_PRIMARY_KEY_UPDATED,
-                        MULTI_TABLE_SINK_REPLICA)
+                        MULTI_TABLE_SINK_REPLICA,
+                        DATE_FORMAT)
                 .conditional(
                         IS_EXACTLY_ONCE,
                         true,
