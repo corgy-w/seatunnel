@@ -161,7 +161,6 @@ public class S3RedshiftSink extends BaseHdfsFileSink
                         readonlyConfig.get(S3RedshiftConfig.JDBC_PASSWORD),
                         urlInfo,
                         readonlyConfig.get(JdbcCatalogOptions.SCHEMA));
-        catalog.open();
         return Optional.of(
                 new S3RedshiftSaveModeHandler(
                         s3RedshiftConf.getSchemaSaveMode(),

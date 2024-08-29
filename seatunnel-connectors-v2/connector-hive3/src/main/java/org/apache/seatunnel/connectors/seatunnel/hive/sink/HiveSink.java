@@ -76,7 +76,6 @@ public class HiveSink
     private final ReadonlyConfig readonlyConfig;
     private final HiveHadoopConfig hiveHadoopConfig;
     private final FileSinkConfig fileSinkConfig;
-    private final WriteStrategy writeStrategy;
     private String jobId;
 
     public HiveSink(ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
@@ -86,9 +85,6 @@ public class HiveSink
         this.hiveHadoopConfig = parseHiveHadoopConfig(readonlyConfig, tableInformation);
         this.fileSinkConfig =
                 generateFileSinkConfig(readonlyConfig, tableInformation, catalogTable);
-        this.writeStrategy =
-                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
-        this.writeStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
     }
 
     private FileSinkConfig generateFileSinkConfig(
@@ -180,13 +176,13 @@ public class HiveSink
     @Override
     public SinkWriter<SeaTunnelRow, FileCommitInfo, FileSinkState> restoreWriter(
             SinkWriter.Context context, List<FileSinkState> states) {
-        return new HiveSinkWriter(writeStrategy, hiveHadoopConfig, context, jobId, states);
+        return new HiveSinkWriter(createWriteStrategy(), hiveHadoopConfig, context, jobId, states);
     }
 
     @Override
     public SinkWriter<SeaTunnelRow, FileCommitInfo, FileSinkState> createWriter(
             SinkWriter.Context context) {
-        return new HiveSinkWriter(writeStrategy, hiveHadoopConfig, context, jobId);
+        return new HiveSinkWriter(createWriteStrategy(), hiveHadoopConfig, context, jobId);
     }
 
     @Override
@@ -237,5 +233,12 @@ public class HiveSink
                 .getOptional(HdfsConfigOptions.REMOTE_USER)
                 .ifPresent(hiveHadoopConfig::setRemoteUser);
         return hiveHadoopConfig;
+    }
+
+    protected WriteStrategy createWriteStrategy() {
+        WriteStrategy writeStrategy =
+                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
+        writeStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
+        return writeStrategy;
     }
 }

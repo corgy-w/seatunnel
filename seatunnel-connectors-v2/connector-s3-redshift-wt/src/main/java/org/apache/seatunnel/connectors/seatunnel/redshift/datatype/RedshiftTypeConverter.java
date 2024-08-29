@@ -234,7 +234,7 @@ public class RedshiftTypeConverter implements TypeConverter<BasicTypeDefine> {
                 } else if (precision > MAX_PRECISION) {
                     scale = scale - (int) (precision - MAX_PRECISION);
                     precision = MAX_PRECISION;
-                    log.warn(
+                    log.debug(
                             "The precision of decimal column {} is {}, which exceeds the maximum precision of {}, "
                                     + "the precision will be set to {}, and the scale will be set to {}",
                             column.getName(),
@@ -264,7 +264,7 @@ public class RedshiftTypeConverter implements TypeConverter<BasicTypeDefine> {
                     builder.dataType(REDSHIFT_CHARACTER_VARYING);
                     builder.length(column.getColumnLength());
                 } else {
-                    log.warn(
+                    log.debug(
                             "The length of string column {} is {}, which exceeds the maximum length of {}, "
                                     + "the length will be set to {}",
                             column.getName(),
@@ -292,7 +292,7 @@ public class RedshiftTypeConverter implements TypeConverter<BasicTypeDefine> {
                             String.format(
                                     "%s(%d)", REDSHIFT_BINARY_VARYING, MAX_BINARY_VARYING_LENGTH));
                     builder.dataType(REDSHIFT_BINARY_VARYING);
-                    log.warn(
+                    log.debug(
                             "The length of binary column {} is {}, which exceeds the maximum length of {}, "
                                     + "the length will be set to {}",
                             column.getName(),
@@ -309,7 +309,7 @@ public class RedshiftTypeConverter implements TypeConverter<BasicTypeDefine> {
                 Integer timeScale = column.getScale();
                 if (timeScale != null && timeScale > MAX_TIME_SCALE) {
                     timeScale = MAX_TIME_SCALE;
-                    log.warn(
+                    log.debug(
                             "The scale of time column {} is {}, which exceeds the maximum scale of {}, "
                                     + "the scale will be set to {}",
                             column.getName(),
@@ -325,7 +325,7 @@ public class RedshiftTypeConverter implements TypeConverter<BasicTypeDefine> {
                 Integer timestampScale = column.getScale();
                 if (timestampScale != null && timestampScale > MAX_TIMESTAMP_SCALE) {
                     timestampScale = MAX_TIMESTAMP_SCALE;
-                    log.warn(
+                    log.debug(
                             "The scale of timestamp column {} is {}, which exceeds the maximum scale of {}, "
                                     + "the scale will be set to {}",
                             column.getName(),

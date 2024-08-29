@@ -60,7 +60,6 @@ public class S3RedshiftSinkFactory implements TableSinkFactory {
                         S3RedshiftConfig.JDBC_URL,
                         S3RedshiftConfig.JDBC_USER,
                         S3RedshiftConfig.JDBC_PASSWORD,
-                        S3RedshiftConfig.SCHEMA_NAME,
                         S3RedshiftConfig.SCHEMA_SAVE_MODE,
                         S3RedshiftConfig.DATA_SAVE_MODE,
                         BaseSinkConfig.FILE_PATH,
@@ -103,6 +102,8 @@ public class S3RedshiftSinkFactory implements TableSinkFactory {
                         S3RedshiftConfig.CHANGELOG_BUFFER_FLUSH_INTERVAL,
                         S3RedshiftConfig.REDSHIFT_TEMPORARY_TABLE_NAME)
                 .optional(S3RedshiftConfig.TIMEZONE)
+                .optional(BaseSinkConfig.BATCH_SIZE)
+                .optional(BaseSinkConfig.FILE_BLOCK_SIZE)
                 .build();
     }
 
@@ -134,10 +135,7 @@ public class S3RedshiftSinkFactory implements TableSinkFactory {
         if (sinkTableSplitArray.length > 1) {
             sinkSchemaName = sinkTableSplitArray[sinkTableSplitArray.length - 2];
         } else {
-            sinkSchemaName = null;
-        }
-        if (StringUtils.isNotEmpty(s3RedshiftConf.getSchema())) {
-            sinkSchemaName = s3RedshiftConf.getSchema();
+            sinkSchemaName = "public";
         }
         // to replace
         String finalDatabaseName =

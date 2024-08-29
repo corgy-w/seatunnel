@@ -62,6 +62,8 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
 
     private boolean isEnableTransaction = BaseSinkConfig.IS_ENABLE_TRANSACTION.defaultValue();
 
+    private String encoding = BaseSinkConfig.ENCODING.defaultValue();
+
     // ---------------------generator by config params-------------------
 
     private List<Integer> sinkColumnsIndexInRow;
@@ -76,6 +78,8 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
             BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96.defaultValue();
     private List<String> parquetAvroWriteFixedAsInt96 =
             BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.defaultValue();
+
+    private long fileBlockSize;
 
     public FileSinkConfig(@NonNull Config config, @NonNull SeaTunnelRowType seaTunnelRowTypeInfo) {
         super(config);
@@ -128,6 +132,10 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
         if (config.hasPath(BaseSinkConfig.IS_ENABLE_TRANSACTION.key())) {
             this.isEnableTransaction =
                     config.getBoolean(BaseSinkConfig.IS_ENABLE_TRANSACTION.key());
+        }
+
+        if (config.hasPath(BaseSinkConfig.ENCODING.key())) {
+            this.encoding = config.getString(BaseSinkConfig.ENCODING.key());
         }
 
         if (this.isEnableTransaction
@@ -215,6 +223,10 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
                         config.getStringList(
                                 BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.key());
             }
+        }
+
+        if (config.hasPath(BaseSinkConfig.FILE_BLOCK_SIZE.key())) {
+            this.fileBlockSize = config.getLong(BaseSinkConfig.FILE_BLOCK_SIZE.key());
         }
     }
 }

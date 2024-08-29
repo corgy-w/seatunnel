@@ -75,6 +75,7 @@ public class OssFileSourceFactory implements TableSourceFactory {
                 .optional(BaseSourceConfigOptions.TIME_FORMAT)
                 .optional(BaseSourceConfigOptions.FILE_FILTER_PATTERN)
                 .optional(BaseSourceConfigOptions.COMPRESS_CODEC)
+                .optional(BaseSourceConfigOptions.ENCODING)
                 .build();
     }
 

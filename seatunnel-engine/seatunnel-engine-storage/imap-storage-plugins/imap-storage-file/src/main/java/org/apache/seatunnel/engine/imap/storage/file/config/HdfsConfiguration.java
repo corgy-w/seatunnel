@@ -29,12 +29,18 @@ import static org.apache.hadoop.fs.FileSystem.FS_DEFAULT_NAME_KEY;
 
 public class HdfsConfiguration extends AbstractConfiguration {
 
+    /** ********* Hdfs constants ************* */
+    private static final String HDFS_IMPL = "org.apache.hadoop.hdfs.DistributedFileSystem";
+
+    private static final String HDFS_IMPL_KEY = "fs.hdfs.impl";
+
     @Override
     public Configuration buildConfiguration(Map<String, Object> config) {
         Configuration hadoopConf = new Configuration();
         hadoopConf.set(
                 FS_DEFAULT_NAME_KEY,
                 String.valueOf(config.getOrDefault(FS_DEFAULT_NAME_KEY, FS_DEFAULT_NAME_DEFAULT)));
+        hadoopConf.set(HDFS_IMPL_KEY, HDFS_IMPL);
         return hadoopConf;
     }
 }

@@ -18,6 +18,7 @@
 package org.apache.seatunnel.e2e.connector.doris;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
@@ -239,7 +240,9 @@ public class DorisCatalogIT extends AbstractDorisIT {
                 new TableSinkFactoryContext(
                         upstreamTable, config, Thread.currentThread().getContextClassLoader());
         SupportSaveMode sink = (SupportSaveMode) dorisSinkFactory.createSink(context).createSink();
-        sink.getSaveModeHandler().get().handleSaveMode();
+        SaveModeHandler handler = sink.getSaveModeHandler().get();
+        handler.open();
+        handler.handleSaveMode();
         CatalogTable createdTable = catalog.getTable(TablePath.of(fullName));
         Assertions.assertEquals(
                 upstreamTable.getTableSchema().getColumns().size(),

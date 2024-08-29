@@ -192,6 +192,12 @@ public class BaseSinkConfig {
                     .defaultValue(FileFormat.CSV)
                     .withDescription("File format type, e.g. csv, orc, parquet, text");
 
+    public static final Option<String> ENCODING =
+            Options.key("encoding")
+                    .stringType()
+                    .defaultValue("UTF-8")
+                    .withDescription("The encoding of output file, e.g. UTF-8, ISO-8859-1....");
+
     public static final Option<List<String>> SINK_COLUMNS =
             Options.key("sink_columns")
                     .listType()
@@ -257,4 +263,11 @@ public class BaseSinkConfig {
                     .defaultValue(APPEND_DATA)
                     .withDescription(
                             "Before the synchronization task begins, different processing of data files that already exist in the directory");
+
+    public static final Option<Long> FILE_BLOCK_SIZE =
+            Options.key("file_block_size")
+                    .longType()
+                    .defaultValue(128 * 1024 * 1024L)
+                    .withDescription(
+                            "When the data in the buff reaches a certain value, it will be written");
 }

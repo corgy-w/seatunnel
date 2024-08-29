@@ -35,6 +35,7 @@ import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCod
  * and regenerate it.
  */
 
+/** */
 @Generated("3481f21df47c52ce16683d02e60a4c78")
 public final class SeaTunnelRefreshLicenseCodec {
     // hex: 0xDE6400

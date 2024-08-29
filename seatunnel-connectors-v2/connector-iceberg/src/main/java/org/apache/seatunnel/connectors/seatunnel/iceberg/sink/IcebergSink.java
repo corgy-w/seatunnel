@@ -266,7 +266,6 @@ public class IcebergSink
                         sinkConfig.getHiveSitePath());
 
         IcebergCatalog icebergCatalog = new IcebergCatalog(catalogFactory, "iceberg");
-        icebergCatalog.open();
 
         return Optional.of(
                 new DefaultSaveModeHandler(
