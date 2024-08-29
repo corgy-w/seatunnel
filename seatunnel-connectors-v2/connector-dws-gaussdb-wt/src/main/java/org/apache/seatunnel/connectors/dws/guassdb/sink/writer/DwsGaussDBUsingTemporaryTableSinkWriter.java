@@ -29,6 +29,7 @@ import org.apache.seatunnel.connectors.dws.guassdb.sink.commit.DwsGaussDBSinkCom
 import org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDBSinkOption;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.sql.DwsGaussSqlGenerator;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.state.DwsGaussDBSinkState;
+import org.apache.seatunnel.connectors.dws.guassdb.sink.utils.DwsGaussDBReplaceUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
 
@@ -86,6 +87,7 @@ public class DwsGaussDBUsingTemporaryTableSinkWriter extends DwsGaussDBSinkWrite
 
     @Override
     public void write(SeaTunnelRow element) {
+        DwsGaussDBReplaceUtils.replace(element);
         dwsGaussDBMemoryTable.write(element);
         // If the row kind is not INSERT, means this is in cdc incremental mode
         // We need to write the data to temporary table and merge to target table

@@ -46,7 +46,6 @@ import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
-import lombok.NoArgsConstructor;
 
 import java.time.ZoneId;
 import java.util.List;
@@ -55,7 +54,6 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@NoArgsConstructor
 public class HighGoIncrementalSource<T> extends IncrementalSource<T, JdbcSourceConfig>
         implements SupportParallelism {
 
@@ -105,7 +103,6 @@ public class HighGoIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
                     new DebeziumJsonDeserializeSchema(
                             config.get(JdbcSourceOptions.DEBEZIUM_PROPERTIES), tableIdStructMap);
         }
-
         String zoneId = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);
         return (DebeziumDeserializationSchema<T>)
                 SeaTunnelRowDebeziumDeserializeSchema.builder()

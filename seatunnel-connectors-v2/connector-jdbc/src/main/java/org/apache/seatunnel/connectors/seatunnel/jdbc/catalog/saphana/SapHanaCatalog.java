@@ -21,10 +21,17 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.saphana;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
+import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
+import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
+import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
@@ -37,48 +44,18 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.saphana.SapHanaTypeConverter.appendColumnSizeIfNeed;
 
 @Slf4j
 public class SapHanaCatalog extends AbstractJdbcCatalog {
-
-    static {
-        SYS_DATABASES.add("SYS");
-        SYS_DATABASES.add("SYSTEM");
-        SYS_DATABASES.add("SYS_DATABASES");
-        SYS_DATABASES.add("_SYS_ADVISOR");
-        SYS_DATABASES.add("_SYS_AFL");
-        SYS_DATABASES.add("_SYS_BI");
-        SYS_DATABASES.add("_SYS_BIC");
-        SYS_DATABASES.add("_SYS_DATA_ANONYMIZATION");
-        SYS_DATABASES.add("_SYS_DI");
-        SYS_DATABASES.add("_SYS_EPM");
-        SYS_DATABASES.add("_SYS_LDB");
-        SYS_DATABASES.add("_SYS_PLAN_STABILITY");
-        SYS_DATABASES.add("_SYS_REPO");
-        SYS_DATABASES.add("_SYS_RT");
-        SYS_DATABASES.add("_SYS_SECURITY");
-        SYS_DATABASES.add("_SYS_SQL_ANALYZER");
-        SYS_DATABASES.add("_SYS_STATISTICS");
-        SYS_DATABASES.add("_SYS_TABLE_REPLICAS");
-        SYS_DATABASES.add("_SYS_TASK");
-        SYS_DATABASES.add("_SYS_TELEMETRY");
-        SYS_DATABASES.add("_SYS_XS");
-        SYS_DATABASES.add("_SYS_DI_CATALOG");
-        SYS_DATABASES.add("_SYS_EPM_DATA");
-        SYS_DATABASES.add("_SYS_DI_SU");
-        SYS_DATABASES.add("_SYS_WORKLOAD_REPLAY");
-        SYS_DATABASES.add("_SYS_AUDIT");
-        SYS_DATABASES.add("_SYS_DI_BI_CATALOG");
-        SYS_DATABASES.add("_SYS_DI_CDS_CATALOG");
-        SYS_DATABASES.add("_SYS_DI_SEARCH_CATALOG");
-        SYS_DATABASES.add("_SYS_DI_TO");
-    }
 
     private static final String SELECT_COLUMNS_SQL_TEMPLATE =
             "SELECT\n"
@@ -257,6 +234,161 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
         return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new SapHanaTypeMapper());
+    }
+
+    public CatalogTable getTable(TablePath tablePath)
+            throws CatalogException, TableNotExistException {
+        if (!tableExists(tablePath)) {
+            throw new TableNotExistException(catalogName, tablePath);
+        }
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        Connection conn = getConnection(dbUrl);
+        TablePath originalTablePath = tablePath;
+        if (listSynonym(tablePath.getDatabaseName()).contains(tablePath.getTableName())) {
+            String sql =
+                    String.format(
+                            "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
+                            tablePath.getDatabaseName(), tablePath.getTableName());
+            try (PreparedStatement statement = conn.prepareStatement(sql)) {
+                final ResultSet resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
+                    final String refTableName = resultSet.getString("OBJECT_NAME");
+                    tablePath = TablePath.of(refDatabaseName, refTableName);
+                }
+            } catch (Exception e) {
+                throw new CatalogException(
+                        String.format("Failed getting SYNONYM %s", tablePath.getFullName()), e);
+            }
+        }
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
+            List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            try (PreparedStatement ps = conn.prepareStatement(getSelectColumnsSql(tablePath));
+                    ResultSet resultSet = ps.executeQuery()) {
+
+                TableSchema.Builder builder = TableSchema.builder();
+                buildColumnsWithErrorCheck(tablePath, resultSet, builder);
+                // add primary key
+                primaryKey.ifPresent(builder::primaryKey);
+                // add constraint key
+                constraintKeys.forEach(builder::constraintKey);
+                TableIdentifier tableIdentifier = getTableIdentifier(originalTablePath);
+                return CatalogTable.of(
+                        tableIdentifier,
+                        builder.build(),
+                        buildConnectorOptions(tablePath),
+                        Collections.emptyList(),
+                        "",
+                        catalogName);
+            }
+        } catch (SeaTunnelRuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format("Failed getting table %s", tablePath.getFullName()), e);
+        }
+    }
+
+    public CatalogTable getTableIgnoreUnSupportColumn(TablePath tablePath)
+            throws CatalogException, TableNotExistException {
+        if (!tableExists(tablePath)) {
+            throw new TableNotExistException(catalogName, tablePath);
+        }
+
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        Connection conn = getConnection(dbUrl);
+        TablePath originalTablePath = tablePath;
+        if (listSynonym(tablePath.getDatabaseName()).contains(tablePath.getTableName())) {
+            String sql =
+                    String.format(
+                            "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
+                            tablePath.getDatabaseName(), tablePath.getTableName());
+            try (PreparedStatement statement = conn.prepareStatement(sql)) {
+                final ResultSet resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
+                    final String refTableName = resultSet.getString("OBJECT_NAME");
+                    tablePath = TablePath.of(refDatabaseName, refTableName);
+                }
+            } catch (Exception e) {
+                throw new CatalogException(
+                        String.format("Failed getting SYNONYM %s", tablePath.getFullName()), e);
+            }
+        }
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
+            List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            try (PreparedStatement ps = conn.prepareStatement(getSelectColumnsSql(tablePath));
+                    ResultSet resultSet = ps.executeQuery()) {
+
+                TableSchema.Builder builder = TableSchema.builder();
+                try {
+                    buildColumnsWithErrorCheck(tablePath, resultSet, builder);
+                } catch (SeaTunnelRuntimeException e) {
+                    if (e.getSeaTunnelErrorCode() != null
+                            && CommonErrorCode.GET_CATALOG_TABLE_WITH_UNSUPPORTED_TYPE_ERROR.equals(
+                                    e.getSeaTunnelErrorCode())) {
+                        log.debug(ExceptionUtils.getMessage(e));
+                    } else {
+                        throw e;
+                    }
+                }
+                // add primary key
+                primaryKey.ifPresent(builder::primaryKey);
+                // add constraint key
+                constraintKeys.forEach(builder::constraintKey);
+                TableIdentifier tableIdentifier = getTableIdentifier(originalTablePath);
+                return CatalogTable.of(
+                        tableIdentifier,
+                        builder.build(),
+                        buildConnectorOptions(tablePath),
+                        Collections.emptyList(),
+                        "",
+                        catalogName);
+            }
+        } catch (SeaTunnelRuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format("Failed getting table %s", tablePath.getFullName()), e);
+        }
+    }
+
+    @Override
+    public Optional<PrimaryKey> getPrimaryKey(
+            DatabaseMetaData metaData, String database, String schema, String table)
+            throws SQLException {
+        List<String> primaryKeyList = new ArrayList<>();
+        String pkName = null;
+        String sql =
+                String.format(
+                        "SELECT COLUMN_NAME,CONSTRAINT_NAME FROM SYS.CONSTRAINTS WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s' AND IS_PRIMARY_KEY = 'TRUE' ",
+                        database, table);
+        try (final PreparedStatement preparedStatement =
+                metaData.getConnection().prepareStatement(sql)) {
+            final ResultSet resultSet = preparedStatement.executeQuery();
+            while (resultSet.next()) {
+                primaryKeyList.add(resultSet.getString("COLUMN_NAME"));
+                pkName = resultSet.getString("CONSTRAINT_NAME");
+            }
+        }
+        if (pkName != null) {
+            return Optional.of(PrimaryKey.of(pkName, primaryKeyList));
+        }
+        return Optional.empty();
     }
 
     @Override

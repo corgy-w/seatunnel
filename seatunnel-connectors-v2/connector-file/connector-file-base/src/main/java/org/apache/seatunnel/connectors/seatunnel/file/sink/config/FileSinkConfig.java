@@ -85,6 +85,8 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
     private List<String> parquetAvroWriteFixedAsInt96 =
             BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.defaultValue();
 
+    private long fileBlockSize;
+
     public FileSinkConfig(@NonNull Config config, @NonNull SeaTunnelRowType seaTunnelRowTypeInfo) {
         super(config);
         checkArgument(
@@ -247,6 +249,10 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
                         config.getStringList(
                                 BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.key());
             }
+        }
+
+        if (config.hasPath(BaseSinkConfig.FILE_BLOCK_SIZE.key())) {
+            this.fileBlockSize = config.getLong(BaseSinkConfig.FILE_BLOCK_SIZE.key());
         }
     }
 }

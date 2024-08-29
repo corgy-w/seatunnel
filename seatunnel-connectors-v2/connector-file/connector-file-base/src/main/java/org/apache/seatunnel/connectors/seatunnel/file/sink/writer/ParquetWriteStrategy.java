@@ -94,6 +94,30 @@ public class ParquetWriteStrategy extends AbstractWriteStrategy {
         this.beingWrittenWriter = new LinkedHashMap<>();
     }
 
+    public synchronized void newFilePart() {
+        this.partId++;
+        beingWrittenFile
+                .values()
+                .forEach(
+                        path -> {
+                            try {
+                                if (beingWrittenWriter != null
+                                        && beingWrittenWriter.get(path) != null) {
+                                    beingWrittenWriter.get(path).close();
+                                    // todo:After the parquetWriter object close, the memory will
+                                    // still be used, and all the references to the object should be
+                                    // removed.
+                                    beingWrittenWriter.put(path, null);
+                                    log.info("in newFilePart close file ,path:{}", path);
+                                }
+                            } catch (IOException e) {
+                                log.debug("writer closeFile: {}", path);
+                            }
+                        });
+        beingWrittenFile.clear();
+        log.debug("new file part: {}", partId);
+    }
+
     @Override
     public void init(HadoopConf conf, String jobId, String uuidPrefix, int subTaskIndex) {
         super.init(conf, jobId, uuidPrefix, subTaskIndex);
@@ -141,7 +165,9 @@ public class ParquetWriteStrategy extends AbstractWriteStrategy {
         this.beingWrittenWriter.forEach(
                 (k, v) -> {
                     try {
-                        v.close();
+                        if (v != null) {
+                            v.close();
+                        }
                     } catch (IOException e) {
                         String errorMsg =
                                 String.format(
@@ -152,6 +178,8 @@ public class ParquetWriteStrategy extends AbstractWriteStrategy {
                     }
                     needMoveFiles.put(k, getTargetLocation(k));
                 });
+        log.info(
+                "this.beingWrittenWriter.clear(),thread name:{}", Thread.currentThread().getName());
         this.beingWrittenWriter.clear();
     }
 
@@ -189,6 +217,7 @@ public class ParquetWriteStrategy extends AbstractWriteStrategy {
                                             .withCompressionCodec(
                                                     compressFormat.getParquetCompression())
                                             .withSchema(schema)
+                                            .withRowGroupSize(fileSinkConfig.getFileBlockSize())
                                             .build();
                             this.beingWrittenWriter.put(filePath, newWriter);
                             return newWriter;

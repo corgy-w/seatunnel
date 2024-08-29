@@ -143,18 +143,6 @@ public class SelectDBConfig implements Serializable {
                     .defaultValue(1)
                     .withDescription("Queue length for async upload to object storage");
 
-    public static final Option<String> COLUMN_PATTERN =
-            Options.key("column_pattern")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("The old string that will be replaced for Column");
-
-    public static final Option<String> COLUMN_REPLACEMENT =
-            Options.key("column_replacement")
-                    .stringType()
-                    .noDefaultValue()
-                    .withDescription("The new string for replace for Column");
-
     public static final Option<Boolean> NEEDS_UNSUPPORTED_TYPE_CASTING =
             Options.key("needs_unsupported_type_casting")
                     .booleanType()

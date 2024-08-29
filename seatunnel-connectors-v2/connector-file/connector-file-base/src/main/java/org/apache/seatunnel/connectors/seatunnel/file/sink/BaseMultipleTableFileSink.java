@@ -36,6 +36,7 @@ import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
+import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggregatedCommitter;
@@ -60,6 +61,7 @@ public abstract class BaseMultipleTableFileSink
     private final FileSinkConfig fileSinkConfig;
     private String jobId;
     private final ReadonlyConfig readonlyConfig;
+    private final HadoopFileSystemProxy hadoopFileSystemProxy;
 
     public abstract String getPluginName();
 
@@ -70,6 +72,7 @@ public abstract class BaseMultipleTableFileSink
         this.readonlyConfig = readonlyConfig;
         this.fileSinkConfig =
                 new FileSinkConfig(readonlyConfig.toConfig(), catalogTable.getSeaTunnelRowType());
+        this.hadoopFileSystemProxy = new HadoopFileSystemProxy(hadoopConf);
     }
 
     @Override

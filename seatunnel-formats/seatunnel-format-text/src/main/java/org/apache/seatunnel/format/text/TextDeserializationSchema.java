@@ -59,6 +59,9 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
     private final String[] separators;
     private final String encoding;
     private final TextLineSplitor splitor;
+    private final DateUtils.Formatter dateFormatter;
+    private final DateTimeUtils.Formatter dateTimeFormatter;
+    private final TimeUtils.Formatter timeFormatter;
 
     @SuppressWarnings("MagicNumber")
     public static final DateTimeFormatter TIME_FORMAT =
@@ -72,10 +75,16 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
     private TextDeserializationSchema(
             @NonNull SeaTunnelRowType seaTunnelRowType,
             String[] separators,
+            DateUtils.Formatter dateFormatter,
+            DateTimeUtils.Formatter dateTimeFormatter,
+            TimeUtils.Formatter timeFormatter,
             String encoding,
             TextLineSplitor splitor) {
         this.seaTunnelRowType = seaTunnelRowType;
         this.separators = separators;
+        this.dateFormatter = dateFormatter;
+        this.dateTimeFormatter = dateTimeFormatter;
+        this.timeFormatter = timeFormatter;
         this.encoding = encoding;
         this.splitor = splitor;
     }
@@ -138,7 +147,13 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
 
         public TextDeserializationSchema build() {
             return new TextDeserializationSchema(
-                    seaTunnelRowType, separators, encoding, textLineSplitor);
+                    seaTunnelRowType,
+                    separators,
+                    dateFormatter,
+                    dateTimeFormatter,
+                    timeFormatter,
+                    encoding,
+                    textLineSplitor);
         }
     }
 

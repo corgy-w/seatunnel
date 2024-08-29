@@ -52,7 +52,16 @@ public final class ConfigShadeUtils {
     private static final String SHADE_IDENTIFIER_OPTION = "shade.identifier";
 
     private static final String[] DEFAULT_SENSITIVE_OPTIONS =
-            new String[] {"password", "username", "auth", "user"};
+            new String[] {
+                "password",
+                "username",
+                "auth",
+                "user",
+                "access_key",
+                "secret_key",
+                "jdbc_user",
+                "jdbc_password"
+            };
 
     private static final Map<String, ConfigShade> CONFIG_SHADES = new HashMap<>();
 

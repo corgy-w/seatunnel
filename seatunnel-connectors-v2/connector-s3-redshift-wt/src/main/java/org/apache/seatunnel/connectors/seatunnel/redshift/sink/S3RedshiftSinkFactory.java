@@ -102,6 +102,8 @@ public class S3RedshiftSinkFactory implements TableSinkFactory {
                         S3RedshiftConfig.CHANGELOG_BUFFER_FLUSH_INTERVAL,
                         S3RedshiftConfig.REDSHIFT_TEMPORARY_TABLE_NAME)
                 .optional(S3RedshiftConfig.TIMEZONE)
+                .optional(BaseSinkConfig.BATCH_SIZE)
+                .optional(BaseSinkConfig.FILE_BLOCK_SIZE)
                 .build();
     }
 

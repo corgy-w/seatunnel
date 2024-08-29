@@ -466,6 +466,20 @@ public class OrcReadStrategy extends AbstractReadStrategy {
         return bytesObj;
     }
 
+    private Object readDecimalVal(ColumnVector colVec, SeaTunnelDataType<?> dataType, int rowNum) {
+        Object decimalObj = null;
+        if (!colVec.isNull[rowNum]) {
+            DecimalColumnVector decimalVec = (DecimalColumnVector) colVec;
+            decimalObj = decimalVec.vector[rowNum].getHiveDecimal().bigDecimalValue();
+            if (dataType != null
+                    && dataType.getSqlType().equals(SqlType.STRING)
+                    && decimalObj != null) {
+                decimalObj = decimalObj.toString();
+            }
+        }
+        return decimalObj;
+    }
+
     /**
      * copied from {@link BytesColumnVector#toString(int)}
      *
@@ -485,20 +499,6 @@ public class OrcReadStrategy extends AbstractReadStrategy {
                         bytesVector.start[row],
                         bytesVector.length[row],
                         charset);
-    }
-
-    private Object readDecimalVal(ColumnVector colVec, SeaTunnelDataType<?> dataType, int rowNum) {
-        Object decimalObj = null;
-        if (!colVec.isNull[rowNum]) {
-            DecimalColumnVector decimalVec = (DecimalColumnVector) colVec;
-            decimalObj = decimalVec.vector[rowNum].getHiveDecimal().bigDecimalValue();
-            if (dataType != null
-                    && dataType.getSqlType().equals(SqlType.STRING)
-                    && decimalObj != null) {
-                decimalObj = decimalObj.toString();
-            }
-        }
-        return decimalObj;
     }
 
     private Object readTimestampVal(

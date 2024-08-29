@@ -56,6 +56,19 @@ public final class TablePath implements Serializable {
         if (paths.length == 3) {
             return of(paths[0], paths[1], paths[2]);
         }
+
+        if (paths.length >= 4) {
+            StringBuilder tempTableName = new StringBuilder();
+            for (int i = 1; i < paths.length; i++) {
+                if (i == paths.length - 1) {
+                    tempTableName.append(paths[i]);
+                } else {
+                    tempTableName.append(paths[i]).append(".");
+                }
+            }
+            return of(paths[0], null, tempTableName.toString());
+        }
+
         throw new IllegalArgumentException(
                 String.format("Cannot get split '%s' to get databaseName and tableName", fullName));
     }

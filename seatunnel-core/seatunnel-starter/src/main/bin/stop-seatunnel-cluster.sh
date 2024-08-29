@@ -43,7 +43,7 @@ if [ $# -ne 0 ]; then
 fi
 
 if test -z $CLUSTER_NAME;then
-   RES=$(ps -ef | grep $APP_MAIN | grep -v "\-cn\|\--cluster" | grep -v grep | awk '{print $2}')
+   RES=$(ps -ef | grep "$APP_MAIN" | grep -Ev '(-cn|--cluster)' | grep -v grep | awk '{print $2}')
    if test -z $RES;then
      echo "$SEATUNNEL_DEFAULT_CLUSTER_NAME is not running. Please check the correct name of the running cluster."
      exit 0
