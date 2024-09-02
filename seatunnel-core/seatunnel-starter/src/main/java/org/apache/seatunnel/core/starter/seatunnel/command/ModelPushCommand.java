@@ -28,6 +28,7 @@ import org.apache.seatunnel.api.table.factory.TableSourceFactory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
 import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
+import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.FileUtils;
 import org.apache.seatunnel.core.starter.command.Command;
 import org.apache.seatunnel.core.starter.exception.CommandExecuteException;
@@ -46,7 +47,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -107,7 +107,7 @@ public class ModelPushCommand implements Command<ClientCommandArgs> {
                     new Result.ExceptionInfo(
                             e.getClass().getName(),
                             e.getMessage(),
-                            Arrays.toString(e.getStackTrace()),
+                            ExceptionUtils.getMessage(e),
                             e.getSeaTunnelErrorCode().getCode(),
                             e.getParams()));
         } catch (Throwable e) {
@@ -115,7 +115,7 @@ public class ModelPushCommand implements Command<ClientCommandArgs> {
                     new Result.ExceptionInfo(
                             e.getClass().getName(),
                             e.getMessage(),
-                            Arrays.toString(e.getStackTrace()),
+                            ExceptionUtils.getMessage(e),
                             null,
                             null));
         }

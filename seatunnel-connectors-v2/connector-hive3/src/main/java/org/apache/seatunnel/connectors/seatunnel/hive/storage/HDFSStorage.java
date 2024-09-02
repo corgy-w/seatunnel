@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.hive.storage;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.common.utils.ReflectionUtils;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorException;
@@ -27,7 +28,9 @@ import org.apache.hadoop.conf.Configuration;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 public class HDFSStorage extends AbstractStorage {
 
@@ -43,9 +46,13 @@ public class HDFSStorage extends AbstractStorage {
             String path = new URI(hiveSdLocation).getPath();
             HadoopConf hadoopConf = new HadoopConf(hiveSdLocation.replace(path, StringUtils.EMPTY));
             Configuration configuration = loadHiveBaseHadoopConfig(readonlyConfig);
-            Map<String, String> propsInConfiguration =
-                    configuration.getPropsWithPrefix(StringUtils.EMPTY);
-            hadoopConf.setExtraOptions(propsInConfiguration);
+            Properties props = (Properties) ReflectionUtils.invoke(configuration, "getProps");
+            Map<String, String> configMap = new HashMap<>();
+            for (String name : props.stringPropertyNames()) {
+                String value = String.valueOf(props.get(name));
+                configMap.put(name, value);
+            }
+            hadoopConf.setExtraOptions(configMap);
             return hadoopConf;
         } catch (URISyntaxException e) {
             String errorMsg =
