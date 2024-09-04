@@ -53,6 +53,7 @@ for %%I in (%*) do (
 )
 
 set "JAVA_OPTS=%JAVA_OPTS% -Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+set "JAVA_OPTS=%JAVA_OPTS% -Dlog4j2.isThreadContextMapInheritable=true"
 
 REM Server Debug Config
 REM Usage instructions:

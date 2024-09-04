@@ -22,6 +22,8 @@ import org.apache.seatunnel.api.common.metrics.MetricTags;
 import org.apache.seatunnel.api.common.metrics.RawJobMetrics;
 import org.apache.seatunnel.api.event.EventHandler;
 import org.apache.seatunnel.api.event.EventProcessor;
+import org.apache.seatunnel.api.tracing.MDCExecutorService;
+import org.apache.seatunnel.api.tracing.MDCTracer;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.common.utils.StringFormatUtils;
@@ -325,7 +327,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
                                                                     "restore job (%s) from master active switch finished",
                                                                     entry.getKey()));
                                                 },
-                                                executorService))
+                                                MDCTracer.tracing(entry.getKey(), executorService)))
                         .collect(Collectors.toList());
 
         try {
@@ -478,11 +480,12 @@ public class CoordinatorService implements DynamicMetricsProvider {
             return new PassiveCompletableFuture<>(jobSubmitFuture);
         }
 
+        MDCExecutorService mdcExecutorService = MDCTracer.tracing(jobId, executorService);
         JobMaster jobMaster =
                 new JobMaster(
                         jobImmutableInformation,
                         this.nodeEngine,
-                        executorService,
+                        mdcExecutorService,
                         getResourceManager(),
                         getJobHistoryService(),
                         runningJobStateIMap,
@@ -492,7 +495,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
                         metricsImap,
                         engineConfig,
                         seaTunnelServer);
-        executorService.submit(
+        mdcExecutorService.submit(
                 () -> {
                     try {
                         runningJobInfoIMap.put(

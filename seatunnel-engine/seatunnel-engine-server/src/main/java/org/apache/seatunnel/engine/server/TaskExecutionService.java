@@ -19,6 +19,8 @@ package org.apache.seatunnel.engine.server;
 
 import org.apache.seatunnel.api.common.metrics.MetricTags;
 import org.apache.seatunnel.api.event.Event;
+import org.apache.seatunnel.api.tracing.MDCExecutorService;
+import org.apache.seatunnel.api.tracing.MDCTracer;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.StringFormatUtils;
 import org.apache.seatunnel.engine.common.Constant;
@@ -234,6 +236,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
 
     private void submitBlockingTask(
             TaskGroupExecutionTracker taskGroupExecutionTracker, List<Task> tasks) {
+        MDCExecutorService mdcExecutorService = MDCTracer.tracing(executorService);
 
         CountDownLatch startedLatch = new CountDownLatch(tasks.size());
         taskGroupExecutionTracker.blockingFutures =
@@ -250,7 +253,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                                                 "BlockingWorker-"
                                                         + taskGroupExecutionTracker.taskGroup
                                                                 .getTaskGroupLocation()))
-                        .map(executorService::submit)
+                        .map(mdcExecutorService::submit)
                         .collect(toList());
 
         // Do not return from this method until all workers have started. Otherwise,
@@ -417,7 +420,7 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                                             r.getTaskGroupLocation(), r.getExecutionState()));
                             notifyTaskStatusToMaster(taskGroup.getTaskGroupLocation(), r);
                         }),
-                executorService);
+                MDCTracer.tracing(executorService));
         return new PassiveCompletableFuture<>(resultFuture);
     }
 
@@ -489,7 +492,8 @@ public class TaskExecutionService implements DynamicMetricsProvider {
         if (!taskAsyncFunctionFuture.containsKey(taskGroupLocation)) {
             taskAsyncFunctionFuture.put(taskGroupLocation, new ConcurrentHashMap<>());
         }
-        CompletableFuture<?> future = CompletableFuture.runAsync(task, executorService);
+        CompletableFuture<?> future =
+                CompletableFuture.runAsync(task, MDCTracer.tracing(executorService));
         taskAsyncFunctionFuture.get(taskGroupLocation).put(id, future);
         future.whenComplete(
                 (r, e) -> {
