@@ -49,6 +49,7 @@ import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConf;
 import org.apache.seatunnel.connectors.seatunnel.redshift.config.S3RedshiftConfig;
 import org.apache.seatunnel.connectors.seatunnel.redshift.exception.S3RedshiftConnectorException;
 
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
@@ -143,8 +144,10 @@ public class S3RedshiftSink extends BaseHdfsFileSink
         return Optional.empty();
     }
 
+    @SneakyThrows
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
+        Class.forName("com.amazon.redshift.jdbc42.Driver");
         S3RedshiftSQLGenerator sqlGenerator;
         if (catalogTable != null) {
             sqlGenerator = new S3RedshiftSQLGenerator(s3RedshiftConf, catalogTable);
