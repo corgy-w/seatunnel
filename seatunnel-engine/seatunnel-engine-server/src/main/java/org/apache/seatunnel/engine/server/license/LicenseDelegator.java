@@ -19,6 +19,7 @@ package org.apache.seatunnel.engine.server.license;
 
 import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.seatunnel.shade.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.engine.common.config.EngineConfig;
@@ -64,7 +65,11 @@ public class LicenseDelegator {
 
     public LicenseDelegator(EngineConfig engineConfig) {
         this.engineConfig = engineConfig;
-        Executors.newSingleThreadScheduledExecutor()
+        Executors.newSingleThreadScheduledExecutor(
+                        new ThreadFactoryBuilder()
+                                .setDaemon(true)
+                                .setNameFormat("license-delegator-%d")
+                                .build())
                 .scheduleAtFixedRate(this::refreshSystemLicense, 1L, 1L, TimeUnit.HOURS);
     }
 
