@@ -22,8 +22,10 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 
-public abstract class AbstractSeaTunnelTransform implements SeaTunnelTransform<SeaTunnelRow> {
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
+public abstract class AbstractSeaTunnelTransform implements SeaTunnelTransform<SeaTunnelRow> {
     protected String inputTableName;
     protected SeaTunnelRowType inputRowType;
 

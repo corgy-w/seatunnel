@@ -22,6 +22,9 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
+import org.apache.seatunnel.transform.exception.ErrorDataTransformException;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,9 +33,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 public abstract class AbstractMultiCatalogSupportTransform
         implements SeaTunnelTransform<SeaTunnelRow> {
-
+    protected final ErrorHandleWay rowErrorHandleWay;
     protected List<CatalogTable> inputCatalogTables;
 
     protected List<CatalogTable> outputCatalogTables;
@@ -41,6 +45,7 @@ public abstract class AbstractMultiCatalogSupportTransform
 
     public AbstractMultiCatalogSupportTransform(
             List<CatalogTable> inputCatalogTables, ReadonlyConfig config) {
+        this.rowErrorHandleWay = config.get(CommonOptions.ROW_ERROR_HANDLE_WAY_OPTION);
         this.inputCatalogTables = inputCatalogTables;
         this.transformMap = new HashMap<>();
         inputCatalogTables.forEach(
@@ -65,10 +70,26 @@ public abstract class AbstractMultiCatalogSupportTransform
 
     @Override
     public SeaTunnelRow map(SeaTunnelRow row) {
-        if (transformMap.size() == 1) {
-            return transformMap.values().iterator().next().map(row);
+        try {
+            if (transformMap.size() == 1) {
+                return transformMap.values().iterator().next().map(row);
+            }
+            return transformMap.get(row.getTableId()).map(row);
+        } catch (ErrorDataTransformException e) {
+            if (e.getErrorHandleWay() != null) {
+                ErrorHandleWay errorHandleWay = e.getErrorHandleWay();
+                if (errorHandleWay.allowSkip() || errorHandleWay.allowSkipThisRow()) {
+                    log.debug("Skip row due to error", e);
+                    return null;
+                }
+                throw e;
+            }
+            if (rowErrorHandleWay.allowSkip()) {
+                log.debug("Skip row due to error", e);
+                return null;
+            }
+            throw e;
         }
-        return transformMap.get(row.getTableId()).map(row);
     }
 
     protected abstract Optional<SeaTunnelTransform<SeaTunnelRow>> buildTransform(
