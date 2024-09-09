@@ -164,7 +164,7 @@ public class IcebergTypeMapper {
         }
     }
 
-    private static int nextId() {
+    public static int nextId() {
         return fieldId++;
     }
 }

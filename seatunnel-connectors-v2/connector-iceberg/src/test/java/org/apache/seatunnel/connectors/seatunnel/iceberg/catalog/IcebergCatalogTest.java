@@ -142,7 +142,8 @@ class IcebergCatalogTest {
 
     CatalogTable buildAllTypesTable(TableIdentifier tableIdentifier) {
         TableSchema.Builder builder = TableSchema.builder();
-        builder.column(PhysicalColumn.of("id", BasicType.INT_TYPE, (Long) null, true, null, null));
+        builder.column(
+                PhysicalColumn.of("id", BasicType.INT_TYPE, (Long) null, true, null, "id comment"));
         builder.column(
                 PhysicalColumn.of(
                         "boolean_col", BasicType.BOOLEAN_TYPE, (Long) null, true, null, null));

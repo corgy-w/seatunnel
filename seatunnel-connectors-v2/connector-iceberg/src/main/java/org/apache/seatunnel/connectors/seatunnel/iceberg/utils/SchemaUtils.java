@@ -21,13 +21,13 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.utils;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.data.IcebergTypeMapper;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.sink.schema.SchemaAddColumn;
@@ -51,6 +51,7 @@ import org.jetbrains.annotations.NotNull;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.data.IcebergTypeMapper.nextId;
 
 @Slf4j
 public class SchemaUtils {
@@ -93,7 +95,7 @@ public class SchemaUtils {
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         TableSchema tableSchema = table.getTableSchema();
         // Convert to iceberg schema
-        Schema schema = toIcebergSchema(tableSchema.toPhysicalRowDataType());
+        Schema schema = toIcebergSchema(tableSchema);
         // Convert sink config
         SinkConfig config = new SinkConfig(readonlyConfig);
         // build auto create table
@@ -109,16 +111,16 @@ public class SchemaUtils {
      * @param catalog
      * @param tableIdentifier
      * @param config
-     * @param rowType
+     * @param tableSchema
      * @return
      */
     public static Table autoCreateTable(
             Catalog catalog,
             TableIdentifier tableIdentifier,
             SinkConfig config,
-            SeaTunnelRowType rowType) {
+            TableSchema tableSchema) {
         // Generate struct type
-        Schema schema = toIcebergSchema(rowType);
+        Schema schema = toIcebergSchema(tableSchema);
         return createTable(catalog, tableIdentifier, config, schema, config.getAutoCreateProps());
     }
 
@@ -158,8 +160,8 @@ public class SchemaUtils {
         return result.get();
     }
 
-    @NotNull private static Schema toIcebergSchema(SeaTunnelRowType rowType) {
-        Types.StructType structType = SchemaUtils.toIcebergType(rowType).asStructType();
+    @NotNull private static Schema toIcebergSchema(TableSchema tableSchema) {
+        Types.StructType structType = SchemaUtils.toIcebergType(tableSchema);
         return new Schema(structType.fields());
     }
 
@@ -256,6 +258,21 @@ public class SchemaUtils {
 
     public static Type toIcebergType(SeaTunnelDataType rowType) {
         return IcebergTypeMapper.toIcebergType(rowType);
+    }
+
+    public static Types.StructType toIcebergType(TableSchema tableSchema) {
+        List<Types.NestedField> structFields = new ArrayList<>();
+        for (Column column : tableSchema.getColumns()) {
+            Types.NestedField icebergField =
+                    Types.NestedField.of(
+                            nextId(),
+                            true,
+                            column.getName(),
+                            toIcebergType(column.getDataType()),
+                            column.getComment());
+            structFields.add(icebergField);
+        }
+        return Types.StructType.of(structFields);
     }
 
     public static PartitionSpec createPartitionSpec(
