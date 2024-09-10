@@ -93,6 +93,7 @@ public class SapHanaTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final int MAX_VARBINARY_LENGTH = 5000;
     public static final int MAX_SMALL_DECIMAL_SCALE = 368;
     public static final int DEFAULT_SCALE = 0;
+    public static final int DEFAULT_LONG_SCALE = 16;
     public static final int TIMESTAMP_DEFAULT_SCALE = 7;
     public static final int MAX_TIMESTAMP_SCALE = 7;
     public static final long MAX_BINARY_LENGTH = 5000;
@@ -270,6 +271,16 @@ public class SapHanaTypeConverter implements TypeConverter<BasicTypeDefine> {
                     } else {
                         builder.dataType(new DecimalType(DEFAULT_PRECISION, 0));
                         builder.columnLength((long) DEFAULT_PRECISION);
+                    }
+                } else if (scale == 0) {
+                    if (precision == 34) {
+                        builder.dataType(new DecimalType(DEFAULT_PRECISION, DEFAULT_LONG_SCALE));
+                        builder.columnLength((long) DEFAULT_PRECISION);
+                        builder.scale(DEFAULT_LONG_SCALE);
+                    } else {
+                        builder.dataType(new DecimalType((int) precision, scale));
+                        builder.columnLength(precision);
+                        builder.scale(scale);
                     }
                 } else {
                     builder.dataType(new DecimalType((int) precision, scale));

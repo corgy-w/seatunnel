@@ -86,7 +86,8 @@ public abstract class AbstractJdbcIT extends TestSuiteBase implements TestResour
                                 "bash",
                                 "-c",
                                 "mkdir -p /tmp/seatunnel/plugins/connector-jdbc && cd /tmp/seatunnel/plugins/connector-jdbc && wget "
-                                        + driverUrl());
+                                        + driverUrl()
+                                        + " --no-check-certificate");
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
             };
 
