@@ -164,6 +164,14 @@ public class SqlServerCDCIT extends TestSuiteBase implements TestResource {
                                 "mkdir -p /tmp/seatunnel/plugins/connector-cdc-sqlserver && cd /tmp/seatunnel/plugins/connector-cdc-sqlserver && wget "
                                         + driverUrl());
                 Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
+
+                extraCommands =
+                        container.execInContainer(
+                                "bash",
+                                "-c",
+                                "mkdir -p /tmp/seatunnel/plugins/connector-jdbc && cd /tmp/seatunnel/plugins/connector-jdbc && wget "
+                                        + driverUrl());
+                Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
             };
 
     @Override
