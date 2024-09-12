@@ -52,12 +52,16 @@ import org.jetbrains.annotations.NotNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.data.IcebergTypeMapper.nextId;
@@ -95,7 +99,7 @@ public class SchemaUtils {
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         TableSchema tableSchema = table.getTableSchema();
         // Convert to iceberg schema
-        Schema schema = toIcebergSchema(tableSchema);
+        Schema schema = toIcebergSchema(tableSchema, readonlyConfig);
         // Convert sink config
         SinkConfig config = new SinkConfig(readonlyConfig);
         // build auto create table
@@ -120,7 +124,7 @@ public class SchemaUtils {
             SinkConfig config,
             TableSchema tableSchema) {
         // Generate struct type
-        Schema schema = toIcebergSchema(tableSchema);
+        Schema schema = toIcebergSchema(tableSchema, config.getReadonlyConfig());
         return createTable(catalog, tableIdentifier, config, schema, config.getAutoCreateProps());
     }
 
@@ -160,9 +164,20 @@ public class SchemaUtils {
         return result.get();
     }
 
-    @NotNull private static Schema toIcebergSchema(TableSchema tableSchema) {
+    @NotNull private static Schema toIcebergSchema(TableSchema tableSchema, ReadonlyConfig config) {
         Types.StructType structType = SchemaUtils.toIcebergType(tableSchema);
-        return new Schema(structType.fields());
+        Set<Integer> identifierFieldIds =
+                config.getOptional(SinkConfig.TABLE_PRIMARY_KEYS)
+                        .map(e -> SinkConfig.stringToList(e, ","))
+                        .orElseGet(
+                                () ->
+                                        Optional.ofNullable(tableSchema.getPrimaryKey())
+                                                .map(e -> e.getColumnNames())
+                                                .orElse(Collections.emptyList()))
+                        .stream()
+                        .map(f -> structType.field(f).fieldId())
+                        .collect(Collectors.toSet());
+        return new Schema(structType.fields(), identifierFieldIds);
     }
 
     public static TableIdentifier toIcebergTableIdentifierFromCatalogTable(
@@ -266,7 +281,7 @@ public class SchemaUtils {
             Types.NestedField icebergField =
                     Types.NestedField.of(
                             nextId(),
-                            true,
+                            column.isNullable(),
                             column.getName(),
                             toIcebergType(column.getDataType()),
                             column.getComment());
