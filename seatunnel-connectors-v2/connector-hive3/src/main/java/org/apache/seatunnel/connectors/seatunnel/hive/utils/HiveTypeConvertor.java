@@ -21,10 +21,7 @@ import org.apache.seatunnel.api.table.catalog.SeaTunnelDataTypeConvertorUtil;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.common.constants.PluginType;
-import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.utils.JsonUtils;
-import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
 
 import java.util.LinkedHashMap;
 
@@ -35,8 +32,7 @@ public class HiveTypeConvertor {
             return BasicType.STRING_TYPE;
         }
         if (hiveType.contains("char")) {
-            throw CommonError.convertToSeaTunnelTypeError(
-                    HiveConstants.CONNECTOR_NAME, PluginType.SOURCE, hiveType, name);
+            return BasicType.STRING_TYPE;
         }
         if (hiveType.contains("binary")) {
             return PrimitiveByteArrayType.INSTANCE;
