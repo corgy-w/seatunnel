@@ -205,9 +205,6 @@ public class RedshiftTypeConverter implements TypeConverter<BasicTypeDefine> {
                 break;
             case TINYINT:
             case SMALLINT:
-                builder.columnType(REDSHIFT_SMALLINT);
-                builder.dataType(REDSHIFT_SMALLINT);
-                break;
             case INT:
                 builder.columnType(REDSHIFT_INTEGER);
                 builder.dataType(REDSHIFT_INTEGER);
