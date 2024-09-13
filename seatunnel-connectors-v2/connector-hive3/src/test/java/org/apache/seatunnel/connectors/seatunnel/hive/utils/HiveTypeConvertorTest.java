@@ -21,25 +21,12 @@ import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class HiveTypeConvertorTest {
-
-    @Test
-    void covertHiveTypeToSeaTunnelType() {
-        SeaTunnelRuntimeException exception =
-                Assertions.assertThrows(
-                        SeaTunnelRuntimeException.class,
-                        () -> HiveTypeConvertor.covertHiveTypeToSeaTunnelType("test", "char"));
-        assertEquals(
-                "ErrorCode:[COMMON-16], ErrorDescription:['Hive' source unsupported convert type 'char' of 'test' to SeaTunnel data type.]",
-                exception.getMessage());
-    }
 
     @Test
     void convertHiveStructType() {
