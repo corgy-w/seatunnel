@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.redshift.sink;
 import org.apache.seatunnel.api.sink.MultiTableResourceManager;
 import org.apache.seatunnel.api.table.schema.event.AlterTableAddColumnEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableColumnEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableColumnsEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableDropColumnEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableModifyColumnEvent;
@@ -46,6 +47,7 @@ import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -193,56 +195,76 @@ public class S3RedshiftChangelogWriter extends BaseFileSinkWriter {
         }
     }
 
-    private List<String> getSQLFromSchemaChangeEvent(String tableName, SchemaChangeEvent event) {
+    private List<String> getSQLFromSchemaChangeEvent(String tableName, SchemaChangeEvent event)
+            throws SQLException {
         List<String> sqlList = new ArrayList<>();
         if (event instanceof AlterTableColumnsEvent) {
-            ((AlterTableColumnsEvent) event)
-                    .getEvents()
-                    .forEach(
-                            column -> {
-                                if (column instanceof AlterTableChangeColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s rename column %s to %s",
-                                                    tableName,
-                                                    ((AlterTableChangeColumnEvent) column)
-                                                            .getOldColumn(),
-                                                    ((AlterTableChangeColumnEvent) column)
-                                                            .getColumn()
-                                                            .getName());
-                                    sqlList.add(sql);
-                                } else if (column instanceof AlterTableModifyColumnEvent) {
-                                    throw new UnsupportedOperationException(
-                                            "Unsupported modify column event: " + event);
-                                } else if (column instanceof AlterTableAddColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s add column %s %s default %s",
-                                                    tableName,
-                                                    ((AlterTableAddColumnEvent) column)
-                                                            .getColumn()
-                                                            .getName(),
-                                                    ToRedshiftTypeConverter.INSTANCE.convert(
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn()),
-                                                    this.getDefaultValue(
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn()
-                                                                    .getDefaultValue()));
-                                    sqlList.add(sql);
-                                } else if (column instanceof AlterTableDropColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s drop column %s",
-                                                    tableName,
-                                                    ((AlterTableDropColumnEvent) column)
-                                                            .getColumn());
-                                    sqlList.add(sql);
-                                } else {
-                                    throw new UnsupportedOperationException(
-                                            "Unsupported event: " + event);
-                                }
-                            });
+            AlterTableColumnsEvent columnsEvent = (AlterTableColumnsEvent) event;
+            for (AlterTableColumnEvent columnEvent : columnsEvent.getEvents()) {
+                sqlList.addAll(getSQLFromSchemaChangeEvent(tableName, columnEvent));
+            }
+            return sqlList;
+        }
+
+        if (event instanceof AlterTableChangeColumnEvent) {
+            AlterTableChangeColumnEvent changeColumnEvent = (AlterTableChangeColumnEvent) event;
+            if (!changeColumnEvent.getOldColumn().equals(changeColumnEvent.getColumn().getName())) {
+                if (!resource.getRedshiftJdbcClient()
+                                .columnExists(tableName, changeColumnEvent.getOldColumn())
+                        && resource.getRedshiftJdbcClient()
+                                .columnExists(tableName, changeColumnEvent.getColumn().getName())) {
+                    log.warn(
+                            "Column {} does not exist in table {}, Skip change column event",
+                            changeColumnEvent.getOldColumn(),
+                            tableName);
+                    return sqlList;
+                }
+            }
+            String sql =
+                    String.format(
+                            "alter table %s rename column %s to %s",
+                            tableName,
+                            changeColumnEvent.getOldColumn(),
+                            changeColumnEvent.getColumn().getName());
+            sqlList.add(sql);
+        } else if (event instanceof AlterTableModifyColumnEvent) {
+            throw new UnsupportedOperationException("Unsupported modify column event: " + event);
+        } else if (event instanceof AlterTableAddColumnEvent) {
+            AlterTableAddColumnEvent addColumnEvent = (AlterTableAddColumnEvent) event;
+            if (resource.getRedshiftJdbcClient()
+                    .columnExists(tableName, addColumnEvent.getColumn().getName())) {
+                log.warn(
+                        "Column {} already exists in table {}, Skip add column event",
+                        addColumnEvent.getColumn().getName(),
+                        tableName);
+                return sqlList;
+            }
+
+            String sql =
+                    String.format(
+                            "alter table %s add column %s %s default %s",
+                            tableName,
+                            addColumnEvent.getColumn().getName(),
+                            ToRedshiftTypeConverter.INSTANCE.convert(addColumnEvent.getColumn()),
+                            this.getDefaultValue(addColumnEvent.getColumn().getDefaultValue()));
+            sqlList.add(sql);
+        } else if (event instanceof AlterTableDropColumnEvent) {
+            AlterTableDropColumnEvent dropColumnEvent = (AlterTableDropColumnEvent) event;
+            if (!resource.getRedshiftJdbcClient()
+                    .columnExists(tableName, dropColumnEvent.getColumn())) {
+                log.warn(
+                        "Column {} does not exist in table {}, Skip drop column event",
+                        dropColumnEvent.getColumn(),
+                        tableName);
+                return sqlList;
+            }
+            String sql =
+                    String.format(
+                            "alter table %s drop column %s",
+                            tableName, dropColumnEvent.getColumn());
+            sqlList.add(sql);
+        } else {
+            throw new UnsupportedOperationException("Unsupported event: " + event);
         }
         return sqlList;
     }

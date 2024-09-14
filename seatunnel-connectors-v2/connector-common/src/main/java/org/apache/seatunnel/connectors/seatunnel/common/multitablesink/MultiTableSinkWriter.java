@@ -135,6 +135,10 @@ public class MultiTableSinkWriter
                         .getKey()
                         .getTableIdentifier()
                         .equals(event.tablePath().getFullName())) {
+                    log.info(
+                            "Start apply schema change for table {} sub-writer {}",
+                            sinkWriterEntry.getKey().getTableIdentifier(),
+                            sinkWriterEntry.getKey().getIndex());
                     synchronized (runnable.get(i)) {
                         if (sinkWriterEntry.getValue()
                                 instanceof SupportSchemaEvolutionSinkWriter) {
@@ -145,6 +149,10 @@ public class MultiTableSinkWriter
                             sinkWriterEntry.getValue().applySchemaChange(event);
                         }
                     }
+                    log.info(
+                            "Finish apply schema change for table {} sub-writer {}",
+                            sinkWriterEntry.getKey().getTableIdentifier(),
+                            sinkWriterEntry.getKey().getIndex());
                 }
             }
         }

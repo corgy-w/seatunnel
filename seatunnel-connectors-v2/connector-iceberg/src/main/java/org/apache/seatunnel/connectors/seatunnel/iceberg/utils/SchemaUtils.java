@@ -217,14 +217,17 @@ public class SchemaUtils {
                         .filter(updateType -> !typeMatches(table.schema(), updateType))
                         .collect(toList());
 
-        // filter out columns that have the updated type
+        // filter out columns that have already been deleted
         List<SchemaDeleteColumn> deleteColumns =
                 wrapper.deleteColumns().stream()
                         .filter(deleteColumn -> findColumns(table.schema(), deleteColumn))
                         .collect(toList());
 
-        // Rename column name
-        List<SchemaChangeColumn> changeColumns = wrapper.changeColumns().stream().collect(toList());
+        // filter out columns that have already been changed
+        List<SchemaChangeColumn> changeColumns =
+                wrapper.changeColumns().stream()
+                        .filter(changeColumn -> findColumns(table.schema(), changeColumn))
+                        .collect(toList());
 
         if (addColumns.isEmpty()
                 && modifyColumns.isEmpty()
@@ -265,6 +268,11 @@ public class SchemaUtils {
     private static boolean findColumns(
             org.apache.iceberg.Schema schema, SchemaDeleteColumn deleteColumn) {
         return schema.findField(deleteColumn.name()) != null;
+    }
+
+    private static boolean findColumns(
+            org.apache.iceberg.Schema schema, SchemaChangeColumn changeColumn) {
+        return schema.findField(changeColumn.oldName()) != null;
     }
 
     public static SeaTunnelDataType<?> toSeaTunnelType(String fieldName, Type type) {
