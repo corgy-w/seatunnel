@@ -19,8 +19,6 @@ package org.apache.seatunnel.connectors.doris.datatype;
 
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.converter.TypeConverter;
-import org.apache.seatunnel.common.exception.CommonError;
-import org.apache.seatunnel.connectors.doris.config.DorisConfig;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +35,10 @@ public class DorisTypeConverterFactory {
                 || dorisVersion.toLowerCase(Locale.ROOT).startsWith("selectdb-doris-2.")) {
             return DorisTypeConverterV2.INSTANCE;
         } else {
-            throw CommonError.unsupportedVersion(DorisConfig.IDENTIFIER, dorisVersion);
+            log.info(
+                    "Can not find DorisTypeConverter for Doris version: {}, use version 2.",
+                    dorisVersion);
+            return DorisTypeConverterV2.INSTANCE;
         }
     }
 }
