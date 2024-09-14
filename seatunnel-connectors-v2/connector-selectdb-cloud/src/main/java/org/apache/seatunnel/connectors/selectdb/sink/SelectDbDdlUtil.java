@@ -43,26 +43,14 @@ public class SelectDbDdlUtil {
 
     public static void executeDdl(
             SelectDBConfig selectDBConfig, SchemaChangeEvent event, CatalogTable catalogTable) {
-        final List<String> ddlSqlList = getDdlSqlList(event, catalogTable);
-        if (!CollectionUtils.isEmpty(ddlSqlList)) {
-            executeDdlSql(ddlSqlList, selectDBConfig);
-        }
-    }
-
-    private static List<String> getDdlSqlList(SchemaChangeEvent event, CatalogTable catalogTable) {
-        TablePath tablePath = catalogTable.getTableId().toTablePath();
-        return getSQLFromSchemaChangeEvent(tablePath, event);
-    }
-
-    private static void executeDdlSql(List<String> ddlSqlList, SelectDBConfig selectDBConfig) {
         try (Connection conn =
                 DriverManager.getConnection(
                         selectDBConfig.getJdbcUrl(),
                         selectDBConfig.getUsername(),
                         selectDBConfig.getPassword())) {
-            final Statement statement = conn.createStatement();
-            for (String ddlSql : ddlSqlList) {
-                statement.execute(ddlSql);
+            final List<String> ddlSqlList = getDdlSqlList(conn, event, catalogTable);
+            if (!CollectionUtils.isEmpty(ddlSqlList)) {
+                executeDdlSql(conn, ddlSqlList);
             }
         } catch (SQLException e) {
             if (e.getMessage().contains("Nothing is changed")) {
@@ -73,8 +61,23 @@ public class SelectDbDdlUtil {
         }
     }
 
+    private static List<String> getDdlSqlList(
+            Connection connection, SchemaChangeEvent event, CatalogTable catalogTable) {
+        TablePath tablePath = catalogTable.getTableId().toTablePath();
+        return getSQLFromSchemaChangeEvent(connection, tablePath, event);
+    }
+
+    private static void executeDdlSql(Connection connection, List<String> ddlSqlList)
+            throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            for (String ddlSql : ddlSqlList) {
+                statement.execute(ddlSql);
+            }
+        }
+    }
+
     private static List<String> getSQLFromSchemaChangeEvent(
-            TablePath tablePath, SchemaChangeEvent event) {
+            Connection connection, TablePath tablePath, SchemaChangeEvent event) {
         List<String> sqlList = new ArrayList<>();
         if (event instanceof AlterTableColumnsEvent) {
             ((AlterTableColumnsEvent) event)
@@ -82,15 +85,32 @@ public class SelectDbDdlUtil {
                     .forEach(
                             column -> {
                                 if (column instanceof AlterTableChangeColumnEvent) {
+                                    AlterTableChangeColumnEvent changeColumnEvent =
+                                            (AlterTableChangeColumnEvent) column;
+                                    if (!changeColumnEvent
+                                            .getOldColumn()
+                                            .equals(changeColumnEvent.getColumn().getName())) {
+                                        if (!columnExists(
+                                                        connection,
+                                                        tablePath,
+                                                        changeColumnEvent.getOldColumn())
+                                                && columnExists(
+                                                        connection,
+                                                        tablePath,
+                                                        changeColumnEvent.getColumn().getName())) {
+                                            log.warn(
+                                                    "Column {} does not exist in table {}, Skip change column event",
+                                                    changeColumnEvent.getOldColumn(),
+                                                    tablePath.getFullName());
+                                            return;
+                                        }
+                                    }
                                     String sql =
                                             String.format(
                                                     "alter table %s RENAME COLUMN %s %s",
                                                     tablePath.getFullName(),
-                                                    ((AlterTableChangeColumnEvent) column)
-                                                            .getOldColumn(),
-                                                    ((AlterTableAddColumnEvent) column)
-                                                            .getColumn()
-                                                            .getName());
+                                                    changeColumnEvent.getOldColumn(),
+                                                    changeColumnEvent.getColumn().getName());
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableModifyColumnEvent) {
                                     String sql =
@@ -102,25 +122,45 @@ public class SelectDbDdlUtil {
                                                                     .getColumn()));
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableAddColumnEvent) {
+                                    AlterTableAddColumnEvent addColumnEvent =
+                                            (AlterTableAddColumnEvent) column;
+                                    if (columnExists(
+                                            connection,
+                                            tablePath,
+                                            addColumnEvent.getColumn().getName())) {
+                                        log.warn(
+                                                "Column {} already exists in table {}, Skip add column event",
+                                                addColumnEvent.getColumn().getName(),
+                                                tablePath.getFullName());
+                                        return;
+                                    }
                                     String sql =
                                             String.format(
                                                     "alter table %s add column %s DEFAULT %s",
                                                     tablePath.getFullName(),
                                                     SelectDBSaveModeUtil.columnToSelectDBType(
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn()),
+                                                            addColumnEvent.getColumn()),
                                                     getDefaultValue(
-                                                            ((AlterTableAddColumnEvent) column)
+                                                            addColumnEvent
                                                                     .getColumn()
                                                                     .getDefaultValue()));
                                     sqlList.add(sql);
                                 } else if (column instanceof AlterTableDropColumnEvent) {
+                                    AlterTableDropColumnEvent dropColumnEvent =
+                                            (AlterTableDropColumnEvent) column;
+                                    if (!columnExists(
+                                            connection, tablePath, dropColumnEvent.getColumn())) {
+                                        log.warn(
+                                                "Column {} does not exist in table {}, Skip drop column event",
+                                                dropColumnEvent.getColumn(),
+                                                tablePath.getFullName());
+                                        return;
+                                    }
                                     String sql =
                                             String.format(
                                                     "alter table %s drop column %s",
                                                     tablePath.getFullName(),
-                                                    ((AlterTableDropColumnEvent) column)
-                                                            .getColumn());
+                                                    dropColumnEvent.getColumn());
                                     sqlList.add(sql);
                                 } else {
                                     throw new UnsupportedOperationException(
@@ -136,5 +176,16 @@ public class SelectDbDdlUtil {
             return "null";
         }
         return String.format("\"%s\"", defaultValue.toString());
+    }
+
+    private static boolean columnExists(Connection connection, TablePath tablePath, String column) {
+        String selectColumnSQL =
+                String.format("SELECT %s FROM %s WHERE 1 != 1", column, tablePath.getFullName());
+        try (Statement statement = connection.createStatement()) {
+            return statement.execute(selectColumnSQL);
+        } catch (SQLException e) {
+            log.info("Column {} does not exist in table {}", column, tablePath.getFullName(), e);
+            return false;
+        }
     }
 }

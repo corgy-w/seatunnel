@@ -42,7 +42,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.JdbcBatc
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcSinkState;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.XidInfo;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 
 import com.zaxxer.hikari.HikariDataSource;
@@ -52,7 +51,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -226,19 +224,12 @@ public class JdbcSinkWriter
                     " rebuild outputFormat fail",
                     e);
         }
-        final List<String> sqlList =
-                dialect.getSQLFromSchemaChangeEvent(
-                        TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable()),
-                        event);
-        if (CollectionUtils.isEmpty(sqlList)) {
-            return;
-        }
-        try {
-            Connection connection = connectionProvider.getConnection();
-            Statement statement = connection.createStatement();
-            for (String sql : sqlList) {
-                statement.execute(sql);
-            }
+        TablePath tablePath = TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable());
+        JdbcConnectionProvider refreshTableSchemaConnectionProvider =
+                dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
+        try (Connection connection =
+                refreshTableSchemaConnectionProvider.getOrEstablishConnection()) {
+            dialect.applySchemaChange(connection, tablePath, event);
         } catch (Exception throwables) {
             log.error("schema change error :", throwables);
             throw new JdbcConnectorException(
