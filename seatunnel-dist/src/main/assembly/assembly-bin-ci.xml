@@ -467,6 +467,7 @@
             <unpack>false</unpack>
             <includes>
                 <include>com.ibm.informix:jdbc:jar</include>
+                <include>com.ibm.informix:ifx-changestream-client:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-cdc-informix-wt</outputDirectory>

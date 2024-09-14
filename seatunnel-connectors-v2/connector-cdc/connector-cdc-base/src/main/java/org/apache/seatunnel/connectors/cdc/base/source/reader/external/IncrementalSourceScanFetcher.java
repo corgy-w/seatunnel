@@ -98,7 +98,7 @@ public class IncrementalSourceScanFetcher implements Fetcher<SourceRecords, Sour
                                 "Execute snapshot read task for snapshot split: {} cost: {}",
                                 currentSnapshotSplit,
                                 (System.currentTimeMillis() - startTime));
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         log.error(
                                 String.format(
                                         "Execute snapshot read task for snapshot split %s fail",
