@@ -227,6 +227,9 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     getTableWithConditionSql(tablePath));
         } catch (DatabaseNotExistException e) {
             return false;
+        } catch (SQLException e) {
+            throw new CatalogException(
+                    String.format("Failed to check table %s exists", tablePath.getFullName()), e);
         }
     }
 
