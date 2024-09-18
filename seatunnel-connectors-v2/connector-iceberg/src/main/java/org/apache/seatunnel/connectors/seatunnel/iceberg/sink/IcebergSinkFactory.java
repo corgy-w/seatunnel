@@ -99,8 +99,7 @@ public class IcebergSinkFactory implements TableSinkFactory {
         }
 
         TableIdentifier newTableId =
-                TableIdentifier.of(
-                        tableId.getCatalogName(), namespace, tableId.getSchemaName(), tableName);
+                TableIdentifier.of(tableId.getCatalogName(), namespace, tableName);
 
         return CatalogTable.of(newTableId, catalogTable);
     }
