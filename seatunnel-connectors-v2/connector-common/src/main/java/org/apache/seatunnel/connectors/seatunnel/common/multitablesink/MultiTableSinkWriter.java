@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -207,7 +208,8 @@ public class MultiTableSinkWriter
     public Optional<MultiTableCommitInfo> prepareCommit() throws IOException {
         checkQueueRemain();
         subSinkErrorCheck();
-        MultiTableCommitInfo multiTableCommitInfo = new MultiTableCommitInfo(new HashMap<>());
+        MultiTableCommitInfo multiTableCommitInfo =
+                new MultiTableCommitInfo(new ConcurrentHashMap<>());
         List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < sinkWritersWithIndex.size(); i++) {
             int finalI = i;
@@ -239,6 +241,9 @@ public class MultiTableSinkWriter
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
+        }
+        if (multiTableCommitInfo.getCommitInfo().isEmpty()) {
+            return Optional.empty();
         }
         return Optional.of(multiTableCommitInfo);
     }
