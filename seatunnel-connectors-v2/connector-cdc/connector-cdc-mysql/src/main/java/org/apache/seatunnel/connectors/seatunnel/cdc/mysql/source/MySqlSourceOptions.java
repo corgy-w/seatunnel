@@ -44,10 +44,7 @@ public class MySqlSourceOptions {
     public static final SingleChoiceOption<StopMode> STOP_MODE =
             (SingleChoiceOption)
                     Options.key(SourceOptions.STOP_MODE_KEY)
-                            .singleChoice(
-                                    StopMode.class,
-                                    Arrays.asList(
-                                            StopMode.LATEST, StopMode.SPECIFIC, StopMode.NEVER))
+                            .singleChoice(StopMode.class, Arrays.asList(StopMode.NEVER))
                             .defaultValue(StopMode.NEVER)
                             .withDescription(
                                     "Optional stop mode for CDC source, valid enumerations are "
