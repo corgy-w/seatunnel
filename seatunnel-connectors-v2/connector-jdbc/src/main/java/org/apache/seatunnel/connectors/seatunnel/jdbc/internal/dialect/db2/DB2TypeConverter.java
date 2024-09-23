@@ -55,19 +55,20 @@ public class DB2TypeConverter implements TypeConverter<BasicTypeDefine> {
     // string
     public static final String DB2_CHARACTER = "CHARACTER";
     public static final String DB2_CHAR = "CHAR";
-    public static final String DB2_CHAR_FOR_BIT_DATA = "CHAR FOR BIT DATA";
     public static final String DB2_VARCHAR = "VARCHAR";
-    public static final String DB2_VARCHAR_FOR_BIT_DATA = "VARCHAR FOR BIT DATA";
     public static final String DB2_LONG_VARCHAR = "LONG VARCHAR";
-    public static final String DB2_LONG_VARCHAR_FOR_BIT_DATA = "LONG VARCHAR FOR BIT DATA";
     public static final String DB2_CLOB = "CLOB";
     // graphic
     public static final String DB2_GRAPHIC = "GRAPHIC";
     public static final String DB2_VARGRAPHIC = "VARGRAPHIC";
+    public static final String DB2_LONG_VARGRAPHIC = "LONG VARGRAPHIC";
     public static final String DB2_DBCLOB = "DBCLOB";
     // ---------------------------binary---------------------------
     public static final String DB2_BINARY = "BINARY";
     public static final String DB2_VARBINARY = "VARBINARY";
+    public static final String DB2_CHAR_FOR_BIT_DATA = "CHAR FOR BIT DATA";
+    public static final String DB2_VARCHAR_FOR_BIT_DATA = "VARCHAR FOR BIT DATA";
+    public static final String DB2_LONG_VARCHAR_FOR_BIT_DATA = "LONG VARCHAR FOR BIT DATA";
     // ------------------------------time-------------------------
     public static final String DB2_DATE = "DATE";
     public static final String DB2_TIME = "TIME";
@@ -181,6 +182,12 @@ public class DB2TypeConverter implements TypeConverter<BasicTypeDefine> {
                 builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                 builder.dataType(BasicType.STRING_TYPE);
                 break;
+            case DB2_LONG_VARGRAPHIC:
+                builder.sourceType(
+                        String.format("%s(%d)", DB2_LONG_VARGRAPHIC, typeDefine.getLength()));
+                builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
+                builder.dataType(BasicType.STRING_TYPE);
+                break;
             case DB2_DBCLOB:
                 builder.sourceType(String.format("%s(%d)", DB2_DBCLOB, typeDefine.getLength()));
                 builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
@@ -198,6 +205,25 @@ public class DB2TypeConverter implements TypeConverter<BasicTypeDefine> {
                 break;
             case DB2_VARBINARY:
                 builder.sourceType(String.format("%s(%d)", DB2_VARBINARY, typeDefine.getLength()));
+                builder.columnLength(typeDefine.getLength());
+                builder.dataType(PrimitiveByteArrayType.INSTANCE);
+                break;
+            case DB2_CHAR_FOR_BIT_DATA:
+                builder.sourceType(
+                        String.format("%s(%d)", DB2_CHAR_FOR_BIT_DATA, typeDefine.getLength()));
+                builder.columnLength(typeDefine.getLength());
+                builder.dataType(PrimitiveByteArrayType.INSTANCE);
+                break;
+            case DB2_VARCHAR_FOR_BIT_DATA:
+                builder.sourceType(
+                        String.format("%s(%d)", DB2_VARCHAR_FOR_BIT_DATA, typeDefine.getLength()));
+                builder.columnLength(typeDefine.getLength());
+                builder.dataType(PrimitiveByteArrayType.INSTANCE);
+                break;
+            case DB2_LONG_VARCHAR_FOR_BIT_DATA:
+                builder.sourceType(
+                        String.format(
+                                "%s(%d)", DB2_LONG_VARCHAR_FOR_BIT_DATA, typeDefine.getLength()));
                 builder.columnLength(typeDefine.getLength());
                 builder.dataType(PrimitiveByteArrayType.INSTANCE);
                 break;

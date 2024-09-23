@@ -258,6 +258,21 @@ public class Db2TypeConverterTest {
         typeDefine =
                 BasicTypeDefine.builder()
                         .name("test")
+                        .columnType("LONG VARGRAPHIC")
+                        .dataType("LONG VARGRAPHIC")
+                        .build();
+        column = DB2TypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
+        Assertions.assertEquals(typeDefine.getLength(), column.getColumnLength());
+        Assertions.assertEquals(
+                String.format(
+                        "%s(%s)", DB2TypeConverter.DB2_LONG_VARGRAPHIC, typeDefine.getLength()),
+                column.getSourceType());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
                         .columnType("DBCLOB")
                         .dataType("DBCLOB")
                         .length(1L)
@@ -328,6 +343,53 @@ public class Db2TypeConverterTest {
         Assertions.assertEquals(PrimitiveByteArrayType.INSTANCE, column.getDataType());
         Assertions.assertEquals(
                 String.format("%s(%s)", DB2TypeConverter.DB2_BLOB, typeDefine.getLength()),
+                column.getSourceType());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType(DB2TypeConverter.DB2_CHAR_FOR_BIT_DATA)
+                        .dataType(DB2TypeConverter.DB2_CHAR_FOR_BIT_DATA)
+                        .length(1L)
+                        .build();
+        column = DB2TypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(PrimitiveByteArrayType.INSTANCE, column.getDataType());
+        Assertions.assertEquals(
+                String.format(
+                        "%s(%s)", DB2TypeConverter.DB2_CHAR_FOR_BIT_DATA, typeDefine.getLength()),
+                column.getSourceType());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType(DB2TypeConverter.DB2_VARCHAR_FOR_BIT_DATA)
+                        .dataType(DB2TypeConverter.DB2_VARCHAR_FOR_BIT_DATA)
+                        .length(1L)
+                        .build();
+        column = DB2TypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(PrimitiveByteArrayType.INSTANCE, column.getDataType());
+        Assertions.assertEquals(
+                String.format(
+                        "%s(%s)",
+                        DB2TypeConverter.DB2_VARCHAR_FOR_BIT_DATA, typeDefine.getLength()),
+                column.getSourceType());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType(DB2TypeConverter.DB2_LONG_VARCHAR_FOR_BIT_DATA)
+                        .dataType(DB2TypeConverter.DB2_LONG_VARCHAR_FOR_BIT_DATA)
+                        .length(1L)
+                        .build();
+        column = DB2TypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(PrimitiveByteArrayType.INSTANCE, column.getDataType());
+        Assertions.assertEquals(
+                String.format(
+                        "%s(%s)",
+                        DB2TypeConverter.DB2_LONG_VARCHAR_FOR_BIT_DATA, typeDefine.getLength()),
                 column.getSourceType());
     }
 
