@@ -103,7 +103,8 @@ public class Lsn implements Comparable<Lsn> {
     public String asString() {
         final ByteBuffer buf = ByteBuffer.allocate(8);
         buf.putLong(value);
-        buf.position(0);
+        // must cast java.nio.Buffer
+        ((java.nio.Buffer) buf).position(0);
 
         final int logicalXlog = buf.getInt();
         final int segment = buf.getInt();
