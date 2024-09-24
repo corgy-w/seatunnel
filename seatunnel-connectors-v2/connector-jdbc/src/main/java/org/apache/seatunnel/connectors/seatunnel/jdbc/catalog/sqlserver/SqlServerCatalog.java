@@ -18,6 +18,8 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.sqlserver;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.table.catalog.CatalogOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TablePath;
@@ -36,6 +38,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class SqlServerCatalog extends AbstractJdbcCatalog {
@@ -92,6 +99,57 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
         return String.format(
                 "SELECT TABLE_SCHEMA, TABLE_NAME FROM [%s].[INFORMATION_SCHEMA].[TABLES] WHERE TABLE_TYPE = 'BASE TABLE'",
                 databaseName);
+    }
+
+    @Override
+    public List<CatalogTable> getTables(ReadonlyConfig config) throws CatalogException {
+        // Get the list of specified tables
+        List<String> tableNames = config.get(CatalogOptions.TABLE_NAMES);
+        if (tableNames != null && !tableNames.isEmpty()) {
+            Iterator<TablePath> tablePaths =
+                    tableNames.stream()
+                            .map(
+                                    fullTableName -> {
+                                        if (!fullTableName.contains("].[")) {
+                                            return TablePath.of(fullTableName, true);
+                                        } else {
+                                            String[] parts =
+                                                    fullTableName
+                                                            .substring(
+                                                                    1, fullTableName.length() - 1)
+                                                            .split("\\]\\.\\[");
+                                            String databaseName = parts[0];
+                                            String schemaName = parts[1];
+                                            String tableName = parts[2];
+                                            return TablePath.of(
+                                                    databaseName, schemaName, tableName);
+                                        }
+                                    })
+                            .filter(this::tableExists)
+                            .iterator();
+            return buildCatalogTablesWithErrorCheck(tablePaths);
+        }
+
+        // Get the list of table pattern
+        String tablePatternStr = config.get(CatalogOptions.TABLE_PATTERN);
+        if (StringUtils.isBlank(tablePatternStr)) {
+            return Collections.emptyList();
+        }
+        Pattern databasePattern = Pattern.compile(config.get(CatalogOptions.DATABASE_PATTERN));
+        Pattern tablePattern = Pattern.compile(config.get(CatalogOptions.TABLE_PATTERN));
+        List<String> allDatabase = this.listDatabases();
+        allDatabase.removeIf(s -> !databasePattern.matcher(s).matches());
+        List<TablePath> tablePaths = new ArrayList<>();
+        for (String databaseName : allDatabase) {
+            tableNames = this.listTables(databaseName);
+            tableNames.forEach(
+                    tableName -> {
+                        if (tablePattern.matcher(databaseName + "." + tableName).matches()) {
+                            tablePaths.add(TablePath.of(databaseName, tableName));
+                        }
+                    });
+        }
+        return buildCatalogTablesWithErrorCheck(tablePaths.iterator());
     }
 
     @Override
