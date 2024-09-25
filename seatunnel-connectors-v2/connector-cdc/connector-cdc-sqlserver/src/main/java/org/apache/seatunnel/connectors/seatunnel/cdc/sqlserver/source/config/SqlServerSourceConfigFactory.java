@@ -68,7 +68,20 @@ public class SqlServerSourceConfigFactory extends JdbcSourceConfigFactory {
             // SqlServer identifier is of the form schemaName.tableName
             String tableIncludeList =
                     tableList.stream()
-                            .map(table -> table.substring(table.indexOf(".") + 1))
+                            .map(
+                                    table -> {
+                                        if (table.contains("].[")) {
+                                            String[] parts =
+                                                    table.substring(1, table.length() - 1)
+                                                            .split("\\]\\.\\[");
+                                            String databaseName = parts[0];
+                                            String schemaName = parts[1];
+                                            String tableName = parts[2];
+                                            return schemaName + "." + tableName;
+                                        } else {
+                                            return table.substring(table.indexOf(".") + 1);
+                                        }
+                                    })
                             .collect(Collectors.joining(","));
             props.setProperty("table.include.list", tableIncludeList);
         }
