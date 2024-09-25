@@ -17,6 +17,8 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+
 /**
  * A factory to create a specific {@link JdbcDialect}
  *
@@ -50,5 +52,16 @@ public interface JdbcDialectFactory {
      */
     default JdbcDialect create(String compatibleMode, String fieldId) {
         return create();
+    }
+
+    /**
+     * Create a {@link JdbcDialect} instance based on the driver type and compatible mode.
+     *
+     * @param compatibleMode The compatible mode
+     * @return a new instance of {@link JdbcDialect}
+     */
+    default JdbcDialect create(
+            String compatibleMode, String fieldId, ReadonlyConfig readonlyConfig) {
+        return create(compatibleMode, fieldId);
     }
 }

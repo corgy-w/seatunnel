@@ -508,7 +508,7 @@ public class JdbcMysqlSplitIT extends TestSuiteBase implements TestResource {
                 continue;
             }
             Assertions.assertEquals(
-                    "SELECT * FROM auto.split_test WHERE ABS(MD5(`c_varchar`) % 11) = ?",
+                    "SELECT * FROM `auto`.`split_test` WHERE ABS(MD5(`c_varchar`) % 11) = ?",
                     splitArray[i].getSplitQuery());
             Assertions.assertEquals(i, splitArray[i].getSplitStart());
         }

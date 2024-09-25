@@ -43,6 +43,7 @@ public class OssFileSinkFactory implements TableSinkFactory {
                 .required(OssConfigOptions.ACCESS_SECRET)
                 .required(OssConfigOptions.ENDPOINT)
                 .optional(BaseSinkConfig.FILE_FORMAT_TYPE)
+                .optional(BaseSinkConfig.ENCODING)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,

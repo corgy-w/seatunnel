@@ -17,15 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.mysql;
 
-import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
-import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
-import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
-import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
-import org.apache.seatunnel.api.table.event.AlterTableModifyColumnEvent;
-import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
@@ -33,9 +27,11 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDiale
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.SQLUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.source.JdbcSourceTable;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.MysqlDefaultValueUtils;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.mysql.cj.MysqlType;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -64,6 +60,11 @@ public class MysqlDialect implements JdbcDialect {
     @Override
     public String dialectName() {
         return DatabaseIdentifier.MYSQL;
+    }
+
+    @Override
+    public TypeConverter<BasicTypeDefine> typeConverter() {
+        return (TypeConverter) MySqlTypeConverter.DEFAULT_INSTANCE;
     }
 
     @Override
@@ -243,101 +244,34 @@ public class MysqlDialect implements JdbcDialect {
     }
 
     @Override
-    public List<String> getSQLFromSchemaChangeEvent(TablePath tablePath, SchemaChangeEvent event) {
-        List<String> sqlList = new ArrayList<>();
-        if (event instanceof AlterTableColumnsEvent) {
-            ((AlterTableColumnsEvent) event)
-                    .getEvents()
-                    .forEach(
-                            column -> {
-                                if (column instanceof AlterTableChangeColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s CHANGE %s %s",
-                                                    tableIdentifier(tablePath),
-                                                    ((AlterTableChangeColumnEvent) column)
-                                                            .getOldColumn(),
-                                                    this.buildColumnIdentifySql(
-                                                            column.tableIdentifier()
-                                                                    .getCatalogName(),
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn(),
-                                                            fieldIde));
-                                    sqlList.add(sql);
-                                } else if (column instanceof AlterTableModifyColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s MODIFY COLUMN %s DEFAULT %s ",
-                                                    tableIdentifier(tablePath),
-                                                    this.buildColumnIdentifySql(
-                                                            column.tableIdentifier()
-                                                                    .getCatalogName(),
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn(),
-                                                            fieldIde),
-                                                    this.getDefaultValue(
-                                                            ((AlterTableModifyColumnEvent) column)
-                                                                    .getColumn()
-                                                                    .getDefaultValue()));
-                                    sqlList.add(sql);
-                                } else if (column instanceof AlterTableAddColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s add column %s DEFAULT %s ",
-                                                    tableIdentifier(tablePath),
-                                                    this.buildColumnIdentifySql(
-                                                            column.tableIdentifier()
-                                                                    .getCatalogName(),
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn(),
-                                                            fieldIde),
-                                                    this.getDefaultValue(
-                                                            ((AlterTableAddColumnEvent) column)
-                                                                    .getColumn()
-                                                                    .getDefaultValue()));
-                                    sqlList.add(sql);
-                                } else if (column instanceof AlterTableDropColumnEvent) {
-                                    String sql =
-                                            String.format(
-                                                    "alter table %s drop column %s",
-                                                    tableIdentifier(tablePath),
-                                                    ((AlterTableDropColumnEvent) column)
-                                                            .getColumn());
-                                    sqlList.add(sql);
-                                } else {
-                                    throw new UnsupportedOperationException(
-                                            "Unsupported event: " + event);
-                                }
-                            });
+    public boolean needsQuotesWithDefaultValue(String sqlType) {
+        MysqlType mysqlType = MysqlType.getByName(sqlType);
+        switch (mysqlType) {
+            case CHAR:
+            case VARCHAR:
+            case TEXT:
+            case TINYTEXT:
+            case MEDIUMTEXT:
+            case LONGTEXT:
+            case ENUM:
+            case SET:
+            case BLOB:
+            case TINYBLOB:
+            case MEDIUMBLOB:
+            case LONGBLOB:
+            case DATE:
+            case DATETIME:
+            case TIMESTAMP:
+            case TIME:
+            case YEAR:
+                return true;
+            default:
+                return false;
         }
-        return sqlList;
     }
 
-    private String buildColumnIdentifySql(String catalogName, Column column, String fieldIde) {
-        final List<String> columnSqls = new ArrayList<>();
-        columnSqls.add(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "`"));
-        if (DatabaseIdentifier.MYSQL.equalsIgnoreCase(catalogName)
-                && column.getSourceType() != null) {
-            columnSqls.add(column.getSourceType());
-        } else {
-            columnSqls.add(MySqlTypeConverter.DEFAULT_INSTANCE.reconvert(column).getColumnType());
-        }
-        // nullable
-        if (column.isNullable()) {
-            columnSqls.add("NULL");
-        } else {
-            columnSqls.add("NOT NULL");
-        }
-        if (column.getComment() != null) {
-            columnSqls.add("COMMENT '" + column.getComment() + "'");
-        }
-        return String.join(" ", columnSqls);
-    }
-
-    private String getDefaultValue(Object defaultValue) {
-        if (defaultValue == null) {
-            return "null";
-        }
-        return String.format("'%s'", defaultValue.toString());
+    @Override
+    public boolean isSpecialDefaultValue(Object defaultValue) {
+        return MysqlDefaultValueUtils.isSpecialDefaultValue(defaultValue);
     }
 }

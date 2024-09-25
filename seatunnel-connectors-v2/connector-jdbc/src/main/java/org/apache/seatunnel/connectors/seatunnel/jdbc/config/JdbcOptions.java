@@ -229,4 +229,10 @@ public interface JdbcOptions {
                     .mapType()
                     .noDefaultValue()
                     .withDescription("additional connection configuration parameters");
+
+    Option<String> DATE_FORMAT =
+            Options.key("date_format")
+                    .stringType()
+                    .defaultValue("YYYY-MM-DD HH24:MI:SS")
+                    .withDescription("");
 }

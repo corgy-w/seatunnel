@@ -149,6 +149,16 @@ public class RedshiftJdbcClient implements AutoCloseable {
         }
     }
 
+    public boolean columnExists(String tableName, String columnName) throws SQLException {
+        String sql =
+                "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME ='"
+                        + tableName
+                        + "' AND COLUMN_NAME = '"
+                        + columnName
+                        + "'";
+        return existDataForSql(sql);
+    }
+
     public static RedshiftJdbcClient newSingleConnection(S3RedshiftConf conf) {
         return newConnectionPool(conf, 1);
     }
