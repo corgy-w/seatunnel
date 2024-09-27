@@ -71,7 +71,7 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     public InformixSourceFetchTaskContext(
             JdbcSourceConfig sourceConfig, JdbcDataSourceDialect dataSourceDialect) {
         super(sourceConfig, dataSourceDialect);
-        this.connection = new InformixConnection(sourceConfig.getDbzConfiguration());
+        this.connection = new InformixConnection(sourceConfig);
         this.metadataProvider = new InformixEventMetadataProvider();
     }
 

@@ -72,7 +72,7 @@ public class InformixDialect implements JdbcDataSourceDialect {
 
     @Override
     public InformixConnection openJdbcConnection(JdbcSourceConfig sourceConfig) {
-        return new InformixConnection(sourceConfig.getDbzConfiguration());
+        return new InformixConnection(sourceConfig);
     }
 
     @Override

@@ -17,6 +17,8 @@
 
 package io.debezium.connector.informix;
 
+import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
+
 import com.informix.jdbc.IfxDriver;
 import com.informix.stream.api.IfmxStreamRecord;
 import io.debezium.config.Configuration;
@@ -59,14 +61,6 @@ public class InformixConnection extends JdbcConnection {
                     + "}/${"
                     + JdbcConfiguration.DATABASE
                     + "}";
-    private static final JdbcConnection.ConnectionFactory FACTORY =
-            JdbcConnection.patternBasedFactory(
-                    URL_PATTERN,
-                    IfxDriver.class.getName(),
-                    InformixConnection.class.getClassLoader(),
-                    JdbcConfiguration.PORT.withDefault(
-                            InformixConnectorConfig.PORT.defaultValueAsString()),
-                    JdbcConfiguration.DATABASE);
 
     protected static final Set<String> SYS_DATABASES = new HashSet<>(9);
 
@@ -80,8 +74,25 @@ public class InformixConnection extends JdbcConnection {
 
     private Configuration config;
 
-    public InformixConnection(Configuration config) {
-        this(config, FACTORY);
+    public InformixConnection(JdbcSourceConfig sourceConfig) {
+        this(
+                sourceConfig.getDbzConfiguration(),
+                JdbcConnection.patternBasedFactory(
+                        URL_PATTERN + getURLSuffix(sourceConfig.getOriginUrl()),
+                        IfxDriver.class.getName(),
+                        InformixConnection.class.getClassLoader(),
+                        JdbcConfiguration.PORT.withDefault(
+                                InformixConnectorConfig.PORT.defaultValueAsString()),
+                        JdbcConfiguration.DATABASE));
+    }
+
+    private static String getURLSuffix(String url) {
+        int i = url.lastIndexOf("/");
+        if (!url.substring(i + 1).contains(":")) {
+            return "";
+        }
+        int j = url.indexOf(":", i + 1);
+        return url.substring(j);
     }
 
     public InformixConnection(Configuration config, ConnectionFactory connectionFactory) {
