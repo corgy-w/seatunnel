@@ -23,6 +23,7 @@ import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.sink.SupportSchemaEvolutionSinkWriter;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.api.tracing.MDCTracer;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,17 +63,21 @@ public class MultiTableSinkWriter
         this.sinkWriters = sinkWriters;
         AtomicInteger cnt = new AtomicInteger(0);
         executorService =
-                Executors.newFixedThreadPool(
-                        // we use it in `MultiTableWriterRunnable` and `prepare commit task`, so it
-                        // should be double.
-                        queueSize * 2,
-                        runnable -> {
-                            Thread thread = new Thread(runnable);
-                            thread.setDaemon(true);
-                            thread.setName(
-                                    "st-multi-table-sink-writer" + "-" + cnt.incrementAndGet());
-                            return thread;
-                        });
+                MDCTracer.tracing(
+                        Executors.newFixedThreadPool(
+                                // we use it in `MultiTableWriterRunnable` and `prepare commit
+                                // task`, so it
+                                // should be double.
+                                queueSize * 2,
+                                runnable -> {
+                                    Thread thread = new Thread(runnable);
+                                    thread.setDaemon(true);
+                                    thread.setName(
+                                            "st-multi-table-sink-writer"
+                                                    + "-"
+                                                    + cnt.incrementAndGet());
+                                    return thread;
+                                }));
         sinkWritersWithIndex = new ArrayList<>();
         for (int i = 0; i < queueSize; i++) {
             BlockingQueue<SeaTunnelRow> queue = new LinkedBlockingQueue<>(1024);
