@@ -1,0 +1,62 @@
+package org.apache.seatunnel.api.table.event.handler;
+
+import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
+import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableEvent;
+import org.apache.seatunnel.api.table.event.AlterTableModifyColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
+import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Slf4j
+public class TableSchemaChangeEventDispatcher implements TableSchemaChangeEventHandler {
+
+    private final Map<Class, TableSchemaChangeEventHandler> handlers;
+    private TableSchema schema;
+
+    public TableSchemaChangeEventDispatcher() {
+        this.handlers = createHandlers();
+    }
+
+    @Override
+    public TableSchema get() {
+        return schema;
+    }
+
+    @Override
+    public TableSchemaChangeEventHandler reset(TableSchema schema) {
+        this.schema = schema;
+        return this;
+    }
+
+    @Override
+    public TableSchema apply(SchemaChangeEvent event) {
+        TableSchemaChangeEventHandler handler = handlers.get(event.getClass());
+        if (handler == null) {
+            log.warn("Not found handler for event: {}", event.getClass());
+            return schema;
+        }
+        return handler.reset(schema).apply(event);
+    }
+
+    private static Map<Class, TableSchemaChangeEventHandler> createHandlers() {
+        Map<Class, TableSchemaChangeEventHandler> handlers = new HashMap<>();
+
+        AlterTableSchemaEventHandler alterTableEventHandler = new AlterTableSchemaEventHandler();
+        handlers.put(AlterTableEvent.class, alterTableEventHandler);
+        handlers.put(AlterTableNameEvent.class, alterTableEventHandler);
+        handlers.put(AlterTableColumnsEvent.class, alterTableEventHandler);
+        handlers.put(AlterTableAddColumnEvent.class, alterTableEventHandler);
+        handlers.put(AlterTableModifyColumnEvent.class, alterTableEventHandler);
+        handlers.put(AlterTableDropColumnEvent.class, alterTableEventHandler);
+        handlers.put(AlterTableChangeColumnEvent.class, alterTableEventHandler);
+        return handlers;
+    }
+}
