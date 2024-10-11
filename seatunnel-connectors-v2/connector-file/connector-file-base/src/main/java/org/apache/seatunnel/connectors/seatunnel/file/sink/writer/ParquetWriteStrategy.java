@@ -219,6 +219,7 @@ public class ParquetWriteStrategy extends AbstractWriteStrategy {
                                             .withSchema(schema)
                                             .withRowGroupSize(fileSinkConfig.getFileBlockSize())
                                             .build();
+                            log.info("file block size is : {}", fileSinkConfig.getFileBlockSize());
                             this.beingWrittenWriter.put(filePath, newWriter);
                             return newWriter;
                         } catch (IOException e) {
