@@ -21,6 +21,10 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableSink;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.connector.TableSink;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -55,7 +59,8 @@ public class SftpFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(BaseSinkConfig.SCHEMA_SAVE_MODE)
                 .optional(BaseSinkConfig.DATA_SAVE_MODE)
                 .optional(BaseSinkConfig.ENCODING)
-                .conditional(
+            .optional(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
+            .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
                         BaseSinkConfig.ROW_DELIMITER,
@@ -79,8 +84,7 @@ public class SftpFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.PARQUET,
                         BaseSinkConfig.PARQUET_COMPRESS,
-                        // TODO 等待 http://172.28.230.21:18056/browse/ST-1912 修复
-                        //                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
+                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
                         BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
@@ -112,8 +116,6 @@ public class SftpFileSinkFactory extends BaseMultipleTableFileSinkFactory {
             createSink(TableSinkFactoryContext context) {
         ReadonlyConfig readonlyConfig = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
-        ReadonlyConfig finalReadonlyConfig =
-                generateCurrentReadonlyConfig(readonlyConfig, catalogTable);
-        return () -> new SftpFileSink(finalReadonlyConfig, catalogTable);
+        return () -> new SftpFileSink(readonlyConfig, catalogTable);
     }
 }

@@ -99,7 +99,7 @@ public class RocketMqSourceReader implements SourceReader<SeaTunnelRow, RocketMq
             Thread.sleep(THREAD_WAIT_TIME);
             return;
         }
-        while (pendingPartitionsQueue.size() != 0) {
+        while (!pendingPartitionsQueue.isEmpty()) {
             sourceSplits.add(pendingPartitionsQueue.poll());
         }
         sourceSplits.forEach(
@@ -167,7 +167,7 @@ public class RocketMqSourceReader implements SourceReader<SeaTunnelRow, RocketMq
                                                     // just for bounded mode
                                                     sourceSplit.setEndOffset(lastOffset);
                                                 }
-                                            } catch (Exception e) {
+                                            } catch (Throwable e) {
                                                 completableFuture.completeExceptionally(e);
                                             }
                                             completableFuture.complete(null);

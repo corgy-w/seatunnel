@@ -24,11 +24,13 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.mysql.MySqlCatalog;
+import org.apache.seatunnel.e2e.common.container.TestContainer;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -46,6 +48,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +75,7 @@ public class JdbcMysqlSaveModeHandlerIT extends AbstractJdbcIT {
     private static final String CREATE_SQL =
             "CREATE TABLE IF NOT EXISTS %s\n"
                     + "(\n"
+                    + "    `id`                     bigint(20)            NOT NULL,\n"
                     + "    `c_bit_1`                bit(1)                DEFAULT NULL,\n"
                     + "    `c_bit_8`                bit(8)                DEFAULT NULL,\n"
                     + "    `c_bit_16`               bit(16)               DEFAULT NULL,\n"
@@ -115,7 +119,8 @@ public class JdbcMysqlSaveModeHandlerIT extends AbstractJdbcIT {
                     + "    `c_integer_unsigned`     int(10) unsigned      DEFAULT NULL,\n"
                     + "    `c_bigint_30`            BIGINT(40)  unsigned  DEFAULT NULL,\n"
                     + "    `c_decimal_unsigned_30`  DECIMAL(30) unsigned  DEFAULT NULL,\n"
-                    + "    `c_decimal_30`           DECIMAL(30)           DEFAULT NULL\n"
+                    + "    `c_decimal_30`           DECIMAL(30)           DEFAULT NULL,\n"
+                    + "    UNIQUE (c_int)\n"
                     + ");";
 
     @Override
@@ -152,7 +157,7 @@ public class JdbcMysqlSaveModeHandlerIT extends AbstractJdbcIT {
     }
 
     @Override
-    void compareResult(String executeKey) {
+    void checkResult(String executeKey, TestContainer container, Container.ExecResult execResult) {
         final TablePath tablePathSource = TablePath.of("seatunnel", "source");
         final CatalogTable tableSource = catalog.getTable(tablePathSource);
         final List<Column> columnsSource = tableSource.getTableSchema().getColumns();
@@ -162,6 +167,9 @@ public class JdbcMysqlSaveModeHandlerIT extends AbstractJdbcIT {
         final List<Column> columns = table.getTableSchema().getColumns();
 
         Assertions.assertEquals(columns.size(), columnsSource.size());
+        Assertions.assertIterableEquals(
+                Collections.singletonList("id"),
+                table.getTableSchema().getPrimaryKey().getColumnNames());
     }
 
     @Override
@@ -173,6 +181,7 @@ public class JdbcMysqlSaveModeHandlerIT extends AbstractJdbcIT {
     Pair<String[], List<SeaTunnelRow>> initTestData() {
         String[] fieldNames =
                 new String[] {
+                    "id",
                     "c_bit_1",
                     "c_bit_8",
                     "c_bit_16",
@@ -227,6 +236,7 @@ public class JdbcMysqlSaveModeHandlerIT extends AbstractJdbcIT {
             SeaTunnelRow row =
                     new SeaTunnelRow(
                             new Object[] {
+                                (long) i,
                                 i % 2 == 0 ? (byte) 1 : (byte) 0,
                                 new byte[] {byteArr},
                                 new byte[] {byteArr, byteArr},

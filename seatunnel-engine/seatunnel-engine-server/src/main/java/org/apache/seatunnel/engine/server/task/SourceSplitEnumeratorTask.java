@@ -22,6 +22,8 @@ import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorCloseEvent;
+import org.apache.seatunnel.api.source.event.EnumeratorOpenEvent;
 import org.apache.seatunnel.engine.core.dag.actions.SourceAction;
 import org.apache.seatunnel.engine.core.job.ConnectorJarIdentifier;
 import org.apache.seatunnel.engine.server.checkpoint.ActionStateKey;
@@ -117,6 +119,7 @@ public class SourceSplitEnumeratorTask<SplitT extends SourceSplit> extends Coord
         super.close();
         if (enumerator != null) {
             enumerator.close();
+            enumeratorContext.getEventListener().onEvent(new EnumeratorCloseEvent());
         }
         progress.done();
     }
@@ -305,6 +308,7 @@ public class SourceSplitEnumeratorTask<SplitT extends SourceSplit> extends Coord
                 if (startCalled && readerRegisterComplete) {
                     currState = STARTING;
                     enumerator.open();
+                    enumeratorContext.getEventListener().onEvent(new EnumeratorOpenEvent());
                 } else {
                     Thread.sleep(100);
                 }

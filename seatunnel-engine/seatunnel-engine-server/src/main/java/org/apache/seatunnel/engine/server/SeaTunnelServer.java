@@ -31,6 +31,7 @@ import org.apache.seatunnel.engine.server.execution.TaskGroupLocation;
 import org.apache.seatunnel.engine.server.service.jar.ConnectorPackageService;
 import org.apache.seatunnel.engine.server.service.slot.DefaultSlotService;
 import org.apache.seatunnel.engine.server.service.slot.SlotService;
+import org.apache.seatunnel.engine.server.telemetry.metrics.entity.ThreadPoolStatus;
 
 import com.hazelcast.internal.services.ManagedService;
 import com.hazelcast.internal.services.MembershipAwareService;
@@ -87,6 +88,7 @@ public class SeaTunnelServer
     private CoordinatorService coordinatorService;
     @Getter private CheckpointService checkpointService;
     private ScheduledExecutorService monitorService;
+    private JettyService jettyService;
 
     @Getter private SeaTunnelHealthMonitor seaTunnelHealthMonitor;
 
@@ -104,6 +106,12 @@ public class SeaTunnelServer
 
     /** Lazy load for Slot Service */
     public SlotService getSlotService() {
+        // If the node is master node, the slot service is not needed.
+        if (EngineConfig.ClusterRole.MASTER.ordinal()
+                == seaTunnelConfig.getEngineConfig().getClusterRole().ordinal()) {
+            return null;
+        }
+
         if (slotService == null) {
             synchronized (this) {
                 if (slotService == null) {
@@ -145,6 +153,16 @@ public class SeaTunnelServer
         }
 
         seaTunnelHealthMonitor = new SeaTunnelHealthMonitor(((NodeEngineImpl) engine).getNode());
+
+        // Start Jetty server
+        if (seaTunnelConfig.getEngineConfig().getHttpConfig().isEnabled()) {
+            jettyService = new JettyService(nodeEngine, seaTunnelConfig);
+            jettyService.createJettyServer();
+        }
+
+        // a trick way to fix StatisticsDataReferenceCleaner thread class loader leak.
+        // see https://issues.apache.org/jira/browse/HADOOP-19049
+        FileSystem.Statistics statistics = new FileSystem.Statistics("SeaTunnel");
     }
 
     private void startMaster() {
@@ -188,6 +206,10 @@ public class SeaTunnelServer
     @Override
     public void shutdown(boolean terminate) {
         isRunning = false;
+
+        if (jettyService != null) {
+            jettyService.shutdownJettyServer();
+        }
         if (taskExecutionService != null) {
             taskExecutionService.shutdown();
         }
@@ -347,5 +369,9 @@ public class SeaTunnelServer
 
     public ConnectorPackageService getConnectorPackageService() {
         return getCoordinatorService().getConnectorPackageService();
+    }
+
+    public ThreadPoolStatus getThreadPoolStatusMetrics() {
+        return coordinatorService.getThreadPoolStatusMetrics();
     }
 }

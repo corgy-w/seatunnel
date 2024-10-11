@@ -29,7 +29,7 @@ public class FtpConf extends HadoopConf {
             "org.apache.seatunnel.connectors.seatunnel.file.ftp.system.SeaTunnelFTPFileSystem";
     private static final String SCHEMA = "ftp";
 
-    private FtpConf(String hdfsNameKey) {
+    public FtpConf(String hdfsNameKey) {
         super(hdfsNameKey);
     }
 

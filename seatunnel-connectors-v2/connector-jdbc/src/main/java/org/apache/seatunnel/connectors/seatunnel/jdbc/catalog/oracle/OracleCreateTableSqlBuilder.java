@@ -30,8 +30,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oracle.Or
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import lombok.Getter;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -43,16 +41,18 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
     private PrimaryKey primaryKey;
     private String sourceCatalogName;
     private String fieldIde;
+    private boolean createIndex;
     private List<ConstraintKey> constraintKeys;
     public Boolean isHaveConstraintKey = false;
 
     @Getter public List<String> createIndexSqls = new ArrayList<>();
 
-    public OracleCreateTableSqlBuilder(CatalogTable catalogTable) {
+    public OracleCreateTableSqlBuilder(CatalogTable catalogTable, boolean createIndex) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
         this.sourceCatalogName = catalogTable.getCatalogName();
         this.fieldIde = catalogTable.getOptions().get("fieldIde");
+        this.createIndex = createIndex;
         constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
     }
 
@@ -70,7 +70,8 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
                         .collect(Collectors.toList());
 
         // Add primary key directly in the create table statement
-        if (primaryKey != null
+        if (createIndex
+                && primaryKey != null
                 && primaryKey.getColumnNames() != null
                 && primaryKey.getColumnNames().size() > 0) {
             columnSqls.add(buildPrimaryKeySql(primaryKey));
@@ -115,7 +116,6 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
                                         buildColumnCommentSql(
                                                 column, tablePath.getSchemaAndTableName("\"")))
                         .collect(Collectors.toList());
-
         sqls.addAll(commentSqls);
         return sqls;
     }

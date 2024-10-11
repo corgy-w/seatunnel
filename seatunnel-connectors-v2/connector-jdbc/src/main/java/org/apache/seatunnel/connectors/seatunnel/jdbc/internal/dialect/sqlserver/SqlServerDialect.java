@@ -67,33 +67,6 @@ public class SqlServerDialect implements JdbcDialect {
     }
 
     @Override
-    public String quoteIdentifier(String identifier) {
-        if (identifier.contains(".")) {
-            String[] parts = identifier.split("\\.");
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < parts.length - 1; i++) {
-                sb.append("[").append(parts[i]).append("]").append(".");
-            }
-            return sb.append("[")
-                    .append(getFieldIde(parts[parts.length - 1], fieldIde))
-                    .append("]")
-                    .toString();
-        }
-
-        return "[" + getFieldIde(identifier, fieldIde) + "]";
-    }
-
-    @Override
-    public String quoteDatabaseIdentifier(String identifier) {
-        return "[" + identifier + "]";
-    }
-
-    @Override
-    public String tableIdentifier(TablePath tablePath) {
-        return quoteIdentifier(tablePath.getFullName());
-    }
-
-    @Override
     public String hashModForField(String fieldName, int mod) {
         return "ABS(HASHBYTES('MD5', " + quoteIdentifier(fieldName) + ") % " + mod + ")";
     }
@@ -159,6 +132,33 @@ public class SqlServerDialect implements JdbcDialect {
                         insertValues);
 
         return Optional.of(upsertSQL);
+    }
+
+    @Override
+    public String quoteIdentifier(String identifier) {
+        if (identifier.contains(".")) {
+            String[] parts = identifier.split("\\.");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < parts.length - 1; i++) {
+                sb.append("[").append(parts[i]).append("]").append(".");
+            }
+            return sb.append("[")
+                    .append(getFieldIde(parts[parts.length - 1], fieldIde))
+                    .append("]")
+                    .toString();
+        }
+
+        return "[" + getFieldIde(identifier, fieldIde) + "]";
+    }
+
+    @Override
+    public String quoteDatabaseIdentifier(String identifier) {
+        return "[" + identifier + "]";
+    }
+
+    @Override
+    public String tableIdentifier(TablePath tablePath) {
+        return quoteIdentifier(tablePath.getFullName());
     }
 
     @Override

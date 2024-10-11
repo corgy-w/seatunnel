@@ -39,7 +39,6 @@ import org.testcontainers.utility.DockerLoggerFactory;
 
 import com.google.common.collect.Lists;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -64,7 +63,6 @@ public class JdbcSqlServerIT extends AbstractJdbcIT {
     private static final String SQLSERVER_DATABASE = "master";
     private static final String SQLSERVER_SCHEMA = "dbo";
     private static final String SQLSERVER_CATALOG_DATABASE = "catalog_test";
-
     private static final int SQLSERVER_CONTAINER_PORT = 1433;
     private static final String SQLSERVER_URL =
             "jdbc:sqlserver://"
@@ -110,7 +108,9 @@ public class JdbcSqlServerIT extends AbstractJdbcIT {
                     + "\tVARBINARY_MAX_TEST varbinary(MAX) NULL,\n"
                     + "\tVARCHAR_TEST varchar(16) COLLATE Chinese_PRC_CS_AS NULL,\n"
                     + "\tVARCHAR_MAX_TEST varchar(MAX) COLLATE Chinese_PRC_CS_AS DEFAULT NULL NULL,\n"
-                    + "\tXML_TEST xml NULL\n"
+                    + "\tXML_TEST xml NULL,\n"
+                    + "\tUDT_TEST UDTDECIMAL NULL,\n"
+                    + "\tCONSTRAINT PK_TEST_INDEX PRIMARY KEY (INT_IDENTITY_TEST)\n"
                     + ");";
 
     private static final String CREATE_SQL_WITH_DOT =
@@ -185,7 +185,8 @@ public class JdbcSqlServerIT extends AbstractJdbcIT {
                     + "\tVARBINARY_MAX_TEST varbinary(MAX) NULL,\n"
                     + "\tVARCHAR_TEST varchar(16) COLLATE Chinese_PRC_CS_AS NULL,\n"
                     + "\tVARCHAR_MAX_TEST varchar(MAX) COLLATE Chinese_PRC_CS_AS DEFAULT NULL NULL,\n"
-                    + "\tXML_TEST xml NULL\n"
+                    + "\tXML_TEST xml NULL,\n"
+                    + "\tUDT_TEST UDTDECIMAL NULL\n"
                     + ");";
 
     private String username;
@@ -225,6 +226,7 @@ public class JdbcSqlServerIT extends AbstractJdbcIT {
                 .configFile(CONFIG_FILE)
                 .insertSql(insertSql)
                 .testData(testDataSet)
+                .tablePathFullName(TablePath.DEFAULT.getFullName())
                 .build();
     }
 
@@ -271,7 +273,16 @@ public class JdbcSqlServerIT extends AbstractJdbcIT {
     }
 
     @Override
-    void compareResult(String executeKey) throws SQLException, IOException {}
+    protected void createSchemaIfNeeded() {
+        // create user-defined type
+        String sql = "CREATE TYPE UDTDECIMAL FROM decimal(12, 2);";
+        try {
+            connection.prepareStatement(sql).executeUpdate();
+        } catch (Exception e) {
+            throw new SeaTunnelRuntimeException(
+                    JdbcITErrorCode.CREATE_TABLE_FAILED, "Fail to execute sql " + sql, e);
+        }
+    }
 
     @Override
     String driverUrl() {
@@ -314,6 +325,7 @@ public class JdbcSqlServerIT extends AbstractJdbcIT {
                     "VARCHAR_TEST",
                     "VARCHAR_MAX_TEST",
                     "XML_TEST",
+                    "UDT_TEST"
                 };
 
         List<SeaTunnelRow> rows = new ArrayList<>();
@@ -353,6 +365,7 @@ public class JdbcSqlServerIT extends AbstractJdbcIT {
                                 "VarCharValue" + i, // VARCHAR_TEST
                                 "VarCharMaxValue" + i, // VARCHAR_MAX_TEST
                                 "<xml>Test" + i + "</xml>", // XML_TEST
+                                new BigDecimal("123.45") // UDT_TEST
                             });
             rows.add(row);
         }
@@ -422,31 +435,40 @@ public class JdbcSqlServerIT extends AbstractJdbcIT {
     @Test
     public void testCatalog() {
         TablePath tablePathSqlserver = TablePath.of("master", "dbo", "source");
-        TablePath tablePathSqlserver_Sink = TablePath.of("master", "dbo", "sink_lw");
+        TablePath tablePathSqlserverSink = TablePath.of("master", "dbo", "sink_lw");
         SqlServerCatalog sqlServerCatalog = (SqlServerCatalog) catalog;
+        // add comment
+        sqlServerCatalog.executeSql(
+                tablePathSqlserver,
+                "execute sp_addextendedproperty 'MS_Description','\"#¥%……&*();\\\\;'',,..``````//''@Xx''\\''\"','user','dbo','table','source','column','BIGINT_TEST';");
         CatalogTable catalogTable = sqlServerCatalog.getTable(tablePathSqlserver);
         // sink tableExists ?
-        boolean tableExistsBefore = sqlServerCatalog.tableExists(tablePathSqlserver_Sink);
+        boolean tableExistsBefore = sqlServerCatalog.tableExists(tablePathSqlserverSink);
         Assertions.assertFalse(tableExistsBefore);
         // create table
-        sqlServerCatalog.createTable(tablePathSqlserver_Sink, catalogTable, true);
-        boolean tableExistsAfter = sqlServerCatalog.tableExists(tablePathSqlserver_Sink);
+        sqlServerCatalog.createTable(tablePathSqlserverSink, catalogTable, true);
+        boolean tableExistsAfter = sqlServerCatalog.tableExists(tablePathSqlserverSink);
         Assertions.assertTrue(tableExistsAfter);
+        // comment
+        final CatalogTable sinkTable = sqlServerCatalog.getTable(tablePathSqlserverSink);
+        Assertions.assertEquals(
+                sinkTable.getTableSchema().getColumns().get(1).getComment(),
+                "\"#¥%……&*();\\\\;',,..``````//'@Xx'\\'\"");
         // isExistsData ?
-        boolean existsDataBefore = sqlServerCatalog.isExistsData(tablePathSqlserver_Sink);
+        boolean existsDataBefore = sqlServerCatalog.isExistsData(tablePathSqlserverSink);
         Assertions.assertFalse(existsDataBefore);
         // insert one data
         sqlServerCatalog.executeSql(
-                tablePathSqlserver_Sink,
+                tablePathSqlserverSink,
                 "insert into sink_lw(INT_IDENTITY_TEST, BIGINT_TEST) values(1, 12)");
-        boolean existsDataAfter = sqlServerCatalog.isExistsData(tablePathSqlserver_Sink);
+        boolean existsDataAfter = sqlServerCatalog.isExistsData(tablePathSqlserverSink);
         Assertions.assertTrue(existsDataAfter);
         // truncateTable
-        sqlServerCatalog.truncateTable(tablePathSqlserver_Sink, true);
-        Assertions.assertFalse(sqlServerCatalog.isExistsData(tablePathSqlserver_Sink));
+        sqlServerCatalog.truncateTable(tablePathSqlserverSink, true);
+        Assertions.assertFalse(sqlServerCatalog.isExistsData(tablePathSqlserverSink));
         // drop table
-        sqlServerCatalog.dropTable(tablePathSqlserver_Sink, true);
-        Assertions.assertFalse(sqlServerCatalog.tableExists(tablePathSqlserver_Sink));
+        sqlServerCatalog.dropTable(tablePathSqlserverSink, true);
+        Assertions.assertFalse(sqlServerCatalog.tableExists(tablePathSqlserverSink));
         sqlServerCatalog.close();
     }
 }

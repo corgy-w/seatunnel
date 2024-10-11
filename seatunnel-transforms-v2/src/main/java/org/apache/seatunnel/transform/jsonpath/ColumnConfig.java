@@ -22,6 +22,10 @@ import org.apache.seatunnel.transform.common.ErrorHandleWay;
 
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.seatunnel.transform.common.ErrorHandleWay;
+
+import lombok.Getter;
+import lombok.ToString;
 
 import java.io.Serializable;
 
@@ -33,8 +37,9 @@ public class ColumnConfig implements Serializable {
 
     private final String destField;
 
-    @Getter private final Column destColumn;
-    @Getter private final ErrorHandleWay errorHandleWay;
+    @Getter
+    private final Column destColumn;
+    private final ErrorHandleWay errorHandleWay;
 
     public ColumnConfig(
             String path,
@@ -59,5 +64,9 @@ public class ColumnConfig implements Serializable {
 
     public SeaTunnelDataType<?> getDestType() {
         return destColumn.getDataType();
+    }
+
+    public ErrorHandleWay errorHandleWay() {
+        return errorHandleWay;
     }
 }

@@ -18,14 +18,19 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.inceptor;
 
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.AbstractJdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.hive.HiveJdbcRowConverter;
+
+import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -34,7 +39,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
-public class InceptorJdbcRowConverter extends AbstractJdbcRowConverter {
+public class InceptorJdbcRowConverter extends HiveJdbcRowConverter {
 
     @Override
     public String converterName() {
@@ -43,8 +48,7 @@ public class InceptorJdbcRowConverter extends AbstractJdbcRowConverter {
 
     @Override
     public PreparedStatement toExternal(
-            TableSchema tableSchema, SeaTunnelRow row, PreparedStatement statement)
-            throws SQLException {
+            TableSchema tableSchema, SeaTunnelRow row, PreparedStatement statement) {
         SeaTunnelRowType rowType = tableSchema.toPhysicalRowDataType();
         for (int fieldIndex = 0; fieldIndex < rowType.getTotalFields(); fieldIndex++) {
             try {
@@ -52,11 +56,7 @@ public class InceptorJdbcRowConverter extends AbstractJdbcRowConverter {
                 int statementIndex = fieldIndex + 1;
                 Object fieldValue = row.getField(fieldIndex);
                 if (fieldValue == null) {
-                    try {
-                        statement.setObject(statementIndex, null);
-                    } catch (Exception e) {
-                        statement.setNull(statementIndex, 1);
-                    }
+                    statement.setObject(statementIndex, StringUtils.EMPTY);
                     continue;
                 }
 
@@ -94,8 +94,7 @@ public class InceptorJdbcRowConverter extends AbstractJdbcRowConverter {
                         statement.setDate(statementIndex, java.sql.Date.valueOf(localDate));
                         break;
                     case TIME:
-                        LocalTime localTime = (LocalTime) row.getField(fieldIndex);
-                        statement.setTime(statementIndex, java.sql.Time.valueOf(localTime));
+                        writeTime(statement, statementIndex, (LocalTime) row.getField(fieldIndex));
                         break;
                     case TIMESTAMP:
                         LocalDateTime localDateTime = (LocalDateTime) row.getField(fieldIndex);
@@ -107,6 +106,24 @@ public class InceptorJdbcRowConverter extends AbstractJdbcRowConverter {
                         break;
                     case NULL:
                         statement.setNull(statementIndex, java.sql.Types.NULL);
+                        break;
+                    case ARRAY:
+                        SeaTunnelDataType elementType =
+                                ((ArrayType) seaTunnelDataType).getElementType();
+                        Object[] array = (Object[]) row.getField(fieldIndex);
+                        if (array == null) {
+                            statement.setNull(statementIndex, java.sql.Types.ARRAY);
+                            break;
+                        }
+                        if (SqlType.TINYINT.equals(elementType.getSqlType())) {
+                            Short[] shortArray = new Short[array.length];
+                            for (int i = 0; i < array.length; i++) {
+                                shortArray[i] = Short.valueOf(array[i].toString());
+                            }
+                            statement.setObject(statementIndex, shortArray);
+                        } else {
+                            statement.setObject(statementIndex, array);
+                        }
                         break;
                     case MAP:
                     case ARRAY:

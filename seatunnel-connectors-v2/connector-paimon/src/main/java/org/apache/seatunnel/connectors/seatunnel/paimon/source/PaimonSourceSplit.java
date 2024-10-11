@@ -22,23 +22,22 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import org.apache.paimon.table.source.Split;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /** Paimon source split, wrapped the {@link Split} of paimon table. */
 @Getter
+@AllArgsConstructor
 public class PaimonSourceSplit implements SourceSplit {
     private static final long serialVersionUID = 1L;
+
+    /** The unique ID of the split. Unique within the scope of this source. */
+    private final String id;
 
     private final Split split;
 
     private final int index;
     private final int splitCount;
-
-    public PaimonSourceSplit(Split split, int index, int splitCount) {
-        this.split = split;
-        this.index = index;
-        this.splitCount = splitCount;
-    }
 
     @Override
     public TablePath getTablePath() {
@@ -48,9 +47,5 @@ public class PaimonSourceSplit implements SourceSplit {
     @Override
     public String splitId() {
         return split.toString();
-    }
-
-    public Split getSplit() {
-        return split;
     }
 }

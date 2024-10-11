@@ -100,9 +100,7 @@ public class ConsoleSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
     }
 
     @Override
-    public void close() {
-        context.getEventListener().onEvent(new WriterCloseEvent());
-    }
+    public void close() {}
 
     private String fieldsInfo(SeaTunnelRowType seaTunnelRowType) {
         String[] fieldsInfo = new String[seaTunnelRowType.getTotalFields()];

@@ -211,6 +211,7 @@ public class ParquetWriteStrategy extends AbstractWriteStrategy {
                                             .withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
                                             .withConf(configuration)
                                             .withDataModel(dataModel)
+                                            .withConf(configuration)
                                             // use parquet v1 to improve compatibility
                                             .withWriterVersion(
                                                     ParquetProperties.WriterVersion.PARQUET_1_0)

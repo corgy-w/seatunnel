@@ -25,6 +25,7 @@ import com.hazelcast.instance.impl.Node;
 import com.hazelcast.instance.impl.NodeExtension;
 import com.hazelcast.internal.cluster.Joiner;
 import com.hazelcast.internal.config.AliasedDiscoveryConfigUtils;
+import com.hazelcast.internal.cluster.Joiner;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,26 +54,11 @@ public class SeaTunnelNodeContext extends DefaultNodeContext {
                 getActiveMemberNetworkConfig(seaTunnelConfig.getHazelcastConfig()).getJoin();
         join.verify();
 
-        if (node.shouldUseMulticastJoiner(join) && node.multicastService != null) {
-            super.createJoiner(node);
-        } else if (join.getTcpIpConfig().isEnabled()) {
+        if (join.getTcpIpConfig().isEnabled()) {
             log.info("Using LiteNodeDropOutTcpIpJoiner TCP/IP discovery");
             return new LiteNodeDropOutTcpIpJoiner(node);
-        } else if (node.getProperties().getBoolean(DISCOVERY_SPI_ENABLED)
-                || isAnyAliasedConfigEnabled(join)
-                || join.isAutoDetectionEnabled()) {
-            super.createJoiner(node);
         }
-        return null;
-    }
 
-    private static boolean isAnyAliasedConfigEnabled(JoinConfig join) {
-        return !AliasedDiscoveryConfigUtils.createDiscoveryStrategyConfigs(join).isEmpty();
-    }
-
-    private boolean usePublicAddress(JoinConfig join, Node node) {
-        return node.getProperties().getBoolean(DISCOVERY_SPI_PUBLIC_IP_ENABLED)
-                || allUsePublicAddress(
-                        AliasedDiscoveryConfigUtils.aliasedDiscoveryConfigsFrom(join));
+        return super.createJoiner(node);
     }
 }

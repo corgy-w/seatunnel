@@ -71,6 +71,7 @@ public class SubPlan {
     private final String pipelineFullName;
 
     private final IMap<Object, Object> runningJobStateIMap;
+    private final Map<String, String> tags;
 
     /**
      * Timestamps (in milliseconds) as returned by {@code System.currentTimeMillis()} when the
@@ -116,7 +117,8 @@ public class SubPlan {
             @NonNull JobImmutableInformation jobImmutableInformation,
             @NonNull ExecutorService executorService,
             @NonNull IMap runningJobStateIMap,
-            @NonNull IMap runningJobStateTimestampsIMap) {
+            @NonNull IMap runningJobStateTimestampsIMap,
+            Map<String, String> tags) {
         this.pipelineId = pipelineId;
         this.pipelineLocation =
                 new PipelineLocation(jobImmutableInformation.getJobId(), pipelineId);
@@ -171,6 +173,7 @@ public class SubPlan {
         this.runningJobStateIMap = runningJobStateIMap;
         this.runningJobStateTimestampsIMap = runningJobStateTimestampsIMap;
         this.executorService = executorService;
+        this.tags = tags;
     }
 
     public synchronized PassiveCompletableFuture<PipelineExecutionState> initStateFuture() {

@@ -488,6 +488,7 @@ public class PhysicalVertex {
                         () -> {
                             updateStateTimestamps(ExecutionState.CREATED);
                             runningJobStateIMap.set(taskGroupLocation, ExecutionState.CREATED);
+                            // reset the errorByPhysicalVertex
                             errorByPhysicalVertex = new AtomicReference<>();
                             return null;
                         },

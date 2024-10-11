@@ -46,6 +46,7 @@ import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
+import io.debezium.util.SchemaNameAdjuster;
 
 import java.time.ZoneId;
 import java.util.List;
@@ -136,8 +137,9 @@ public class PostgresIncrementalSource<T> extends IncrementalSource<T, JdbcSourc
         PostgresDialect dialect =
                 new PostgresDialect((PostgresSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
+        SchemaNameAdjuster adjuster = SchemaNameAdjuster.create();
         ConnectTableChangeSerializer connectTableChangeSerializer =
-                new ConnectTableChangeSerializer();
+                new ConnectTableChangeSerializer(adjuster);
         try (JdbcConnection jdbcConnection = dialect.openJdbcConnection(jdbcSourceConfig)) {
             return discoverTables.stream()
                     .collect(

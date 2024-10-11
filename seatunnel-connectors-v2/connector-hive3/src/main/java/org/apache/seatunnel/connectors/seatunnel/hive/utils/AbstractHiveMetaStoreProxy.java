@@ -51,7 +51,6 @@ import java.util.Objects;
 public abstract class AbstractHiveMetaStoreProxy {
     private HiveMetaStoreClient hiveMetaStoreClient;
     protected static volatile AbstractHiveMetaStoreProxy INSTANCE = null;
-
     private static final List<String> HADOOP_CONF_FILES = ImmutableList.of("hive-site.xml");
 
     public AbstractHiveMetaStoreProxy(ReadonlyConfig readonlyConfig) {

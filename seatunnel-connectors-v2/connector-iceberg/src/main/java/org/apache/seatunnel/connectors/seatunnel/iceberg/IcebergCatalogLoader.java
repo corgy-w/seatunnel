@@ -19,6 +19,8 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg;
 
 import org.apache.seatunnel.shade.com.google.common.collect.ImmutableList;
 
+import org.apache.seatunnel.common.exception.CommonErrorCode;
+import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorException;
@@ -48,14 +50,14 @@ public class IcebergCatalogLoader implements Serializable {
     private static final long serialVersionUID = -6003040601422350869L;
     private static final List<String> HADOOP_CONF_FILES =
             ImmutableList.of("core-site.xml", "hdfs-site.xml", "hive-site.xml");
-    private CommonConfig config;
+    private final CommonConfig config;
 
     public IcebergCatalogLoader(CommonConfig config) {
         this.config = config;
     }
 
     public Catalog loadCatalog() {
-        // When using the seatunel engine, set the current class loader to prevent loading failures
+        // When using the SeaTunnel engine, set the current class loader to prevent loading failures
         Thread.currentThread().setContextClassLoader(IcebergCatalogLoader.class.getClassLoader());
         try {
             if (enableKerberos(config)) {
@@ -89,13 +91,8 @@ public class IcebergCatalogLoader implements Serializable {
                 config.getCatalogName(), config.getCatalogProps(), loadHadoopConfig(config));
     }
 
-    /**
-     * Loading Hadoop configuration through reflection
-     *
-     * @param config
-     * @return
-     */
-    private Object loadHadoopConfig(CommonConfig config) {
+    /** Loading Hadoop configuration through reflection */
+    public Object loadHadoopConfig(CommonConfig config) {
         Class<?> configClass =
                 DynClasses.builder()
                         .impl("org.apache.hadoop.hdfs.HdfsConfiguration")
@@ -113,7 +110,6 @@ public class IcebergCatalogLoader implements Serializable {
             log.info("Hadoop not found on classpath, not creating Hadoop config");
             return null;
         }
-
         try {
             Object result = configClass.getDeclaredConstructor().newInstance();
             DynMethods.BoundMethod addResourceMethod =
@@ -142,6 +138,8 @@ public class IcebergCatalogLoader implements Serializable {
                         });
             }
             config.getHadoopProps().forEach(setMethod::invoke);
+            // kerberos authentication
+            doKerberosLogin((Configuration) result);
             log.info("Hadoop config initialized: {}", configClass.getName());
             return result;
         } catch (InstantiationException

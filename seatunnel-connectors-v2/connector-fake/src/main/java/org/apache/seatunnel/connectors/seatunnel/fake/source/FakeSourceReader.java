@@ -74,14 +74,10 @@ public class FakeSourceReader implements SourceReader<SeaTunnelRow, FakeSourceSp
     }
 
     @Override
-    public void open() {
-        context.getEventListener().onEvent(new ReaderOpenEvent());
-    }
+    public void open() {}
 
     @Override
-    public void close() {
-        context.getEventListener().onEvent(new ReaderCloseEvent());
-    }
+    public void close() {}
 
     @Override
     @SuppressWarnings("MagicNumber")

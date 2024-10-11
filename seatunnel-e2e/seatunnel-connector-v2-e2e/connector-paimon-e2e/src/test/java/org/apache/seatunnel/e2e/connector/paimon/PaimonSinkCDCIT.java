@@ -18,6 +18,7 @@
 package org.apache.seatunnel.e2e.connector.paimon;
 
 import org.apache.seatunnel.common.utils.FileUtils;
+import org.apache.seatunnel.core.starter.utils.CompressionUtils;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
@@ -26,6 +27,7 @@ import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
+import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.paimon.CoreOptions;
 import org.apache.paimon.catalog.Catalog;
@@ -53,6 +55,7 @@ import org.testcontainers.containers.Container;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -69,7 +72,8 @@ import static org.awaitility.Awaitility.given;
                 "Spark and Flink engine can not auto create paimon table on worker node in local file(e.g flink tm) by savemode feature which can lead error")
 @Slf4j
 public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
-    private static final String CATALOG_ROOT_DIR = "/tmp/";
+
+    private static String CATALOG_ROOT_DIR = "/tmp/";
     private static final String NAMESPACE = "paimon";
     private static final String NAMESPACE_TAR = "paimon.tar.gz";
     private static final String CATALOG_DIR = CATALOG_ROOT_DIR + NAMESPACE + "/";
@@ -78,10 +82,18 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
     private static final String FAKE_DATABASE1 = "FakeDatabase1";
     private static final String FAKE_TABLE2 = "FakeTable1";
     private static final String FAKE_DATABASE2 = "FakeDatabase2";
+    private String CATALOG_ROOT_DIR_WIN = "C:/Users/";
+    private String CATALOG_DIR_WIN = CATALOG_ROOT_DIR_WIN + NAMESPACE + "/";
+    private boolean isWindows;
 
     @BeforeAll
     @Override
-    public void startUp() throws Exception {}
+    public void startUp() throws Exception {
+        this.isWindows =
+                System.getProperties().getProperty("os.name").toUpperCase().contains("WINDOWS");
+        CATALOG_ROOT_DIR_WIN = CATALOG_ROOT_DIR_WIN + System.getProperty("user.name") + "/tmp/";
+        CATALOG_DIR_WIN = CATALOG_ROOT_DIR_WIN + NAMESPACE + "/";
+    }
 
     @AfterAll
     @Override
@@ -97,6 +109,40 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
                         "/tmp/seatunnel/starter/zeta/seatunnel-hadoop3-3.3.6-uber.jar",
                         "/tmp/seatunnel/plugins/connector-paimon/");
             };
+
+    @TestTemplate
+    public void testSinkWithMultipleInBatchMode(TestContainer container) throws Exception {
+        Container.ExecResult execOneResult =
+                container.executeJob("/fake_cdc_sink_paimon_case9.conf");
+        Assertions.assertEquals(0, execOneResult.getExitCode());
+
+        Container.ExecResult execTwoResult =
+                container.executeJob("/fake_cdc_sink_paimon_case10.conf");
+        Assertions.assertEquals(0, execTwoResult.getExitCode());
+
+        given().ignoreExceptions()
+                .await()
+                .atLeast(100L, TimeUnit.MILLISECONDS)
+                .atMost(30L, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            // copy paimon to local
+                            container.executeExtraCommands(containerExtendedFactory);
+                            List<PaimonRecord> paimonRecords =
+                                    loadPaimonData("seatunnel_namespace9", TARGET_TABLE);
+                            Assertions.assertEquals(3, paimonRecords.size());
+                            paimonRecords.forEach(
+                                    paimonRecord -> {
+                                        if (paimonRecord.getPkId() == 1) {
+                                            Assertions.assertEquals("A", paimonRecord.getName());
+                                        }
+                                        if (paimonRecord.getPkId() == 2
+                                                || paimonRecord.getPkId() == 3) {
+                                            Assertions.assertEquals("CCC", paimonRecord.getName());
+                                        }
+                                    });
+                        });
+    }
 
     @TestTemplate
     public void testFakeCDCSinkPaimon(TestContainer container) throws Exception {
@@ -124,6 +170,20 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
                                         }
                                     });
                         });
+    }
+
+    @TestTemplate
+    public void testSinkWithIncompatibleSchema(TestContainer container) throws Exception {
+        Container.ExecResult execResult = container.executeJob("/fake_cdc_sink_paimon_case1.conf");
+        Assertions.assertEquals(0, execResult.getExitCode());
+        Container.ExecResult errResult =
+                container.executeJob("/fake_cdc_sink_paimon_case1_with_error_schema.conf");
+        Assertions.assertEquals(1, errResult.getExitCode());
+        Assertions.assertTrue(
+                errResult
+                        .getStderr()
+                        .contains(
+                                "[Paimon: The source filed with schema 'name INT', except filed schema of sink is '`name` INT'; but the filed in sink table which actual schema is '`name` STRING'. Please check schema of sink table.]"));
     }
 
     @TestTemplate
@@ -319,7 +379,8 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
     }
 
     @TestTemplate
-    public void testFakeCDCSinkPaimonWithTimestampN(TestContainer container) throws Exception {
+    public void testFakeCDCSinkPaimonWithTimestampNAndRead(TestContainer container)
+            throws Exception {
         Container.ExecResult execResult = container.executeJob("/fake_cdc_sink_paimon_case7.conf");
         Assertions.assertEquals(0, execResult.getExitCode());
 
@@ -382,6 +443,10 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
                                         "2024-03-10T10:00:00.123456789");
                             }
                         });
+
+        Container.ExecResult readResult =
+                container.executeJob("/paimon_to_assert_with_timestampN.conf");
+        Assertions.assertEquals(0, readResult.getExitCode());
     }
 
     @TestTemplate
@@ -435,10 +500,74 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
                         });
     }
 
+    @TestTemplate
+    public void testFakeSinkPaimonWithFullTypeAndReadWithFilter(TestContainer container)
+            throws Exception {
+        Container.ExecResult writeResult =
+                container.executeJob("/fake_to_paimon_with_full_type.conf");
+        Assertions.assertEquals(0, writeResult.getExitCode());
+        Container.ExecResult readResult =
+                container.executeJob("/paimon_to_assert_with_filter1.conf");
+        Assertions.assertEquals(0, readResult.getExitCode());
+        Container.ExecResult readResult2 =
+                container.executeJob("/paimon_to_assert_with_filter2.conf");
+        Assertions.assertEquals(0, readResult2.getExitCode());
+        Container.ExecResult readResult3 =
+                container.executeJob("/paimon_to_assert_with_filter3.conf");
+        Assertions.assertEquals(0, readResult3.getExitCode());
+        Container.ExecResult readResult4 =
+                container.executeJob("/paimon_to_assert_with_filter4.conf");
+        Assertions.assertEquals(0, readResult4.getExitCode());
+    }
+
+    @TestTemplate
+    public void testSinkPaimonTruncateTable(TestContainer container) throws Exception {
+        Container.ExecResult writeResult =
+                container.executeJob("/fake_sink_paimon_truncate_with_local_case1.conf");
+        Assertions.assertEquals(0, writeResult.getExitCode());
+        Container.ExecResult readResult =
+                container.executeJob("/fake_sink_paimon_truncate_with_local_case2.conf");
+        Assertions.assertEquals(0, readResult.getExitCode());
+        given().ignoreExceptions()
+                .await()
+                .atLeast(100L, TimeUnit.MILLISECONDS)
+                .atMost(30L, TimeUnit.SECONDS)
+                .untilAsserted(
+                        () -> {
+                            // copy paimon to local
+                            container.executeExtraCommands(containerExtendedFactory);
+                            List<PaimonRecord> paimonRecords =
+                                    loadPaimonData("seatunnel_namespace10", TARGET_TABLE);
+                            Assertions.assertEquals(2, paimonRecords.size());
+                            paimonRecords.forEach(
+                                    paimonRecord -> {
+                                        if (paimonRecord.getPkId() == 1) {
+                                            Assertions.assertEquals("Aa", paimonRecord.getName());
+                                        }
+                                        if (paimonRecord.getPkId() == 2) {
+                                            Assertions.assertEquals("Bb", paimonRecord.getName());
+                                        }
+                                        Assertions.assertEquals(200, paimonRecord.getScore());
+                                    });
+                            List<Long> ids =
+                                    paimonRecords.stream()
+                                            .map(PaimonRecord::getPkId)
+                                            .collect(Collectors.toList());
+                            Assertions.assertFalse(ids.contains(3L));
+                        });
+    }
+
     protected final ContainerExtendedFactory containerExtendedFactory =
             container -> {
-                FileUtils.deleteFile(CATALOG_ROOT_DIR + NAMESPACE_TAR);
-                FileUtils.createNewDir(CATALOG_DIR);
+                if (isWindows) {
+                    FileUtils.deleteFile(CATALOG_ROOT_DIR_WIN + NAMESPACE_TAR);
+                    FileUtils.deleteFile(CATALOG_ROOT_DIR_WIN + "paimon.tar");
+                    FileUtils.createNewDir(CATALOG_ROOT_DIR_WIN);
+                } else {
+                    FileUtils.deleteFile(CATALOG_ROOT_DIR + NAMESPACE_TAR);
+                    FileUtils.createNewDir(CATALOG_DIR);
+                }
+
                 container.execInContainer(
                         "sh",
                         "-c",
@@ -449,9 +578,13 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
                                 + " "
                                 + NAMESPACE);
                 container.copyFileFromContainer(
-                        CATALOG_ROOT_DIR + NAMESPACE_TAR, CATALOG_ROOT_DIR + NAMESPACE_TAR);
-                container.execInContainer("chmod", "777", "-R", "/tmp/paimon");
-                extractFiles();
+                        CATALOG_ROOT_DIR + NAMESPACE_TAR,
+                        (isWindows ? CATALOG_ROOT_DIR_WIN : CATALOG_ROOT_DIR) + NAMESPACE_TAR);
+                if (isWindows) {
+                    extractFilesWin();
+                } else {
+                    extractFiles();
+                }
             };
 
     private void extractFiles() {
@@ -472,8 +605,19 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
         }
     }
 
+    private void extractFilesWin() {
+        try {
+            CompressionUtils.unGzip(
+                    new File(CATALOG_ROOT_DIR_WIN + NAMESPACE_TAR), new File(CATALOG_ROOT_DIR_WIN));
+            CompressionUtils.unTar(
+                    new File(CATALOG_ROOT_DIR_WIN + "paimon.tar"), new File(CATALOG_ROOT_DIR_WIN));
+        } catch (IOException | ArchiveException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private List<PaimonRecord> loadPaimonData(String dbName, String tbName) throws Exception {
-        Table table = getTable(dbName, tbName);
+        FileStoreTable table = (FileStoreTable) getTable(dbName, tbName);
         ReadBuilder readBuilder = table.newReadBuilder();
         TableScan.Plan plan = readBuilder.newScan().plan();
         TableRead tableRead = readBuilder.newRead();
@@ -487,7 +631,12 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
         try (RecordReader<InternalRow> reader = tableRead.createReader(plan)) {
             reader.forEachRemaining(
                     row -> {
-                        result.add(new PaimonRecord(row.getLong(0), row.getString(1).toString()));
+                        PaimonRecord paimonRecord =
+                                new PaimonRecord(row.getLong(0), row.getString(1).toString());
+                        if (table.schema().fieldNames().contains("score")) {
+                            paimonRecord.setScore(row.getInt(2));
+                        }
+                        result.add(paimonRecord);
                         log.info("key_id:" + row.getLong(0) + ", name:" + row.getString(1));
                     });
         }
@@ -500,7 +649,7 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
         return result;
     }
 
-    private Table getTable(String dbName, String tbName) {
+    protected Table getTable(String dbName, String tbName) {
         try {
             return getCatalog().getTable(getIdentifier(dbName, tbName));
         } catch (Catalog.TableNotExistException e) {
@@ -515,7 +664,11 @@ public class PaimonSinkCDCIT extends TestSuiteBase implements TestResource {
 
     private Catalog getCatalog() {
         Options options = new Options();
-        options.set("warehouse", "file://" + CATALOG_DIR);
+        if (isWindows) {
+            options.set("warehouse", CATALOG_DIR_WIN);
+        } else {
+            options.set("warehouse", "file://" + CATALOG_DIR);
+        }
         Catalog catalog = CatalogFactory.createCatalog(CatalogContext.create(options));
         return catalog;
     }

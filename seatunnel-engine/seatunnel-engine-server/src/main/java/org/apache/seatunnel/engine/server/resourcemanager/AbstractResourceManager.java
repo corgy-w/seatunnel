@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -73,32 +74,40 @@ public abstract class AbstractResourceManager implements ResourceManager {
 
     private void initWorker() {
         log.info("initWorker... ");
-        List<Address> aliveWorker =
+        List<Address> aliveNode =
                 nodeEngine.getClusterService().getMembers().stream()
                         .filter(Member::isLiteMember)
                         .map(Member::getAddress)
                         .collect(Collectors.toList());
-        log.info("initWorker live nodes: " + aliveWorker);
+        log.info("init live nodes: {}", aliveNode);
         List<CompletableFuture<Void>> futures =
-                aliveWorker.stream()
+                aliveNode.stream()
                         .map(
-                                worker ->
-                                        sendToMember(new SyncWorkerProfileOperation(), worker)
+                                node ->
+                                        sendToMember(new SyncWorkerProfileOperation(), node)
                                                 .thenAccept(
                                                         p -> {
-                                                            registerWorker.put(
-                                                                    worker, (WorkerProfile) p);
+                                                            if (p != null) {
+                                                                registerWorker.put(
+                                                                        node, (WorkerProfile) p);
+                                                                log.info(
+                                                                        "received new worker register: "
+                                                                                + ((WorkerProfile)
+                                                                                                p)
+                                                                                        .getAddress());
+                                                            }
                                                         }))
                         .collect(Collectors.toList());
         futures.forEach(CompletableFuture::join);
-        log.info("registerWorker: " + registerWorker);
+        log.info("registerWorker: {}", registerWorker);
     }
 
     @Override
-    public CompletableFuture<SlotProfile> applyResource(long jobId, ResourceProfile resourceProfile)
+    public CompletableFuture<SlotProfile> applyResource(
+            long jobId, ResourceProfile resourceProfile, Map<String, String> tagFilter)
             throws NoEnoughResourceException {
         CompletableFuture<SlotProfile> completableFuture = new CompletableFuture<>();
-        applyResources(jobId, Collections.singletonList(resourceProfile))
+        applyResources(jobId, Collections.singletonList(resourceProfile), tagFilter)
                 .whenComplete(
                         (profile, error) -> {
                             if (error != null) {
@@ -135,17 +144,16 @@ public abstract class AbstractResourceManager implements ResourceManager {
 
     @Override
     public CompletableFuture<List<SlotProfile>> applyResources(
-            long jobId, List<ResourceProfile> resourceProfile) throws NoEnoughResourceException {
-
+            long jobId, List<ResourceProfile> resourceProfile, Map<String, String> tagFilter)
+            throws NoEnoughResourceException {
         waitingWorkerRegister();
-        return new ResourceRequestHandler(
-                        jobId, resourceProfile, filterRegisterWorker(registerWorker), this)
-                .request();
-    }
-
-    protected ConcurrentMap<Address, WorkerProfile> filterRegisterWorker(
-            ConcurrentMap<Address, WorkerProfile> registerWorker) {
-        return registerWorker;
+        ConcurrentMap<Address, WorkerProfile> matchedWorker = filterWorkerByTag(tagFilter);
+        if (matchedWorker.isEmpty()) {
+            log.error("No matched worker with tag filter {}.", tagFilter);
+            throw new NoEnoughResourceException();
+        }
+        return new ResourceRequestHandler(jobId, resourceProfile, matchedWorker, this)
+                .request(tagFilter);
     }
 
     protected boolean supportDynamicWorker() {
@@ -157,7 +165,8 @@ public abstract class AbstractResourceManager implements ResourceManager {
      *
      * @param resourceProfiles the worker should have resource profile list
      */
-    protected void findNewWorker(List<ResourceProfile> resourceProfiles) {
+    protected void findNewWorker(
+            List<ResourceProfile> resourceProfiles, Map<String, String> tagFilter) {
         throw new UnsupportedOperationException(
                 "Unsupported operation to find new worker in " + this.getClass().getName());
     }
@@ -193,7 +202,9 @@ public abstract class AbstractResourceManager implements ResourceManager {
     @Override
     public CompletableFuture<Void> releaseResource(long jobId, SlotProfile profile) {
         if (nodeEngine.getClusterService().getMember(profile.getWorker()) != null) {
-            return sendToMember(new ReleaseSlotOperation(jobId, profile), profile.getWorker());
+            CompletableFuture<WorkerProfile> future =
+                    sendToMember(new ReleaseSlotOperation(jobId, profile), profile.getWorker());
+            return future.thenAccept(this::heartbeat);
         } else {
             return CompletableFuture.completedFuture(null);
         }
@@ -232,14 +243,46 @@ public abstract class AbstractResourceManager implements ResourceManager {
     }
 
     @Override
-    public List<SlotProfile> getUnassignedSlots() {
-        return registerWorker.values().stream()
+    public List<SlotProfile> getUnassignedSlots(Map<String, String> tags) {
+        return filterWorkerByTag(tags).values().stream()
                 .flatMap(workerProfile -> Arrays.stream(workerProfile.getUnassignedSlots()))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public int workerCount() {
-        return registerWorker.size();
+    public List<SlotProfile> getAssignedSlots(Map<String, String> tags) {
+        return filterWorkerByTag(tags).values().stream()
+                .flatMap(workerProfile -> Arrays.stream(workerProfile.getAssignedSlots()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public int workerCount(Map<String, String> tags) {
+        return filterWorkerByTag(tags).size();
+    }
+
+    private ConcurrentMap<Address, WorkerProfile> filterWorkerByTag(Map<String, String> tagFilter) {
+        if (tagFilter == null || tagFilter.isEmpty()) {
+            return registerWorker;
+        }
+        return registerWorker.entrySet().stream()
+                .filter(
+                        e -> {
+                            Map<String, String> workerAttr = e.getValue().getAttributes();
+                            if (workerAttr == null || workerAttr.isEmpty()) {
+                                return false;
+                            }
+                            boolean match = true;
+                            for (Map.Entry<String, String> entry : tagFilter.entrySet()) {
+                                if (!workerAttr.containsKey(entry.getKey())
+                                        || !workerAttr
+                                                .get(entry.getKey())
+                                                .equals(entry.getValue())) {
+                                    return false;
+                                }
+                            }
+                            return match;
+                        })
+                .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

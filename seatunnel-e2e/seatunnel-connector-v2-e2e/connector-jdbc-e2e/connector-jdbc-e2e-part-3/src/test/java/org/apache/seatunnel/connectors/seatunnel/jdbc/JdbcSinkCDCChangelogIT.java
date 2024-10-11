@@ -104,8 +104,8 @@ public class JdbcSinkCDCChangelogIT extends TestSuiteBase implements TestResourc
                         postgreSQLContainer.getJdbcUrl(),
                         postgreSQLContainer.getUsername(),
                         postgreSQLContainer.getPassword())) {
-            try (Statement statement = connection.createStatement()) {
-                ResultSet resultSet = statement.executeQuery("select * from sink");
+            try (Statement statement = connection.createStatement();
+                    ResultSet resultSet = statement.executeQuery("select * from sink")) {
                 while (resultSet.next()) {
                     List<Object> row =
                             Arrays.asList(

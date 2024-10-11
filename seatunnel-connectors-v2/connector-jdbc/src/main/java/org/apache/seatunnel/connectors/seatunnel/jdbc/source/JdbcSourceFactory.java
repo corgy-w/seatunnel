@@ -54,6 +54,7 @@ import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOp
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.SPLIT_SIZE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.TABLE_LIST;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.TABLE_PATH;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.USE_SELECT_COUNT;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.WHERE_CONDITION;
 
 @Slf4j
@@ -95,6 +96,8 @@ public class JdbcSourceFactory implements TableSourceFactory {
                         COMPATIBLE_MODE,
                         PROPERTIES,
                         QUERY,
+                        USE_SELECT_COUNT,
+                        SKIP_ANALYZE,
                         TABLE_PATH,
                         WHERE_CONDITION,
                         TABLE_LIST,

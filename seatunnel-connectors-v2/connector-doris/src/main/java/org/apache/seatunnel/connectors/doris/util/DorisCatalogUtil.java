@@ -197,6 +197,7 @@ public class DorisCatalogUtil {
             log.warn(
                     "The variable placeholder `${table_name}` has been marked as deprecated and will be removed soon, please use `${table}`");
         }
+
         return template.replaceAll(
                         SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(),
                         tablePath.getDatabaseName())

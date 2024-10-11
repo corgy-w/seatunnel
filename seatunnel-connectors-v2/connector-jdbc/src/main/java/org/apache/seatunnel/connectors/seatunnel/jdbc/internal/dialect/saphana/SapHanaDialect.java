@@ -64,10 +64,7 @@ public class SapHanaDialect implements JdbcDialect {
 
     @Override
     public Optional<String> getUpsertStatement(
-            String database,
-            String tableName,
-            String[] fieldNames,
-            String[] uniqueKeyFields,
+            String database, String tableName, String[] fieldNames, String[] uniqueKeyFields,
             boolean isPrimaryKeyUpdated) {
         List<String> nonUniqueKeyFields =
                 Arrays.stream(fieldNames)
@@ -128,6 +125,6 @@ public class SapHanaDialect implements JdbcDialect {
     @Override
     public String hashModForField(String fieldName, int mod) {
         return String.format(
-                "ABS(MOD(HEXTONUM(TO_BINARY(%s)),%d))", quoteIdentifier(fieldName), mod);
+            "ABS(MOD(HEXTONUM(TO_BINARY(%s)),%d))", quoteIdentifier(fieldName), mod);
     }
 }

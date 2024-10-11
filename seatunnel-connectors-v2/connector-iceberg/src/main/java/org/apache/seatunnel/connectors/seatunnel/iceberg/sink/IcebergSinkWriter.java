@@ -56,13 +56,12 @@ public class IcebergSinkWriter
                 SupportMultiTableSinkWriter<Void> {
     private TableSchema tableSchema;
     private SeaTunnelRowType rowType;
-    private SinkConfig config;
-    private IcebergTableLoader icebergTableLoader;
+    private final SinkConfig config;
+    private final IcebergTableLoader icebergTableLoader;
     private RecordWriter writer;
-    private IcebergFilesCommitter filesCommitter;
-    private List<WriteResult> results = Lists.newArrayList();
+    private final IcebergFilesCommitter filesCommitter;
+    private final List<WriteResult> results = Lists.newArrayList();
     private String commitUser = UUID.randomUUID().toString();
-    private long checkpointId;
 
     private final DataTypeChangeEventHandler dataTypeChangeEventHandler;
 
@@ -80,7 +79,6 @@ public class IcebergSinkWriter
         tryCreateRecordWriter();
         if (Objects.nonNull(states) && !states.isEmpty()) {
             this.commitUser = states.get(0).getCommitUser();
-            this.checkpointId = states.get(0).getCheckpointId();
             preCommit(states);
         }
     }
@@ -148,7 +146,15 @@ public class IcebergSinkWriter
     public void abortPrepare() {}
 
     @Override
-    public void close() throws IOException {}
+    public void close() throws IOException {
+        try {
+            if (writer != null) {
+                writer.close();
+            }
+        } finally {
+            results.clear();
+        }
+    }
 
     private String fieldsInfo(SeaTunnelRowType seaTunnelRowType) {
         String[] fieldsInfo = new String[seaTunnelRowType.getTotalFields()];

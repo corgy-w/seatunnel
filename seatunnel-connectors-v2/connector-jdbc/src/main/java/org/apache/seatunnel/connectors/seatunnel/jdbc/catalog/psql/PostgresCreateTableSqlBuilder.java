@@ -54,17 +54,19 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
     private Collection<String> pgPlugins;
 
     @Getter public List<String> createIndexSqls = new ArrayList<>();
+    private boolean createIndex;
 
     public PostgresCreateTableSqlBuilder(CatalogTable catalogTable) {
-        this(catalogTable, Collections.emptyList());
+        this(catalogTable, Collections.emptyList(), true);
     }
 
-    public PostgresCreateTableSqlBuilder(CatalogTable catalogTable, Collection<String> pgPlugins) {
+    public PostgresCreateTableSqlBuilder(CatalogTable catalogTable, Collection<String> pgPlugins, boolean createIndex) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
         this.sourceCatalogName = catalogTable.getCatalogName();
         this.fieldIde = catalogTable.getOptions().get("fieldIde");
         this.constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
+        this.createIndex = createIndex;
         this.pgPlugins = pgPlugins;
     }
 
@@ -82,12 +84,11 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
                                         CatalogUtils.quoteIdentifier(
                                                 buildColumnSql(column), fieldIde))
                         .collect(Collectors.toList());
-
         if (primaryKey != null) {
             columnSqls.add("\t" + buildPrimaryKeySql());
         }
 
-        if (CollectionUtils.isNotEmpty(constraintKeys)) {
+        if (createIndex && CollectionUtils.isNotEmpty(constraintKeys)) {
             for (ConstraintKey constraintKey : constraintKeys) {
                 if (StringUtils.isBlank(constraintKey.getConstraintName())
                         || (primaryKey != null

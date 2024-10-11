@@ -61,18 +61,16 @@ public abstract class BaseMultipleTableFileSink
     private final FileSinkConfig fileSinkConfig;
     private String jobId;
     private final ReadonlyConfig readonlyConfig;
-    private final HadoopFileSystemProxy hadoopFileSystemProxy;
 
     public abstract String getPluginName();
 
     public BaseMultipleTableFileSink(
             HadoopConf hadoopConf, ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
-        this.hadoopConf = hadoopConf;
-        this.catalogTable = catalogTable;
         this.readonlyConfig = readonlyConfig;
+        this.hadoopConf = hadoopConf;
         this.fileSinkConfig =
                 new FileSinkConfig(readonlyConfig.toConfig(), catalogTable.getSeaTunnelRowType());
-        this.hadoopFileSystemProxy = new HadoopFileSystemProxy(hadoopConf);
+        this.catalogTable = catalogTable;
     }
 
     @Override
@@ -112,6 +110,13 @@ public abstract class BaseMultipleTableFileSink
         return Optional.of(new DefaultSerializer<>());
     }
 
+    protected WriteStrategy createWriteStrategy() {
+        WriteStrategy writeStrategy =
+                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
+        writeStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
+        return writeStrategy;
+    }
+
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
 
@@ -129,12 +134,5 @@ public abstract class BaseMultipleTableFileSink
         return Optional.of(
                 new DefaultSaveModeHandler(
                         schemaSaveMode, dataSaveMode, catalog, catalogTable, null));
-    }
-
-    protected WriteStrategy createWriteStrategy() {
-        WriteStrategy writeStrategy =
-                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
-        writeStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
-        return writeStrategy;
     }
 }

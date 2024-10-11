@@ -67,7 +67,7 @@ public class InMemorySink
     @Override
     public Optional<SinkAggregatedCommitter<InMemoryCommitInfo, InMemoryAggregatedCommitInfo>>
             createAggregatedCommitter() throws IOException {
-        return Optional.of(new InMemoryAggregatedCommitter());
+        return Optional.of(new InMemoryAggregatedCommitter(config));
     }
 
     @Override

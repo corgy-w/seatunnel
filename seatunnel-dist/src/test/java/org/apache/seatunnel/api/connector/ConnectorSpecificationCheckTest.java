@@ -17,12 +17,12 @@
 
 package org.apache.seatunnel.api.connector;
 
+import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSink;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
-import org.apache.seatunnel.api.sink.SupportSchemaEvolutionSink;
-import org.apache.seatunnel.api.sink.SupportSchemaEvolutionSinkWriter;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.table.factory.FactoryUtil;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -157,32 +157,42 @@ public class ConnectorSpecificationCheckTest {
                 log.info(
                         "Check sink connector {} successfully", factory.getClass().getSimpleName());
 
-                checkSupportMultiTableSink(sinkClass);
+                checkSupportMultiTableSink(factory, sinkClass);
                 checkSupportSchemaEvolutionSink(sinkClass);
             }
         }
     }
 
-    private void checkSupportMultiTableSink(Class<? extends SeaTunnelSink> sinkClass) {
+    private void checkSupportMultiTableSink(
+        TableSinkFactory sinkFactory, Class<? extends SeaTunnelSink> sinkClass) {
         if (!SupportMultiTableSink.class.isAssignableFrom(sinkClass)) {
             return;
         }
 
+        OptionRule sinkOptionRule = sinkFactory.optionRule();
+        Assertions.assertTrue(
+            sinkOptionRule
+                .getOptionalOptions()
+                .contains(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA),
+            "Please add `SinkCommonOptions.MULTI_TABLE_SINK_REPLICA` optional into the `optionRule` method optional of `"
+                + sinkFactory.getClass().getSimpleName()
+                + "`");
+
         // Validate the `createWriter` method return type
         Optional<Method> createWriter =
-                ReflectionUtils.getDeclaredMethod(
-                        sinkClass, "createWriter", SinkWriter.Context.class);
+            ReflectionUtils.getDeclaredMethod(
+                sinkClass, "createWriter", SinkWriter.Context.class);
         Assertions.assertTrue(
-                createWriter.isPresent(),
-                "Please add `createWriter` method in " + sinkClass.getSimpleName());
+            createWriter.isPresent(),
+            "Please add `createWriter` method in " + sinkClass.getSimpleName());
         Class<? extends SinkWriter> createWriterClass =
-                (Class<? extends SinkWriter>) createWriter.get().getReturnType();
+            (Class<? extends SinkWriter>) createWriter.get().getReturnType();
         Assertions.assertTrue(
-                SupportMultiTableSinkWriter.class.isAssignableFrom(createWriterClass),
-                String.format(
-                        "Please update the `createWriter` method return type to the subclass of `SupportMultiTableSinkWriter`, "
-                                + "because `%s` implements `SupportMultiTableSink` interface",
-                        sinkClass.getSimpleName()));
+            SupportMultiTableSinkWriter.class.isAssignableFrom(createWriterClass),
+            String.format(
+                "Please update the `createWriter` method return type to the subclass of `SupportMultiTableSinkWriter`, "
+                    + "because `%s` implements `SupportMultiTableSink` interface",
+                sinkClass.getSimpleName()));
     }
 
     private void checkSupportSchemaEvolutionSink(Class<? extends SeaTunnelSink> sinkClass) {

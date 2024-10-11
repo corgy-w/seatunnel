@@ -20,26 +20,33 @@ package org.apache.seatunnel.connectors.seatunnel.tdengine.source;
 import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
+import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.tdengine.config.TDengineSourceConfig;
+import org.apache.seatunnel.connectors.seatunnel.tdengine.exception.TDengineConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.tdengine.state.TDengineSourceState;
 
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class TDengineSourceSplitEnumerator
         implements SourceSplitEnumerator<TDengineSourceSplit, TDengineSourceState> {
 
     private final SourceSplitEnumerator.Context<TDengineSourceSplit> context;
     private final TDengineSourceConfig config;
     private final StableMetadata stableMetadata;
-    private Set<TDengineSourceSplit> pendingSplit = new HashSet<>();
-    private Set<TDengineSourceSplit> assignedSplit = new HashSet<>();
+    private volatile boolean shouldEnumerate;
+    private final Object stateLock = new Object();
+    private final Map<Integer, List<TDengineSourceSplit>> pendingSplits = new ConcurrentHashMap<>();
     private final EnumeratorEventRecorder eventRecorder;
 
     public TDengineSourceSplitEnumerator(
@@ -57,8 +64,10 @@ public class TDengineSourceSplitEnumerator
         this.config = config;
         this.context = context;
         this.stableMetadata = stableMetadata;
+        this.shouldEnumerate = sourceState == null;
         if (sourceState != null) {
-            this.assignedSplit = sourceState.getAssignedSplit();
+            this.shouldEnumerate = sourceState.isShouldEnumerate();
+            this.pendingSplits.putAll(sourceState.getPendingSplits());
         }
         this.eventRecorder = new EnumeratorEventRecorder(context);
     }
@@ -72,16 +81,33 @@ public class TDengineSourceSplitEnumerator
 
     @Override
     public void run() {
-        pendingSplit = getAllSplits();
-        assignSplit(context.registeredReaders());
+        Set<Integer> readers = context.registeredReaders();
+        if (shouldEnumerate) {
+            List<TDengineSourceSplit> newSplits = discoverySplits();
+
+            synchronized (stateLock) {
+                addPendingSplit(newSplits);
+                shouldEnumerate = false;
+            }
+
+            assignSplit(readers);
+        }
+
+        log.info("No more splits to assign." + " Sending NoMoreSplitsEvent to reader {}.", readers);
+        readers.forEach(context::signalNoMoreSplits);
     }
 
-    /*
-     * each split has one sub table
-     */
-    private Set<TDengineSourceSplit> getAllSplits() {
+    private void addPendingSplit(List<TDengineSourceSplit> newSplits) {
+        int readerCount = context.currentParallelism();
+        for (TDengineSourceSplit split : newSplits) {
+            int ownerReader = getSplitOwner(split.splitId(), readerCount);
+            pendingSplits.computeIfAbsent(ownerReader, r -> new ArrayList<>()).add(split);
+        }
+    }
+
+    private List<TDengineSourceSplit> discoverySplits() {
         final String timestampFieldName = stableMetadata.getTimestampFieldName();
-        final Set<TDengineSourceSplit> splits = new HashSet<>();
+        final List<TDengineSourceSplit> splits = new ArrayList<>();
         List<String> subTableNames = stableMetadata.getSubTableNames();
         for (int i = 0; i < subTableNames.size(); i++) {
             TDengineSourceSplit splitBySubTable =
@@ -98,9 +124,11 @@ public class TDengineSourceSplitEnumerator
         String selectFields =
                 Arrays.stream(stableMetadata.getRowType().getFieldNames())
                         .skip(1)
+                        .map(name -> String.format("`%s`", name))
                         .collect(Collectors.joining(","));
         String subTableSQL =
-                "select " + selectFields + " from " + config.getDatabase() + "." + subTableName;
+                String.format(
+                        "select %s from %s.`%s`", selectFields, config.getDatabase(), subTableName);
         String start = config.getLowerBound();
         String end = config.getUpperBound();
         if (start != null || end != null) {
@@ -122,47 +150,52 @@ public class TDengineSourceSplitEnumerator
 
     @Override
     public void addSplitsBack(List<TDengineSourceSplit> splits, int subtaskId) {
+        log.info("Add back splits {} to TDengineSourceSplitEnumerator.", splits);
         if (!splits.isEmpty()) {
-            pendingSplit.addAll(splits);
+            addPendingSplit(splits);
             assignSplit(Collections.singletonList(subtaskId));
         }
     }
 
     @Override
     public int currentUnassignedSplitSize() {
-        return pendingSplit.size();
+        return pendingSplits.size();
     }
 
     @Override
     public void registerReader(int subtaskId) {
-        if (!pendingSplit.isEmpty()) {
+        log.info("Register reader {} to TDengineSourceSplitEnumerator.", subtaskId);
+        if (!pendingSplits.isEmpty()) {
             assignSplit(Collections.singletonList(subtaskId));
         }
     }
 
-    private void assignSplit(Collection<Integer> taskIDList) {
-        assignedSplit =
-                pendingSplit.stream()
-                        .map(
-                                split -> {
-                                    int splitOwner =
-                                            getSplitOwner(
-                                                    split.splitId(), context.currentParallelism());
-                                    if (taskIDList.contains(splitOwner)) {
-                                        context.assignSplit(splitOwner, split);
-                                        return split;
-                                    } else {
-                                        return null;
-                                    }
-                                })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toSet());
-        pendingSplit.clear();
+    private void assignSplit(Collection<Integer> readers) {
+        log.info("Assign pendingSplits to readers {}", readers);
+
+        for (int reader : readers) {
+            List<TDengineSourceSplit> assignmentForReader = pendingSplits.remove(reader);
+            if (assignmentForReader != null && !assignmentForReader.isEmpty()) {
+                log.info("Assign splits {} to reader {}", assignmentForReader, reader);
+                try {
+                    context.assignSplit(reader, assignmentForReader);
+                } catch (Exception e) {
+                    log.error(
+                            "Failed to assign splits {} to reader {}",
+                            assignmentForReader,
+                            reader,
+                            e);
+                    pendingSplits.put(reader, assignmentForReader);
+                }
+            }
+        }
     }
 
     @Override
     public TDengineSourceState snapshotState(long checkpointId) {
-        return new TDengineSourceState(assignedSplit);
+        synchronized (stateLock) {
+            return new TDengineSourceState(shouldEnumerate, pendingSplits);
+        }
     }
 
     @Override
@@ -171,20 +204,15 @@ public class TDengineSourceSplitEnumerator
     }
 
     @Override
-    public void notifyCheckpointComplete(long checkpointId) {
-        // nothing to do
-    }
-
-    @Override
-    public void notifyCheckpointAborted(long checkpointId) throws Exception {
-        SourceSplitEnumerator.super.notifyCheckpointAborted(checkpointId);
-    }
+    public void notifyCheckpointComplete(long checkpointId) {}
 
     @Override
     public void close() {}
 
     @Override
     public void handleSplitRequest(int subtaskId) {
-        // nothing to do
+        throw new TDengineConnectorException(
+                CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
+                String.format("Unsupported handleSplitRequest: %d", subtaskId));
     }
 }

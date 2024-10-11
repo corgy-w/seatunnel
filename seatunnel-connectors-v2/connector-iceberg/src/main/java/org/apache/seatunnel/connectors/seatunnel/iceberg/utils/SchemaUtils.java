@@ -49,6 +49,7 @@ import org.apache.iceberg.util.Tasks;
 
 import org.jetbrains.annotations.NotNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
@@ -58,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -109,15 +111,6 @@ public class SchemaUtils {
         return createTable(catalog, toIcebergTableIdentifier(tablePath), config, schema, options);
     }
 
-    /**
-     * For local test
-     *
-     * @param catalog
-     * @param tableIdentifier
-     * @param config
-     * @param tableSchema
-     * @return
-     */
     public static Table autoCreateTable(
             Catalog catalog,
             TableIdentifier tableIdentifier,
@@ -164,10 +157,12 @@ public class SchemaUtils {
         return result.get();
     }
 
-    @NotNull private static Schema toIcebergSchema(TableSchema tableSchema, ReadonlyConfig config) {
+    @VisibleForTesting
+    @NotNull protected static Schema toIcebergSchema(
+            TableSchema tableSchema, ReadonlyConfig readonlyConfig) {
         Types.StructType structType = SchemaUtils.toIcebergType(tableSchema);
         Set<Integer> identifierFieldIds =
-                config.getOptional(SinkConfig.TABLE_PRIMARY_KEYS)
+                readonlyConfig.getOptional(SinkConfig.TABLE_PRIMARY_KEYS)
                         .map(e -> SinkConfig.stringToList(e, ","))
                         .orElseGet(
                                 () ->
@@ -177,15 +172,16 @@ public class SchemaUtils {
                         .stream()
                         .map(f -> structType.field(f).fieldId())
                         .collect(Collectors.toSet());
-        return new Schema(structType.fields(), identifierFieldIds);
-    }
-
-    public static TableIdentifier toIcebergTableIdentifierFromCatalogTable(
-            CatalogTable catalogTable) {
-        org.apache.seatunnel.api.table.catalog.TableIdentifier tableIdentifier =
-                catalogTable.getTableId();
-        return TableIdentifier.of(
-                tableIdentifier.getDatabaseName(), tableIdentifier.getTableName());
+        List<Types.NestedField> fields = new ArrayList<>();
+        structType
+                .fields()
+                .forEach(
+                        field ->
+                                fields.add(
+                                        identifierFieldIds.contains(field.fieldId())
+                                                ? field.asRequired()
+                                                : field.asOptional()));
+        return new Schema(fields, identifierFieldIds);
     }
 
     public static TableIdentifier toIcebergTableIdentifier(TablePath tablePath) {
@@ -196,12 +192,7 @@ public class SchemaUtils {
         return TablePath.of(tableIdentifier.namespace().toString(), tableIdentifier.name());
     }
 
-    /**
-     * Commit table schema updates
-     *
-     * @param table
-     * @param wrapper
-     */
+    /** Commit table schema updates */
     private static void commitSchemaUpdates(Table table, SchemaChangeWrapper wrapper) {
         // get the latest schema in case another process updated it
         table.refresh();
@@ -252,7 +243,7 @@ public class SchemaUtils {
         log.info("Schema for table {} updated with new columns", table.name());
     }
 
-    private static boolean columnExists(org.apache.iceberg.Schema schema, SchemaAddColumn update) {
+    private static boolean columnExists(Schema schema, SchemaAddColumn update) {
         Types.StructType struct =
                 update.parentName() == null
                         ? schema.asStruct()
@@ -260,13 +251,11 @@ public class SchemaUtils {
         return struct.field(update.name()) != null;
     }
 
-    private static boolean typeMatches(
-            org.apache.iceberg.Schema schema, SchemaModifyColumn update) {
+    private static boolean typeMatches(Schema schema, SchemaModifyColumn update) {
         return schema.findType(update.name()).typeId() == update.type().typeId();
     }
 
-    private static boolean findColumns(
-            org.apache.iceberg.Schema schema, SchemaDeleteColumn deleteColumn) {
+    private static boolean findColumns(Schema schema, SchemaDeleteColumn deleteColumn) {
         return schema.findField(deleteColumn.name()) != null;
     }
 
@@ -279,27 +268,27 @@ public class SchemaUtils {
         return IcebergTypeMapper.mapping(fieldName, type);
     }
 
-    public static Type toIcebergType(SeaTunnelDataType rowType) {
+    public static Type toIcebergType(SeaTunnelDataType<?> rowType) {
         return IcebergTypeMapper.toIcebergType(rowType);
     }
 
     public static Types.StructType toIcebergType(TableSchema tableSchema) {
         List<Types.NestedField> structFields = new ArrayList<>();
+        AtomicInteger idIncrementer = new AtomicInteger(1);
         for (Column column : tableSchema.getColumns()) {
             Types.NestedField icebergField =
                     Types.NestedField.of(
-                            nextId(),
+                            idIncrementer.getAndIncrement(),
                             column.isNullable(),
                             column.getName(),
-                            toIcebergType(column.getDataType()),
+                            IcebergTypeMapper.toIcebergType(column.getDataType(), idIncrementer),
                             column.getComment());
             structFields.add(icebergField);
         }
         return Types.StructType.of(structFields);
     }
 
-    public static PartitionSpec createPartitionSpec(
-            org.apache.iceberg.Schema schema, List<String> partitionBy) {
+    public static PartitionSpec createPartitionSpec(Schema schema, List<String> partitionBy) {
         if (partitionBy.isEmpty()) {
             return PartitionSpec.unpartitioned();
         }

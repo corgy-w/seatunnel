@@ -63,9 +63,9 @@ import static org.apache.seatunnel.connectors.seatunnel.iceberg.utils.SchemaUtil
 
 @Slf4j
 public class IcebergCatalog implements Catalog {
-    private String catalogName;
-    private ReadonlyConfig readonlyConfig;
-    private IcebergCatalogLoader icebergCatalogLoader;
+    private final String catalogName;
+    private final ReadonlyConfig readonlyConfig;
+    private final IcebergCatalogLoader icebergCatalogLoader;
     private org.apache.iceberg.catalog.Catalog catalog;
 
     public IcebergCatalog(String catalogName, ReadonlyConfig readonlyConfig) {
@@ -230,22 +230,21 @@ public class IcebergCatalog implements Catalog {
         Schema schema = icebergTable.schema();
         List<Types.NestedField> columns = schema.columns();
         TableSchema.Builder builder = TableSchema.builder();
-        columns.stream()
-                .forEach(
-                        nestedField -> {
-                            String name = nestedField.name();
-                            SeaTunnelDataType<?> seaTunnelType =
-                                    SchemaUtils.toSeaTunnelType(name, nestedField.type());
-                            PhysicalColumn physicalColumn =
-                                    PhysicalColumn.of(
-                                            name,
-                                            seaTunnelType,
-                                            (Long) null,
-                                            nestedField.isOptional(),
-                                            null,
-                                            nestedField.doc());
-                            builder.column(physicalColumn);
-                        });
+        columns.forEach(
+                nestedField -> {
+                    String name = nestedField.name();
+                    SeaTunnelDataType<?> seaTunnelType =
+                            SchemaUtils.toSeaTunnelType(name, nestedField.type());
+                    PhysicalColumn physicalColumn =
+                            PhysicalColumn.of(
+                                    name,
+                                    seaTunnelType,
+                                    (Long) null,
+                                    nestedField.isOptional(),
+                                    null,
+                                    nestedField.doc());
+                    builder.column(physicalColumn);
+                });
         Optional.ofNullable(schema.identifierFieldNames())
                 .map(
                         (Function<Set<String>, Object>)
@@ -254,7 +253,6 @@ public class IcebergCatalog implements Catalog {
                                                 PrimaryKey.of(
                                                         tablePath.getTableName() + "_pk",
                                                         new ArrayList<>(names))));
-
         List<String> partitionKeys =
                 icebergTable.spec().fields().stream()
                         .map(PartitionField::name)

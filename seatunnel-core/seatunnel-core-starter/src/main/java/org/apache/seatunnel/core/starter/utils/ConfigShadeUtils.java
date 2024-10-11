@@ -56,6 +56,7 @@ public final class ConfigShadeUtils {
                 "password",
                 "username",
                 "auth",
+                "token",
                 "user",
                 "access_key",
                 "secret_key",
@@ -139,7 +140,7 @@ public final class ConfigShadeUtils {
     @SuppressWarnings("unchecked")
     private static Config processConfig(String identifier, Config config, boolean isDecrypted) {
         ConfigShade configShade = CONFIG_SHADES.getOrDefault(identifier, DEFAULT_SHADE);
-        List<String> sensitiveOptions = new ArrayList<>(Arrays.asList(DEFAULT_SENSITIVE_OPTIONS));
+        List<String> sensitiveOptions = new ArrayList<>(Arrays.asList(DEFAULT_SENSITIVE_KEYWORDS));
         sensitiveOptions.addAll(Arrays.asList(configShade.sensitiveOptions()));
         BiFunction<String, Object, String> processFunction =
                 (key, value) -> {

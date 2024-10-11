@@ -22,15 +22,9 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRow
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.hive.HiveDialect;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.util.Optional;
-
-public class InceptorDialect implements JdbcDialect {
+public class InceptorDialect extends HiveDialect {
 
     @Override
     public String dialectName() {
@@ -45,36 +39,6 @@ public class InceptorDialect implements JdbcDialect {
     @Override
     public JdbcDialectTypeMapper getJdbcDialectTypeMapper() {
         return new InceptorTypeMapper();
-    }
-
-    @Override
-    public Optional<String> getUpsertStatement(
-            String database,
-            String tableName,
-            String[] fieldNames,
-            String[] uniqueKeyFields,
-            boolean isPrimaryKeyUpdated) {
-        return Optional.empty();
-    }
-
-    @Override
-    public PreparedStatement creatPreparedStatement(
-            Connection connection, String queryTemplate, int fetchSize) throws SQLException {
-        return JdbcDialect.super.creatPreparedStatement(connection, queryTemplate, fetchSize);
-    }
-
-    @Override
-    public ResultSetMetaData getResultSetMetaData(Connection conn, String query)
-            throws SQLException {
-        try (PreparedStatement preparedStatement = conn.prepareStatement(query);
-                ResultSet resultSet = preparedStatement.executeQuery()) {
-            return resultSet.getMetaData();
-        }
-    }
-
-    @Override
-    public String extractTableName(TablePath tablePath) {
-        return tablePath.getTableName();
     }
 
     @Override

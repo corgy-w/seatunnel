@@ -43,14 +43,20 @@ public class FtpFileSourceFactory implements TableSourceFactory {
     }
 
     @Override
+    public <T, SplitT extends SourceSplit, StateT extends Serializable>
+            TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
+        return () -> (SeaTunnelSource<T, SplitT, StateT>) new FtpFileSource(context.getOptions());
+    }
+
+    @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(FtpConfigOptions.FILE_PATH)
-                .required(FtpConfigOptions.FTP_HOST)
-                .required(FtpConfigOptions.FTP_PORT)
-                .required(FtpConfigOptions.FTP_USERNAME)
-                .required(FtpConfigOptions.FTP_PASSWORD)
-                .required(FtpConfigOptions.FILE_FORMAT_TYPE)
+                .optional(FtpConfigOptions.FILE_PATH)
+                .optional(FtpConfigOptions.FTP_HOST)
+                .optional(FtpConfigOptions.FTP_PORT)
+                .optional(FtpConfigOptions.FTP_USERNAME)
+                .optional(FtpConfigOptions.FTP_PASSWORD)
+                .optional(FtpConfigOptions.FILE_FORMAT_TYPE)
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
@@ -79,13 +85,8 @@ public class FtpFileSourceFactory implements TableSourceFactory {
                 .optional(BaseSourceConfigOptions.COMPRESS_CODEC)
                 .optional(FtpConfigOptions.FTP_CONNECTION_MODE)
                 .optional(BaseSourceConfigOptions.ENCODING)
+                .optional(BaseSourceConfigOptions.ARCHIVE_COMPRESS_CODEC)
                 .build();
-    }
-
-    @Override
-    public <T, SplitT extends SourceSplit, StateT extends Serializable>
-            TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
-        return () -> (SeaTunnelSource<T, SplitT, StateT>) new FtpFileSource(context.getOptions());
     }
 
     @Override

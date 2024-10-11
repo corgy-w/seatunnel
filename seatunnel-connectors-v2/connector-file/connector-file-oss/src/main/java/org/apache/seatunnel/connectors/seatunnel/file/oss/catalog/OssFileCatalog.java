@@ -21,7 +21,6 @@ import org.apache.seatunnel.connectors.seatunnel.file.catalog.AbstractFileCatalo
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
 
 public class OssFileCatalog extends AbstractFileCatalog {
-
     public OssFileCatalog(
             HadoopFileSystemProxy hadoopFileSystemProxy, String filePath, String catalogName) {
         super(hadoopFileSystemProxy, filePath, catalogName);

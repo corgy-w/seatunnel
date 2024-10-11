@@ -137,23 +137,6 @@ public class DorisSink
 
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
-        DorisCatalog catalog = createDorisCatalog();
-
-        return Optional.of(
-                new DefaultSaveModeHandler(
-                        config.get(DorisOptions.SCHEMA_SAVE_MODE),
-                        config.get(DorisOptions.DATA_SAVE_MODE),
-                        catalog,
-                        catalogTable,
-                        config.get(DorisOptions.CUSTOM_SQL)));
-    }
-
-    /**
-     * Catalog not implement serializable, so we need to create it in each task.
-     *
-     * @return
-     */
-    private DorisCatalog createDorisCatalog() {
         // Load the JDBC driver in to DriverManager
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -172,7 +155,14 @@ public class DorisSink
                             "PluginName: %s, PluginType: %s, Message: %s",
                             getPluginName(), PluginType.SINK, "Cannot find Doris catalog factory"));
         }
-        return (DorisCatalog)
-                catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
+
+        Catalog catalog = catalogFactory.createCatalog(catalogFactory.factoryIdentifier(), config);
+        return Optional.of(
+                new DefaultSaveModeHandler(
+                        config.get(DorisOptions.SCHEMA_SAVE_MODE),
+                        config.get(DorisOptions.DATA_SAVE_MODE),
+                        catalog,
+                        catalogTable,
+                        config.get(DorisOptions.CUSTOM_SQL)));
     }
 }

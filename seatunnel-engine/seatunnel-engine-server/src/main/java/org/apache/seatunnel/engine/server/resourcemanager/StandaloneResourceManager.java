@@ -28,6 +28,8 @@ import org.whaleops.license.enums.LicenseNodeEnum;
 import org.whaleops.license.utils.LicenseUtil;
 
 import com.hazelcast.cluster.Address;
+import org.apache.seatunnel.engine.common.config.EngineConfig;
+
 import com.hazelcast.spi.impl.NodeEngine;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;

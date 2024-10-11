@@ -21,9 +21,10 @@ import org.apache.seatunnel.connectors.seatunnel.file.catalog.AbstractFileCatalo
 import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
 
 public class S3FileCatalog extends AbstractFileCatalog {
+    // TODO: this catalog name conflict with a factory identifier
+    public static final String CATALOG_NAME = "S3File";
 
-    public S3FileCatalog(
-            HadoopFileSystemProxy hadoopFileSystemProxy, String filePath, String catalogName) {
-        super(hadoopFileSystemProxy, filePath, catalogName);
+    public S3FileCatalog(HadoopFileSystemProxy hadoopFileSystemProxy, String filePath) {
+        super(hadoopFileSystemProxy, filePath, CATALOG_NAME);
     }
 }

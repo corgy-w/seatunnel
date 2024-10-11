@@ -77,6 +77,7 @@ public interface EnvCommonOptions {
                     .noDefaultValue()
                     .withDescription(
                             "The each parallelism bytes limit per second for read data from source.");
+
     Option<Long> CHECKPOINT_TIMEOUT =
             Options.key("checkpoint.timeout")
                     .longType()
@@ -100,4 +101,10 @@ public interface EnvCommonOptions {
                     .mapType()
                     .noDefaultValue()
                     .withDescription("custom parameters for run engine");
+
+    Option<Map<String, String>> NODE_TAG_FILTER =
+            Options.key("tag_filter")
+                    .mapType()
+                    .noDefaultValue()
+                    .withDescription("Define the worker where the job runs by tag");
 }

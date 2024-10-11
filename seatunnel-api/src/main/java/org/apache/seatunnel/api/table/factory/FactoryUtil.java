@@ -23,6 +23,7 @@ import org.apache.seatunnel.api.configuration.util.ConfigValidator;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.env.ParsingMode;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
+import org.apache.seatunnel.api.sink.multitablesink.MultiTableSinkFactory;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceOptions;
 import org.apache.seatunnel.api.source.SourceSplit;
@@ -147,7 +148,7 @@ public final class FactoryUtil {
     public static <IN, StateT, CommitInfoT, AggregatedCommitInfoT>
             SeaTunnelSink<IN, StateT, CommitInfoT, AggregatedCommitInfoT> createAndPrepareSink(
                     CatalogTable catalogTable,
-                    ReadonlyConfig options,
+                    ReadonlyConfig config,
                     ClassLoader classLoader,
                     String factoryIdentifier) {
         try {
@@ -156,7 +157,7 @@ public final class FactoryUtil {
             TableSinkFactoryContext context =
                     TableSinkFactoryContext.replacePlaceholderAndCreate(
                             catalogTable,
-                            options,
+                            config,
                             classLoader,
                             factory.excludeTablePlaceholderReplaceKeys());
             ConfigValidator.of(context.getOptions()).validate(factory.optionRule());
@@ -183,7 +184,7 @@ public final class FactoryUtil {
                     ClassLoader classLoader) {
         try {
             TableSinkFactory<IN, StateT, CommitInfoT, AggregatedCommitInfoT> factory =
-                    discoverFactory(classLoader, TableSinkFactory.class, "MultiTableSink");
+                    new MultiTableSinkFactory();
             MultiTableFactoryContext context =
                     new MultiTableFactoryContext(options, classLoader, sinks);
             ConfigValidator.of(context.getOptions()).validate(factory.optionRule());

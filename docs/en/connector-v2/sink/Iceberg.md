@@ -16,6 +16,10 @@
 
 Sink connector for Apache Iceberg. It can support cdc mode 、auto create table and table schema evolution.
 
+## Key features
+
+- [x] [support multiple table write](../../concept/connector-v2-features.md)
+
 ## Supported DataSource Info
 
 | Datasource | Dependent |                                   Maven                                   |
@@ -73,10 +77,6 @@ libfb303-xxx.jar
 | schema_save_mode                       | Enum    | no       | CREATE_SCHEMA_WHEN_NOT_EXIST | the schema save mode, please refer to `schema_save_mode` below                                                                                                                                                                                                                                                            |
 | data_save_mode                         | Enum    | no       | APPEND_DATA                  | the data save mode, please refer to `data_save_mode` below                                                                                                                                                                                                                                                                |
 | iceberg.table.commit-branch            | string  | no       | -                            | Default branch for commits                                                                                                                                                                                                                                                                                                |
-| kerberos_krb5_conf_path                | String  | no       | -                            | kerberos krb5 conf path.                                                                                                                                                                                                                                                                                                  |
-| kerberos_principal                     | String  | no       | -                            | kerberos principal.                                                                                                                                                                                                                                                                                                       |
-| kerberos_keytab_path                   | String  | no       | -                            | The kerberos keytab file path for kerberos principal.                                                                                                                                                                                                                                                                     |
-| remote_user                            | String  | no       | -                            | Use specified user authentication to access files on HDFS.                                                                                                                                                                                                                                                                |
 
 ## Task Example
 
@@ -177,60 +177,75 @@ sink {
 
 ```
 
-### Hadoop catalog With Kerberos:
+### Multiple table
+
+#### example1
 
 ```hocon
-sink {
-  Iceberg {
-    catalog_name="seatunnel_test"
-    iceberg.catalog.config={
-      type = "hadoop"
-      warehouse = "hdfs://your_cluster/tmp/seatunnel/iceberg/"
-    }
-    namespace="seatunnel_namespace"
-    table="iceberg_sink_table"
-    iceberg.table.write-props={
-      write.format.default="parquet"
-      write.target-file-size-bytes=536870912
-    }
-    iceberg.table.primary-keys="id"
-    iceberg.table.partition-keys="f_datetime"
-    iceberg.table.upsert-mode-enabled=true
-    iceberg.table.schema-evolution-enabled=true
-    case_sensitive=true
-    kerberos_krb5_conf_path = "/etc/krb5.conf"
-    kerberos_principal = "test@EXAMPLE.COM"
-    kerberos_keytab_path = "/etc/test.keytab"
+env {
+  parallelism = 1
+  job.mode = "STREAMING"
+  checkpoint.interval = 5000
+}
+
+source {
+  Mysql-CDC {
+    base-url = "jdbc:mysql://127.0.0.1:3306/seatunnel"
+    username = "root"
+    password = "******"
+    
+    table-names = ["seatunnel.role","seatunnel.user","galileo.Bucket"]
   }
 }
 
+transform {
+}
+
+sink {
+  Iceberg {
+    ...
+    namespace = "${database_name}_test"
+    table = "${table_name}_test"
+  }
+}
 ```
 
-### Hadoop catalog With Remote User Login:
+#### example2
 
 ```hocon
-sink {
-  Iceberg {
-    catalog_name="seatunnel_test"
-    iceberg.catalog.config={
-      type = "hadoop"
-      warehouse = "hdfs://your_cluster/tmp/seatunnel/iceberg/"
-    }
-    namespace="seatunnel_namespace"
-    table="iceberg_sink_table"
-    iceberg.table.write-props={
-      write.format.default="parquet"
-      write.target-file-size-bytes=536870912
-    }
-    iceberg.table.primary-keys="id"
-    iceberg.table.partition-keys="f_datetime"
-    iceberg.table.upsert-mode-enabled=true
-    iceberg.table.schema-evolution-enabled=true
-    case_sensitive=true
-    remote_user = "hadoop"
+env {
+  parallelism = 1
+  job.mode = "BATCH"
+}
+
+source {
+  Jdbc {
+    driver = oracle.jdbc.driver.OracleDriver
+    url = "jdbc:oracle:thin:@localhost:1521/XE"
+    user = testUser
+    password = testPassword
+
+    table_list = [
+      {
+        table_path = "TESTSCHEMA.TABLE_1"
+      },
+      {
+        table_path = "TESTSCHEMA.TABLE_2"
+      }
+    ]
   }
 }
 
+transform {
+}
+
+sink {
+  Iceberg {
+    ...
+    namespace = "${schema_name}_test"
+    table = "${table_name}_test"
+  }
+}
 ```
 
 ## Changelog
