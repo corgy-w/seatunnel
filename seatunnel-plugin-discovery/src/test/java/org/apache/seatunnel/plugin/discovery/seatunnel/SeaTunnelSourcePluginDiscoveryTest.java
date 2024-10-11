@@ -57,9 +57,9 @@ class SeaTunnelSourcePluginDiscoveryTest {
             Lists.newArrayList(
                     Paths.get(seatunnelHome, "connectors", "connector-http-jira.jar"),
                     Paths.get(seatunnelHome, "connectors", "connector-http.jar"),
-                Paths.get(seatunnelHome, "connectors", "connector-kafka.jar"),
-                Paths.get(seatunnelHome, "connectors", "connector-kafka-alcs.jar"),
-                Paths.get(seatunnelHome, "connectors", "connector-kafka-blcs.jar"),
+                    Paths.get(seatunnelHome, "connectors", "connector-kafka.jar"),
+                    Paths.get(seatunnelHome, "connectors", "connector-kafka-alcs.jar"),
+                    Paths.get(seatunnelHome, "connectors", "connector-kafka-blcs.jar"),
                     Paths.get(seatunnelHome, "connectors", "connector-jdbc.jar"),
                     Paths.get(seatunnelHome, "connectors", "connector-clickhouse.jar"),
                     Paths.get(
@@ -102,25 +102,25 @@ class SeaTunnelSourcePluginDiscoveryTest {
         List<PluginIdentifier> pluginIdentifiers =
                 Lists.newArrayList(
                         PluginIdentifier.of("seatunnel", PluginType.SOURCE.getType(), "HttpJira"),
-                    PluginIdentifier.of("seatunnel", PluginType.SOURCE.getType(), "HttpBase"),
-                    PluginIdentifier.of("seatunnel", PluginType.SOURCE.getType(), "Kafka"),
-                    PluginIdentifier.of("seatunnel", PluginType.SINK.getType(), "Kafka-Blcs"));
+                        PluginIdentifier.of("seatunnel", PluginType.SOURCE.getType(), "HttpBase"),
+                        PluginIdentifier.of("seatunnel", PluginType.SOURCE.getType(), "Kafka"),
+                        PluginIdentifier.of("seatunnel", PluginType.SINK.getType(), "Kafka-Blcs"));
         SeaTunnelSourcePluginDiscovery seaTunnelSourcePluginDiscovery =
                 new SeaTunnelSourcePluginDiscovery();
         Assertions.assertIterableEquals(
-            Stream.of(
-                    Paths.get(seatunnelHome, "connectors", "connector-http-jira.jar")
-                        .toString(),
-                    Paths.get(seatunnelHome, "connectors", "connector-http.jar")
-                        .toString(),
-                    Paths.get(seatunnelHome, "connectors", "connector-kafka.jar")
-                        .toString(),
-                    Paths.get(seatunnelHome, "connectors", "connector-kafka-blcs.jar")
-                        .toString())
-                .collect(Collectors.toList()),
-            seaTunnelSourcePluginDiscovery.getPluginJarPaths(pluginIdentifiers).stream()
-                .map(URL::getPath)
-                .collect(Collectors.toList()));
+                Stream.of(
+                                Paths.get(seatunnelHome, "connectors", "connector-http-jira.jar")
+                                        .toString(),
+                                Paths.get(seatunnelHome, "connectors", "connector-http.jar")
+                                        .toString(),
+                                Paths.get(seatunnelHome, "connectors", "connector-kafka.jar")
+                                        .toString(),
+                                Paths.get(seatunnelHome, "connectors", "connector-kafka-blcs.jar")
+                                        .toString())
+                        .collect(Collectors.toList()),
+                seaTunnelSourcePluginDiscovery.getPluginJarPaths(pluginIdentifiers).stream()
+                        .map(URL::getPath)
+                        .collect(Collectors.toList()));
     }
 
     @Test

@@ -210,7 +210,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                             "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
                             tablePath.getDatabaseName(), tablePath.getTableName());
             try (PreparedStatement statement = conn.prepareStatement(sql);
-                 final ResultSet resultSet = statement.executeQuery()) {
+                    final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
                     final String refTableName = resultSet.getString("OBJECT_NAME");
@@ -335,25 +335,25 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
 
         if (typeName.equalsIgnoreCase("ARRAY")) {
             fullTypeName =
-                appendColumnSizeIfNeed(
-                    resultSet.getString("ELEMENT_TYPE_NAME"),
-                    columnLength,
-                    columnScale)
-                    + " ARRAY";
+                    appendColumnSizeIfNeed(
+                                    resultSet.getString("ELEMENT_TYPE_NAME"),
+                                    columnLength,
+                                    columnScale)
+                            + " ARRAY";
         }
 
         BasicTypeDefine typeDefine =
-            BasicTypeDefine.builder()
-                .name(columnName)
-                .columnType(fullTypeName)
-                .dataType(typeName)
-                .length(columnLength)
-                .precision(columnLength)
-                .scale(columnScale)
-                .nullable(isNullable)
-                .defaultValue(defaultValue)
-                .comment(columnComment)
-                .build();
+                BasicTypeDefine.builder()
+                        .name(columnName)
+                        .columnType(fullTypeName)
+                        .dataType(typeName)
+                        .length(columnLength)
+                        .precision(columnLength)
+                        .scale(columnScale)
+                        .nullable(isNullable)
+                        .defaultValue(defaultValue)
+                        .comment(columnComment)
+                        .build();
         return SapHanaTypeConverter.INSTANCE.convert(typeDefine);
     }
 

@@ -74,8 +74,7 @@ public class TDengineSourceReader implements SourceReader<SeaTunnelRow, TDengine
                         split.getQuery());
                 try {
                     read(split, collector);
-                    context.sendSourceEventToEnumerator(
-                        new ReaderSplitFinishedEvent(split));
+                    context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
                 } catch (Exception e) {
                     throw new TDengineConnectorException(
                             CommonErrorCodeDeprecated.READER_OPERATION_FAILED,

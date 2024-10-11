@@ -17,12 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kafka.source;
 
-import org.apache.seatunnel.api.serialization.DeserializationSchema;
-import org.apache.seatunnel.api.serialization.DeserializationSchemaWithTopic;
-import org.apache.seatunnel.api.source.Boundedness;
-import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
-import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.common.source.reader.RecordEmitter;
 import org.apache.seatunnel.connectors.seatunnel.common.source.reader.RecordsWithSplitIds;
@@ -46,11 +41,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentMap;
 
 public class KafkaSourceReader
         extends SingleThreadMultiplexSourceReaderBase<

@@ -100,6 +100,7 @@ public class KafkaSourceSplitEnumerator
         this.kafkaSourceConfig = null;
         this.pendingSplit = pendingSplit;
         this.assignedSplit = assignedSplit;
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -311,7 +312,12 @@ public class KafkaSourceSplitEnumerator
                         partition -> {
                             // Obtain the corresponding topic TablePath from kafka topic
                             TablePath tablePath = topicMappingTablePathMap.get(partition.topic());
-                            KafkaSourceSplit split = new KafkaSourceSplit(tablePath, partition, index.getAndIncrement(), partitions.size());
+                            KafkaSourceSplit split =
+                                    new KafkaSourceSplit(
+                                            tablePath,
+                                            partition,
+                                            index.getAndIncrement(),
+                                            partitions.size());
                             split.setEndOffset(latestOffsets.get(split.getTopicPartition()));
                             return split;
                         })

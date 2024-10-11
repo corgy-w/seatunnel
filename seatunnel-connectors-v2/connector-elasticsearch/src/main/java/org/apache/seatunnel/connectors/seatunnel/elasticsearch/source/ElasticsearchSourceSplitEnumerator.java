@@ -157,17 +157,17 @@ public class ElasticsearchSourceSplitEnumerator
                 SourceConfig cloneCfg = sourceConfig.clone();
                 cloneCfg.setIndex(indexDocsCount.getIndex());
                 splits.add(
-                    new ElasticsearchSourceSplit(
-                        String.valueOf(indexDocsCount.getIndex().hashCode()),
-                        cloneCfg,
-                        i,
-                        indexDocsCounts.size()));
+                        new ElasticsearchSourceSplit(
+                                String.valueOf(indexDocsCount.getIndex().hashCode()),
+                                cloneCfg,
+                                i,
+                                indexDocsCounts.size()));
             }
         }
         splits.stream()
                 .collect(
                         Collectors.groupingBy(
-                                x -> x.getSourceIndexInfo().getIndex(), Collectors.counting()))
+                                x -> x.getSourceConfig().getIndex(), Collectors.counting()))
                 .forEach(
                         (k, v) -> eventRecorder.addTableSplit(TablePath.of(null, k), v.intValue()));
         return splits;

@@ -37,6 +37,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.Post
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresTypeMapper;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -404,7 +405,7 @@ public class PostgresCatalog extends AbstractJdbcCatalog {
 
     protected PostgresCreateTableSqlBuilder createTableSqlBuilder(
             TablePath tablePath, CatalogTable table, boolean createIndex) {
-        return new PostgresCreateTableSqlBuilder(table, createIndex, plugins(tablePath));
+        return new PostgresCreateTableSqlBuilder(table, plugins(tablePath), createIndex);
     }
 
     @Override

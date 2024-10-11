@@ -17,19 +17,16 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect;
 
-import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
-import org.apache.seatunnel.api.table.converter.ConverterLoader;
 import org.apache.seatunnel.api.table.converter.TypeConverter;
-import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
-import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
-import org.apache.seatunnel.api.table.event.AlterTableColumnEvent;
-import org.apache.seatunnel.api.table.event.AlterTableColumnsEvent;
-import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
-import org.apache.seatunnel.api.table.event.AlterTableModifyColumnEvent;
-import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
-import org.apache.seatunnel.common.utils.SeaTunnelException;
+import org.apache.seatunnel.api.table.schema.event.AlterTableAddColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableColumnsEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableDropColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.AlterTableModifyColumnEvent;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionProvider;
@@ -449,19 +446,12 @@ public interface JdbcDialect extends Serializable {
         return true;
     }
 
-    /**
-     * Refresh physical table schema by schema change event
-     *
-     * @param event schema change event
-     * @param connection jdbc connection
-     * @param tablePath sink table path
-     */
     default void applySchemaChange(
-            SchemaChangeEvent event, Connection connection, TablePath tablePath)
+            Connection connection, TablePath tablePath, SchemaChangeEvent event)
             throws SQLException {
         if (event instanceof AlterTableColumnsEvent) {
             for (AlterTableColumnEvent columnEvent : ((AlterTableColumnsEvent) event).getEvents()) {
-                applySchemaChange(columnEvent, connection, tablePath);
+                applySchemaChange(connection, tablePath, columnEvent);
             }
         } else {
             if (event instanceof AlterTableChangeColumnEvent) {
@@ -508,20 +498,11 @@ public interface JdbcDialect extends Serializable {
                 }
                 applySchemaChange(connection, tablePath, dropColumnEvent);
             } else {
-                throw new SeaTunnelException(
-                        "Unsupported schemaChangeEvent : " + event.getEventType());
+                throw new UnsupportedOperationException("Unsupported event: " + event);
             }
         }
     }
 
-    /**
-     * Check if the column exists in the table
-     *
-     * @param connection
-     * @param tablePath
-     * @param column
-     * @return
-     */
     default boolean columnExists(Connection connection, TablePath tablePath, String column) {
         String selectColumnSQL =
                 String.format(
@@ -538,16 +519,40 @@ public interface JdbcDialect extends Serializable {
     default void applySchemaChange(
             Connection connection, TablePath tablePath, AlterTableAddColumnEvent event)
             throws SQLException {
-        String tableIdentifierWithQuoted = tableIdentifier(tablePath);
-        Column addColumn = event.getColumn();
-        String addColumnSQL =
-                buildAlterTableSql(
-                        event.getSourceDialectName(),
-                        addColumn.getSourceType(),
-                        AlterType.ADD.name(),
-                        addColumn,
-                        tableIdentifierWithQuoted,
-                        StringUtils.EMPTY);
+
+        boolean someCatalog = event.tableIdentifier().getCatalogName().equals(dialectName());
+        BasicTypeDefine typeDefine = typeConverter().reconvert(event.getColumn());
+        String columnType =
+                someCatalog ? event.getColumn().getSourceType() : typeDefine.getColumnType();
+        StringBuilder sqlBuilder =
+                new StringBuilder()
+                        .append("ALTER TABLE")
+                        .append(" ")
+                        .append(tableIdentifier(tablePath))
+                        .append(" ")
+                        .append("ADD COLUMN")
+                        .append(" ")
+                        .append(quoteIdentifier(event.getColumn().getName()))
+                        .append(" ")
+                        .append(columnType)
+                        .append(" ")
+                        .append(event.getColumn().isNullable() ? "NULL" : "NOT NULL");
+        if (event.getColumn().getDefaultValue() != null) {
+            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine));
+        }
+        if (event.getColumn().getComment() != null) {
+            sqlBuilder
+                    .append(" ")
+                    .append("COMMENT ")
+                    .append("'")
+                    .append(event.getColumn().getComment())
+                    .append("'");
+        }
+        if (event.getAfterColumn() != null) {
+            sqlBuilder.append(" ").append("AFTER ").append(quoteIdentifier(event.getAfterColumn()));
+        }
+
+        String addColumnSQL = sqlBuilder.toString();
         try (Statement statement = connection.createStatement()) {
             log.info("Executing add column SQL: " + addColumnSQL);
             statement.execute(addColumnSQL);
@@ -557,18 +562,41 @@ public interface JdbcDialect extends Serializable {
     default void applySchemaChange(
             Connection connection, TablePath tablePath, AlterTableChangeColumnEvent event)
             throws SQLException {
-        String tableIdentifierWithQuoted = tableIdentifier(tablePath);
-        Column changeColumn = event.getColumn();
-        String oldColumnName = event.getOldColumn();
-        String changeColumnSQL =
-                buildAlterTableSql(
-                        event.getSourceDialectName(),
-                        changeColumn.getSourceType(),
-                        AlterType.CHANGE.name(),
-                        changeColumn,
-                        tableIdentifierWithQuoted,
-                        oldColumnName);
+        boolean someCatalog = event.tableIdentifier().getCatalogName().equals(dialectName());
+        BasicTypeDefine typeDefine = typeConverter().reconvert(event.getColumn());
+        String columnType =
+                someCatalog ? event.getColumn().getSourceType() : typeDefine.getColumnType();
+        StringBuilder sqlBuilder =
+                new StringBuilder()
+                        .append("ALTER TABLE")
+                        .append(" ")
+                        .append(tableIdentifier(tablePath))
+                        .append(" ")
+                        .append("CHANGE COLUMN")
+                        .append(" ")
+                        .append(quoteIdentifier(event.getOldColumn()))
+                        .append(" ")
+                        .append(quoteIdentifier(event.getColumn().getName()))
+                        .append(" ")
+                        .append(columnType)
+                        .append(" ")
+                        .append(event.getColumn().isNullable() ? "NULL" : "NOT NULL");
+        if (event.getColumn().getDefaultValue() != null) {
+            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine));
+        }
+        if (event.getColumn().getComment() != null) {
+            sqlBuilder
+                    .append(" ")
+                    .append("COMMENT ")
+                    .append("'")
+                    .append(event.getColumn().getComment())
+                    .append("'");
+        }
+        if (event.getAfterColumn() != null) {
+            sqlBuilder.append(" ").append("AFTER ").append(quoteIdentifier(event.getAfterColumn()));
+        }
 
+        String changeColumnSQL = sqlBuilder.toString();
         try (Statement statement = connection.createStatement()) {
             log.info("Executing change column SQL: " + changeColumnSQL);
             statement.execute(changeColumnSQL);
@@ -578,17 +606,40 @@ public interface JdbcDialect extends Serializable {
     default void applySchemaChange(
             Connection connection, TablePath tablePath, AlterTableModifyColumnEvent event)
             throws SQLException {
-        String tableIdentifierWithQuoted = tableIdentifier(tablePath);
-        Column modifyColumn = event.getColumn();
-        String modifyColumnSQL =
-                buildAlterTableSql(
-                        event.getSourceDialectName(),
-                        modifyColumn.getSourceType(),
-                        AlterType.MODIFY.name(),
-                        modifyColumn,
-                        tableIdentifierWithQuoted,
-                        StringUtils.EMPTY);
 
+        boolean someCatalog = event.tableIdentifier().getCatalogName().equals(dialectName());
+        BasicTypeDefine typeDefine = typeConverter().reconvert(event.getColumn());
+        String columnType =
+                someCatalog ? event.getColumn().getSourceType() : typeDefine.getColumnType();
+        StringBuilder sqlBuilder =
+                new StringBuilder()
+                        .append("ALTER TABLE")
+                        .append(" ")
+                        .append(tableIdentifier(tablePath))
+                        .append(" ")
+                        .append("MODIFY COLUMN")
+                        .append(" ")
+                        .append(quoteIdentifier(event.getColumn().getName()))
+                        .append(" ")
+                        .append(columnType)
+                        .append(" ")
+                        .append(event.getColumn().isNullable() ? "NULL" : "NOT NULL");
+        if (event.getColumn().getDefaultValue() != null) {
+            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine));
+        }
+        if (event.getColumn().getComment() != null) {
+            sqlBuilder
+                    .append(" ")
+                    .append("COMMENT ")
+                    .append("'")
+                    .append(event.getColumn().getComment())
+                    .append("'");
+        }
+        if (event.getAfterColumn() != null) {
+            sqlBuilder.append(" ").append("AFTER ").append(quoteIdentifier(event.getAfterColumn()));
+        }
+
+        String modifyColumnSQL = sqlBuilder.toString();
         try (Statement statement = connection.createStatement()) {
             log.info("Executing modify column SQL: " + modifyColumnSQL);
             statement.execute(modifyColumnSQL);
@@ -598,173 +649,24 @@ public interface JdbcDialect extends Serializable {
     default void applySchemaChange(
             Connection connection, TablePath tablePath, AlterTableDropColumnEvent event)
             throws SQLException {
-        String tableIdentifierWithQuoted = tableIdentifier(tablePath);
-        String dropColumn = event.getColumn();
         String dropColumnSQL =
-                buildAlterTableSql(
-                        event.getSourceDialectName(),
-                        null,
-                        AlterType.DROP.name(),
-                        null,
-                        tableIdentifierWithQuoted,
-                        dropColumn);
+                String.format(
+                        "ALTER TABLE %s DROP COLUMN %s",
+                        tableIdentifier(tablePath), quoteIdentifier(event.getColumn()));
         try (Statement statement = connection.createStatement()) {
             log.info("Executing drop column SQL: " + dropColumnSQL);
             statement.execute(dropColumnSQL);
         }
     }
 
-    /**
-     * build alter table sql
-     *
-     * @param sourceDialectName source dialect name
-     * @param sourceColumnType source column type
-     * @param alterOperation alter operation of ddl
-     * @param newColumn new column after ddl
-     * @param tableName table name of sink table
-     * @param oldColumnName old column name before ddl
-     * @return alter table sql for sink table after schema change
-     */
-    default String buildAlterTableSql(
-            String sourceDialectName,
-            String sourceColumnType,
-            String alterOperation,
-            Column newColumn,
-            String tableName,
-            String oldColumnName) {
-        if (StringUtils.equals(alterOperation, AlterType.DROP.name())) {
-            return String.format(
-                    "ALTER TABLE %s drop column %s", tableName, quoteIdentifier(oldColumnName));
-        }
-        TypeConverter<?> typeConverter = ConverterLoader.loadTypeConverter(dialectName());
-        BasicTypeDefine typeBasicTypeDefine = (BasicTypeDefine) typeConverter.reconvert(newColumn);
-
-        String basicSql = buildAlterTableBasicSql(alterOperation, tableName);
-        basicSql =
-                decorateWithColumnNameAndType(
-                        sourceDialectName,
-                        sourceColumnType,
-                        basicSql,
-                        alterOperation,
-                        newColumn,
-                        oldColumnName,
-                        typeBasicTypeDefine.getColumnType());
-        basicSql = decorateWithNullable(basicSql, typeBasicTypeDefine);
-        basicSql = decorateWithDefaultValue(basicSql, typeBasicTypeDefine);
-        basicSql = decorateWithComment(basicSql, typeBasicTypeDefine);
-        return basicSql + ";";
-    }
-
-    /**
-     * build the body of alter table sql
-     *
-     * @param alterOperation alter operation of ddl
-     * @param tableName table name of sink table
-     * @return basic sql of alter table for sink table
-     */
-    default String buildAlterTableBasicSql(String alterOperation, String tableName) {
-        StringBuilder sql =
-                new StringBuilder(
-                        "ALTER TABLE "
-                                + tableName
-                                + StringUtils.SPACE
-                                + alterOperation
-                                + StringUtils.SPACE);
-        return sql.toString();
-    }
-
-    /**
-     * decorate the sql with column name and type
-     *
-     * @param sourceDialectName source dialect name
-     * @param sourceColumnType source column type
-     * @param basicSql basic sql of alter table for sink table
-     * @param alterOperation alter operation of ddl
-     * @param newColumn new column after ddl
-     * @param oldColumnName old column name before ddl
-     * @param columnType column type of new column
-     * @return basic sql with column name and type of alter table for sink table
-     */
-    default String decorateWithColumnNameAndType(
-            String sourceDialectName,
-            String sourceColumnType,
-            String basicSql,
-            String alterOperation,
-            Column newColumn,
-            String oldColumnName,
-            String columnType) {
-        StringBuilder sql = new StringBuilder(basicSql);
-        String oldColumnNameWithQuoted = quoteIdentifier(oldColumnName);
-        String newColumnNameWithQuoted = quoteIdentifier(newColumn.getName());
-        if (alterOperation.equals(AlterType.CHANGE.name())) {
-            sql.append(oldColumnNameWithQuoted)
-                    .append(StringUtils.SPACE)
-                    .append(newColumnNameWithQuoted)
-                    .append(StringUtils.SPACE);
-        } else {
-            sql.append(newColumnNameWithQuoted).append(StringUtils.SPACE);
-        }
-        if (sourceDialectName.equals(dialectName())) {
-            sql.append(sourceColumnType);
-        } else {
-            sql.append(columnType);
-        }
-        sql.append(StringUtils.SPACE);
-        return sql.toString();
-    }
-
-    /**
-     * decorate with nullable
-     *
-     * @param basicSql alter table sql for sink table
-     * @param typeBasicTypeDefine type basic type define of new column
-     * @return alter table sql with nullable for sink table
-     */
-    default String decorateWithNullable(String basicSql, BasicTypeDefine typeBasicTypeDefine) {
-        StringBuilder sql = new StringBuilder(basicSql);
-        if (typeBasicTypeDefine.isNullable()) {
-            sql.append("NULL ");
-        } else {
-            sql.append("NOT NULL ");
-        }
-        return sql.toString();
-    }
-
-    /**
-     * decorate with default value
-     *
-     * @param basicSql alter table sql for sink table
-     * @param typeBasicTypeDefine type basic type define of new column
-     * @return alter table sql with default value for sink table
-     */
-    default String decorateWithDefaultValue(String basicSql, BasicTypeDefine typeBasicTypeDefine) {
-        Object defaultValue = typeBasicTypeDefine.getDefaultValue();
+    default String sqlClauseWithDefaultValue(BasicTypeDefine columnDefine) {
+        Object defaultValue = columnDefine.getDefaultValue();
         if (Objects.nonNull(defaultValue)
-                && needsQuotesWithDefaultValue(typeBasicTypeDefine.getColumnType())
+                && needsQuotesWithDefaultValue(columnDefine.getColumnType())
                 && !isSpecialDefaultValue(defaultValue)) {
             defaultValue = quotesDefaultValue(defaultValue);
         }
-        StringBuilder sql = new StringBuilder(basicSql);
-        if (Objects.nonNull(defaultValue)) {
-            sql.append("DEFAULT ").append(defaultValue).append(StringUtils.SPACE);
-        }
-        return sql.toString();
-    }
-
-    /**
-     * decorate with comment
-     *
-     * @param basicSql alter table sql for sink table
-     * @param typeBasicTypeDefine type basic type define of new column
-     * @return alter table sql with comment for sink table
-     */
-    default String decorateWithComment(String basicSql, BasicTypeDefine typeBasicTypeDefine) {
-        String comment = typeBasicTypeDefine.getComment();
-        StringBuilder sql = new StringBuilder(basicSql);
-        if (StringUtils.isNotBlank(comment)) {
-            sql.append("COMMENT '").append(comment).append("'");
-        }
-        return sql.toString();
+        return "DEFAULT " + defaultValue;
     }
 
     /**
@@ -795,12 +697,5 @@ public interface JdbcDialect extends Serializable {
      */
     default String quotesDefaultValue(Object defaultValue) {
         return "'" + defaultValue + "'";
-    }
-
-    enum AlterType {
-        ADD,
-        DROP,
-        MODIFY,
-        CHANGE
     }
 }

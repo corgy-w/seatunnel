@@ -17,9 +17,14 @@
 
 package org.apache.seatunnel.connectors.seatunnel.common.multitablesink;
 
+import org.apache.seatunnel.api.common.metrics.MetricsContext;
+import org.apache.seatunnel.api.event.DefaultEventProcessor;
+import org.apache.seatunnel.api.event.EventListener;
 import org.apache.seatunnel.api.serialization.DefaultSerializer;
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.sink.multitablesink.MultiTableSinkWriter;
+import org.apache.seatunnel.api.sink.multitablesink.SinkIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 
@@ -41,11 +46,16 @@ public class MultiTableSinkWriterTest {
     public void testPrepareCommitState() throws IOException {
         int threads = 50;
         Map<SinkIdentifier, SinkWriter<SeaTunnelRow, ?, ?>> sinkWriters = new HashMap<>();
+        Map<SinkIdentifier, SinkWriter.Context> sinkWritersContext = new HashMap<>();
         for (int i = 0; i < threads; i++) {
             sinkWriters.put(
                     SinkIdentifier.of(TablePath.DEFAULT.toString(), i), new TestSinkWriter());
+            sinkWritersContext.put(
+                    SinkIdentifier.of(TablePath.DEFAULT.toString(), i),
+                    new TestSinkWriterContext());
         }
-        MultiTableSinkWriter multiTableSinkWriter = new MultiTableSinkWriter(sinkWriters, threads);
+        MultiTableSinkWriter multiTableSinkWriter =
+                new MultiTableSinkWriter(sinkWriters, threads, sinkWritersContext);
         DefaultSerializer<Serializable> defaultSerializer = new DefaultSerializer<>();
 
         for (int i = 0; i < 100; i++) {
@@ -75,6 +85,24 @@ public class MultiTableSinkWriterTest {
 
         @Override
         public void close() throws IOException {}
+    }
+
+    static class TestSinkWriterContext implements SinkWriter.Context {
+
+        @Override
+        public int getIndexOfSubtask() {
+            return 0;
+        }
+
+        @Override
+        public MetricsContext getMetricsContext() {
+            return null;
+        }
+
+        @Override
+        public EventListener getEventListener() {
+            return new DefaultEventProcessor();
+        }
     }
 
     @Data

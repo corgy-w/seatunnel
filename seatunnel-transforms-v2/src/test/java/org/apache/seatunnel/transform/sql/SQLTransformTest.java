@@ -79,6 +79,13 @@ public class SQLTransformTest {
     public void testQueryWithAnyTable() {
         SQLTransform sqlTransform =
                 new SQLTransform(
+                        SQLTransformConfig.of(
+                                ReadonlyConfig.fromMap(
+                                        new HashMap<String, Object>() {
+                                            {
+                                                put("query", "select * from anyTableName");
+                                            }
+                                        })),
                         ReadonlyConfig.fromMap(
                                 new HashMap<String, Object>() {
                                     {
@@ -92,7 +99,9 @@ public class SQLTransformTest {
 
     @Test
     public void testNotLoseSourceTypeAndOptions() {
-        SQLTransform sqlTransform = new SQLTransform(READONLY_CONFIG, getCatalogTable());
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        SQLTransformConfig.of(READONLY_CONFIG), READONLY_CONFIG, getCatalogTable());
         TableSchema tableSchema = sqlTransform.transformTableSchema();
         tableSchema
                 .getColumns()
@@ -168,7 +177,7 @@ public class SQLTransformTest {
                         Collections.singletonMap(
                                 "query",
                                 "select id, trim(`apply`) as `apply` from test where `apply` = 'a'"));
-        SQLTransform sqlTransform = new SQLTransform(config, table);
+        SQLTransform sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
         TableSchema tableSchema = sqlTransform.transformTableSchema();
         SeaTunnelRow result =
                 sqlTransform.transformRow(
@@ -185,7 +194,7 @@ public class SQLTransformTest {
                         Collections.singletonMap(
                                 "query",
                                 "select id, IFNULL(`apply`, '1') as `apply` from test  where `apply` = 'a'"));
-        sqlTransform = new SQLTransform(config, table);
+        sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
         tableSchema = sqlTransform.transformTableSchema();
         result =
                 sqlTransform.transformRow(
@@ -206,7 +215,7 @@ public class SQLTransformTest {
                         Collections.singletonMap(
                                 "query",
                                 "select id, `apply` + 1 as `apply` from test where `apply` > 0"));
-        sqlTransform = new SQLTransform(config, table);
+        sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
         tableSchema = sqlTransform.transformTableSchema();
         result =
                 sqlTransform.transformRow(
@@ -234,7 +243,7 @@ public class SQLTransformTest {
                         Collections.singletonMap(
                                 "query",
                                 "select id, `apply`.k1 as `apply` from test where `apply`.k1 = 'a'"));
-        sqlTransform = new SQLTransform(config, table);
+        sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
         tableSchema = sqlTransform.transformTableSchema();
         result =
                 sqlTransform.transformRow(
@@ -269,7 +278,7 @@ public class SQLTransformTest {
                         Collections.singletonMap(
                                 "query",
                                 "select id, map.`apply` as `apply` from test where map.`apply` = 'a'"));
-        sqlTransform = new SQLTransform(config, table);
+        sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
         tableSchema = sqlTransform.transformTableSchema();
         result =
                 sqlTransform.transformRow(

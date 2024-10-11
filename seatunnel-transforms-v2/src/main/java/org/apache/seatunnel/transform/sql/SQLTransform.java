@@ -64,8 +64,10 @@ public class SQLTransform extends AbstractCatalogSupportTransform {
 
     private final String inputTableName;
 
-    public SQLTransform(            @NonNull SQLTransformConfig sqlTransformConfig,
-                                    @NonNull ReadonlyConfig config, @NonNull CatalogTable catalogTable) {
+    public SQLTransform(
+            @NonNull SQLTransformConfig sqlTransformConfig,
+            @NonNull ReadonlyConfig config,
+            @NonNull CatalogTable catalogTable) {
         super(catalogTable);
         this.query = sqlTransformConfig.getQuery();
         this.engineType = sqlTransformConfig.getEngineType();

@@ -60,11 +60,11 @@ class KafkaSourceSplitEnumeratorTest {
         Map<TopicPartition, KafkaSourceSplit> assignedSplit =
                 new HashMap<TopicPartition, KafkaSourceSplit>() {
                     {
-                        put(partition, new KafkaSourceSplit(null, partition));
+                        put(partition, new KafkaSourceSplit(null, partition, 0, 1));
                     }
                 };
         Map<TopicPartition, KafkaSourceSplit> pendingSplit = new HashMap<>();
-        List<KafkaSourceSplit> splits = Arrays.asList(new KafkaSourceSplit(null, partition));
+        List<KafkaSourceSplit> splits = Arrays.asList(new KafkaSourceSplit(null, partition, 0, 1));
         KafkaSourceSplitEnumerator enumerator =
                 new KafkaSourceSplitEnumerator(adminClient, pendingSplit, assignedSplit);
         enumerator.addSplitsBack(splits, 1);

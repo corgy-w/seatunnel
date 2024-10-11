@@ -132,17 +132,6 @@ public enum FileFormat implements Serializable {
             return new DbfReadStrategy();
         }
     },
-    BINARY("") {
-        @Override
-        public WriteStrategy getWriteStrategy(FileSinkConfig fileSinkConfig) {
-            return new BinaryWriteStrategy(fileSinkConfig);
-        }
-
-        @Override
-        public ReadStrategy getReadStrategy() {
-            return new BinaryReadStrategy();
-        }
-    },
     XML("xml") {
         @Override
         public WriteStrategy getWriteStrategy(FileSinkConfig fileSinkConfig) {

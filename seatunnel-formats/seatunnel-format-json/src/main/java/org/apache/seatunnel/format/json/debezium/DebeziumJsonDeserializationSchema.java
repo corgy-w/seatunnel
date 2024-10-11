@@ -30,11 +30,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.format.json.JsonDeserializationSchema;
 
-import com.google.common.collect.Lists;
-
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 import static java.lang.String.format;

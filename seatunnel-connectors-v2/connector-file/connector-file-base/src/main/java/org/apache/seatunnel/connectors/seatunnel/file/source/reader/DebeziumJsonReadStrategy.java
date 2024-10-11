@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.file.source.reader;
 
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCode;
@@ -36,7 +37,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 @Slf4j
 public class DebeziumJsonReadStrategy extends AbstractReadStrategy {
@@ -58,10 +58,9 @@ public class DebeziumJsonReadStrategy extends AbstractReadStrategy {
     }
 
     @Override
-    public void setSeaTunnelRowTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        super.setSeaTunnelRowTypeInfo(seaTunnelRowType);
-        deserializationSchema =
-                new DebeziumJsonDeserializationSchema(seaTunnelRowType, false, true);
+    public void setCatalogTable(CatalogTable catalogTable) {
+        super.setCatalogTable(catalogTable);
+        deserializationSchema = new DebeziumJsonDeserializationSchema(catalogTable, false, true);
     }
 
     @Override
@@ -90,13 +89,8 @@ public class DebeziumJsonReadStrategy extends AbstractReadStrategy {
                     .forEach(
                             line -> {
                                 try {
-                                    List<SeaTunnelRow> seaTunnelRows =
-                                            deserializationSchema.deserializeList(line.getBytes());
-                                    for (SeaTunnelRow seaTunnelRow : seaTunnelRows) {
-                                        seaTunnelRow.setTableId(tableId);
-                                        output.collect(seaTunnelRow);
-                                    }
-                                } catch (IOException e) {
+                                    deserializationSchema.deserialize(line.getBytes(), output);
+                                } catch (Exception e) {
                                     String errorMsg =
                                             String.format(
                                                     "Read data from this file [%s] failed", path);

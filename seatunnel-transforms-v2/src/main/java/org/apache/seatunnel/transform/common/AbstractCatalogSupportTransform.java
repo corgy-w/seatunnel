@@ -23,11 +23,12 @@ import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.transform.exception.ErrorDataTransformException;
-import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.transform.exception.ErrorDataTransformException;
 
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 public abstract class AbstractCatalogSupportTransform implements SeaTunnelTransform<SeaTunnelRow> {

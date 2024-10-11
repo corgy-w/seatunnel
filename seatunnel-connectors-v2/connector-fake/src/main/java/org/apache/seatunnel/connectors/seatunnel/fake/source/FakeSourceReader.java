@@ -20,8 +20,6 @@ package org.apache.seatunnel.connectors.seatunnel.fake.source;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
-import org.apache.seatunnel.api.source.event.ReaderCloseEvent;
-import org.apache.seatunnel.api.source.event.ReaderOpenEvent;
 import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.fake.config.FakeConfig;

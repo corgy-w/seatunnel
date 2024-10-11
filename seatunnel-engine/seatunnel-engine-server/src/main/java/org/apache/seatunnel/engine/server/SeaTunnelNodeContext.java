@@ -24,15 +24,10 @@ import com.hazelcast.instance.impl.DefaultNodeContext;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.instance.impl.NodeExtension;
 import com.hazelcast.internal.cluster.Joiner;
-import com.hazelcast.internal.config.AliasedDiscoveryConfigUtils;
-import com.hazelcast.internal.cluster.Joiner;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import static com.hazelcast.config.ConfigAccessor.getActiveMemberNetworkConfig;
-import static com.hazelcast.internal.config.AliasedDiscoveryConfigUtils.allUsePublicAddress;
-import static com.hazelcast.spi.properties.ClusterProperty.DISCOVERY_SPI_ENABLED;
-import static com.hazelcast.spi.properties.ClusterProperty.DISCOVERY_SPI_PUBLIC_IP_ENABLED;
 
 @Slf4j
 public class SeaTunnelNodeContext extends DefaultNodeContext {

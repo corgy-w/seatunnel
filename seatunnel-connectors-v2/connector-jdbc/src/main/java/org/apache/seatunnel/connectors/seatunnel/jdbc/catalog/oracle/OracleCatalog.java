@@ -38,6 +38,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -125,13 +126,7 @@ public class OracleCatalog extends AbstractJdbcCatalog {
     @Override
     public List<String> listDatabases() throws CatalogException {
         try {
-            return queryString(
-                    defaultUrl,
-                    getListDatabaseSql(),
-                    rs -> {
-                        String s = rs.getString(1).trim();
-                        return SYS_DATABASES.contains(s) ? null : s;
-                    });
+            return queryString(defaultUrl, getListDatabaseSql(), rs -> rs.getString(1).trim());
         } catch (Exception e) {
             log.info("Failed listing database in catalog oracle", e);
             return Collections.singletonList(defaultDatabase);

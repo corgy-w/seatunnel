@@ -23,7 +23,6 @@ import org.apache.seatunnel.engine.common.config.ConfigProvider;
 import org.apache.seatunnel.engine.common.config.EngineConfig;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
 import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
-import org.apache.seatunnel.engine.server.SeaTunnelNodeContext;
 import org.apache.seatunnel.engine.server.SeaTunnelServerStarter;
 
 import org.apache.commons.lang3.StringUtils;

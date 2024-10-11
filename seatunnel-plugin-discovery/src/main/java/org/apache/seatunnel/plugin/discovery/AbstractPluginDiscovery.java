@@ -525,7 +525,7 @@ public abstract class AbstractPluginDiscovery<T> implements PluginDiscovery<T> {
                 pluginJarPath = targetPluginFiles[0].toURI().toURL();
             } else {
                 pluginJarPath =
-                        findMostSimlarPluginJarFile(targetPluginFiles, pluginJarPrefix)
+                        findMostSimlarPluginJarFile(targetPluginFiles, pluginPrefix.get())
                                 .toURI()
                                 .toURL();
             }

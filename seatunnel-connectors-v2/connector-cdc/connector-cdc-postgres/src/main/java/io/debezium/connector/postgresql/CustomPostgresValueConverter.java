@@ -42,8 +42,7 @@ public class CustomPostgresValueConverter extends PostgresValueConverter {
             PostgresConnectorConfig.HStoreHandlingMode hStoreMode,
             CommonConnectorConfig.BinaryHandlingMode binaryMode,
             PostgresConnectorConfig.IntervalHandlingMode intervalMode,
-            byte[] toastPlaceholder,
-            int moneyFractionDigits) {
+            byte[] toastPlaceholder) {
         super(
                 databaseCharset,
                 decimalMode,
@@ -55,8 +54,7 @@ public class CustomPostgresValueConverter extends PostgresValueConverter {
                 hStoreMode,
                 binaryMode,
                 intervalMode,
-                toastPlaceholder,
-                moneyFractionDigits);
+                toastPlaceholder);
     }
 
     public static CustomPostgresValueConverter of(
@@ -75,8 +73,7 @@ public class CustomPostgresValueConverter extends PostgresValueConverter {
                 connectorConfig.hStoreHandlingMode(),
                 connectorConfig.binaryHandlingMode(),
                 connectorConfig.intervalHandlingMode(),
-                connectorConfig.getUnavailableValuePlaceholder(),
-                connectorConfig.moneyFractionDigits());
+                connectorConfig.toastedValuePlaceholder());
     }
 
     @Override

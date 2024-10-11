@@ -22,11 +22,9 @@ import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mysql.config.MySqlSourceConfig;
 
-import io.debezium.annotation.VisibleForTesting;
 import io.debezium.connector.mysql.MySqlConnectorConfig;
 import io.debezium.connector.mysql.MySqlDatabaseSchema;
 import io.debezium.connector.mysql.MySqlOffsetContext;
-import io.debezium.connector.mysql.MySqlPartition;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
@@ -44,7 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** A component used to get schema by table path. */
 @Slf4j
-public class MySqlSchema implements AutoCloseable {
+public class MySqlSchema {
     private static final String SHOW_CREATE_TABLE = "SHOW CREATE TABLE ";
     private static final String DESC_TABLE = "DESC ";
 
@@ -105,16 +103,6 @@ public class MySqlSchema implements AutoCloseable {
         return tableChangeMap.get(tableId);
     }
 
-    @VisibleForTesting
-    public TableChange readTableSchemaByDesc(JdbcConnection jdbc, TableId tableId) {
-        try {
-            return getTableSchemaByDescTable(jdbc, tableId).get(tableId);
-        } catch (SQLException ex) {
-            throw new SeaTunnelException(
-                    String.format("Failed to read schema for table %s", tableId), ex);
-        }
-    }
-
     private Map<TableId, TableChange> getTableSchemaByShowCreateTable(
             JdbcConnection jdbc, TableId tableId) throws SQLException {
         AtomicReference<String> ddl = new AtomicReference<>();
@@ -155,10 +143,9 @@ public class MySqlSchema implements AutoCloseable {
     private Map<TableId, TableChange> parseSnapshotDdl(TableId tableId, String ddl) {
         Map<TableId, TableChange> tableChangeMap = new HashMap<>();
         final MySqlOffsetContext offsetContext = MySqlOffsetContext.initial(connectorConfig);
-        final MySqlPartition partition = new MySqlPartition(connectorConfig.getLogicalName());
         List<SchemaChangeEvent> schemaChangeEvents =
                 databaseSchema.parseSnapshotDdl(
-                        partition, ddl, tableId.catalog(), offsetContext, Instant.now());
+                        ddl, tableId.catalog(), offsetContext, Instant.now());
         for (SchemaChangeEvent schemaChangeEvent : schemaChangeEvents) {
             for (TableChange tableChange : schemaChangeEvent.getTableChanges()) {
                 Table table =
@@ -170,10 +157,5 @@ public class MySqlSchema implements AutoCloseable {
             }
         }
         return tableChangeMap;
-    }
-
-    @Override
-    public void close() throws Exception {
-        databaseSchema.close();
     }
 }

@@ -40,7 +40,7 @@ public class FilterFieldTransformFactory implements TableTransformFactory {
                 .exclusive(
                         FilterFieldTransformConfig.INCLUDE_FIELDS,
                         FilterFieldTransformConfig.EXCLUDE_FIELDS)
-            .optional(FilterFieldTransformConfig.MULTI_TABLES)
+                .optional(FilterFieldTransformConfig.MULTI_TABLES)
                 .build();
     }
 

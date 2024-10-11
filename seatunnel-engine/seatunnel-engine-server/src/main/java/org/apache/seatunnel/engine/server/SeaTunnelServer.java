@@ -33,6 +33,8 @@ import org.apache.seatunnel.engine.server.service.slot.DefaultSlotService;
 import org.apache.seatunnel.engine.server.service.slot.SlotService;
 import org.apache.seatunnel.engine.server.telemetry.metrics.entity.ThreadPoolStatus;
 
+import org.apache.hadoop.fs.FileSystem;
+
 import com.hazelcast.internal.services.ManagedService;
 import com.hazelcast.internal.services.MembershipAwareService;
 import com.hazelcast.internal.services.MembershipServiceEvent;

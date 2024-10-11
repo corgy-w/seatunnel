@@ -20,13 +20,10 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dws;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.converter.TypeConverter;
-import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws.DwsTypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws.DwsTypeMapper;
 
@@ -94,12 +91,6 @@ public class DwsCatalog extends PostgresCatalog {
     protected String getSelectColumnsSql(TablePath tablePath) {
         return String.format(
                 SELECT_COLUMNS_SQL_TEMPLATE, tablePath.getSchemaName(), tablePath.getTableName());
-    }
-
-    @Override
-    protected void createTableInternal(TablePath tablePath, CatalogTable table)
-            throws CatalogException {
-        throw CommonError.unsupportedOperation(DatabaseIdentifier.DWS, "create table");
     }
 
     @Override

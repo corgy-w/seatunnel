@@ -19,8 +19,6 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg;
 
 import org.apache.seatunnel.shade.com.google.common.collect.ImmutableList;
 
-import org.apache.seatunnel.common.exception.CommonErrorCode;
-import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.exception.IcebergConnectorException;
@@ -138,8 +136,6 @@ public class IcebergCatalogLoader implements Serializable {
                         });
             }
             config.getHadoopProps().forEach(setMethod::invoke);
-            // kerberos authentication
-            doKerberosLogin((Configuration) result);
             log.info("Hadoop config initialized: {}", configClass.getName());
             return result;
         } catch (InstantiationException

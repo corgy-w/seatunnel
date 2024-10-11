@@ -22,10 +22,6 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
-import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.schema.handler.DataTypeChangeEventDispatcher;
@@ -35,10 +31,12 @@ import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.JdbcOutputFormat;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.JdbcOutputFormatBuilder;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionPoolProviderProxy;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.JdbcBatchStatementExecutor;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.JdbcSinkState;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.state.XidInfo;
 
@@ -197,7 +195,6 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
         }
     }
 
-    // TODO CHECK
     @SneakyThrows
     @Override
     public void applySchemaChange(SchemaChangeEvent event) {
@@ -205,44 +202,44 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
         try {
             outputFormat.close();
             final DataTypeChangeEventDispatcher dataTypeChangeEventDispatcher =
-                new DataTypeChangeEventDispatcher();
+                    new DataTypeChangeEventDispatcher();
             dataTypeChangeEventDispatcher.reset(rowType);
             rowType = dataTypeChangeEventDispatcher.handle(event);
             CatalogTable preCatalogTable =
-                CatalogTable.of(
-                    TableIdentifier.of("default", "default", "default"),
-                    tableSchema,
-                    Collections.emptyMap(),
-                    Collections.emptyList(),
-                    null);
+                    CatalogTable.of(
+                            TableIdentifier.of("default", "default", "default"),
+                            tableSchema,
+                            Collections.emptyMap(),
+                            Collections.emptyList(),
+                            null);
             CatalogTable catalogTable = CatalogTableUtil.newCatalogTable(preCatalogTable, rowType);
             outputFormat =
-                new JdbcOutputFormatBuilder(
-                    dialect,
-                    connectionProvider,
-                    jdbcSinkConfig,
-                    catalogTable.getTableSchema())
-                    .build();
+                    new JdbcOutputFormatBuilder(
+                                    dialect,
+                                    connectionProvider,
+                                    jdbcSinkConfig,
+                                    catalogTable.getTableSchema())
+                            .build();
             outputFormat.open();
         } catch (Exception e) {
             throw new JdbcConnectorException(
-                CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
-                " rebuild outputFormat fail",
-                e);
+                    CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
+                    " rebuild outputFormat fail",
+                    e);
         }
 
         TablePath tablePath = TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable());
         JdbcConnectionProvider refreshTableSchemaConnectionProvider =
-            dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
+                dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
         try (Connection connection =
-                 refreshTableSchemaConnectionProvider.getOrEstablishConnection()) {
+                refreshTableSchemaConnectionProvider.getOrEstablishConnection()) {
             dialect.applySchemaChange(connection, tablePath, event);
         } catch (Exception throwables) {
             log.error("schema change error :", throwables);
             throw new JdbcConnectorException(
-                CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
-                "schema change error",
-                throwables);
+                    CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
+                    "schema change error",
+                    throwables);
         }
     }
 }

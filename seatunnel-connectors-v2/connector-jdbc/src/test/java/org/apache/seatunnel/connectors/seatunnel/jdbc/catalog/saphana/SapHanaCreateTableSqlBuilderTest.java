@@ -43,72 +43,72 @@ public class SapHanaCreateTableSqlBuilderTest {
         String tableName = "test_table";
         TablePath tablePath = TablePath.of(dataBaseName, tableName);
         TableSchema tableSchema =
-            TableSchema.builder()
-                .column(PhysicalColumn.of("id", BasicType.LONG_TYPE, 22, false, null, "id"))
-                .column(
-                    PhysicalColumn.of(
-                        "name", BasicType.STRING_TYPE, 128, false, null, "name"))
-                .column(
-                    PhysicalColumn.of(
-                        "age", BasicType.INT_TYPE, (Long) null, true, null, "age"))
-                .column(
-                    PhysicalColumn.of(
-                        "createTime",
-                        LocalTimeType.LOCAL_DATE_TIME_TYPE,
-                        3,
-                        true,
-                        null,
-                        "createTime"))
-                .column(
-                    PhysicalColumn.of(
-                        "lastUpdateTime",
-                        LocalTimeType.LOCAL_DATE_TIME_TYPE,
-                        3,
-                        true,
-                        null,
-                        "lastUpdateTime"))
-                .primaryKey(PrimaryKey.of("id", Lists.newArrayList("id")))
-                .constraintKey(
-                    ConstraintKey.of(
-                        ConstraintKey.ConstraintType.UNIQUE_KEY,
-                        "name",
-                        Lists.newArrayList(
-                            ConstraintKey.ConstraintKeyColumn.of(
-                                "name", null))))
-                .build();
+                TableSchema.builder()
+                        .column(PhysicalColumn.of("id", BasicType.LONG_TYPE, 22, false, null, "id"))
+                        .column(
+                                PhysicalColumn.of(
+                                        "name", BasicType.STRING_TYPE, 128, false, null, "name"))
+                        .column(
+                                PhysicalColumn.of(
+                                        "age", BasicType.INT_TYPE, (Long) null, true, null, "age"))
+                        .column(
+                                PhysicalColumn.of(
+                                        "createTime",
+                                        LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                                        3,
+                                        true,
+                                        null,
+                                        "createTime"))
+                        .column(
+                                PhysicalColumn.of(
+                                        "lastUpdateTime",
+                                        LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                                        3,
+                                        true,
+                                        null,
+                                        "lastUpdateTime"))
+                        .primaryKey(PrimaryKey.of("id", Lists.newArrayList("id")))
+                        .constraintKey(
+                                ConstraintKey.of(
+                                        ConstraintKey.ConstraintType.UNIQUE_KEY,
+                                        "name",
+                                        Lists.newArrayList(
+                                                ConstraintKey.ConstraintKeyColumn.of(
+                                                        "name", null))))
+                        .build();
         CatalogTable catalogTable =
-            CatalogTable.of(
-                TableIdentifier.of("test_catalog", dataBaseName, tableName),
-                tableSchema,
-                new HashMap<>(),
-                new ArrayList<>(),
-                "User table");
+                CatalogTable.of(
+                        TableIdentifier.of("test_catalog", dataBaseName, tableName),
+                        tableSchema,
+                        new HashMap<>(),
+                        new ArrayList<>(),
+                        "User table");
 
         String createTableSql =
-            new SapHanaCreateTableSqlBuilder(catalogTable, true).build(tablePath);
+                new SapHanaCreateTableSqlBuilder(catalogTable, true).build(tablePath);
         String expect =
-            "CREATE TABLE \"test_database\".\"test_table\" (\n"
-                + "\"id\" BIGINT NOT NULL COMMENT 'id',\n"
-                + "\"name\" NVARCHAR(128) NOT NULL COMMENT 'name',\n"
-                + "\"age\" INTEGER NULL COMMENT 'age',\n"
-                + "\"createTime\" SECONDDATE NULL COMMENT 'createTime',\n"
-                + "\"lastUpdateTime\" SECONDDATE NULL COMMENT 'lastUpdateTime',\n"
-                + "PRIMARY KEY (\"id\"),\n"
-                + "UNIQUE (\"name\")\n"
-                + ") COMMENT 'User table'";
+                "CREATE TABLE \"test_database\".\"test_table\" (\n"
+                        + "\"id\" BIGINT NOT NULL COMMENT 'id',\n"
+                        + "\"name\" NVARCHAR(128) NOT NULL COMMENT 'name',\n"
+                        + "\"age\" INTEGER NULL COMMENT 'age',\n"
+                        + "\"createTime\" SECONDDATE NULL COMMENT 'createTime',\n"
+                        + "\"lastUpdateTime\" SECONDDATE NULL COMMENT 'lastUpdateTime',\n"
+                        + "PRIMARY KEY (\"id\"),\n"
+                        + "UNIQUE (\"name\")\n"
+                        + ") COMMENT 'User table'";
         Assertions.assertEquals(expect, createTableSql);
 
         // skip index
         String createTableSqlSkipIndex =
-            new SapHanaCreateTableSqlBuilder(catalogTable, false).build(tablePath);
+                new SapHanaCreateTableSqlBuilder(catalogTable, false).build(tablePath);
         String expectSkipIndex =
-            "CREATE TABLE \"test_database\".\"test_table\" (\n"
-                + "\"id\" BIGINT NOT NULL COMMENT 'id',\n"
-                + "\"name\" NVARCHAR(128) NOT NULL COMMENT 'name',\n"
-                + "\"age\" INTEGER NULL COMMENT 'age',\n"
-                + "\"createTime\" SECONDDATE NULL COMMENT 'createTime',\n"
-                + "\"lastUpdateTime\" SECONDDATE NULL COMMENT 'lastUpdateTime'\n"
-                + ") COMMENT 'User table'";
+                "CREATE TABLE \"test_database\".\"test_table\" (\n"
+                        + "\"id\" BIGINT NOT NULL COMMENT 'id',\n"
+                        + "\"name\" NVARCHAR(128) NOT NULL COMMENT 'name',\n"
+                        + "\"age\" INTEGER NULL COMMENT 'age',\n"
+                        + "\"createTime\" SECONDDATE NULL COMMENT 'createTime',\n"
+                        + "\"lastUpdateTime\" SECONDDATE NULL COMMENT 'lastUpdateTime'\n"
+                        + ") COMMENT 'User table'";
         Assertions.assertEquals(expectSkipIndex, createTableSqlSkipIndex);
     }
 }

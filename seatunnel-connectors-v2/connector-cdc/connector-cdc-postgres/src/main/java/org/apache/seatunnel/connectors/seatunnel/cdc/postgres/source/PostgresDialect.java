@@ -91,9 +91,7 @@ public class PostgresDialect implements JdbcDataSourceDialect {
                 (PostgresConnectorConfig) sourceConfig.getDbzConnectorConfig();
         return new PostgresConnection(
                 conf.getJdbcConfig(),
-                newPostgresValueConverterBuilder(
-                        conf, "postgres-dialect", sourceConfig.getServerTimeZone()),
-                "postgres-dialect");
+                newPostgresValueConverterBuilder(conf, sourceConfig.getServerTimeZone()));
     }
 
     @Override
@@ -132,9 +130,7 @@ public class PostgresDialect implements JdbcDataSourceDialect {
                         dbzConnectorConfig.getJdbcConfig(),
                         newPostgresValueConverterBuilder(
                                 (PostgresConnectorConfig) dbzConnectorConfig,
-                                "postgres-source-fetch-task",
-                                taskSourceConfig.getServerTimeZone()),
-                        "postgres-source-fetch-task");
+                                taskSourceConfig.getServerTimeZone()));
 
         List<TableChanges.TableChange> tableChangeList = new ArrayList<>();
         // TODO: support save table schema

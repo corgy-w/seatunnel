@@ -56,7 +56,7 @@ public class PostgresWalFetchTask implements FetchTask<SourceSplitBase> {
                         sourceFetchContext.getDbzConnectorConfig(),
                         sourceFetchContext.getSnapshotter(),
                         sourceFetchContext.getDataConnection(),
-                        sourceFetchContext.getPgEventDispatcher(),
+                        sourceFetchContext.getDispatcher(),
                         sourceFetchContext.getErrorHandler(),
                         Clock.SYSTEM,
                         sourceFetchContext.getDatabaseSchema(),
@@ -71,8 +71,7 @@ public class PostgresWalFetchTask implements FetchTask<SourceSplitBase> {
         log.info(
                 "Start streaming change event source for postgres wal split: {}",
                 split.getStartupOffset().toString());
-        streamingChangeEventSource.execute(
-                changeEventSourceContext, sourceFetchContext.getPartition(), offsetContext);
+        streamingChangeEventSource.execute(changeEventSourceContext, offsetContext);
     }
 
     public void commitCurrentOffset(LsnOffset offset) {

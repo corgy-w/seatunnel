@@ -47,7 +47,7 @@ public class HighGoCatalog extends PostgresCatalog {
 
     @Override
     protected PostgresCreateTableSqlBuilder createTableSqlBuilder(
-            TablePath tablePath, CatalogTable table) {
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
         return new HighGoCreateTableSqlBuilder(table, plugins(tablePath));
     }
 }

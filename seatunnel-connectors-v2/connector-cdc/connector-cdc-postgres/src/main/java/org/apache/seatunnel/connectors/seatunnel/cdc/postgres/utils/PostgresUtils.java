@@ -30,14 +30,12 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.Post
 
 import org.apache.kafka.connect.source.SourceRecord;
 
-import io.debezium.connector.postgresql.SourceInfo;
 import io.debezium.connector.postgresql.connection.Lsn;
 import io.debezium.connector.postgresql.connection.PostgresConnection;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
-import io.debezium.time.Conversions;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
@@ -45,7 +43,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -307,32 +304,14 @@ public class PostgresUtils {
     }
 
     /** Fetch current largest log sequence number (LSN) of the database. */
-    public static LsnOffset currentLsn(PostgresConnection jdbcConnection) {
-        Long lsn;
-        Long txId;
+    public static LsnOffset currentLsn(PostgresConnection connection) {
         try {
-            lsn = jdbcConnection.currentXLogLocation();
-            txId = jdbcConnection.currentTransactionId();
-            log.trace("Read xlogStart at '{}' from transaction '{}'", Lsn.valueOf(lsn), txId);
+            final Lsn lsn = Lsn.valueOf(connection.currentXLogLocation());
+            final long txId = connection.currentTransactionId().longValue();
+            return new LsnOffset(lsn, txId, null);
         } catch (SQLException e) {
-            throw new SeaTunnelException("Error getting current Lsn/txId " + e.getMessage(), e);
+            throw new SeaTunnelException(e.getMessage(), e);
         }
-
-        try {
-            jdbcConnection.commit();
-        } catch (SQLException e) {
-            throw new SeaTunnelException("JDBC connection fails to commit: " + e.getMessage(), e);
-        }
-
-        Map<String, String> offsetMap = new HashMap<>();
-        offsetMap.put(SourceInfo.LSN_KEY, lsn.toString());
-        if (txId != null) {
-            offsetMap.put(SourceInfo.TXID_KEY, txId.toString());
-        }
-        offsetMap.put(
-                SourceInfo.TIMESTAMP_USEC_KEY,
-                String.valueOf(Conversions.toEpochMicros(Instant.MIN)));
-        return LsnOffset.of(offsetMap);
     }
 
     /** Get split scan query for the given table. */

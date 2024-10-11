@@ -100,7 +100,9 @@ class FilterFieldTransformTest {
     void testConfig() {
         // test both not set
         try {
-            new FilterFieldTransform(ReadonlyConfig.fromMap(new HashMap<>()), catalogTable);
+            new FilterFieldTransform(
+                    FilterFieldTransformConfig.of(ReadonlyConfig.fromMap(new HashMap<>())),
+                    catalogTable);
         } catch (Exception e) {
             Assertions.assertEquals(
                     "ErrorCode:[API-02], ErrorDescription:[Option item validate failed] - There are unconfigured options, these options('include_fields', 'exclude_fields') are mutually exclusive, allowing only one set(\"[] for a set\") of options to be configured.",
@@ -110,17 +112,18 @@ class FilterFieldTransformTest {
         // test both include and exclude set
         try {
             new FilterFieldTransform(
-                    ReadonlyConfig.fromMap(
-                            new HashMap<String, Object>() {
-                                {
-                                    put(
-                                            FilterFieldTransformConfig.INCLUDE_FIELDS.key(),
-                                            filterKeys);
-                                    put(
-                                            FilterFieldTransformConfig.EXCLUDE_FIELDS.key(),
-                                            filterKeys);
-                                }
-                            }),
+                    FilterFieldTransformConfig.of(
+                            ReadonlyConfig.fromMap(
+                                    new HashMap<String, Object>() {
+                                        {
+                                            put(
+                                                    FilterFieldTransformConfig.INCLUDE_FIELDS.key(),
+                                                    filterKeys);
+                                            put(
+                                                    FilterFieldTransformConfig.EXCLUDE_FIELDS.key(),
+                                                    filterKeys);
+                                        }
+                                    })),
                     catalogTable);
         } catch (Exception e) {
             Assertions.assertEquals(
@@ -130,21 +133,27 @@ class FilterFieldTransformTest {
 
         // not exception should be thrown now
         new FilterFieldTransform(
-                ReadonlyConfig.fromMap(
-                        new HashMap<String, Object>() {
-                            {
-                                put(FilterFieldTransformConfig.INCLUDE_FIELDS.key(), filterKeys);
-                            }
-                        }),
+                FilterFieldTransformConfig.of(
+                        ReadonlyConfig.fromMap(
+                                new HashMap<String, Object>() {
+                                    {
+                                        put(
+                                                FilterFieldTransformConfig.INCLUDE_FIELDS.key(),
+                                                filterKeys);
+                                    }
+                                })),
                 catalogTable);
 
         new FilterFieldTransform(
-                ReadonlyConfig.fromMap(
-                        new HashMap<String, Object>() {
-                            {
-                                put(FilterFieldTransformConfig.EXCLUDE_FIELDS.key(), filterKeys);
-                            }
-                        }),
+                FilterFieldTransformConfig.of(
+                        ReadonlyConfig.fromMap(
+                                new HashMap<String, Object>() {
+                                    {
+                                        put(
+                                                FilterFieldTransformConfig.EXCLUDE_FIELDS.key(),
+                                                filterKeys);
+                                    }
+                                })),
                 catalogTable);
     }
 
@@ -155,7 +164,9 @@ class FilterFieldTransformTest {
         configMap.put(FilterFieldTransformConfig.INCLUDE_FIELDS.key(), filterKeys);
 
         FilterFieldTransform filterFieldTransform =
-                new FilterFieldTransform(ReadonlyConfig.fromMap(configMap), catalogTable);
+                new FilterFieldTransform(
+                        FilterFieldTransformConfig.of(ReadonlyConfig.fromMap(configMap)),
+                        catalogTable);
 
         // test output schema
         TableSchema resultSchema = filterFieldTransform.transformTableSchema();
@@ -187,7 +198,9 @@ class FilterFieldTransformTest {
         Map<String, Object> configMap = new HashMap<>();
         configMap.put(FilterFieldTransformConfig.EXCLUDE_FIELDS.key(), filterKeys);
         FilterFieldTransform filterFieldTransform =
-                new FilterFieldTransform(ReadonlyConfig.fromMap(configMap), catalogTable);
+                new FilterFieldTransform(
+                        FilterFieldTransformConfig.of(ReadonlyConfig.fromMap(configMap)),
+                        catalogTable);
 
         // test output schema
         TableSchema resultSchema = filterFieldTransform.transformTableSchema();

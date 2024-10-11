@@ -60,7 +60,8 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
         this(catalogTable, Collections.emptyList(), true);
     }
 
-    public PostgresCreateTableSqlBuilder(CatalogTable catalogTable, Collection<String> pgPlugins, boolean createIndex) {
+    public PostgresCreateTableSqlBuilder(
+            CatalogTable catalogTable, Collection<String> pgPlugins, boolean createIndex) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
         this.sourceCatalogName = catalogTable.getCatalogName();

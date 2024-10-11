@@ -45,7 +45,7 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
     private List<ConstraintKey> constraintKeys;
     public Boolean isHaveConstraintKey = false;
 
-    @Getter public List<String> createIndexSqls = new ArrayList<>();
+    public List<String> createIndexSqls = new ArrayList<>();
 
     public OracleCreateTableSqlBuilder(CatalogTable catalogTable, boolean createIndex) {
         this.columns = catalogTable.getTableSchema().getColumns();
@@ -84,7 +84,7 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
                                 && (StringUtils.equals(
                                                 primaryKey.getPrimaryKey(),
                                                 constraintKey.getConstraintName())
-                                        || primaryCompareToConstrainKey(
+                                        || primaryContainsAllConstrainKey(
                                                 primaryKey, constraintKey)))) {
                     continue;
                 }

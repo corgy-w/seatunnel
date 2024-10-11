@@ -29,7 +29,6 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.reader.fetch.
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.OracleConnectorConfig;
 import io.debezium.connector.oracle.OracleOffsetContext;
-import io.debezium.connector.oracle.OraclePartition;
 import io.debezium.connector.oracle.logminer.LogMinerOracleOffsetContextLoader;
 import io.debezium.heartbeat.Heartbeat;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
@@ -84,11 +83,9 @@ public class OracleSnapshotFetchTask implements FetchTask<SourceSplitBase> {
                         split);
         SnapshotSplitChangeEventSourceContext changeEventSourceContext =
                 new SnapshotSplitChangeEventSourceContext();
-        SnapshotResult<OracleOffsetContext> snapshotResult =
+        SnapshotResult snapshotResult =
                 snapshotSplitReadTask.execute(
-                        changeEventSourceContext,
-                        sourceFetchContext.getPartition(),
-                        sourceFetchContext.getOffsetContext());
+                        changeEventSourceContext, sourceFetchContext.getOffsetContext());
         if (!snapshotResult.isCompletedOrSkipped()) {
             taskRunning = false;
             throw new IllegalStateException(
@@ -113,8 +110,8 @@ public class OracleSnapshotFetchTask implements FetchTask<SourceSplitBase> {
         if (!changed) {
             dispatchRedoLogEndEvent(
                     backfillSplit,
-                    sourceFetchContext.getPartition().getSourcePartition(),
-                    sourceFetchContext.getDispatcher());
+                    ((OracleSourceFetchTaskContext) context).getOffsetContext().getPartition(),
+                    ((OracleSourceFetchTaskContext) context).getDispatcher());
             taskRunning = false;
             return;
         }
@@ -133,9 +130,7 @@ public class OracleSnapshotFetchTask implements FetchTask<SourceSplitBase> {
                 backfillSplit.getStartupOffset(),
                 backfillSplit.getStopOffset());
         backfillReadTask.execute(
-                new SnapshotRedoLogSplitChangeEventSourceContext(),
-                sourceFetchContext.getPartition(),
-                oracleOffsetContext);
+                new SnapshotRedoLogSplitChangeEventSourceContext(), oracleOffsetContext);
         log.info("backfillReadTask execute end");
 
         taskRunning = false;
@@ -182,7 +177,7 @@ public class OracleSnapshotFetchTask implements FetchTask<SourceSplitBase> {
     private void dispatchRedoLogEndEvent(
             IncrementalSplit backFillRedoLogSplit,
             Map<String, ?> sourcePartition,
-            JdbcSourceEventDispatcher<OraclePartition> eventDispatcher)
+            JdbcSourceEventDispatcher eventDispatcher)
             throws InterruptedException {
         eventDispatcher.dispatchWatermarkEvent(
                 sourcePartition,

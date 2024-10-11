@@ -212,7 +212,7 @@ public class MultipleTableJobConfigParser {
                         seaTunnelJobConfig, "sink", Collections.emptyList());
 
         List<URL> connectorJarAndDependencies =
-            getConnectorJarAndDependencyList(sourceConfigs, transformConfigs, sinkConfigs);
+                getConnectorJarAndDependencyList(sourceConfigs, transformConfigs, sinkConfigs);
         if (!commonPluginJars.isEmpty()) {
             connectorJarAndDependencies.addAll(commonPluginJars);
         }
@@ -283,7 +283,9 @@ public class MultipleTableJobConfigParser {
     }
 
     private List<URL> getConnectorJarAndDependencyList(
-            List<? extends Config> sourceConfigs,List<? extends Config> transformConfigs, List<? extends Config> sinkConfigs) {
+            List<? extends Config> sourceConfigs,
+            List<? extends Config> transformConfigs,
+            List<? extends Config> sinkConfigs) {
         List<PluginIdentifier> factoryIds =
                 Stream.concat(
                                 Stream.concat(

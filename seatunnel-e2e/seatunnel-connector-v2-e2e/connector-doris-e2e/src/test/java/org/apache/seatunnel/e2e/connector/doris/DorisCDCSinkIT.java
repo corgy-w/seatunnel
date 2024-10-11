@@ -90,20 +90,20 @@ public class DorisCDCSinkIT extends AbstractDorisIT {
 
     @TestContainerExtension
     protected final ContainerExtendedFactory extendedFactory =
-        container -> {
-            Container.ExecResult extraCommands =
+            container -> {
+                Container.ExecResult extraCommands =
+                        container.execInContainer(
+                                "bash",
+                                "-c",
+                                "mkdir -p /tmp/seatunnel/plugins/connector-doris && cd /tmp/seatunnel/plugins/connector-doris && wget "
+                                        + DRIVER_JAR);
                 container.execInContainer(
-                    "bash",
-                    "-c",
-                    "mkdir -p /tmp/seatunnel/plugins/connector-doris && cd /tmp/seatunnel/plugins/connector-doris && wget "
-                        + DRIVER_JAR);
-            container.execInContainer(
-                "bash",
-                "-c",
-                "mkdir -p /tmp/seatunnel/plugins/connector-cdc-mysql && cd /tmp/seatunnel/plugins/connector-cdc-mysql && wget "
-                    + DRIVER_JAR);
-            Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
-        };
+                        "bash",
+                        "-c",
+                        "mkdir -p /tmp/seatunnel/plugins/connector-cdc-mysql && cd /tmp/seatunnel/plugins/connector-cdc-mysql && wget "
+                                + DRIVER_JAR);
+                Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
+            };
 
     private final UniqueDatabase inventoryDatabase =
             new UniqueDatabase(

@@ -329,10 +329,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
     @Override
     public List<String> listDatabases() throws CatalogException {
         try {
-            return queryString(
-                    defaultUrl,
-                    getListDatabaseSql(),
-                    rs -> rs.getString(1).trim());
+            return queryString(defaultUrl, getListDatabaseSql(), rs -> rs.getString(1).trim());
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed listing database in catalog %s", this.catalogName), e);

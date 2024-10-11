@@ -38,10 +38,6 @@ public class OracleSourceConfigFactory extends JdbcSourceConfigFactory {
     private static final String DRIVER_CLASS_NAME = "oracle.jdbc.driver.OracleDriver";
 
     private List<String> schemaList;
-
-    private Boolean useSelectCount;
-
-    private Boolean skipAnalyze;
     /**
      * An optional list of regular expressions that match schema names to be monitored; any schema
      * name not included in the whitelist will be excluded from monitoring. By default all
@@ -49,16 +45,6 @@ public class OracleSourceConfigFactory extends JdbcSourceConfigFactory {
      */
     public JdbcSourceConfigFactory schemaList(List<String> schemaList) {
         this.schemaList = schemaList;
-        return this;
-    }
-
-    public JdbcSourceConfigFactory useSelectCount(Boolean useSelectCount) {
-        this.useSelectCount = useSelectCount;
-        return this;
-    }
-
-    public JdbcSourceConfigFactory skipAnalyze(Boolean skipAnalyze) {
-        this.skipAnalyze = skipAnalyze;
         return this;
     }
 
@@ -92,12 +78,20 @@ public class OracleSourceConfigFactory extends JdbcSourceConfigFactory {
         props.setProperty("database.history.skip.unparseable.ddl", String.valueOf(true));
         props.setProperty("database.history.refer.ddl", String.valueOf(true));
 
+        // TODO Not yet supported
+        props.setProperty("include.schema.changes", String.valueOf(false));
+
         props.setProperty("connect.timeout.ms", String.valueOf(connectTimeoutMillis));
         // disable tombstones
         props.setProperty("tombstones.on.delete", String.valueOf(false));
 
+        // If the maximum value is not set, logminer may fail to capture data
+        props.setProperty("log.mining.batch.size.max", String.valueOf(2147483646));
+        props.setProperty("log.mining.batch.size.min", String.valueOf(2000));
+
         // Optimize logminer latency
         props.setProperty("log.mining.strategy", "online_catalog");
+        props.setProperty("log.mining.continuous.mine", String.valueOf(true));
 
         if (originUrl != null) {
             props.setProperty("database.url", originUrl);
@@ -137,8 +131,6 @@ public class OracleSourceConfigFactory extends JdbcSourceConfigFactory {
         }
 
         return new OracleSourceConfig(
-                useSelectCount,
-                skipAnalyze,
                 startupConfig,
                 stopConfig,
                 databaseList,

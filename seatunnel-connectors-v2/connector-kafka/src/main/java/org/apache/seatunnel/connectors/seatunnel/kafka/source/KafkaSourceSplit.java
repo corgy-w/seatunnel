@@ -36,11 +36,10 @@ public class KafkaSourceSplit implements SourceSplit {
     private long endOffset = -1L;
     private final int index;
     private final int splitCount;
-    @Setter
-    @Getter
-    private transient volatile boolean finish = false;
+    @Setter @Getter private transient volatile boolean finish = false;
 
-    public KafkaSourceSplit(TablePath tablePath, TopicPartition topicPartition, int index, int splitCount) {
+    public KafkaSourceSplit(
+            TablePath tablePath, TopicPartition topicPartition, int index, int splitCount) {
         this.tablePath = tablePath;
         this.topicPartition = topicPartition;
         this.index = index;
@@ -48,7 +47,11 @@ public class KafkaSourceSplit implements SourceSplit {
     }
 
     public KafkaSourceSplit(
-        TablePath tablePath, TopicPartition topicPartition, long startOffset, long endOffset, int index,
+            TablePath tablePath,
+            TopicPartition topicPartition,
+            long startOffset,
+            long endOffset,
+            int index,
             int splitCount) {
         this.tablePath = tablePath;
         this.topicPartition = topicPartition;
@@ -114,7 +117,11 @@ public class KafkaSourceSplit implements SourceSplit {
 
     public KafkaSourceSplit copy() {
         return new KafkaSourceSplit(
-            this.tablePath, this.topicPartition, this.getStartOffset(), this.getEndOffset(), this.getIndex(),
-            this.getSplitCount());
+                this.tablePath,
+                this.topicPartition,
+                this.getStartOffset(),
+                this.getEndOffset(),
+                this.getIndex(),
+                this.getSplitCount());
     }
 }

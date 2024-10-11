@@ -54,7 +54,6 @@ import org.apache.seatunnel.format.text.constant.TextFormatConstant;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.kafka.common.TopicPartition;
 
-import com.google.common.collect.Lists;
 import lombok.Getter;
 
 import java.io.Serializable;
@@ -142,10 +141,10 @@ public class KafkaSourceConfig implements Serializable {
         consumerMetadata.setPattern(readonlyConfig.get(PATTERN));
         consumerMetadata.setProperties(new Properties());
         // Create a catalog
-        CatalogTable catalogTable = createCatalogTable(readonlyConfig);
-        consumerMetadata.setCatalogTable(catalogTable);
+        List<CatalogTable> catalogTables = createCatalogTable(readonlyConfig);
+        consumerMetadata.setCatalogTable(catalogTables);
         consumerMetadata.setDeserializationSchema(
-                createDeserializationSchema(catalogTable, readonlyConfig));
+                createDeserializationSchema(catalogTables, readonlyConfig));
 
         // parse start mode
         readonlyConfig
@@ -229,30 +228,33 @@ public class KafkaSourceConfig implements Serializable {
                                             null))
                             .build();
         }
-        return CatalogTable.of(
-                TableIdentifier.of("", tablePath),
-                tableSchema,
-                new HashMap<String, String>() {
-                    {
-                        Optional.ofNullable(readonlyConfig.get(PROTOBUF_MESSAGE_NAME))
-                                .ifPresent(value -> put(PROTOBUF_MESSAGE_NAME.key(), value));
+        return Collections.singletonList(
+                CatalogTable.of(
+                        TableIdentifier.of("", tablePath),
+                        tableSchema,
+                        new HashMap<String, String>() {
+                            {
+                                Optional.ofNullable(readonlyConfig.get(PROTOBUF_MESSAGE_NAME))
+                                        .ifPresent(
+                                                value -> put(PROTOBUF_MESSAGE_NAME.key(), value));
 
-                        Optional.ofNullable(readonlyConfig.get(PROTOBUF_SCHEMA))
-                                .ifPresent(value -> put(PROTOBUF_SCHEMA.key(), value));
-                    }
-                },
-                Collections.emptyList(),
-                null);
+                                Optional.ofNullable(readonlyConfig.get(PROTOBUF_SCHEMA))
+                                        .ifPresent(value -> put(PROTOBUF_SCHEMA.key(), value));
+                            }
+                        },
+                        Collections.emptyList(),
+                        null));
     }
 
     private DeserializationSchema<SeaTunnelRow> createDeserializationSchema(
-            CatalogTable catalogTable, ReadonlyConfig readonlyConfig) {
+            List<CatalogTable> catalogTables, ReadonlyConfig readonlyConfig) {
+        CatalogTable catalogTable = catalogTables.get(0);
         SeaTunnelRowType seaTunnelRowType = catalogTable.getSeaTunnelRowType();
 
         MessageFormat format = readonlyConfig.get(FORMAT);
 
         if (!readonlyConfig.getOptional(TableSchemaOptions.SCHEMA).isPresent()
-            && !format.equals(MessageFormat.KINGBASE_JSON)) {
+                && !format.equals(MessageFormat.KINGBASE_JSON)) {
             return TextDeserializationSchema.builder()
                     .seaTunnelRowType(seaTunnelRowType)
                     .delimiter(TextFormatConstant.PLACEHOLDER)

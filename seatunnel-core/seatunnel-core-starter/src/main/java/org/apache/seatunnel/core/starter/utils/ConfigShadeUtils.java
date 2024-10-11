@@ -51,7 +51,7 @@ public final class ConfigShadeUtils {
 
     private static final String SHADE_IDENTIFIER_OPTION = "shade.identifier";
 
-    private static final String[] DEFAULT_SENSITIVE_OPTIONS =
+    public static final String[] DEFAULT_SENSITIVE_KEYWORDS =
             new String[] {
                 "password",
                 "username",

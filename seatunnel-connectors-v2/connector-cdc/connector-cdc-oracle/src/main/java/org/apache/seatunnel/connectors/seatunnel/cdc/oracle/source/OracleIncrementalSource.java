@@ -46,7 +46,6 @@ import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
-import io.debezium.util.SchemaNameAdjuster;
 
 import java.time.ZoneId;
 import java.util.List;
@@ -89,8 +88,6 @@ public class OracleIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
         configFactory.startupOptions(startupConfig);
         configFactory.stopOptions(stopConfig);
         configFactory.schemaList(config.get(OracleSourceOptions.SCHEMA_NAMES));
-        configFactory.useSelectCount(config.get(OracleSourceOptions.USE_SELECT_COUNT));
-        configFactory.skipAnalyze(config.get(OracleSourceOptions.SKIP_ANALYZE));
         configFactory.originUrl(config.get(JdbcCatalogOptions.BASE_URL));
         return configFactory;
     }
@@ -139,9 +136,8 @@ public class OracleIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
         OracleDialect dialect =
                 new OracleDialect((OracleSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
-        SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create();
         ConnectTableChangeSerializer connectTableChangeSerializer =
-                new ConnectTableChangeSerializer(schemaNameAdjuster);
+                new ConnectTableChangeSerializer();
         try (JdbcConnection jdbcConnection = dialect.openJdbcConnection(jdbcSourceConfig)) {
             return discoverTables.stream()
                     .collect(

@@ -70,20 +70,6 @@ public class PaimonSinkHdfsIT extends TestSuiteBase {
         return "https://repo1.maven.org/maven2/org/apache/thrift/libfb303/0.9.0/libfb303-0.9.0.jar";
     }
 
-    @TestContainerExtension
-    protected final ContainerExtendedFactory extendedFactory =
-            container -> {
-                Container.ExecResult extraCommands =
-                        container.execInContainer(
-                                "bash",
-                                "-c",
-                                "mkdir -p /tmp/seatunnel/plugins/Paimon/lib && cd /tmp/seatunnel/plugins/Paimon/lib && wget "
-                                        + hiveExecUrl()
-                                        + " && wget "
-                                        + libfb303Url());
-                Assertions.assertEquals(0, extraCommands.getExitCode(), extraCommands.getStderr());
-            };
-
     private Map<String, Object> PAIMON_SINK_PROPERTIES;
 
     @TestContainerExtension

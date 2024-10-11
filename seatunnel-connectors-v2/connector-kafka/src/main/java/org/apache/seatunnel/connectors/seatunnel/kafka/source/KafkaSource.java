@@ -70,7 +70,7 @@ public class KafkaSource
     @Override
     public List<CatalogTable> getProducedCatalogTables() {
         return kafkaSourceConfig.getMapMetadata().values().stream()
-                .map(ConsumerMetadata::getCatalogTable)
+                .flatMap(meta -> meta.getCatalogTable().stream())
                 .collect(Collectors.toList());
     }
 

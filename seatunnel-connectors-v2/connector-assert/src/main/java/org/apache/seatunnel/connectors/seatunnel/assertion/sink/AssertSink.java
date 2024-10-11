@@ -34,8 +34,6 @@ import org.apache.seatunnel.connectors.seatunnel.assertion.rule.AssertRuleParser
 import org.apache.seatunnel.connectors.seatunnel.assertion.rule.AssertTableRule;
 import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSimpleSink;
 
-import org.apache.commons.collections4.CollectionUtils;
-
 import com.google.common.base.Throwables;
 
 import java.util.ArrayList;

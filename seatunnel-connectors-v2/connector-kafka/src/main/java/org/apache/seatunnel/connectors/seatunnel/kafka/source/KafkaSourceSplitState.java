@@ -26,7 +26,9 @@ public class KafkaSourceSplitState extends KafkaSourceSplit {
                 sourceSplit.getTablePath(),
                 sourceSplit.getTopicPartition(),
                 sourceSplit.getStartOffset(),
-                sourceSplit.getEndOffset());
+                sourceSplit.getEndOffset(),
+                sourceSplit.getIndex(),
+                sourceSplit.getSplitCount());
         this.currentOffset = sourceSplit.getStartOffset();
     }
 
@@ -40,6 +42,11 @@ public class KafkaSourceSplitState extends KafkaSourceSplit {
 
     public KafkaSourceSplit toKafkaSourceSplit() {
         return new KafkaSourceSplit(
-                getTablePath(), getTopicPartition(), getCurrentOffset(), getEndOffset());
+                getTablePath(),
+                getTopicPartition(),
+                getCurrentOffset(),
+                getEndOffset(),
+                getIndex(),
+                getSplitCount());
     }
 }

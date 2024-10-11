@@ -760,12 +760,6 @@
                     <scope>provided</scope>
                 </dependency>
             </dependencies>
-            <repositories>
-                <repository>
-                    <id>cloudera</id>
-                    <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-                </repository>
-            </repositories>
             <build>
                 <finalName>apache-seatunnel-${project.version}</finalName>
                 <plugins>
@@ -803,6 +797,12 @@
                     </plugin>
                 </plugins>
             </build>
+            <repositories>
+                <repository>
+                    <id>cloudera</id>
+                    <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+                </repository>
+            </repositories>
         </profile>
         <profile>
             <id>docker</id>

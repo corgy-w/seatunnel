@@ -53,16 +53,4 @@ public class OracleSourceOptions {
                     .listType()
                     .noDefaultValue()
                     .withDescription("Schema name of the database to monitor.");
-
-    public static final Option<Boolean> USE_SELECT_COUNT =
-            Options.key("use_select_count")
-                    .booleanType()
-                    .defaultValue(false)
-                    .withDescription("Use select count for table count in full stage");
-
-    public static final Option<Boolean> SKIP_ANALYZE =
-            Options.key("skip_analyze")
-                    .booleanType()
-                    .defaultValue(false)
-                    .withDescription("Skip the analysis of table count in full stage");
 }

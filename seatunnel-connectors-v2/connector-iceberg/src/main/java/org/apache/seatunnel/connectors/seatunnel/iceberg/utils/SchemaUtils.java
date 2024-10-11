@@ -66,7 +66,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.data.IcebergTypeMapper.nextId;
 
 @Slf4j
 public class SchemaUtils {

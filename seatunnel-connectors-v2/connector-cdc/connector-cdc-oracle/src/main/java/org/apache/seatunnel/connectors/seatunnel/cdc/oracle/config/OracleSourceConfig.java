@@ -24,7 +24,6 @@ import org.apache.seatunnel.connectors.cdc.base.config.StopConfig;
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.OracleConnectorConfig;
 import io.debezium.relational.RelationalTableFilters;
-import lombok.Getter;
 
 import java.util.List;
 import java.util.Properties;
@@ -33,17 +32,11 @@ import java.util.Properties;
  * Describes the connection information of the Oracle database and the configuration information for
  * performing snapshotting and streaming reading, such as splitSize.
  */
-@Getter
 public class OracleSourceConfig extends JdbcSourceConfig {
 
     private static final long serialVersionUID = 1L;
 
-    private final Boolean useSelectCount;
-    private final Boolean skipAnalyze;
-
     public OracleSourceConfig(
-            Boolean useSelectCount,
-            Boolean skipAnalyze,
             StartupConfig startupConfig,
             StopConfig stopConfig,
             List<String> databaseList,
@@ -89,8 +82,6 @@ public class OracleSourceConfig extends JdbcSourceConfig {
                 connectMaxRetries,
                 connectionPoolSize,
                 exactlyOnce);
-        this.useSelectCount = useSelectCount;
-        this.skipAnalyze = skipAnalyze;
     }
 
     @Override

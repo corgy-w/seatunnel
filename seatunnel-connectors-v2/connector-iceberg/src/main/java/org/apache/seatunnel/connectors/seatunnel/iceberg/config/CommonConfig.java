@@ -120,12 +120,6 @@ public class CommonConfig extends KerberosConfig implements Serializable {
     private String kerberosKrb5ConfPath;
     private String remoteUser;
 
-    // kerberos
-
-    private String kerberosPrincipal;
-    private String kerberosKeytabPath;
-    private String kerberosKrb5ConfPath;
-
     public CommonConfig(ReadonlyConfig pluginConfig) {
         this.catalogName = checkArgumentNotNull(pluginConfig.get(KEY_CATALOG_NAME));
         this.namespace = pluginConfig.get(KEY_NAMESPACE);

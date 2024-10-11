@@ -29,8 +29,6 @@ import org.apache.seatunnel.format.json.JsonToRowConverters;
 import org.apache.seatunnel.transform.common.MultipleFieldOutputTransform;
 import org.apache.seatunnel.transform.common.SeaTunnelRowAccessor;
 import org.apache.seatunnel.transform.exception.ErrorDataTransformException;
-import org.apache.seatunnel.transform.exception.TransformCommonError;
-import org.apache.seatunnel.transform.exception.ErrorDataTransformException;
 
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.JsonPathException;

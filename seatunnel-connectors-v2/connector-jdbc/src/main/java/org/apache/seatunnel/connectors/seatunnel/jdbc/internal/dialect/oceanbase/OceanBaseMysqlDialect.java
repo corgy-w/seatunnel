@@ -18,7 +18,6 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oceanbase;
 
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
@@ -95,7 +94,11 @@ public class OceanBaseMysqlDialect implements JdbcDialect {
 
     @Override
     public Optional<String> getUpsertStatement(
-            String database, String tableName, String[] fieldNames, String[] uniqueKeyFields) {
+            String database,
+            String tableName,
+            String[] fieldNames,
+            String[] uniqueKeyFields,
+            boolean isPrimaryKeyUpdated) {
         String updateClause =
                 Arrays.stream(fieldNames)
                         .map(
@@ -228,15 +231,6 @@ public class OceanBaseMysqlDialect implements JdbcDialect {
         }
 
         return SQLUtils.countForSubquery(connection, table.getQuery());
-    }
-
-    @Override
-    public String decorateWithComment(String basicSql, BasicTypeDefine typeBasicTypeDefine) {
-        OceanBaseMysqlType nativeType = (OceanBaseMysqlType) typeBasicTypeDefine.getNativeType();
-        if (NOT_SUPPORTED_DEFAULT_VALUES.contains(nativeType)) {
-            return basicSql;
-        }
-        return JdbcDialect.super.decorateWithComment(basicSql, typeBasicTypeDefine);
     }
 
     @Override

@@ -45,7 +45,9 @@ class TDengineSourceReaderTest {
         List<TDengineSourceSplit> sourceSplits = new ArrayList<>();
         int splitCnt = 100;
         for (int i = 0; i < splitCnt; i++) {
-            sourceSplits.add(new TDengineSourceSplit(Integer.toString(i), "select sever_status()"));
+            sourceSplits.add(
+                    new TDengineSourceSplit(
+                            Integer.toString(i), "select sever_status()", i, splitCnt));
         }
 
         tDengineSourceReader.addSplits(sourceSplits);
@@ -90,7 +92,9 @@ class TDengineSourceReaderTest {
                                                     String.format(
                                                             "new_%s",
                                                             Thread.currentThread().getName() + idx),
-                                                    "select server_status()")));
+                                                    "select server_status()",
+                                                    idx,
+                                                    newSplitCnt)));
                             try {
                                 Thread.sleep(new Random().nextInt(5));
                             } catch (InterruptedException e) {

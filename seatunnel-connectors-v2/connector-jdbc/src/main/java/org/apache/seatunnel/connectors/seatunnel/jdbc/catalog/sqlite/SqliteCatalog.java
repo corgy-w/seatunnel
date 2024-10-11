@@ -198,7 +198,7 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
 
     // todo: If the origin source is mysql, we can directly use create table like to create the
     @Override
-    protected void createTableInternal(TablePath tablePath, CatalogTable table)
+    protected void createTableInternal(TablePath tablePath, CatalogTable table, boolean createIndex)
             throws CatalogException {
         //
         //        String createTableSql =

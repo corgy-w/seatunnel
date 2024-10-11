@@ -60,14 +60,20 @@ public class FilterFieldTransformConfig implements Serializable {
         @JsonAlias("table_path")
         private String tablePath;
 
-        private String[] fields = new String[] {};
+        @JsonAlias("include_fields")
+        private String[] includeFields = new String[] {};
+
+        @JsonAlias("exclude_fields")
+        private String[] excludeFields = new String[] {};
     }
 
-    private String[] fields = new String[] {};
+    private String[] includeFields = new String[] {};
+
+    private String[] excludeFields = new String[] {};
 
     public static FilterFieldTransformConfig of(ReadonlyConfig config) {
         FilterFieldTransformConfig transformConfig = new FilterFieldTransformConfig();
-        transformConfig.setFields(config.get(KEY_FIELDS).toArray(new String[0]));
+        transformConfig.setIncludeFields(config.get(INCLUDE_FIELDS).toArray(new String[0]));
         return transformConfig;
     }
 
@@ -81,7 +87,8 @@ public class FilterFieldTransformConfig implements Serializable {
                             tableTransforms -> {
                                 FilterFieldTransformConfig filterFieldTransformConfig =
                                         new FilterFieldTransformConfig();
-                                filterFieldTransformConfig.setFields(tableTransforms.getFields());
+                                filterFieldTransformConfig.setIncludeFields(
+                                        tableTransforms.getIncludeFields());
                                 return filterFieldTransformConfig;
                             })
                     .findFirst();

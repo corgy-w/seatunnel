@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.elasticsearch.source;
 
 import org.apache.seatunnel.api.source.SourceSplit;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.elasticsearch.config.SourceConfig;
 
@@ -45,7 +46,7 @@ public class ElasticsearchSourceSplit implements SourceSplit {
 
     @Override
     public TablePath getTablePath() {
-        return TablePath.of(null, sourceIndexInfo.getIndex());
+        return TablePath.of(null, sourceConfig.getIndex());
     }
 
     @Override

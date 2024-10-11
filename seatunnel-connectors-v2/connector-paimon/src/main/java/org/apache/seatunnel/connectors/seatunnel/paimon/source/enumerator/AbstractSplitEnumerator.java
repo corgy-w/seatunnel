@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.paimon.source.enumerator;
 
+import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.paimon.source.PaimonSourceSplit;
 import org.apache.seatunnel.connectors.seatunnel.paimon.source.PaimonSourceSplitGenerator;
@@ -69,6 +71,8 @@ public abstract class AbstractSplitEnumerator
 
     private ExecutorService executorService;
 
+    private final EnumeratorEventRecorder eventRecorder;
+
     public AbstractSplitEnumerator(
             Context<PaimonSourceSplit> context,
             Deque<PaimonSourceSplit> pendingSplits,
@@ -90,6 +94,7 @@ public abstract class AbstractSplitEnumerator
         if (tableScan instanceof StreamTableScan && nextSnapshotId != null) {
             ((StreamTableScan) tableScan).restore(nextSnapshotId);
         }
+        this.eventRecorder = new EnumeratorEventRecorder(context);
     }
 
     @Override
@@ -129,6 +134,11 @@ public abstract class AbstractSplitEnumerator
     @Override
     public PaimonSourceState snapshotState(long checkpointId) throws Exception {
         return new PaimonSourceState(pendingSplits, nextSnapshotId);
+    }
+
+    @Override
+    public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        eventRecorder.recordEvent(sourceEvent);
     }
 
     @Override
@@ -229,6 +239,7 @@ public abstract class AbstractSplitEnumerator
         }
 
         addSplits(splitGenerator.createSplits(plan));
+        eventRecorder.addTableSplit(null, pendingSplits.size());
         assignSplits();
     }
 

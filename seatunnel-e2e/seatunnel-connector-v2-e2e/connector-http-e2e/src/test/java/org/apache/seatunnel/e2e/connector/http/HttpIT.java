@@ -65,7 +65,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static org.awaitility.Awaitility.await;

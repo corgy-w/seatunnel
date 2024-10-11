@@ -27,18 +27,11 @@ import org.apache.seatunnel.api.sink.SaveModeExecuteWrapper;
 import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
-import org.apache.seatunnel.api.sink.multitablesink.MultiTableSink;
-import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
-import org.apache.seatunnel.api.sink.SaveModeExecuteLocation;
-import org.apache.seatunnel.api.sink.SaveModeExecuteWrapper;
-import org.apache.seatunnel.api.sink.SaveModeHandler;
-import org.apache.seatunnel.api.sink.SeaTunnelSink;
-import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.sink.event.savemode.SaveModeFinishedEvent;
+import org.apache.seatunnel.api.sink.multitablesink.MultiTableSink;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
-import org.apache.seatunnel.common.utils.ReflectionUtils;
 import org.apache.seatunnel.common.utils.RetryUtils;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.engine.checkpoint.storage.exception.CheckpointStorageException;
@@ -107,13 +100,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -222,7 +213,8 @@ public class JobMaster implements DynamicMetricsProvider {
         this.releasedSlotWhenTaskGroupFinished = new ConcurrentHashMap<>();
     }
 
-    public synchronized void init(long initializationTimestamp, boolean restart, ClassLoader zetaClassLoader)
+    public synchronized void init(
+            long initializationTimestamp, boolean restart, ClassLoader zetaClassLoader)
             throws Exception {
         Thread.currentThread().setContextClassLoader(zetaClassLoader);
         jobImmutableInformation =
