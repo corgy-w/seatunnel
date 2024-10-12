@@ -49,7 +49,8 @@ public class AdaptSinkTransformFactory implements TableTransformFactory {
         return () ->
                 new AdaptSinkTransform(
                         context.getCatalogTables().stream()
-                                .collect(Collectors.toMap(e -> e.getTableId().toString(), e -> e)),
+                                .collect(
+                                        Collectors.toMap(e -> e.getTablePath().toString(), e -> e)),
                         AdaptSinkTransformConfig.of(context.getOptions()));
     }
 }

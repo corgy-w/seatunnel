@@ -211,20 +211,20 @@ public class AdaptSinkTransform implements SeaTunnelTransform<SeaTunnelRow> {
 
                 tryCastColumnType(inputColumn, outputColumn);
 
-                mergedColumns.add(outputColumn);
+                mergedColumns.add(inputColumn.copy(outputColumn.getDataType()));
             }
 
             CatalogTable mergedTable =
                     CatalogTable.of(
-                            outputTable.getTableId(),
+                            inputTable.getTableId(),
                             TableSchema.builder()
-                                    .primaryKey(outputTable.getTableSchema().getPrimaryKey())
-                                    .constraintKey(outputTable.getTableSchema().getConstraintKeys())
+                                    .primaryKey(inputTable.getTableSchema().getPrimaryKey())
+                                    .constraintKey(inputTable.getTableSchema().getConstraintKeys())
                                     .columns(mergedColumns)
                                     .build(),
-                            outputTable.getOptions(),
-                            outputTable.getPartitionKeys(),
-                            outputTable.getComment());
+                            inputTable.getOptions(),
+                            inputTable.getPartitionKeys(),
+                            inputTable.getComment());
             mergedTables.put(key, mergedTable);
         }
         return mergedTables;

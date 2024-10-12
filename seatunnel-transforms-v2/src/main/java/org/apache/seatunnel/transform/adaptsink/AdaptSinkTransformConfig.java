@@ -28,13 +28,14 @@ import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
-public class AdaptSinkTransformConfig {
+public class AdaptSinkTransformConfig implements Serializable {
 
     public static final Option<Boolean> ADAPT_SINK_TABLE_TYPE =
             Options.key("adapt_sink_table_type")
