@@ -36,7 +36,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -96,7 +95,7 @@ public class FilterFieldTransform extends AbstractCatalogSupportTransform {
         ArrayList<String> outputFieldNames = new ArrayList<>();
         List<Column> inputColumns = inputCatalogTable.getTableSchema().getColumns();
         // include
-        if (Objects.nonNull(includeFields)) {
+        if (!includeFields.isEmpty()) {
             inputValueIndexList = new int[includeFields.size()];
             for (int i = 0; i < includeFields.size(); i++) {
                 String fieldName = includeFields.get(i);
@@ -108,7 +107,7 @@ public class FilterFieldTransform extends AbstractCatalogSupportTransform {
         }
 
         // exclude
-        if (Objects.nonNull(excludeFields)) {
+        if (!excludeFields.isEmpty()) {
             inputValueIndexList = new int[inputColumns.size() - excludeFields.size()];
             int index = 0;
             for (int i = 0; i < inputColumns.size(); i++) {

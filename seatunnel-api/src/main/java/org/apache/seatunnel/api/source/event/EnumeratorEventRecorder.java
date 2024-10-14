@@ -22,6 +22,8 @@ import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -69,7 +71,9 @@ public class EnumeratorEventRecorder {
                                             TablePath.of(
                                                     e.getDatabaseName(),
                                                     e.getSchemaName(),
-                                                    e.getTableName())));
+                                                    StringUtils.isNotEmpty(e.getTableName())
+                                                            ? e.getTableName()
+                                                            : TablePath.DEFAULT.getTableName())));
                 }
             }
         } else if (event instanceof Event) {

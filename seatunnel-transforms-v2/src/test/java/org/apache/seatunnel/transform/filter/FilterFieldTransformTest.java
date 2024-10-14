@@ -127,7 +127,7 @@ class FilterFieldTransformTest {
                     catalogTable);
         } catch (Exception e) {
             Assertions.assertEquals(
-                    "ErrorCode:[API-02], ErrorDescription:[Option item validate failed] - These options('include_fields', 'exclude_fields') are mutually exclusive, allowing only one set(\"[] for a set\") of options to be configured.",
+                    "Exactly one of include_fields or exclude_fields should be set",
                     e.getMessage());
         }
 

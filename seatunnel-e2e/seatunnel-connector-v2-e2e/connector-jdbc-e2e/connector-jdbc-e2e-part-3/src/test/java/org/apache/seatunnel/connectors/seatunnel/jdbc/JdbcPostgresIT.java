@@ -551,7 +551,7 @@ public class JdbcPostgresIT extends TestSuiteBase implements TestResource {
         final CatalogTable table = postgresCatalog.getTable(tablePathPgSink);
         Assertions.assertEquals(
                 table.getTableSchema().getColumns().get(1).getComment(),
-                "\"#¥%……&*（）;;',,.\\.``````//'@特殊注释'\\\\'\"");
+                "\"#¥%……&*（）;;',,.\\\\.``````//'@特殊注释'\\\\\\\\'\"");
         // isExistsData ?
         boolean existsDataBefore = postgresCatalog.isExistsData(tablePathPgSink);
         Assertions.assertFalse(existsDataBefore);

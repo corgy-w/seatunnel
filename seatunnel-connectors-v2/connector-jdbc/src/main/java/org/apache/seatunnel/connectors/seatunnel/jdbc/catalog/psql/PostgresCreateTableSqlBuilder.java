@@ -85,7 +85,7 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
                                         CatalogUtils.quoteIdentifier(
                                                 buildColumnSql(column), fieldIde))
                         .collect(Collectors.toList());
-        if (primaryKey != null) {
+        if (createIndex && primaryKey != null) {
             columnSqls.add("\t" + buildPrimaryKeySql());
         }
 

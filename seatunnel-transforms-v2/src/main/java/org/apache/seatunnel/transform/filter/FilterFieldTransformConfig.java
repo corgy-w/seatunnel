@@ -73,7 +73,12 @@ public class FilterFieldTransformConfig implements Serializable {
 
     public static FilterFieldTransformConfig of(ReadonlyConfig config) {
         FilterFieldTransformConfig transformConfig = new FilterFieldTransformConfig();
-        transformConfig.setIncludeFields(config.get(INCLUDE_FIELDS).toArray(new String[0]));
+        if (config.get(INCLUDE_FIELDS) != null) {
+            transformConfig.setIncludeFields(config.get(INCLUDE_FIELDS).toArray(new String[0]));
+        }
+        if (config.get(EXCLUDE_FIELDS) != null) {
+            transformConfig.setExcludeFields(config.get(EXCLUDE_FIELDS).toArray(new String[0]));
+        }
         return transformConfig;
     }
 

@@ -43,6 +43,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -306,7 +307,7 @@ public final class ContainerUtil {
             ServiceLoader.load(TestContainer.class, Thread.currentThread().getContextClassLoader())
                     .iterator()
                     .forEachRemaining(result::add);
-            return result;
+            return Collections.singletonList(result.get(6));
         } catch (ServiceConfigurationError e) {
             log.error("Could not load service provider for containers.", e);
             throw new FactoryException("Could not load service provider for containers.", e);

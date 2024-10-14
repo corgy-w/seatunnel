@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.Path;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 
@@ -47,11 +48,12 @@ import static org.junit.jupiter.api.condition.OS.MAC;
 @EnabledOnOs({LINUX, MAC})
 public class IMapFileStorageTest {
 
-    private static final Configuration CONF;
+    private static Configuration CONF;
 
-    private static final IMapFileStorage STORAGE;
+    private static IMapFileStorage STORAGE;
 
-    static {
+    @BeforeAll
+    static void beforeAll() {
         CONF = new Configuration();
         CONF.set("fs.defaultFS", "file:///");
         CONF.set("fs.file.impl", "org.apache.hadoop.fs.LocalFileSystem");

@@ -17,9 +17,8 @@
 
 package org.apache.seatunnel.api.table.type;
 
+import org.apache.seatunnel.shade.com.google.common.base.Preconditions;
 import org.apache.seatunnel.shade.com.google.common.collect.Lists;
-
-import com.google.common.base.Preconditions;
 
 import java.util.Arrays;
 import java.util.List;

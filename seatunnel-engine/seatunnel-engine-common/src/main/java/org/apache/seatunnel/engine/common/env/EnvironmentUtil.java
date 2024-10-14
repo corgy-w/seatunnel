@@ -59,7 +59,7 @@ public class EnvironmentUtil {
                                 properties, "git.commit.id.abbrev", version.getGitCommitAbbrev()));
 
                 DateTimeFormatter gitDateTimeFormatter =
-                        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
+                        DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
                 DateTimeFormatter systemDefault =
                         DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.systemDefault());

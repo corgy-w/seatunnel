@@ -23,7 +23,7 @@ import lombok.Data;
 public class Version {
     private String projectVersion = "<unknown>";
     private String gitCommitId = "DecafC0ffeeD0d0F00d";
-    private String buildTime = "1970-01-01T00:00:00+0000";
-    private String commitTime = "1970-01-01T00:00:00+0000";
+    private String buildTime = "19700101000000";
+    private String commitTime = "19700101000000";
     private String gitCommitAbbrev = "DeadD0d0";
 }
