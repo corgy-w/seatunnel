@@ -275,6 +275,177 @@ public interface JdbcDialect extends Serializable {
         }
     }
 
+    default Map<String, String> defaultParameter() {
+        return new HashMap<>();
+    }
+
+    default void connectionUrlParse(
+            String url, Map<String, String> info, Map<String, String> defaultParameter) {
+        defaultParameter.forEach(
+                (key, value) -> {
+                    if (!url.contains(key) && !info.containsKey(key)) {
+                        info.put(key, value);
+                    }
+                });
+    }
+
+    default TablePath parse(String tablePath) {
+        return TablePath.of(tablePath);
+    }
+
+    default String tableIdentifier(TablePath tablePath) {
+        return tablePath.getFullName();
+    }
+
+    /**
+     * Approximate total number of entries in the lookup table.
+     *
+     * @param connection The JDBC connection object used to connect to the database.
+     * @param table table info.
+     * @return approximate row count statement.
+     */
+    default Long approximateRowCntStatement(Connection connection, JdbcSourceTable table)
+            throws SQLException {
+        if (StringUtils.isNotBlank(table.getQuery())) {
+            return SQLUtils.countForSubquery(connection, table.getQuery());
+        }
+        return SQLUtils.countForTable(connection, tableIdentifier(table.getTablePath()));
+    }
+
+    /**
+     * Performs a sampling operation on the specified column of a table in a JDBC-connected
+     * database.
+     *
+     * @param connection The JDBC connection object used to connect to the database.
+     * @param table The table in which the column resides.
+     * @param columnName The name of the column to be sampled.
+     * @param samplingRate samplingRate The inverse of the fraction of the data to be sampled from
+     *     the column. For example, a value of 1000 would mean 1/1000 of the data will be sampled.
+     * @return Returns a List of sampled data from the specified column.
+     * @throws SQLException If an SQL error occurs during the sampling operation.
+     */
+    default Object[] sampleDataFromColumn(
+            Connection connection,
+            JdbcSourceTable table,
+            String columnName,
+            int samplingRate,
+            int fetchSize)
+            throws Exception {
+        String sampleQuery;
+        if (StringUtils.isNotBlank(table.getQuery())) {
+            sampleQuery =
+                    String.format(
+                            "SELECT %s FROM (%s) AS T",
+                            quoteIdentifier(columnName), table.getQuery());
+        } else {
+            sampleQuery =
+                    String.format(
+                            "SELECT %s FROM %s",
+                            quoteIdentifier(columnName), tableIdentifier(table.getTablePath()));
+        }
+
+        try (PreparedStatement stmt = creatPreparedStatement(connection, sampleQuery, fetchSize)) {
+            log.info(String.format("Split Chunk, approximateRowCntStatement: %s", sampleQuery));
+            try (ResultSet rs = stmt.executeQuery()) {
+                int count = 0;
+                List<Object> results = new ArrayList<>();
+
+                while (rs.next()) {
+                    count++;
+                    if (count % samplingRate == 0) {
+                        results.add(rs.getObject(1));
+                    }
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException("Thread interrupted");
+                    }
+                }
+                Object[] resultsArray = results.toArray();
+                Arrays.sort(resultsArray);
+                return resultsArray;
+            }
+        }
+    }
+
+    /**
+     * Query the maximum value of the next chunk, and the next chunk must be greater than or equal
+     * to <code>includedLowerBound</code> value [min_1, max_1), [min_2, max_2),... [min_n, null).
+     * Each time this method is called it will return max1, max2...
+     *
+     * @param connection JDBC connection.
+     * @param table table info.
+     * @param columnName column name.
+     * @param chunkSize chunk size.
+     * @param includedLowerBound the previous chunk end value.
+     * @return next chunk end value.
+     */
+    default Object queryNextChunkMax(
+            Connection connection,
+            JdbcSourceTable table,
+            String columnName,
+            int chunkSize,
+            Object includedLowerBound)
+            throws SQLException {
+        String quotedColumn = quoteIdentifier(columnName);
+        String sqlQuery;
+        if (StringUtils.isNotBlank(table.getQuery())) {
+            sqlQuery =
+                    String.format(
+                            "SELECT MAX(%s) FROM ("
+                                    + "SELECT %s FROM (%s) AS T1 WHERE %s >= ? ORDER BY %s ASC LIMIT %s"
+                                    + ") AS T2",
+                            quotedColumn,
+                            quotedColumn,
+                            table.getQuery(),
+                            quotedColumn,
+                            quotedColumn,
+                            chunkSize);
+        } else {
+            sqlQuery =
+                    String.format(
+                            "SELECT MAX(%s) FROM ("
+                                    + "SELECT %s FROM %s WHERE %s >= ? ORDER BY %s ASC LIMIT %s"
+                                    + ") AS T",
+                            quotedColumn,
+                            quotedColumn,
+                            tableIdentifier(table.getTablePath()),
+                            quotedColumn,
+                            quotedColumn,
+                            chunkSize);
+        }
+        try (PreparedStatement ps = connection.prepareStatement(sqlQuery)) {
+            ps.setObject(1, includedLowerBound);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getObject(1);
+                } else {
+                    // this should never happen
+                    throw new SQLException(
+                            String.format("No result returned after running query [%s]", sqlQuery));
+                }
+            }
+        }
+    }
+
+    default JdbcConnectionProvider getJdbcConnectionProvider(
+            JdbcConnectionConfig jdbcConnectionConfig) {
+        return new SimpleJdbcConnectionProvider(jdbcConnectionConfig);
+    }
+
+    /**
+     * Cast column type e.g. CAST(column AS type)
+     *
+     * @param columnName
+     * @param columnType
+     * @return the text of converted column type.
+     */
+    default String convertType(String columnName, String columnType) {
+        return columnName;
+    }
+
+    default boolean supportHashSplitter() {
+        return true;
+    }
+
     default void applySchemaChange(
             Connection connection, TablePath tablePath, SchemaChangeEvent event)
             throws SQLException {
@@ -497,6 +668,7 @@ public interface JdbcDialect extends Serializable {
         }
         return "DEFAULT " + defaultValue;
     }
+
     /**
      * whether quotes with default value
      *
@@ -525,176 +697,5 @@ public interface JdbcDialect extends Serializable {
      */
     default String quotesDefaultValue(Object defaultValue) {
         return "'" + defaultValue + "'";
-    }
-
-    default Map<String, String> defaultParameter() {
-        return new HashMap<>();
-    }
-
-    default void connectionUrlParse(
-            String url, Map<String, String> info, Map<String, String> defaultParameter) {
-        defaultParameter.forEach(
-                (key, value) -> {
-                    if (!url.contains(key) && !info.containsKey(key)) {
-                        info.put(key, value);
-                    }
-                });
-    }
-
-    default TablePath parse(String tablePath) {
-        return TablePath.of(tablePath);
-    }
-
-    default String tableIdentifier(TablePath tablePath) {
-        return tablePath.getFullName();
-    }
-
-    /**
-     * Approximate total number of entries in the lookup table.
-     *
-     * @param connection The JDBC connection object used to connect to the database.
-     * @param table table info.
-     * @return approximate row count statement.
-     */
-    default Long approximateRowCntStatement(Connection connection, JdbcSourceTable table)
-            throws SQLException {
-        if (StringUtils.isNotBlank(table.getQuery())) {
-            return SQLUtils.countForSubquery(connection, table.getQuery());
-        }
-        return SQLUtils.countForTable(connection, tableIdentifier(table.getTablePath()));
-    }
-
-    /**
-     * Performs a sampling operation on the specified column of a table in a JDBC-connected
-     * database.
-     *
-     * @param connection The JDBC connection object used to connect to the database.
-     * @param table The table in which the column resides.
-     * @param columnName The name of the column to be sampled.
-     * @param samplingRate samplingRate The inverse of the fraction of the data to be sampled from
-     *     the column. For example, a value of 1000 would mean 1/1000 of the data will be sampled.
-     * @return Returns a List of sampled data from the specified column.
-     * @throws SQLException If an SQL error occurs during the sampling operation.
-     */
-    default Object[] sampleDataFromColumn(
-            Connection connection,
-            JdbcSourceTable table,
-            String columnName,
-            int samplingRate,
-            int fetchSize)
-            throws Exception {
-        String sampleQuery;
-        if (StringUtils.isNotBlank(table.getQuery())) {
-            sampleQuery =
-                    String.format(
-                            "SELECT %s FROM (%s) AS T",
-                            quoteIdentifier(columnName), table.getQuery());
-        } else {
-            sampleQuery =
-                    String.format(
-                            "SELECT %s FROM %s",
-                            quoteIdentifier(columnName), tableIdentifier(table.getTablePath()));
-        }
-
-        try (PreparedStatement stmt = creatPreparedStatement(connection, sampleQuery, fetchSize)) {
-            log.info(String.format("Split Chunk, approximateRowCntStatement: %s", sampleQuery));
-            try (ResultSet rs = stmt.executeQuery()) {
-                int count = 0;
-                List<Object> results = new ArrayList<>();
-
-                while (rs.next()) {
-                    count++;
-                    if (count % samplingRate == 0) {
-                        results.add(rs.getObject(1));
-                    }
-                    if (Thread.currentThread().isInterrupted()) {
-                        throw new InterruptedException("Thread interrupted");
-                    }
-                }
-                Object[] resultsArray = results.toArray();
-                Arrays.sort(resultsArray);
-                return resultsArray;
-            }
-        }
-    }
-
-    /**
-     * Query the maximum value of the next chunk, and the next chunk must be greater than or equal
-     * to <code>includedLowerBound</code> value [min_1, max_1), [min_2, max_2),... [min_n, null).
-     * Each time this method is called it will return max1, max2...
-     *
-     * @param connection JDBC connection.
-     * @param table table info.
-     * @param columnName column name.
-     * @param chunkSize chunk size.
-     * @param includedLowerBound the previous chunk end value.
-     * @return next chunk end value.
-     */
-    default Object queryNextChunkMax(
-            Connection connection,
-            JdbcSourceTable table,
-            String columnName,
-            int chunkSize,
-            Object includedLowerBound)
-            throws SQLException {
-        String quotedColumn = quoteIdentifier(columnName);
-        String sqlQuery;
-        if (StringUtils.isNotBlank(table.getQuery())) {
-            sqlQuery =
-                    String.format(
-                            "SELECT MAX(%s) FROM ("
-                                    + "SELECT %s FROM (%s) AS T1 WHERE %s >= ? ORDER BY %s ASC LIMIT %s"
-                                    + ") AS T2",
-                            quotedColumn,
-                            quotedColumn,
-                            table.getQuery(),
-                            quotedColumn,
-                            quotedColumn,
-                            chunkSize);
-        } else {
-            sqlQuery =
-                    String.format(
-                            "SELECT MAX(%s) FROM ("
-                                    + "SELECT %s FROM %s WHERE %s >= ? ORDER BY %s ASC LIMIT %s"
-                                    + ") AS T",
-                            quotedColumn,
-                            quotedColumn,
-                            tableIdentifier(table.getTablePath()),
-                            quotedColumn,
-                            quotedColumn,
-                            chunkSize);
-        }
-        try (PreparedStatement ps = connection.prepareStatement(sqlQuery)) {
-            ps.setObject(1, includedLowerBound);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getObject(1);
-                } else {
-                    // this should never happen
-                    throw new SQLException(
-                            String.format("No result returned after running query [%s]", sqlQuery));
-                }
-            }
-        }
-    }
-
-    default JdbcConnectionProvider getJdbcConnectionProvider(
-            JdbcConnectionConfig jdbcConnectionConfig) {
-        return new SimpleJdbcConnectionProvider(jdbcConnectionConfig);
-    }
-
-    /**
-     * Cast column type e.g. CAST(column AS type)
-     *
-     * @param columnName
-     * @param columnType
-     * @return the text of converted column type.
-     */
-    default String convertType(String columnName, String columnType) {
-        return columnName;
-    }
-
-    default boolean supportHashSplitter() {
-        return true;
     }
 }

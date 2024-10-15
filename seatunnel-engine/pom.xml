@@ -66,15 +66,6 @@
                 <artifactId>whale-license-sdk</artifactId>
                 <version>${license.sdk.version}</version>
             </dependency>
-
-            <!-- test dependencies -->
-            <dependency>
-                <groupId>com.hazelcast</groupId>
-                <artifactId>hazelcast</artifactId>
-                <version>${hazelcast.version}</version>
-                <classifier>tests</classifier>
-                <scope>test</scope>
-            </dependency>
             <!-- SeaTunnel engine use end -->
         </dependencies>
     </dependencyManagement>

@@ -34,11 +34,12 @@ import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,8 +50,8 @@ import static org.apache.seatunnel.api.table.type.LocalTimeType.LOCAL_DATE_TIME_
 import static org.apache.seatunnel.api.table.type.LocalTimeType.LOCAL_DATE_TYPE;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HADOOP;
 
+@DisabledOnOs(OS.WINDOWS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Disabled
 class IcebergCatalogTest {
     private static final String CATALOG_NAME = "seatunnel";
     private static final IcebergCatalogType CATALOG_TYPE = HADOOP;
@@ -76,6 +77,14 @@ class IcebergCatalogTest {
         configs.put(CommonConfig.KEY_CATALOG_NAME.key(), CATALOG_NAME);
         configs.put(CommonConfig.CATALOG_PROPS.key(), catalogProps);
         configs.put(SinkConfig.TABLE_DEFAULT_PARTITION_KEYS.key(), "dt_col");
+        // hadoop config directory
+        configs.put(CommonConfig.HADOOP_CONF_PATH_PROP.key(), "/tmp/hadoop/conf");
+        // hadoop kerberos config
+        //        configs.put(CommonConfig.KERBEROS_PRINCIPAL.key(), "hive/xxxx@xxxx.COM");
+        //        configs.put(
+        //                CommonConfig.KERBEROS_KEYTAB_PATH.key(),
+        // "/tmp/hadoop/conf/hive.service.keytab");
+        //        configs.put(CommonConfig.KRB5_PATH.key(), "/tmp/hadoop/conf/krb5.conf");
         icebergCatalog = new IcebergCatalog(CATALOG_NAME, ReadonlyConfig.fromMap(configs));
         icebergCatalog.open();
     }

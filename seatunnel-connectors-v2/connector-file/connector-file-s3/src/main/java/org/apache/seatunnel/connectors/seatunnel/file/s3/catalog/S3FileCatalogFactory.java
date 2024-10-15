@@ -36,10 +36,7 @@ public class S3FileCatalogFactory implements CatalogFactory {
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
         HadoopConf hadoopConf = S3HadoopConf.buildWithReadOnlyConfig(options);
         HadoopFileSystemProxy fileSystemUtils = new HadoopFileSystemProxy(hadoopConf);
-        return new S3FileCatalog(
-                fileSystemUtils,
-                options.get(BaseSourceConfigOptions.FILE_PATH),
-                factoryIdentifier());
+        return new S3FileCatalog(fileSystemUtils, options.get(BaseSourceConfigOptions.FILE_PATH));
     }
 
     @Override

@@ -26,5 +26,7 @@ public enum MessageFormat {
     KINGBASE_JSON,
     DEBEZIUM_JSON,
     OGG_JSON,
-    AVRO;
+    AVRO,
+    MAXWELL_JSON,
+    PROTOBUF
 }

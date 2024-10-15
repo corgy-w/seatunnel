@@ -58,6 +58,12 @@ public class ReleaseSlotOperation extends TracingOperation implements Identified
                     slotProfile,
                     ExceptionUtils.getMessage(ignore));
         }
+        result = server.getSlotService().getWorkerProfile();
+    }
+
+    @Override
+    public Object getResponse() {
+        return result;
     }
 
     @Override

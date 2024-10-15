@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.oss.sink;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
@@ -42,7 +43,6 @@ public class OssFileSinkFactory extends BaseMultipleTableFileSinkFactory {
     public TableSink createSink(TableSinkFactoryContext context) {
         ReadonlyConfig readonlyConfig = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
-
         return () -> new OssFileSink(readonlyConfig, catalogTable);
     }
 
@@ -82,8 +82,7 @@ public class OssFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.PARQUET,
                         BaseSinkConfig.PARQUET_COMPRESS,
-                        // TODO 等待 http://172.28.230.21:18056/browse/ST-1912 修复
-                        //                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
+                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
                         BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
@@ -107,6 +106,7 @@ public class OssFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(BaseSinkConfig.DATE_FORMAT)
                 .optional(BaseSinkConfig.DATETIME_FORMAT)
                 .optional(BaseSinkConfig.TIME_FORMAT)
+                .optional(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
                 .build();
     }
 }

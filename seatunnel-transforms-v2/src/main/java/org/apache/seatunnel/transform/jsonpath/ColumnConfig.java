@@ -34,7 +34,7 @@ public class ColumnConfig implements Serializable {
     private final String destField;
 
     @Getter private final Column destColumn;
-    @Getter private final ErrorHandleWay errorHandleWay;
+    private final ErrorHandleWay errorHandleWay;
 
     public ColumnConfig(
             String path,
@@ -59,5 +59,9 @@ public class ColumnConfig implements Serializable {
 
     public SeaTunnelDataType<?> getDestType() {
         return destColumn.getDataType();
+    }
+
+    public ErrorHandleWay errorHandleWay() {
+        return errorHandleWay;
     }
 }

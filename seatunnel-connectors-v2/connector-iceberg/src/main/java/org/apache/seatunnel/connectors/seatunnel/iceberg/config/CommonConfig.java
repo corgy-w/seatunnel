@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.config;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.kerberos.KerberosConfig;
 import org.apache.seatunnel.common.config.ConfigRuntimeException;
 
 import lombok.Getter;
@@ -33,7 +34,7 @@ import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.ch
 
 @Getter
 @ToString
-public class CommonConfig implements Serializable {
+public class CommonConfig extends KerberosConfig implements Serializable {
     private static final long serialVersionUID = 239821141534421580L;
 
     public static final Option<String> KEY_CATALOG_NAME =
@@ -132,13 +133,12 @@ public class CommonConfig implements Serializable {
         if (pluginConfig.getOptional(KERBEROS_PRINCIPAL).isPresent()) {
             this.kerberosPrincipal = pluginConfig.getOptional(KERBEROS_PRINCIPAL).get();
         }
+        if (pluginConfig.getOptional(KRB5_PATH).isPresent()) {
+            this.kerberosKrb5ConfPath = pluginConfig.getOptional(KRB5_PATH).get();
+        }
         if (pluginConfig.getOptional(KERBEROS_KEYTAB_PATH).isPresent()) {
             this.kerberosKeytabPath = pluginConfig.getOptional(KERBEROS_KEYTAB_PATH).get();
         }
-        if (pluginConfig.getOptional(KERBEROS_KRB5_CONF_PATH).isPresent()) {
-            this.kerberosKrb5ConfPath = pluginConfig.getOptional(KERBEROS_KRB5_CONF_PATH).get();
-        }
-
         if (pluginConfig.getOptional(REMOTE_USER).isPresent()) {
             this.remoteUser = pluginConfig.getOptional(REMOTE_USER).get();
         }

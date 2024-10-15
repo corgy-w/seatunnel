@@ -115,7 +115,8 @@ public class JsonPathTransformConfig implements Serializable {
                     Optional.ofNullable(map.get(CommonOptions.COLUMN_ERROR_HANDLE_WAY_OPTION.key()))
                             .map(ErrorHandleWay::valueOf)
                             .orElse(null);
-            SeaTunnelDataType<?> srcFieldDataType =
+
+            SeaTunnelDataType<?> dataType =
                     SeaTunnelDataTypeConvertorUtil.deserializeSeaTunnelDataType(srcField, type);
             if (!table.getTableSchema().contains(srcField)) {
                 throw TransformCommonError.cannotFindInputFieldError("JsonPath", srcField);
@@ -124,7 +125,7 @@ public class JsonPathTransformConfig implements Serializable {
             Column destFieldColumn =
                     PhysicalColumn.of(
                             destField,
-                            srcFieldDataType,
+                            dataType,
                             srcFieldColumn.getColumnLength(),
                             true,
                             null,

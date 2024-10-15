@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.config;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
+import org.apache.seatunnel.api.kerberos.KerberosConfig;
 import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
 import org.apache.seatunnel.common.utils.DateTimeUtils;
@@ -34,7 +35,7 @@ import static org.apache.seatunnel.api.sink.DataSaveMode.APPEND_DATA;
 import static org.apache.seatunnel.api.sink.DataSaveMode.DROP_DATA;
 import static org.apache.seatunnel.api.sink.DataSaveMode.ERROR_WHEN_DATA_EXISTS;
 
-public class BaseSinkConfig {
+public class BaseSinkConfig extends KerberosConfig {
     public static final String SEATUNNEL = "seatunnel";
     public static final String NON_PARTITION = "NON_PARTITION";
     public static final String TRANSACTION_ID_SPLIT = "_";
@@ -52,6 +53,13 @@ public class BaseSinkConfig {
                     .enumType(CompressFormat.class)
                     .defaultValue(CompressFormat.SNAPPY)
                     .withDescription("Compression codec");
+
+    // TODO：Compression is supported during write
+    public static final Option<ArchiveCompressFormat> ARCHIVE_COMPRESS_CODEC =
+            Options.key("archive_compress_codec")
+                    .enumType(ArchiveCompressFormat.class)
+                    .defaultValue(ArchiveCompressFormat.NONE)
+                    .withDescription("Archive compression codec");
 
     public static final Option<CompressFormat> TXT_COMPRESS =
             Options.key("compress_codec")
@@ -267,7 +275,7 @@ public class BaseSinkConfig {
                     .listType(String.class)
                     .defaultValue(Collections.emptyList())
                     .withDescription(
-                            "Support writing Parquet INT96 from a 12-byte Avro fixed, only valid for parquet files.");
+                            "Support writing Parquet INT96 from a 12-byte field, only valid for parquet files.");
 
     public static final Option<SchemaSaveMode> SCHEMA_SAVE_MODE =
             Options.key("schema_save_mode")

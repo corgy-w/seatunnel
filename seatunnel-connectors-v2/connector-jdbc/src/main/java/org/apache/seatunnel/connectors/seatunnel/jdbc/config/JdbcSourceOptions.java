@@ -94,6 +94,18 @@ public interface JdbcSourceOptions {
                                     + "For example, a value of 1000 means a sampling rate of 1/1000. "
                                     + "This parameter is used when the sample sharding strategy is triggered.");
 
+    Option<Boolean> USE_SELECT_COUNT =
+            Options.key("use_select_count")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription("Use select count for table count");
+
+    Option<Boolean> SKIP_ANALYZE =
+            Options.key("skip_analyze")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription("Skip the analysis of table count");
+
     Option<Boolean> SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN =
             Options.key("split.enable-hash-split-for-string-column")
                     .booleanType()

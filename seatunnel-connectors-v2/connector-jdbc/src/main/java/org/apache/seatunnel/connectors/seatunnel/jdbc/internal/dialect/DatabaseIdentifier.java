@@ -22,7 +22,6 @@ public class DatabaseIdentifier {
     public static final String DAMENG = "Dameng";
     public static final String GBASE_8A = "Gbase8a";
     public static final String HIVE = "HIVE";
-    public static final String INCEPTOR = "INCEPTOR";
     public static final String INFORMIX = "Informix";
     public static final String KINGBASE = "KingBase";
     public static final String MYSQL = "MySQL";
@@ -43,6 +42,7 @@ public class DatabaseIdentifier {
     public static final String TIDB = "TiDB";
     public static final String XUGU = "XUGU";
     public static final String IRIS = "IRIS";
+    public static final String INCEPTOR = "Inceptor";
     public static final String OPENGAUSS = "OpenGauss";
     public static final String DWS = "DWS";
 }

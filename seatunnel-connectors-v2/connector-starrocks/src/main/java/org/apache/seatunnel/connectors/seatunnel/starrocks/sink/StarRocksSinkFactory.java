@@ -80,31 +80,26 @@ public class StarRocksSinkFactory implements TableSinkFactory {
 
     @Override
     public TableSink createSink(TableSinkFactoryContext context) {
-        SinkConfig sinkConfig = SinkConfig.of(context.getOptions());
         CatalogTable catalogTable = context.getCatalogTable();
+        SinkConfig sinkConfig = SinkConfig.of(context.getOptions());
         if (StringUtils.isBlank(sinkConfig.getTable())) {
             sinkConfig.setTable(catalogTable.getTableId().getTableName());
         }
-        // get source table relevant information
-        TableIdentifier tableId = catalogTable.getTableId();
-        // get sink table relevant information
-        String sinkDatabaseName = sinkConfig.getDatabase();
-        String sinkTableName = sinkConfig.getTable();
-        // rebuild TableIdentifier and catalogTable
-        TableIdentifier newTableId =
-                TableIdentifier.of(tableId.getCatalogName(), sinkDatabaseName, null, sinkTableName);
-        catalogTable =
+
+        TableIdentifier rewriteTableId =
+                TableIdentifier.of(
+                        catalogTable.getTableId().getCatalogName(),
+                        sinkConfig.getDatabase(),
+                        null,
+                        sinkConfig.getTable());
+        CatalogTable finalCatalogTable =
                 CatalogTable.of(
-                        newTableId,
+                        rewriteTableId,
                         catalogTable.getTableSchema(),
                         catalogTable.getOptions(),
                         catalogTable.getPartitionKeys(),
                         catalogTable.getCatalogName());
 
-        CatalogTable finalCatalogTable = catalogTable;
-        // reset
-        sinkConfig.setTable(sinkTableName);
-        sinkConfig.setDatabase(sinkDatabaseName);
         return () -> new StarRocksSink(sinkConfig, finalCatalogTable, context.getOptions());
     }
 }

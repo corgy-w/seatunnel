@@ -60,11 +60,9 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.IntStream;
 
 import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkArgument;
@@ -82,13 +80,7 @@ public class StarRocksCatalog implements Catalog {
     private final String template;
     private Connection conn;
 
-    private static final Set<String> SYS_DATABASES = new HashSet<>();
     private static final Logger LOG = LoggerFactory.getLogger(StarRocksCatalog.class);
-
-    static {
-        SYS_DATABASES.add("information_schema");
-        SYS_DATABASES.add("_statistics_");
-    }
 
     public StarRocksCatalog(
             String catalogName, String username, String pwd, String defaultUrl, String template) {
@@ -114,10 +106,7 @@ public class StarRocksCatalog implements Catalog {
             List<String> databases = new ArrayList<>();
 
             while (rs.next()) {
-                String databaseName = rs.getString(1);
-                if (!SYS_DATABASES.contains(databaseName)) {
-                    databases.add(rs.getString(1));
-                }
+                databases.add(rs.getString(1));
             }
 
             return databases;
@@ -134,16 +123,19 @@ public class StarRocksCatalog implements Catalog {
             throw new DatabaseNotExistException(this.catalogName, databaseName);
         }
 
-        try (PreparedStatement ps = conn.prepareStatement("SHOW TABLES;");
-                ResultSet rs = ps.executeQuery()) {
-
-            List<String> tables = new ArrayList<>();
-            while (rs.next()) {
-                tables.add(rs.getString(1));
+        try (PreparedStatement ps =
+                conn.prepareStatement(
+                        "SELECT TABLE_NAME FROM information_schema.tables "
+                                + "WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME")) {
+            ps.setString(1, databaseName);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<String> tables = new ArrayList<>();
+                while (rs.next()) {
+                    tables.add(rs.getString(1));
+                }
+                return tables;
             }
-
-            return tables;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             throw new CatalogException(
                     String.format("Failed listing database in catalog %s", catalogName), e);
         }
@@ -489,8 +481,9 @@ public class StarRocksCatalog implements Catalog {
                                 + "ORDER BY TABLE_NAME")) {
             ps.setString(1, tablePath.getDatabaseName());
             ps.setString(2, tablePath.getTableName());
-            ResultSet rs = ps.executeQuery();
-            return rs.next();
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
         } catch (SQLException e) {
             throw new CatalogException(
                     String.format("check table [%s] exists failed", tablePath.getFullName()), e);

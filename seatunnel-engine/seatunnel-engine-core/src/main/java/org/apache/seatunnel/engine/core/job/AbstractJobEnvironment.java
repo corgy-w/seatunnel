@@ -17,10 +17,8 @@
 
 package org.apache.seatunnel.engine.core.job;
 
-import org.apache.seatunnel.api.env.EnvCommonOptions;
 import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.engine.common.config.JobConfig;
-import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
 import org.apache.seatunnel.engine.common.utils.IdGenerator;
 import org.apache.seatunnel.engine.core.dag.actions.Action;
 import org.apache.seatunnel.engine.core.dag.logical.LogicalDag;
@@ -33,7 +31,6 @@ import com.hazelcast.logging.Logger;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -65,26 +62,6 @@ public abstract class AbstractJobEnvironment {
         this.isStartWithSavePoint = isStartWithSavePoint;
         this.idGenerator = new IdGenerator();
         this.commonPluginJars.addAll(searchPluginJars());
-        this.commonPluginJars.addAll(
-                new ArrayList<>(
-                        Common.getThirdPartyJars(
-                                        jobConfig
-                                                .getEnvOptions()
-                                                .getOrDefault(EnvCommonOptions.JARS.key(), "")
-                                                .toString())
-                                .stream()
-                                .map(Path::toUri)
-                                .map(
-                                        uri -> {
-                                            try {
-                                                return uri.toURL();
-                                            } catch (MalformedURLException e) {
-                                                throw new SeaTunnelEngineException(
-                                                        "the uri of jar illegal:" + uri, e);
-                                            }
-                                        })
-                                .collect(Collectors.toList())));
-        LOGGER.info("add common jar in plugins :" + commonPluginJars);
     }
 
     protected Set<URL> searchPluginJars() {
@@ -154,5 +131,5 @@ public abstract class AbstractJobEnvironment {
         return new LogicalDagGenerator(actions, jobConfig, idGenerator, isStartWithSavePoint);
     }
 
-    protected abstract LogicalDag getLogicalDag();
+    public abstract LogicalDag getLogicalDag();
 }

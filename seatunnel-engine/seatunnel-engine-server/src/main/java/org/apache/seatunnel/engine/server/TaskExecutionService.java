@@ -387,10 +387,15 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                                                         seaTunnelConfig
                                                                 .getEngineConfig()
                                                                 .getTaskExecutionThreadShareMode();
-                                                if (mode.equals(ThreadShareMode.ALL)) return true;
-                                                if (mode.equals(ThreadShareMode.OFF)) return false;
-                                                if (mode.equals(ThreadShareMode.PART))
+                                                if (mode.equals(ThreadShareMode.ALL)) {
+                                                    return true;
+                                                }
+                                                if (mode.equals(ThreadShareMode.OFF)) {
+                                                    return false;
+                                                }
+                                                if (mode.equals(ThreadShareMode.PART)) {
                                                     return t.isThreadsShare();
+                                                }
                                                 return true;
                                             }));
             executionContexts.put(
@@ -938,18 +943,16 @@ public class TaskExecutionService implements DynamicMetricsProvider {
                 finishedExecutionContexts.put(
                         taskGroupLocation, executionContexts.remove(taskGroupLocation));
                 cancellationFutures.remove(taskGroupLocation);
-                cancelAsyncFunction(taskGroupLocation);
+                try {
+                    cancelAsyncFunction(taskGroupLocation);
+                } catch (Throwable t) {
+                    logger.severe("cancel async function failed", t);
+                }
                 try {
                     updateMetricsContextInImap();
                 } catch (Throwable t) {
-                    logger.warning("update metrics context in imap failed", t);
+                    logger.severe("update metrics context in imap failed", t);
                 }
-                try {
-                    cancelAsyncFunction(taskGroupLocation);
-                } catch (Throwable e) {
-                    throw new RuntimeException(e);
-                }
-                updateMetricsContextInImap();
                 if (ex == null) {
                     logger.info(
                             String.format(

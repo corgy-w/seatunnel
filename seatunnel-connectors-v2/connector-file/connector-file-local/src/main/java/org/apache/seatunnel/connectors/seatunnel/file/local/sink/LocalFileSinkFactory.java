@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.local.sink;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
@@ -48,6 +49,7 @@ public class LocalFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(BaseSinkConfig.FILE_FORMAT_TYPE)
                 .optional(BaseSinkConfig.SCHEMA_SAVE_MODE)
                 .optional(BaseSinkConfig.DATA_SAVE_MODE)
+                .optional(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
                 .optional(BaseSinkConfig.ENCODING)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
@@ -73,8 +75,7 @@ public class LocalFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.PARQUET,
                         BaseSinkConfig.PARQUET_COMPRESS,
-                        // TODO 等待 http://172.28.230.21:18056/browse/ST-1912 修复
-                        //                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
+                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
                         BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,

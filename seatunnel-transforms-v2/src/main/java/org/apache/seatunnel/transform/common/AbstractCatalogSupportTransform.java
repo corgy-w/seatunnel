@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.transform.exception.ErrorDataTransformException;
 
 import lombok.NonNull;
@@ -30,7 +31,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-public abstract class AbstractCatalogSupportTransform extends AbstractSeaTunnelTransform {
+public abstract class AbstractCatalogSupportTransform implements SeaTunnelTransform<SeaTunnelRow> {
     protected final ErrorHandleWay rowErrorHandleWay;
     protected CatalogTable inputCatalogTable;
 
@@ -53,7 +54,7 @@ public abstract class AbstractCatalogSupportTransform extends AbstractSeaTunnelT
         } catch (ErrorDataTransformException e) {
             if (e.getErrorHandleWay() != null) {
                 ErrorHandleWay errorHandleWay = e.getErrorHandleWay();
-                if (errorHandleWay.allowSkip() || errorHandleWay.allowSkipThisRow()) {
+                if (errorHandleWay.allowSkipThisRow()) {
                     log.debug("Skip row due to error", e);
                     return null;
                 }
@@ -66,6 +67,13 @@ public abstract class AbstractCatalogSupportTransform extends AbstractSeaTunnelT
             throw e;
         }
     }
+
+    /**
+     * Outputs transformed row data.
+     *
+     * @param inputRow upstream input row data
+     */
+    protected abstract SeaTunnelRow transformRow(SeaTunnelRow inputRow);
 
     @Override
     public CatalogTable getProducedCatalogTable() {

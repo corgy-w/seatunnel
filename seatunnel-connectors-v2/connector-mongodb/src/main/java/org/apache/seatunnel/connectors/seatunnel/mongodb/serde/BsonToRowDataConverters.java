@@ -353,7 +353,7 @@ public class BsonToRowDataConverters implements Serializable {
     }
 
     private static double convertToDouble(BsonValue bsonValue) {
-        if (bsonValue.isDouble()) {
+        if (bsonValue.isNumber()) {
             return bsonValue.asNumber().doubleValue();
         }
         throw new MongodbConnectorException(
@@ -401,7 +401,7 @@ public class BsonToRowDataConverters implements Serializable {
     }
 
     private static long convertToLong(BsonValue bsonValue) {
-        if (bsonValue.isInt64()) {
+        if (bsonValue.isInt64() || bsonValue.isInt32()) {
             return bsonValue.asNumber().longValue();
         }
         throw new MongodbConnectorException(

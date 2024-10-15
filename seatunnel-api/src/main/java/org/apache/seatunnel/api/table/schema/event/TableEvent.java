@@ -34,6 +34,7 @@ public abstract class TableEvent implements SchemaChangeEvent {
     protected final TableIdentifier tableIdentifier;
     @Getter @Setter private String jobId;
     @Getter @Setter private String statement;
+    @Getter @Setter protected String sourceDialectName;
     @Getter @Setter private CatalogTable changeAfter;
 
     @Override

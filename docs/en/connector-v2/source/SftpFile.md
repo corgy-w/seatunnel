@@ -22,6 +22,7 @@
   - [x] json
   - [x] excel
   - [x] xml
+  - [x] binary
 
 ## Description
 
@@ -91,13 +92,14 @@ The File does not have a specific type list, and we can indicate which SeaTunnel
 | xml_use_attr_format       | boolean | no       | -                   | Specifies whether to process data using the tag attribute format, only used when file_format is xml.                                                                                                                                                                                                                                                                            |
 | schema                    | Config  | No       | -                   | Please check #schema below                                                                                                                                                                                                                                                                                                                                                      |
 | compress_codec            | String  | No       | None                | The compress codec of files and the details that supported as the following shown: <br/> - txt: `lzo` `None` <br/> - json: `lzo` `None` <br/> - csv: `lzo` `None` <br/> - orc: `lzo` `snappy` `lz4` `zlib` `None` <br/> - parquet: `lzo` `snappy` `lz4` `gzip` `brotli` `zstd` `None` <br/> Tips: excel type does Not support any compression format                            |
+| archive_compress_codec    | string  | no       | none                |
 | encoding                  | string  | no       | UTF-8               |
-| common-options            |         | No       | -                   | Source plugin common parameters, please refer to [Source Common Options](common-options.md) for details.                                                                                                                                                                                                                                                                        |
+| common-options            |         | No       | -                   | Source plugin common parameters, please refer to [Source Common Options](../source-common-options.md) for details.                                                                                                                                                                                                                                                              |
 
 ### file_format_type [string]
 
 File type, supported as the following file types:
-`text` `csv` `parquet` `orc` `json` `excel` `xml`
+`text` `csv` `parquet` `orc` `json` `excel` `xml` `binary`
 If you assign file type to `json`, you should also assign schema option to tell connector how to parse data to the row you want.
 For example:
 upstream data is the following:
@@ -160,6 +162,11 @@ connector will generate data as the following:
 |---------------|-----|--------|
 | tyrantlucifer | 26  | male   |
 
+If you assign file type to `binary`, SeaTunnel can synchronize files in any format,
+such as compressed packages, pictures, etc. In short, any files can be synchronized to the target place.
+Under this requirement, you need to ensure that the source and sink use `binary` format for file synchronization
+at the same time.
+
 ### compress_codec [string]
 
 The compress codec of files and the details that supported as the following shown:
@@ -169,6 +176,17 @@ The compress codec of files and the details that supported as the following show
 - csv: `lzo` `none`
 - orc/parquet:  
   automatically recognizes the compression type, no additional settings required.
+
+### archive_compress_codec [string]
+
+The compress codec of archive files and the details that supported as the following shown:
+
+| archive_compress_codec | file_format        | archive_compress_suffix |
+|------------------------|--------------------|-------------------------|
+| ZIP                    | txt,json,excel,xml | .zip                    |
+| TAR                    | txt,json,excel,xml | .tar                    |
+| TAR_GZ                 | txt,json,excel,xml | .tar.gz                 |
+| NONE                   | all                | .*                      |
 
 ### encoding [string]
 

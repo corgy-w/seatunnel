@@ -28,10 +28,10 @@ import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.sink.event.savemode.SaveModeFinishedEvent;
+import org.apache.seatunnel.api.sink.multitablesink.MultiTableSink;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
-import org.apache.seatunnel.common.utils.ReflectionUtils;
 import org.apache.seatunnel.common.utils.RetryUtils;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.engine.checkpoint.storage.exception.CheckpointStorageException;
@@ -213,7 +213,8 @@ public class JobMaster implements DynamicMetricsProvider {
         this.releasedSlotWhenTaskGroupFinished = new ConcurrentHashMap<>();
     }
 
-    public void init(long initializationTimestamp, boolean restart, ClassLoader zetaClassLoader)
+    public synchronized void init(
+            long initializationTimestamp, boolean restart, ClassLoader zetaClassLoader)
             throws Exception {
         Thread.currentThread().setContextClassLoader(zetaClassLoader);
         jobImmutableInformation =
@@ -281,6 +282,7 @@ public class JobMaster implements DynamicMetricsProvider {
             this.physicalPlan.setJobMaster(this);
             this.checkpointPlanMap = planTuple.f1();
         } finally {
+            // revert to app class loader, it may be changed by PlanUtils.fromLogicalDAG
             Thread.currentThread().setContextClassLoader(appClassLoader);
             seaTunnelServer
                     .getClassLoaderService()
@@ -414,13 +416,8 @@ public class JobMaster implements DynamicMetricsProvider {
                     throw new SeaTunnelRuntimeException(HANDLE_SAVE_MODE_FAILED, e);
                 }
             }
-        } else if (sink.getClass()
-                .getName()
-                .equals(
-                        "org.apache.seatunnel.connectors.seatunnel.common.multitablesink.MultiTableSink")) {
-            // TODO we should not use class name to judge the sink type
-            Map<String, SeaTunnelSink> sinks =
-                    (Map<String, SeaTunnelSink>) ReflectionUtils.getField(sink, "sinks").get();
+        } else if (sink instanceof MultiTableSink) {
+            Map<String, SeaTunnelSink> sinks = ((MultiTableSink) sink).getSinks();
             for (SeaTunnelSink seaTunnelSink : sinks.values()) {
                 handleSaveMode(jobId, seaTunnelSink, index, isStartWithSavePoint);
             }
@@ -609,7 +606,7 @@ public class JobMaster implements DynamicMetricsProvider {
         jobRestoreTimesCounter.inc();
     }
 
-    public void cancelJob() {
+    public synchronized void cancelJob() {
         physicalPlan.cancelJob();
     }
 
@@ -746,7 +743,7 @@ public class JobMaster implements DynamicMetricsProvider {
                         metricsImap.tryLock(
                                 Constant.IMAP_RUNNING_JOB_METRICS_KEY, 5, TimeUnit.SECONDS);
                 if (!lockedIMap) {
-                    LOGGER.warning("lock imap failed in update metrics");
+                    LOGGER.severe("lock imap failed in update metrics");
                     return;
                 }
 

@@ -129,7 +129,8 @@ public class KingbaseCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+    protected String getCreateTableSql(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
         return new KingbaseCreateTableSqlBuilder(table)
                 .build(tablePath, table.getOptions().get("fieldIde"));
     }

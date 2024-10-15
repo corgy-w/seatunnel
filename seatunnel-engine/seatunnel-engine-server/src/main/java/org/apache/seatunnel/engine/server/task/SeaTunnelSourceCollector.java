@@ -17,11 +17,10 @@
 
 package org.apache.seatunnel.engine.server.task;
 
-import org.apache.seatunnel.api.common.metrics.Counter;
-import org.apache.seatunnel.api.common.metrics.Meter;
 import org.apache.seatunnel.api.common.metrics.MetricsContext;
 import org.apache.seatunnel.api.event.EventListener;
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.schema.handler.DataTypeChangeEventDispatcher;
 import org.apache.seatunnel.api.table.schema.handler.DataTypeChangeEventHandler;
@@ -35,9 +34,12 @@ import org.apache.seatunnel.core.starter.flowcontrol.FlowControlGate;
 import org.apache.seatunnel.core.starter.flowcontrol.FlowControlStrategy;
 import org.apache.seatunnel.engine.common.exception.SeaTunnelEngineException;
 import org.apache.seatunnel.engine.server.execution.TaskLocation;
+import org.apache.seatunnel.engine.server.metrics.TaskMetricsCalcContext;
 import org.apache.seatunnel.engine.server.task.event.DataStatisticsRecorder;
 import org.apache.seatunnel.engine.server.task.flow.OneInputFlowLifeCycle;
 import org.apache.seatunnel.engine.server.task.record.Barrier;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -47,11 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.apache.seatunnel.api.common.metrics.MetricNames.SOURCE_RECEIVED_BYTES;
-import static org.apache.seatunnel.api.common.metrics.MetricNames.SOURCE_RECEIVED_BYTES_PER_SECONDS;
-import static org.apache.seatunnel.api.common.metrics.MetricNames.SOURCE_RECEIVED_COUNT;
-import static org.apache.seatunnel.api.common.metrics.MetricNames.SOURCE_RECEIVED_QPS;
-
 @Slf4j
 public class SeaTunnelSourceCollector<T> implements Collector<T> {
 
@@ -59,17 +56,14 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
 
     private final List<OneInputFlowLifeCycle<Record<?>>> outputs;
 
+    private final MetricsContext metricsContext;
+
+    private final TaskMetricsCalcContext taskMetricsCalcContext;
+
     private final AtomicBoolean schemaChangeBeforeCheckpointSignal = new AtomicBoolean(false);
 
     private final AtomicBoolean schemaChangeAfterCheckpointSignal = new AtomicBoolean(false);
     private final AtomicBoolean schemaChangePauseCheckpointSignal = new AtomicBoolean(false);
-
-    private final Counter sourceReceivedCount;
-
-    private final Meter sourceReceivedQPS;
-    private final Counter sourceReceivedBytes;
-
-    private final Meter sourceReceivedBytesPerSeconds;
 
     private volatile boolean emptyThisPollNext;
     private final DataTypeChangeEventHandler dataTypeChangeEventHandler =
@@ -85,23 +79,24 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
             MetricsContext metricsContext,
             FlowControlStrategy flowControlStrategy,
             SeaTunnelDataType rowType,
+            List<TablePath> tablePaths,
             EventListener eventListener,
             TaskLocation taskLocation) {
         this.checkpointLock = checkpointLock;
         this.outputs = outputs;
         this.rowType = rowType;
+        this.metricsContext = metricsContext;
         if (rowType instanceof MultipleRowType) {
             ((MultipleRowType) rowType)
                     .iterator()
-                    .forEachRemaining(
-                            type -> {
-                                this.rowTypeMap.put(type.getKey(), type.getValue());
-                            });
+                    .forEachRemaining(type -> this.rowTypeMap.put(type.getKey(), type.getValue()));
         }
-        sourceReceivedCount = metricsContext.counter(SOURCE_RECEIVED_COUNT);
-        sourceReceivedQPS = metricsContext.meter(SOURCE_RECEIVED_QPS);
-        sourceReceivedBytes = metricsContext.counter(SOURCE_RECEIVED_BYTES);
-        sourceReceivedBytesPerSeconds = metricsContext.meter(SOURCE_RECEIVED_BYTES_PER_SECONDS);
+        this.taskMetricsCalcContext =
+                new TaskMetricsCalcContext(
+                        metricsContext,
+                        PluginType.SOURCE,
+                        CollectionUtils.isNotEmpty(tablePaths),
+                        tablePaths);
         flowControlGate = FlowControlGate.create(flowControlStrategy);
         this.dataStatisticsRecorder =
                 new DataStatisticsRecorder(eventListener, taskLocation, PluginType.SOURCE);
@@ -111,27 +106,22 @@ public class SeaTunnelSourceCollector<T> implements Collector<T> {
     public void collect(T row) {
         try {
             if (row instanceof SeaTunnelRow) {
+                String tableId = ((SeaTunnelRow) row).getTableId();
                 int size;
                 if (rowType instanceof SeaTunnelRowType) {
                     size = ((SeaTunnelRow) row).getBytesSize((SeaTunnelRowType) rowType);
                 } else if (rowType instanceof MultipleRowType) {
-                    size =
-                            ((SeaTunnelRow) row)
-                                    .getBytesSize(
-                                            rowTypeMap.get(((SeaTunnelRow) row).getTableId()));
+                    size = ((SeaTunnelRow) row).getBytesSize(rowTypeMap.get(tableId));
                 } else {
                     throw new SeaTunnelEngineException(
                             "Unsupported row type: " + rowType.getClass().getName());
                 }
-                sourceReceivedBytes.inc(size);
-                sourceReceivedBytesPerSeconds.markEvent(size);
                 flowControlGate.audit((SeaTunnelRow) row);
+                taskMetricsCalcContext.updateMetrics(row);
                 dataStatisticsRecorder.updateStatistics((SeaTunnelRow) row);
             }
             sendRecordToNext(new Record<>(row));
             emptyThisPollNext = false;
-            sourceReceivedCount.inc();
-            sourceReceivedQPS.markEvent();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

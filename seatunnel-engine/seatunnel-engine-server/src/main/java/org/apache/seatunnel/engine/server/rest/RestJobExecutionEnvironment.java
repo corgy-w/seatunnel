@@ -32,6 +32,7 @@ import org.apache.seatunnel.engine.server.SeaTunnelServer;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class RestJobExecutionEnvironment extends AbstractJobEnvironment {
@@ -64,7 +66,7 @@ public class RestJobExecutionEnvironment extends AbstractJobEnvironment {
         this.nodeEngine = node.getNodeEngine();
         this.jobConfig.setJobContext(
                 new JobContext(
-                        isStartWithSavePoint
+                        Objects.nonNull(jobId)
                                 ? jobId
                                 : nodeEngine
                                         .getHazelcastInstance()
@@ -77,8 +79,9 @@ public class RestJobExecutionEnvironment extends AbstractJobEnvironment {
         return jobId;
     }
 
+    @VisibleForTesting
     @Override
-    protected LogicalDag getLogicalDag() {
+    public LogicalDag getLogicalDag() {
         ImmutablePair<List<Action>, Set<URL>> immutablePair =
                 getJobConfigParser().parse(seaTunnelServer.getClassLoaderService());
         actions.addAll(immutablePair.getLeft());

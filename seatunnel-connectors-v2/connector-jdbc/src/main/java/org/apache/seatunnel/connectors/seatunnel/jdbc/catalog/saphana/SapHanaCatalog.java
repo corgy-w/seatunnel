@@ -33,6 +33,7 @@ import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
+import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.saphana.SapHanaTypeConverter;
@@ -68,7 +69,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     + "    C.COMMENTS,\n"
                     + "    E.DATA_TYPE_NAME AS ELEMENT_TYPE_NAME\n"
                     + "FROM\n"
-                    + "    (SELECT * FROM SYS.TABLE_COLUMNS UNION ALL SELECT * FROM SYS.VIEW_COLUMNS) C\n"
+                    + "    (SELECT * FROM SYS.TABLE_COLUMNS  UNION ALL SELECT * FROM SYS.VIEW_COLUMNS) C\n"
                     + "        LEFT JOIN\n"
                     + "    SYS.ELEMENT_TYPES E\n"
                     + "    ON\n"
@@ -118,8 +119,9 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
-        return new SapHanaCreateTableSqlBuilder(table).build(tablePath);
+    protected String getCreateTableSql(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
+        return new SapHanaCreateTableSqlBuilder(table, createIndex).build(tablePath);
     }
 
     @Override
@@ -136,11 +138,13 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                 "SELECT TABLE_NAME FROM TABLES WHERE SCHEMA_NAME = '%s'", databaseName);
     }
 
+    @Override
     public String getListViewSql(String databaseName) {
         return String.format(
                 "SELECT VIEW_NAME FROM SYS.VIEWS WHERE SCHEMA_NAME = '%s'", databaseName);
     }
 
+    @Override
     public String getListSynonymSql(String databaseName) {
         return String.format(
                 "SELECT SYNONYM_NAME FROM SYNONYMS WHERE SCHEMA_NAME = '%s'", databaseName);
@@ -155,51 +159,6 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
     protected String getSelectColumnsSql(TablePath tablePath) {
         return String.format(
                 SELECT_COLUMNS_SQL_TEMPLATE, tablePath.getDatabaseName(), tablePath.getTableName());
-    }
-
-    @Override
-    protected Column buildColumn(ResultSet resultSet) throws SQLException {
-        String columnName = resultSet.getString("COLUMN_NAME");
-        String typeName = resultSet.getString("DATA_TYPE_NAME");
-        Long columnLength = resultSet.getLong("LENGTH");
-        Integer columnScale = resultSet.getObject("SCALE", Integer.class);
-        String fullTypeName = appendColumnSizeIfNeed(typeName, columnLength, columnScale);
-        String columnComment = resultSet.getString("COMMENTS");
-        Object defaultValue = resultSet.getObject("DEFAULT_VALUE");
-        boolean isNullable = resultSet.getString("IS_NULLABLE").equals("TRUE");
-
-        if (typeName.equalsIgnoreCase("ARRAY")) {
-            fullTypeName =
-                    appendColumnSizeIfNeed(
-                                    resultSet.getString("ELEMENT_TYPE_NAME"),
-                                    columnLength,
-                                    columnScale)
-                            + " ARRAY";
-        }
-
-        BasicTypeDefine typeDefine =
-                BasicTypeDefine.builder()
-                        .name(columnName)
-                        .columnType(fullTypeName)
-                        .dataType(typeName)
-                        .length(columnLength)
-                        .precision(columnLength)
-                        .scale(columnScale)
-                        .nullable(isNullable)
-                        .defaultValue(defaultValue)
-                        .comment(columnComment)
-                        .build();
-        return SapHanaTypeConverter.INSTANCE.convert(typeDefine);
-    }
-
-    @Override
-    protected String getUrlFromDatabaseName(String databaseName) {
-        return defaultUrl;
-    }
-
-    @Override
-    protected String getOptionTableName(TablePath tablePath) {
-        return tablePath.getTableName();
     }
 
     @Override
@@ -228,15 +187,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
         } catch (DatabaseNotExistException e) {
             return false;
         } catch (SQLException e) {
-            throw new CatalogException(
-                    String.format("Failed to check table %s exists", tablePath.getFullName()), e);
+            throw new SeaTunnelException("Failed to querySQLResult", e);
         }
-    }
-
-    @Override
-    public CatalogTable getTable(String sqlQuery) throws SQLException {
-        Connection defaultConnection = getConnection(defaultUrl);
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new SapHanaTypeMapper());
     }
 
     public CatalogTable getTable(TablePath tablePath)
@@ -257,8 +209,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     String.format(
                             "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
                             tablePath.getDatabaseName(), tablePath.getTableName());
-            try (PreparedStatement statement = conn.prepareStatement(sql)) {
-                final ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = conn.prepareStatement(sql);
+                    final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
                     final String refTableName = resultSet.getString("OBJECT_NAME");
@@ -368,6 +320,52 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
             throw new CatalogException(
                     String.format("Failed getting table %s", tablePath.getFullName()), e);
         }
+    }
+
+    @Override
+    protected Column buildColumn(ResultSet resultSet) throws SQLException {
+        String columnName = resultSet.getString("COLUMN_NAME");
+        String typeName = resultSet.getString("DATA_TYPE_NAME");
+        Long columnLength = resultSet.getLong("LENGTH");
+        Integer columnScale = resultSet.getObject("SCALE", Integer.class);
+        String fullTypeName = appendColumnSizeIfNeed(typeName, columnLength, columnScale);
+        String columnComment = resultSet.getString("COMMENTS");
+        Object defaultValue = resultSet.getObject("DEFAULT_VALUE");
+        boolean isNullable = resultSet.getString("IS_NULLABLE").equals("TRUE");
+
+        if (typeName.equalsIgnoreCase("ARRAY")) {
+            fullTypeName =
+                    appendColumnSizeIfNeed(
+                                    resultSet.getString("ELEMENT_TYPE_NAME"),
+                                    columnLength,
+                                    columnScale)
+                            + " ARRAY";
+        }
+
+        BasicTypeDefine typeDefine =
+                BasicTypeDefine.builder()
+                        .name(columnName)
+                        .columnType(fullTypeName)
+                        .dataType(typeName)
+                        .length(columnLength)
+                        .precision(columnLength)
+                        .scale(columnScale)
+                        .nullable(isNullable)
+                        .defaultValue(defaultValue)
+                        .comment(columnComment)
+                        .build();
+        return SapHanaTypeConverter.INSTANCE.convert(typeDefine);
+    }
+
+    @Override
+    protected String getUrlFromDatabaseName(String databaseName) {
+        return defaultUrl;
+    }
+
+    @Override
+    public CatalogTable getTable(String sqlQuery) throws SQLException {
+        Connection defaultConnection = getConnection(defaultUrl);
+        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new SapHanaTypeMapper());
     }
 
     @Override

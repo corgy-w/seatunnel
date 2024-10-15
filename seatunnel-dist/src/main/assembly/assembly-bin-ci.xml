@@ -152,7 +152,7 @@
             <scope>provided</scope>
         </dependencySet>
 
-        <!-- ============ Connectors Jars ============  -->
+        <!-- ============ Connectors Jars And Transforms V2 Jar ============  -->
         <!-- SeaTunnel connectors -->
         <dependencySet>
             <useProjectArtifact>false</useProjectArtifact>
@@ -160,6 +160,7 @@
             <unpack>false</unpack>
             <includes>
                 <include>org.apache.seatunnel:connector-*:jar</include>
+                <include>org.apache.seatunnel:seatunnel-transforms-v2:jar</include>
             </includes>
             <excludes>
                 <exclude>org.apache.seatunnel:connector-common</exclude>
@@ -172,13 +173,12 @@
             <scope>provided</scope>
         </dependencySet>
 
-        <!-- ============ SeaTunnel Transforms V2 Jars ============  -->
+        <!-- =================== JDBC Connector Drivers  And SeaTunnel Hadoop3 Uber Jar ===================  -->
         <dependencySet>
             <useProjectArtifact>false</useProjectArtifact>
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <include>org.apache.seatunnel:seatunnel-transforms-v2:jar</include>
                 <!--Add netty buffer jar -->
                 <include>io.netty:netty-buffer:jar</include>
                 <include>io.netty:netty-common:jar</include>

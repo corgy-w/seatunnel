@@ -79,7 +79,7 @@ public class DamengCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
                                 && (StringUtils.equals(
                                                 primaryKey.getPrimaryKey(),
                                                 constraintKey.getConstraintName())
-                                        || primaryCompareToConstrainKey(
+                                        || primaryContainsAllConstrainKey(
                                                 primaryKey, constraintKey)))) {
                     continue;
                 }

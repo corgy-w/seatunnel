@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.file.source.reader;
 
 import org.apache.seatunnel.api.source.Collector;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -84,15 +85,16 @@ public class DbfReadStrategy extends AbstractReadStrategy {
     }
 
     @Override
-    public void setSeaTunnelRowTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        if (ArrayUtils.isEmpty(seaTunnelRowType.getFieldNames())
-                || ArrayUtils.isEmpty(seaTunnelRowType.getFieldTypes())) {
+    public void setCatalogTable(CatalogTable catalogTable) {
+        SeaTunnelRowType rowType = catalogTable.getSeaTunnelRowType();
+        if (ArrayUtils.isEmpty(rowType.getFieldNames())
+                || ArrayUtils.isEmpty(rowType.getFieldTypes())) {
             throw new FileConnectorException(
                     CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
                     "Schmea information is not set or incorrect schema settings");
         }
         SeaTunnelRowType userDefinedRowTypeWithPartition =
-                mergePartitionTypes(fileNames.get(0), seaTunnelRowType);
+                mergePartitionTypes(fileNames.get(0), rowType);
         // column projection
         if (pluginConfig.hasPath(BaseSourceConfigOptions.READ_COLUMNS.key())) {
             // get the read column index from user-defined row type
@@ -100,15 +102,15 @@ public class DbfReadStrategy extends AbstractReadStrategy {
             String[] fields = new String[readColumns.size()];
             SeaTunnelDataType<?>[] types = new SeaTunnelDataType[readColumns.size()];
             for (int i = 0; i < indexes.length; i++) {
-                indexes[i] = seaTunnelRowType.indexOf(readColumns.get(i));
-                fields[i] = seaTunnelRowType.getFieldName(indexes[i]);
-                types[i] = seaTunnelRowType.getFieldType(indexes[i]);
+                indexes[i] = rowType.indexOf(readColumns.get(i));
+                fields[i] = rowType.getFieldName(indexes[i]);
+                types[i] = rowType.getFieldType(indexes[i]);
             }
             this.seaTunnelRowType = new SeaTunnelRowType(fields, types);
             this.seaTunnelRowTypeWithPartition =
                     mergePartitionTypes(fileNames.get(0), this.seaTunnelRowType);
         } else {
-            this.seaTunnelRowType = seaTunnelRowType;
+            this.seaTunnelRowType = rowType;
             this.seaTunnelRowTypeWithPartition = userDefinedRowTypeWithPartition;
         }
     }

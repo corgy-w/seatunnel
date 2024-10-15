@@ -60,7 +60,7 @@ public class TablePlaceholderTest {
     public void testSinkOptions() {
         ReadonlyConfig config = createConfig();
         CatalogTable table = createTestTable();
-        ReadonlyConfig newConfig = TablePlaceholder.replaceTablePlaceholder(config, table);
+        ReadonlyConfig newConfig = TablePlaceholderProcessor.replaceTablePlaceholder(config, table);
 
         Assertions.assertEquals("xyz_my-database_test", newConfig.get(DATABASE));
         Assertions.assertEquals("xyz_my-schema_test", newConfig.get(SCHEMA));
@@ -77,8 +77,8 @@ public class TablePlaceholderTest {
     @Test
     public void testSinkOptionsWithNoTablePath() {
         ReadonlyConfig config = createConfig();
-        CatalogTable table = createTestTableWithNoTablePath();
-        ReadonlyConfig newConfig = TablePlaceholder.replaceTablePlaceholder(config, table);
+        CatalogTable table = createTestTableWithNoDatabaseAndSchemaName();
+        ReadonlyConfig newConfig = TablePlaceholderProcessor.replaceTablePlaceholder(config, table);
 
         Assertions.assertEquals("xyz_default_db_test", newConfig.get(DATABASE));
         Assertions.assertEquals("xyz_default_schema_test", newConfig.get(SCHEMA));
@@ -95,9 +95,9 @@ public class TablePlaceholderTest {
     @Test
     public void testSinkOptionsWithExcludeKeys() {
         ReadonlyConfig config = createConfig();
-        CatalogTable table = createTestTableWithNoTablePath();
+        CatalogTable table = createTestTableWithNoDatabaseAndSchemaName();
         ReadonlyConfig newConfig =
-                TablePlaceholder.replaceTablePlaceholder(
+                TablePlaceholderProcessor.replaceTablePlaceholder(
                         config, table, Arrays.asList(DATABASE.key()));
 
         Assertions.assertEquals("xyz_${database_name: default_db}_test", newConfig.get(DATABASE));
@@ -126,8 +126,8 @@ public class TablePlaceholderTest {
         return ReadonlyConfig.fromMap(configMap);
     }
 
-    private static CatalogTable createTestTableWithNoTablePath() {
-        TableIdentifier tableId = TableIdentifier.of("my-catalog", null, null, null);
+    private static CatalogTable createTestTableWithNoDatabaseAndSchemaName() {
+        TableIdentifier tableId = TableIdentifier.of("my-catalog", null, null, "default_table");
         TableSchema tableSchema =
                 TableSchema.builder()
                         .primaryKey(PrimaryKey.of("my-pk", Arrays.asList("f1", "f2")))

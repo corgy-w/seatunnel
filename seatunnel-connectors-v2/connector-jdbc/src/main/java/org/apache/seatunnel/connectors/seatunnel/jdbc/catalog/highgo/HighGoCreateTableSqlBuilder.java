@@ -38,7 +38,7 @@ public class HighGoCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder {
     }
 
     public HighGoCreateTableSqlBuilder(CatalogTable catalogTable, Collection<String> pgPlugins) {
-        super(catalogTable, pgPlugins);
+        super(catalogTable, pgPlugins, true);
     }
 
     @Override

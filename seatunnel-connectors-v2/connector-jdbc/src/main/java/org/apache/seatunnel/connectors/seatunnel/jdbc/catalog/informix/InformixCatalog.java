@@ -55,14 +55,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class InformixCatalog extends AbstractJdbcCatalog {
 
-    static {
-        SYS_DATABASES.add("sysmaster");
-        SYS_DATABASES.add("sysutils");
-        SYS_DATABASES.add("sysuser");
-        SYS_DATABASES.add("sysadmin");
-        SYS_DATABASES.add("syscdcv1");
-    }
-
     protected final Map<String, Connection> connectionMap;
 
     public InformixCatalog(
@@ -134,8 +126,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
             while (rs.next()) {
                 String schemaName = rs.getString("owner").trim();
                 String tableName = rs.getString("tabname").trim();
-                if (org.apache.commons.lang3.StringUtils.isNotBlank(schemaName)
-                        && !SYS_DATABASES.contains(schemaName)) {
+                if (org.apache.commons.lang3.StringUtils.isNotBlank(schemaName)) {
                     tables.add(schemaName + "." + tableName);
                 }
             }
@@ -235,7 +226,8 @@ public class InformixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+    protected String getCreateTableSql(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
         return new InformixCreateTableSqlBuilder(table)
                 .build(tablePath, table.getOptions().get("fieldIde"));
     }

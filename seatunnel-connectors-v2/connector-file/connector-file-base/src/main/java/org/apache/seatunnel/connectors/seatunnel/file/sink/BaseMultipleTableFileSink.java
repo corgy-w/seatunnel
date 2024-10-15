@@ -36,7 +36,6 @@ import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
-import org.apache.seatunnel.connectors.seatunnel.file.hadoop.HadoopFileSystemProxy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggregatedCommitter;
@@ -61,18 +60,16 @@ public abstract class BaseMultipleTableFileSink
     private final FileSinkConfig fileSinkConfig;
     private String jobId;
     private final ReadonlyConfig readonlyConfig;
-    private final HadoopFileSystemProxy hadoopFileSystemProxy;
 
     public abstract String getPluginName();
 
     public BaseMultipleTableFileSink(
             HadoopConf hadoopConf, ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
-        this.hadoopConf = hadoopConf;
-        this.catalogTable = catalogTable;
         this.readonlyConfig = readonlyConfig;
+        this.hadoopConf = hadoopConf;
         this.fileSinkConfig =
                 new FileSinkConfig(readonlyConfig.toConfig(), catalogTable.getSeaTunnelRowType());
-        this.hadoopFileSystemProxy = new HadoopFileSystemProxy(hadoopConf);
+        this.catalogTable = catalogTable;
     }
 
     @Override
@@ -112,6 +109,13 @@ public abstract class BaseMultipleTableFileSink
         return Optional.of(new DefaultSerializer<>());
     }
 
+    protected WriteStrategy createWriteStrategy() {
+        WriteStrategy writeStrategy =
+                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
+        writeStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
+        return writeStrategy;
+    }
+
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
 
@@ -129,12 +133,5 @@ public abstract class BaseMultipleTableFileSink
         return Optional.of(
                 new DefaultSaveModeHandler(
                         schemaSaveMode, dataSaveMode, catalog, catalogTable, null));
-    }
-
-    protected WriteStrategy createWriteStrategy() {
-        WriteStrategy writeStrategy =
-                WriteStrategyFactory.of(fileSinkConfig.getFileFormat(), fileSinkConfig);
-        writeStrategy.setSeaTunnelRowTypeInfo(catalogTable.getSeaTunnelRowType());
-        return writeStrategy;
     }
 }

@@ -58,6 +58,8 @@ import org.apache.seatunnel.engine.server.resourcemanager.ResourceManagerFactory
 import org.apache.seatunnel.engine.server.resourcemanager.resource.SlotProfile;
 import org.apache.seatunnel.engine.server.service.jar.ConnectorPackageService;
 import org.apache.seatunnel.engine.server.task.operation.GetMetricsOperation;
+import org.apache.seatunnel.engine.server.telemetry.metrics.entity.JobCounter;
+import org.apache.seatunnel.engine.server.telemetry.metrics.entity.ThreadPoolStatus;
 import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -76,6 +78,7 @@ import com.hazelcast.spi.impl.NodeEngineImpl;
 import lombok.NonNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -86,6 +89,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -124,7 +128,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
      * <p>This IMap is used to recovery runningJobStateIMap in JobMaster when a new master node
      * active
      */
-    IMap<Object, Object> runningJobStateIMap;
+    private IMap<Object, Object> runningJobStateIMap;
 
     /**
      * IMap key is one of jobId {@link
@@ -139,13 +143,13 @@ public class CoordinatorService implements DynamicMetricsProvider {
      * <p>This IMap is used to recovery runningJobStateTimestampsIMap in JobMaster when a new master
      * node active
      */
-    IMap<Object, Long[]> runningJobStateTimestampsIMap;
+    private IMap<Object, Long[]> runningJobStateTimestampsIMap;
 
     /**
      * key: job id; <br>
      * value: job master;
      */
-    private Map<Long, JobMaster> runningJobMasterMap = new ConcurrentHashMap<>();
+    private final Map<Long, JobMaster> runningJobMasterMap = new ConcurrentHashMap<>();
 
     /**
      * IMap key is {@link PipelineLocation}
@@ -184,10 +188,16 @@ public class CoordinatorService implements DynamicMetricsProvider {
         this.nodeEngine = nodeEngine;
         this.logger = nodeEngine.getLogger(getClass());
         this.executorService =
-                Executors.newCachedThreadPool(
+                new ThreadPoolExecutor(
+                        0,
+                        Integer.MAX_VALUE,
+                        60L,
+                        TimeUnit.SECONDS,
+                        new SynchronousQueue<>(),
                         new ThreadFactoryBuilder()
                                 .setNameFormat("seatunnel-coordinator-service-%d")
-                                .build());
+                                .build(),
+                        new ThreadPoolStatus.RejectionCountingHandler());
         this.seaTunnelServer = seaTunnelServer;
         this.engineConfig = engineConfig;
         this.classLoader = classLoader;
@@ -223,8 +233,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
             handlers.add(httpReportHandler);
         }
         logger.info("Loaded event handlers: " + handlers);
-        JobEventProcessor eventProcessor = new JobEventProcessor(handlers);
-        return eventProcessor;
+        return new JobEventProcessor(handlers);
     }
 
     public JobHistoryService getJobHistoryService() {
@@ -291,7 +300,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
             return;
         }
         // waiting have worker registered
-        while (getResourceManager().workerCount() == 0) {
+        while (getResourceManager().workerCount(Collections.emptyMap()) == 0) {
             try {
                 logger.info("Waiting for worker registered");
                 Thread.sleep(1000);
@@ -466,7 +475,8 @@ public class CoordinatorService implements DynamicMetricsProvider {
     }
 
     /** call by client to submit job */
-    public PassiveCompletableFuture<Void> submitJob(long jobId, Data jobImmutableInformation) {
+    public PassiveCompletableFuture<Void> submitJob(
+            long jobId, Data jobImmutableInformation, boolean isStartWithSavePoint) {
         CompletableFuture<Void> jobSubmitFuture = new CompletableFuture<>();
 
         // Check if the current jobID is already running. If so, complete the submission
@@ -498,6 +508,13 @@ public class CoordinatorService implements DynamicMetricsProvider {
         mdcExecutorService.submit(
                 () -> {
                     try {
+                        if (!isStartWithSavePoint
+                                && getJobHistoryService().getJobMetrics(jobId) != null) {
+                            throw new JobException(
+                                    String.format(
+                                            "The job id %s has already been submitted and is not starting with a savepoint.",
+                                            jobId));
+                        }
                         runningJobInfoIMap.put(
                                 jobId,
                                 new JobInfo(System.currentTimeMillis(), jobImmutableInformation));
@@ -579,9 +596,11 @@ public class CoordinatorService implements DynamicMetricsProvider {
             }
 
             CompletableFuture<JobResult> future = new CompletableFuture<>();
-            if (jobState == null) future.complete(new JobResult(JobStatus.UNKNOWABLE, null));
-            else
+            if (jobState == null) {
+                future.complete(new JobResult(JobStatus.UNKNOWABLE, null));
+            } else {
                 future.complete(new JobResult(jobState.getJobStatus(), jobState.getErrorMessage()));
+            }
             return new PassiveCompletableFuture<>(future);
         } else {
             return new PassiveCompletableFuture<>(runningJobMaster.getJobMasterCompleteFuture());
@@ -773,31 +792,48 @@ public class CoordinatorService implements DynamicMetricsProvider {
     }
 
     public void printExecutionInfo() {
-        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executorService;
-        int activeCount = threadPoolExecutor.getActiveCount();
-        int corePoolSize = threadPoolExecutor.getCorePoolSize();
-        int maximumPoolSize = threadPoolExecutor.getMaximumPoolSize();
-        int poolSize = threadPoolExecutor.getPoolSize();
-        long completedTaskCount = threadPoolExecutor.getCompletedTaskCount();
-        long taskCount = threadPoolExecutor.getTaskCount();
+        ThreadPoolStatus threadPoolStatus = getThreadPoolStatusMetrics();
         logger.info(
                 StringFormatUtils.formatTable(
                         "CoordinatorService Thread Pool Status",
                         "activeCount",
-                        activeCount,
+                        threadPoolStatus.getActiveCount(),
                         "corePoolSize",
-                        corePoolSize,
+                        threadPoolStatus.getCorePoolSize(),
                         "maximumPoolSize",
-                        maximumPoolSize,
+                        threadPoolStatus.getMaximumPoolSize(),
                         "poolSize",
-                        poolSize,
+                        threadPoolStatus.getPoolSize(),
                         "completedTaskCount",
-                        completedTaskCount,
+                        threadPoolStatus.getCompletedTaskCount(),
                         "taskCount",
-                        taskCount));
+                        threadPoolStatus.getTaskCount()));
     }
 
     public void printJobDetailInfo() {
+        JobCounter jobCounter = getJobCountMetrics();
+        logger.info(
+                StringFormatUtils.formatTable(
+                        "Job info detail",
+                        "createdJobCount",
+                        jobCounter.getCreatedJobCount(),
+                        "scheduledJobCount",
+                        jobCounter.getScheduledJobCount(),
+                        "runningJobCount",
+                        jobCounter.getRunningJobCount(),
+                        "failingJobCount",
+                        jobCounter.getFailingJobCount(),
+                        "failedJobCount",
+                        jobCounter.getFailedJobCount(),
+                        "cancellingJobCount",
+                        jobCounter.getCancellingJobCount(),
+                        "canceledJobCount",
+                        jobCounter.getCanceledJobCount(),
+                        "finishedJobCount",
+                        jobCounter.getFinishedJobCount()));
+    }
+
+    public JobCounter getJobCountMetrics() {
         AtomicLong createdJobCount = new AtomicLong();
         AtomicLong scheduledJobCount = new AtomicLong();
         AtomicLong runningJobCount = new AtomicLong();
@@ -807,64 +843,70 @@ public class CoordinatorService implements DynamicMetricsProvider {
         AtomicLong canceledJobCount = new AtomicLong();
         AtomicLong finishedJobCount = new AtomicLong();
 
-        if (runningJobInfoIMap != null) {
-            runningJobInfoIMap
-                    .keySet()
+        if (jobHistoryService != null) {
+            jobHistoryService
+                    .getJobStatusData()
                     .forEach(
-                            jobId -> {
-                                if (runningJobStateIMap.get(jobId) != null) {
-                                    JobStatus jobStatus =
-                                            (JobStatus) runningJobStateIMap.get(jobId);
-                                    switch (jobStatus) {
-                                        case CREATED:
-                                            createdJobCount.addAndGet(1);
-                                            break;
-                                        case SCHEDULED:
-                                            scheduledJobCount.addAndGet(1);
-                                            break;
-                                        case RUNNING:
-                                            runningJobCount.addAndGet(1);
-                                            break;
-                                        case FAILING:
-                                            failingJobCount.addAndGet(1);
-                                            break;
-                                        case FAILED:
-                                            failedJobCount.addAndGet(1);
-                                            break;
-                                        case CANCELING:
-                                            cancellingJobCount.addAndGet(1);
-                                            break;
-                                        case CANCELED:
-                                            canceledJobCount.addAndGet(1);
-                                            break;
-                                        case FINISHED:
-                                            finishedJobCount.addAndGet(1);
-                                            break;
-                                        default:
-                                    }
+                            jobStatusData -> {
+                                JobStatus jobStatus = jobStatusData.getJobStatus();
+                                switch (jobStatus) {
+                                    case CREATED:
+                                        createdJobCount.addAndGet(1);
+                                        break;
+                                    case SCHEDULED:
+                                        scheduledJobCount.addAndGet(1);
+                                        break;
+                                    case RUNNING:
+                                        runningJobCount.addAndGet(1);
+                                        break;
+                                    case FAILING:
+                                        failingJobCount.addAndGet(1);
+                                        break;
+                                    case FAILED:
+                                        failedJobCount.addAndGet(1);
+                                        break;
+                                    case CANCELING:
+                                        cancellingJobCount.addAndGet(1);
+                                        break;
+                                    case CANCELED:
+                                        canceledJobCount.addAndGet(1);
+                                        break;
+                                    case FINISHED:
+                                        finishedJobCount.addAndGet(1);
+                                        break;
+                                    default:
                                 }
                             });
         }
 
-        logger.info(
-                StringFormatUtils.formatTable(
-                        "Job info detail",
-                        "createdJobCount",
-                        createdJobCount,
-                        "scheduledJobCount",
-                        scheduledJobCount,
-                        "runningJobCount",
-                        runningJobCount,
-                        "failingJobCount",
-                        failingJobCount,
-                        "failedJobCount",
-                        failedJobCount,
-                        "cancellingJobCount",
-                        cancellingJobCount,
-                        "canceledJobCount",
-                        canceledJobCount,
-                        "finishedJobCount",
-                        finishedJobCount));
+        return new JobCounter(
+                createdJobCount.longValue(),
+                scheduledJobCount.longValue(),
+                runningJobCount.longValue(),
+                failingJobCount.longValue(),
+                failedJobCount.longValue(),
+                cancellingJobCount.longValue(),
+                canceledJobCount.longValue(),
+                finishedJobCount.longValue());
+    }
+
+    public ThreadPoolStatus getThreadPoolStatusMetrics() {
+        ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executorService;
+
+        long rejectionCount =
+                ((ThreadPoolStatus.RejectionCountingHandler)
+                                threadPoolExecutor.getRejectedExecutionHandler())
+                        .getRejectionCount();
+        long queueTaskSize = threadPoolExecutor.getQueue().size();
+        return new ThreadPoolStatus(
+                threadPoolExecutor.getActiveCount(),
+                threadPoolExecutor.getCorePoolSize(),
+                threadPoolExecutor.getMaximumPoolSize(),
+                threadPoolExecutor.getPoolSize(),
+                threadPoolExecutor.getCompletedTaskCount(),
+                threadPoolExecutor.getTaskCount(),
+                queueTaskSize,
+                rejectionCount);
     }
 
     public ConnectorPackageService getConnectorPackageService() {

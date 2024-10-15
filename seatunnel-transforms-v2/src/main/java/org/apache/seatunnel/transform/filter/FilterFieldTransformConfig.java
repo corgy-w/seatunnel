@@ -35,8 +35,15 @@ import java.util.Optional;
 @Getter
 @Setter
 public class FilterFieldTransformConfig implements Serializable {
-    public static final Option<List<String>> KEY_FIELDS =
-            Options.key("fields")
+    public static final Option<List<String>> INCLUDE_FIELDS =
+            Options.key("include_fields")
+                    .listType()
+                    .noDefaultValue()
+                    .withDescription("The list of fields that need to be kept.")
+                    .withFallbackKeys("fields");
+
+    public static final Option<List<String>> EXCLUDE_FIELDS =
+            Options.key("exclude_fields")
                     .listType()
                     .noDefaultValue()
                     .withDescription(
@@ -53,14 +60,25 @@ public class FilterFieldTransformConfig implements Serializable {
         @JsonAlias("table_path")
         private String tablePath;
 
-        private String[] fields = new String[] {};
+        @JsonAlias("include_fields")
+        private String[] includeFields = new String[] {};
+
+        @JsonAlias("exclude_fields")
+        private String[] excludeFields = new String[] {};
     }
 
-    private String[] fields = new String[] {};
+    private String[] includeFields = new String[] {};
+
+    private String[] excludeFields = new String[] {};
 
     public static FilterFieldTransformConfig of(ReadonlyConfig config) {
         FilterFieldTransformConfig transformConfig = new FilterFieldTransformConfig();
-        transformConfig.setFields(config.get(KEY_FIELDS).toArray(new String[0]));
+        if (config.get(INCLUDE_FIELDS) != null) {
+            transformConfig.setIncludeFields(config.get(INCLUDE_FIELDS).toArray(new String[0]));
+        }
+        if (config.get(EXCLUDE_FIELDS) != null) {
+            transformConfig.setExcludeFields(config.get(EXCLUDE_FIELDS).toArray(new String[0]));
+        }
         return transformConfig;
     }
 
@@ -74,7 +92,8 @@ public class FilterFieldTransformConfig implements Serializable {
                             tableTransforms -> {
                                 FilterFieldTransformConfig filterFieldTransformConfig =
                                         new FilterFieldTransformConfig();
-                                filterFieldTransformConfig.setFields(tableTransforms.getFields());
+                                filterFieldTransformConfig.setIncludeFields(
+                                        tableTransforms.getIncludeFields());
                                 return filterFieldTransformConfig;
                             })
                     .findFirst();

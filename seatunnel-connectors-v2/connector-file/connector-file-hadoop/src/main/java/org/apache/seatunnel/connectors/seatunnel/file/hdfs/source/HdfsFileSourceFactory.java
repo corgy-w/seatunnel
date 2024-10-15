@@ -83,6 +83,7 @@ public class HdfsFileSourceFactory implements TableSourceFactory {
                 .optional(HdfsConfigOptions.KRB5_PATH)
                 .optional(HdfsConfigOptions.REMOTE_USER)
                 .optional(BaseSourceConfigOptions.ENCODING)
+                .optional(BaseSourceConfigOptions.ARCHIVE_COMPRESS_CODEC)
                 .build();
     }
 

@@ -22,6 +22,7 @@
   - [x] json
   - [x] excel
   - [x] xml
+  - [x] binary
 
 ## Description
 
@@ -59,6 +60,7 @@ If you use SeaTunnel Engine, It automatically integrated the hadoop jar when you
 | xml_use_attr_format       | boolean | no       | -                   |
 | file_filter_pattern       | string  | no       | -                   |
 | compress_codec            | string  | no       | none                |
+| archive_compress_codec    | string  | no       | none                |
 | encoding                  | string  | no       | UTF-8               |
 | common-options            |         | no       | -                   |
 
@@ -86,7 +88,7 @@ The source file path.
 
 File type, supported as the following file types:
 
-`text` `csv` `parquet` `orc` `json` `excel` `xml`
+`text` `csv` `parquet` `orc` `json` `excel` `xml` `binary`
 
 If you assign file type to `json` , you should also assign schema option to tell connector how to parse data to the row you want.
 
@@ -158,6 +160,11 @@ connector will generate data as the following:
 |     name      | age | gender |
 |---------------|-----|--------|
 | tyrantlucifer | 26  | male   |
+
+If you assign file type to `binary`, SeaTunnel can synchronize files in any format,
+such as compressed packages, pictures, etc. In short, any files can be synchronized to the target place.
+Under this requirement, you need to ensure that the source and sink use `binary` format for file synchronization
+at the same time. You can find the specific usage in the example below.
 
 ### connection_mode [string]
 
@@ -259,6 +266,17 @@ The compress codec of files and the details that supported as the following show
 - orc/parquet:  
   automatically recognizes the compression type, no additional settings required.
 
+### archive_compress_codec [string]
+
+The compress codec of archive files and the details that supported as the following shown:
+
+| archive_compress_codec | file_format        | archive_compress_suffix |
+|------------------------|--------------------|-------------------------|
+| ZIP                    | txt,json,excel,xml | .zip                    |
+| TAR                    | txt,json,excel,xml | .tar                    |
+| TAR_GZ                 | txt,json,excel,xml | .tar.gz                 |
+| NONE                   | all                | .*                      |
+
 ### encoding [string]
 
 Only used when file_format_type is json,text,csv,xml.
@@ -266,7 +284,7 @@ The encoding of the file to read. This param will be parsed by `Charset.forName(
 
 ### common options
 
-Source plugin common parameters, please refer to [Source Common Options](common-options.md) for details.
+Source plugin common parameters, please refer to [Source Common Options](../source-common-options.md) for details.
 
 ## Example
 
@@ -285,6 +303,100 @@ Source plugin common parameters, please refer to [Source Common Options](common-
     }
     field_delimiter = "#"
   }
+
+```
+
+### Multiple Table
+
+```hocon
+
+FtpFile {
+  tables_configs = [
+    {
+      schema {
+        table = "student"
+      }
+      path = "/tmp/seatunnel/sink/text"
+      host = "192.168.31.48"
+      port = 21
+      user = tyrantlucifer
+      password = tianchao
+      file_format_type = "parquet"
+    },
+    {
+      schema {
+        table = "teacher"
+      }
+      path = "/tmp/seatunnel/sink/text"
+      host = "192.168.31.48"
+      port = 21
+      user = tyrantlucifer
+      password = tianchao
+      file_format_type = "parquet"
+    }
+  ]
+}
+
+```
+
+```hocon
+
+FtpFile {
+  tables_configs = [
+    {
+      schema {
+        fields {
+          name = string
+          age = int
+        }
+      }
+      path = "/apps/hive/demo/student"
+      file_format_type = "json"
+    },
+    {
+      schema {
+        fields {
+          name = string
+          age = int
+        }
+      }
+      path = "/apps/hive/demo/teacher"
+      file_format_type = "json"
+    }
+}
+
+```
+
+### Transfer Binary File
+
+```hocon
+
+env {
+  parallelism = 1
+  job.mode = "BATCH"
+}
+
+source {
+  FtpFile {
+    host = "192.168.31.48"
+    port = 21
+    user = tyrantlucifer
+    password = tianchao
+    path = "/seatunnel/read/binary/"
+    file_format_type = "binary"
+  }
+}
+sink {
+  // you can transfer local file to s3/hdfs/oss etc.
+  FtpFile {
+    host = "192.168.31.48"
+    port = 21
+    user = tyrantlucifer
+    password = tianchao
+    path = "/seatunnel/read/binary2/"
+    file_format_type = "binary"
+  }
+}
 
 ```
 

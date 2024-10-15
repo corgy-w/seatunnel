@@ -24,13 +24,12 @@ import org.apache.seatunnel.connectors.seatunnel.file.ftp.config.FtpConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.BaseMultipleTableFileSink;
 
 public class FtpFileSink extends BaseMultipleTableFileSink {
-
-    public FtpFileSink(ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
-        super(FtpConf.buildWithConfig(readonlyConfig), readonlyConfig, catalogTable);
-    }
-
     @Override
     public String getPluginName() {
         return FileSystemType.FTP.getFileSystemPluginName();
+    }
+
+    public FtpFileSink(ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
+        super(FtpConf.buildWithConfig(readonlyConfig), readonlyConfig, catalogTable);
     }
 }

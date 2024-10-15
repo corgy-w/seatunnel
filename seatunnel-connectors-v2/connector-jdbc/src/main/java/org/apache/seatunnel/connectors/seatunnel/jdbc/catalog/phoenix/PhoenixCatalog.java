@@ -111,7 +111,7 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected void createTableInternal(TablePath tablePath, CatalogTable table)
+    protected void createTableInternal(TablePath tablePath, CatalogTable table, boolean createIndex)
             throws CatalogException {
         PhoenixCreateTableSqlBuilder phoenixCreateTableSqlBuilder =
                 new PhoenixCreateTableSqlBuilder(table);
@@ -138,7 +138,8 @@ public class PhoenixCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+    protected String getCreateTableSql(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
         return new PhoenixCreateTableSqlBuilder(table).build(tablePath);
     }
 

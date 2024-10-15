@@ -84,12 +84,12 @@ public class RedshiftCatalogTest {
                                             {
                                                 put(
                                                         "base-url",
-                                                        "jdbc:kingbase://localhost:5432/test");
+                                                        "jdbc:redshift://localhost:5432/test");
                                                 put("username", "test");
                                                 put("password", "test");
                                             }
                                         }));
-        String sql = catalog.getCreateTableSql(TablePath.of("test.test.test"), CATALOG_TABLE);
+        String sql = catalog.getCreateTableSql(TablePath.of("test.test.test"), CATALOG_TABLE, true);
         Assertions.assertEquals(
                 "CREATE TABLE \"test\".\"test\" (\n"
                         + "\"test\" CHARACTER VARYING(65535),\n"

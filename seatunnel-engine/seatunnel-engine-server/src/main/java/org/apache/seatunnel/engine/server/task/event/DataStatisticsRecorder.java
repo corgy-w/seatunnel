@@ -26,6 +26,8 @@ import org.apache.seatunnel.engine.server.event.DataReadStatisticsEvent;
 import org.apache.seatunnel.engine.server.event.DataWriteStatisticsEvent;
 import org.apache.seatunnel.engine.server.execution.TaskLocation;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -108,7 +110,7 @@ public class DataStatisticsRecorder {
                 if (pluginType.equals(PluginType.SOURCE)) {
                     eventListener.onEvent(
                             new DataReadStatisticsEvent(
-                                    table != null ? TablePath.of(table) : null,
+                                    StringUtils.isNotEmpty(table) ? TablePath.of(table) : null,
                                     r,
                                     i,
                                     d,
@@ -118,7 +120,7 @@ public class DataStatisticsRecorder {
                 } else {
                     eventListener.onEvent(
                             new DataWriteStatisticsEvent(
-                                    table != null ? TablePath.of(table) : null,
+                                    StringUtils.isNotEmpty(table) ? TablePath.of(table) : null,
                                     r,
                                     i,
                                     d,

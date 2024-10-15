@@ -19,9 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.fake.source;
 
 import org.apache.seatunnel.api.source.SourceEvent;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
-import org.apache.seatunnel.api.source.event.EnumeratorCloseEvent;
 import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
-import org.apache.seatunnel.api.source.event.EnumeratorOpenEvent;
 import org.apache.seatunnel.connectors.seatunnel.fake.config.FakeConfig;
 import org.apache.seatunnel.connectors.seatunnel.fake.config.MultipleTableFakeSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.fake.state.FakeSourceState;
@@ -62,9 +60,7 @@ public class FakeSourceSplitEnumerator
     }
 
     @Override
-    public void open() {
-        enumeratorContext.getEventListener().onEvent(new EnumeratorOpenEvent());
-    }
+    public void open() {}
 
     @Override
     public void run() throws Exception {
@@ -73,9 +69,7 @@ public class FakeSourceSplitEnumerator
     }
 
     @Override
-    public void close() throws IOException {
-        enumeratorContext.getEventListener().onEvent(new EnumeratorCloseEvent());
-    }
+    public void close() throws IOException {}
 
     @Override
     public void addSplitsBack(List<FakeSourceSplit> splits, int subtaskId) {

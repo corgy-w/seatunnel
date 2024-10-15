@@ -19,8 +19,11 @@ package org.apache.seatunnel.connectors.seatunnel.paimon.utils;
 
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.connectors.seatunnel.paimon.config.PaimonSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.paimon.data.PaimonTypeMapper;
+import org.apache.seatunnel.connectors.seatunnel.paimon.exception.PaimonConnectorErrorCode;
+import org.apache.seatunnel.connectors.seatunnel.paimon.exception.PaimonConnectorException;
 
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.types.DataField;
@@ -29,12 +32,14 @@ import org.apache.paimon.types.DataType;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /** The util seatunnel schema to paimon schema */
 public class SchemaUtil {
 
     public static DataType toPaimonType(Column column) {
-        return PaimonTypeMapper.INSTANCE.reconvert(column);
+        BasicTypeDefine<DataType> basicTypeDefine = PaimonTypeMapper.INSTANCE.reconvert(column);
+        return basicTypeDefine.getNativeType();
     }
 
     public static Schema toPaimonSchema(
@@ -62,14 +67,18 @@ public class SchemaUtil {
         return paiSchemaBuilder.build();
     }
 
-    public static Column toSeaTunnelType(DataType dataType) {
-        return PaimonTypeMapper.INSTANCE.convert(dataType);
+    public static Column toSeaTunnelType(BasicTypeDefine<DataType> typeDefine) {
+        return PaimonTypeMapper.INSTANCE.convert(typeDefine);
     }
 
     public static DataField getDataField(List<DataField> fields, String fieldName) {
-        return fields.parallelStream()
-                .filter(field -> field.name().equals(fieldName))
-                .findFirst()
-                .get();
+        Optional<DataField> firstField =
+                fields.stream().filter(field -> field.name().equals(fieldName)).findFirst();
+        if (!firstField.isPresent()) {
+            throw new PaimonConnectorException(
+                    PaimonConnectorErrorCode.GET_FILED_FAILED,
+                    "Can not get the filed [" + fieldName + "] from source table");
+        }
+        return firstField.get();
     }
 }

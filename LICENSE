@@ -217,7 +217,6 @@ seatunnel-connectors-v2/connector-common/src/main/java/org/apache/seatunnel/conn
 seatunnel-connectors-v2/connector-iceberg/src/main/java/org/apache/seatunnel/connectors/seatunnel/iceberg/source/enumerator/   from https://github.com/apache/iceberg
 seatunnel-connectors-v2/connector-cdc/connector-base/src/main/java/org/apache/seatunnel/connectors/cdc/base from https://github.com/ververica/flink-cdc-connectors
 seatunnel-connectors-v2/connector-cdc/connector-cdc-mysql/src/main/java/org/apache/seatunnel/connectors/seatunnel/cdc/mysql from https://github.com/ververica/flink-cdc-connectors
-seatunnel-connectors-v2/connector-cdc/connector-cdc-oracle/src/main/java/org/apache/seatunnel/connectors/seatunnel/cdc/oracle from https://github.com/ververica/flink-cdc-connectors
 seatunnel-connectors-v2/connector-cdc/connector-base/src/main/java/org/apache/seatunnel/connectors/cdc/debezium from https://github.com/ververica/flink-cdc-connectors
 seatunnel-connectors-v2/connector-cdc/connector-cdc-sqlserver/src/main/java/io/debezium/connector/sqlserver/SqlServerStreamingChangeEventSource.java   from https://github.com/debezium/debezium
 seatunnel-connectors-v2/connector-cdc/connector-cdc-mongodb/src/main/java/org/apache/seatunnel/connectors/seatunnel/cdc/mongodb from https://github.com/ververica/flink-cdc-connectors
@@ -243,6 +242,5 @@ seatunnel-transforms-v2/src/main/java/org/apache/seatunnel/transform/sqlengine/z
 seatunnel-transforms-v2/src/main/java/org/apache/seatunnel/transform/sqlengine/zeta/ZetaSQLType.java                                        from https://github.com/JSQLParser/JSqlParser
 seatunnel-transforms-v2/src/main/java/org/apache/seatunnel/transform/sqlengine/zeta/ZetaSQLFilter.java                                      from https://github.com/JSQLParser/JSqlParser
 seatunnel-transforms-v2/src/main/java/org/apache/seatunnel/transform/sqlengine/zeta/ZetaSQLFunction.java                                    from https://github.com/JSQLParser/JSqlParser
-seatunnel-connectors-v2/connector-file/connector-file-base/src/main/java/org/apache/orc/OrcConf.java                                        from https://github.com/apache/orc
 seatunnel-shade/seatunnel-hazelcast/seatunnel-hazelcast-shade/src/main/java/com/hazelcast/**                                                from https://github.com/hazelcast/hazelcast
 seatunnel-engine/seatunnel-engine-server/src/main/java/org/apache/seatunnel/engine/server/LiteNodeDropOutTcpIpJoiner.java                   from https://github.com/hazelcast/hazelcast

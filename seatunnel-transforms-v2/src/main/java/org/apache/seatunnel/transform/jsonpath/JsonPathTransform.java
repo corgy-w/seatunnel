@@ -106,11 +106,12 @@ public class JsonPathTransform extends MultipleFieldOutputTransform {
         Object[] fieldValues = new Object[size];
         for (int i = 0; i < size; i++) {
             int pos = this.srcFieldIndexArr[i];
+            ColumnConfig fieldConfig = configs.get(i);
             fieldValues[i] =
                     doTransform(
                             seaTunnelRowType.getFieldType(pos),
                             inputRow.getField(pos),
-                            configs.get(i),
+                            fieldConfig,
                             converters[i]);
         }
         return fieldValues;
@@ -152,8 +153,8 @@ public class JsonPathTransform extends MultipleFieldOutputTransform {
             JsonNode jsonNode = JsonUtils.toJsonNode(result);
             return converter.convert(jsonNode, null);
         } catch (JsonPathException e) {
-            if (columnConfig.getErrorHandleWay() != null
-                    && columnConfig.getErrorHandleWay().allowSkip()) {
+            if (columnConfig.errorHandleWay() != null
+                    && columnConfig.errorHandleWay().allowSkip()) {
                 log.debug(
                         "JsonPath transform error, ignore error, config: {}, value: {}",
                         columnConfig,
@@ -162,7 +163,7 @@ public class JsonPathTransform extends MultipleFieldOutputTransform {
                 return null;
             }
             throw new ErrorDataTransformException(
-                    columnConfig.getErrorHandleWay(),
+                    columnConfig.errorHandleWay(),
                     JSON_PATH_COMPILE_ERROR,
                     String.format(
                             "JsonPath transform error, config: %s, value: %s, error: %s",

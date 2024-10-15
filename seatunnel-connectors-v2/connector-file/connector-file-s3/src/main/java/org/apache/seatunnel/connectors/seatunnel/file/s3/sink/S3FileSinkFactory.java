@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.file.s3.sink;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
@@ -83,8 +84,7 @@ public class S3FileSinkFactory extends BaseMultipleTableFileSinkFactory {
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.PARQUET,
                         BaseSinkConfig.PARQUET_COMPRESS,
-                        // TODO 等待 http://172.28.230.21:18056/browse/ST-1912 修复
-                        //                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
+                        BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96,
                         BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
@@ -108,6 +108,8 @@ public class S3FileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(BaseSinkConfig.DATE_FORMAT)
                 .optional(BaseSinkConfig.DATETIME_FORMAT)
                 .optional(BaseSinkConfig.TIME_FORMAT)
+                .optional(BaseSinkConfig.TMP_PATH)
+                .optional(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
                 .build();
     }
 
@@ -115,8 +117,7 @@ public class S3FileSinkFactory extends BaseMultipleTableFileSinkFactory {
     public TableSink<SeaTunnelRow, FileSinkState, FileCommitInfo, FileAggregatedCommitInfo>
             createSink(TableSinkFactoryContext context) {
         final CatalogTable catalogTable = context.getCatalogTable();
-        final ReadonlyConfig options = context.getOptions();
-        ReadonlyConfig finalReadonlyConfig = generateCurrentReadonlyConfig(options, catalogTable);
-        return () -> new S3FileSink(catalogTable, finalReadonlyConfig);
+        final ReadonlyConfig finalConfig = context.getOptions();
+        return () -> new S3FileSink(catalogTable, finalConfig);
     }
 }
