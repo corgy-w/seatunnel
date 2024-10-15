@@ -31,6 +31,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 
+import static org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils.isHeartbeatRecord;
+
 @Slf4j
 public class DebeziumJsonDeserializeSchema
         extends AbstractDebeziumDeserializationSchema<SeaTunnelRow> {
@@ -57,8 +59,13 @@ public class DebeziumJsonDeserializeSchema
     @Override
     public void deserialize(SourceRecord record, Collector<SeaTunnelRow> out) throws Exception {
         super.deserialize(record, out);
-        SeaTunnelRow row = deserializationSchema.deserialize(record);
-        out.collect(row);
+        if (!isHeartbeatRecord(record)) {
+            SeaTunnelRow row = deserializationSchema.deserialize(record);
+            out.collect(row);
+            return;
+        }
+
+        log.debug("Unsupported record {}, just skip.", record);
     }
 
     @Override
