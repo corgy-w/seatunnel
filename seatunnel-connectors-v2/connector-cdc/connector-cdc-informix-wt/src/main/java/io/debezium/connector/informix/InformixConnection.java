@@ -163,14 +163,15 @@ public class InformixConnection extends JdbcConnection {
         return Lsn.valueOf(-1);
     }
 
-    public List<String> listDatabases() throws SQLException {
+    public List<String> listDatabases(List<String> selectedDataBases) throws SQLException {
         String sql = "select name from sysmaster:sysdatabases";
         JdbcConnection.ResultSetMapper<List<String>> mapper =
                 rs -> {
                     List<String> databases = new ArrayList<>();
                     while (rs.next()) {
                         String databaseName = rs.getString(1).trim();
-                        if (!SYS_DATABASES.contains(databaseName)) {
+                        if (!SYS_DATABASES.contains(databaseName)
+                                && selectedDataBases.contains(databaseName)) {
                             databases.add(databaseName);
                         }
                     }
@@ -180,8 +181,10 @@ public class InformixConnection extends JdbcConnection {
         return queryAndMap(sql, mapper);
     }
 
-    public List<TableId> listTables(RelationalTableFilters tableFilters) throws SQLException {
-        return listDatabases().stream()
+    public List<TableId> listTables(
+            RelationalTableFilters tableFilters, List<String> selectedDataBases)
+            throws SQLException {
+        return listDatabases(selectedDataBases).stream()
                 .flatMap(
                         database -> {
                             String sql =
