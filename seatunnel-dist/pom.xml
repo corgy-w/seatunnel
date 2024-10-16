@@ -774,7 +774,7 @@
                                 <phase>package</phase>
                                 <configuration>
                                     <descriptors>
-                                        <descriptor>src/main/assembly/assembly-bin.xml</descriptor>
+                                        <descriptor>src/main/assembly/assembly-bin-ci.xml</descriptor>
                                     </descriptors>
                                     <appendAssemblyId>true</appendAssemblyId>
                                 </configuration>
