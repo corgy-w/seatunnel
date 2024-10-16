@@ -71,21 +71,23 @@ public abstract class BaseChangeStreamTableSourceFactory implements ChangeStream
             throw new UnsupportedOperationException(
                     "Multiple incremental splits are not supported");
         }
+        if (incrementalSplits.size() == 1) {
+            IncrementalSplit incrementalSplit = incrementalSplits.get(0);
+            if (incrementalSplit.getCheckpointTables() != null) {
+                List<CatalogTable> checkpointTableStruct = incrementalSplit.getCheckpointTables();
+                log.info("Restore source using checkpoint tables: {}", checkpointTableStruct);
+                return checkpointTableStruct;
+            }
+            if (incrementalSplit.getCheckpointDataType() != null) {
+                // TODO: Waiting for remove of compatible logic
+                List<CatalogTable> checkpointDataTypeStruct =
+                        CatalogTableUtil.convertDataTypeToCatalogTables(
+                                incrementalSplit.getCheckpointDataType(), "default.default");
+                log.info("Restore source using checkpoint tables: {}", checkpointDataTypeStruct);
+                return checkpointDataTypeStruct;
+            }
+        }
 
-        if (incrementalSplits.get(0).getCheckpointTables() != null) {
-            List<CatalogTable> checkpointTableStruct =
-                    incrementalSplits.get(0).getCheckpointTables();
-            log.info("Restore source using checkpoint tables: {}", checkpointTableStruct);
-            return checkpointTableStruct;
-        }
-        if (incrementalSplits.get(0).getCheckpointDataType() != null) {
-            // TODO: Waiting for remove of compatible logic
-            List<CatalogTable> checkpointDataTypeStruct =
-                    CatalogTableUtil.convertDataTypeToCatalogTables(
-                            incrementalSplits.get(0).getCheckpointDataType(), "default.default");
-            log.info("Restore source using checkpoint tables: {}", checkpointDataTypeStruct);
-            return checkpointDataTypeStruct;
-        }
         log.info("Restore source using checkpoint tables is empty");
         return Collections.emptyList();
     }
