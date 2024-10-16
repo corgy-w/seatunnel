@@ -34,9 +34,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.auto.service.AutoService;
 
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HADOOP_CONF_PATH_PROP;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KEYTAB_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KRB5_CONF_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_PRINCIPAL;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.REMOTE_USER;
 
 @AutoService(Factory.class)
@@ -60,7 +57,7 @@ public class IcebergSinkFactory implements TableSinkFactory {
                         SinkConfig.HADOOP_PROPS,
                         SinkConfig.KERBEROS_PRINCIPAL,
                         SinkConfig.KERBEROS_KEYTAB_PATH,
-                        SinkConfig.KRB5_PATH,
+                        SinkConfig.KERBEROS_KRB5_CONF_PATH,
                         SinkConfig.WRITE_PROPS,
                         SinkConfig.SCHEMA_SAVE_MODE,
                         SinkConfig.DATA_SAVE_MODE,
@@ -71,9 +68,6 @@ public class IcebergSinkFactory implements TableSinkFactory {
                         SinkConfig.TABLE_SCHEMA_EVOLUTION_ENABLED_PROP,
                         SinkConfig.TABLES_DEFAULT_COMMIT_BRANCH,
                         HADOOP_CONF_PATH_PROP,
-                        KERBEROS_KRB5_CONF_PATH,
-                        KERBEROS_PRINCIPAL,
-                        KERBEROS_KEYTAB_PATH,
                         REMOTE_USER,
                         SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
                 .build();
