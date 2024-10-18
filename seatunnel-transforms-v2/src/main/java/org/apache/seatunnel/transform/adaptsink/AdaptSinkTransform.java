@@ -73,7 +73,6 @@ public class AdaptSinkTransform implements SeaTunnelTransform<SeaTunnelRow> {
     public SchemaChangeEvent mapSchemaChangeEvent(SchemaChangeEvent schemaChangeEvent) {
         String tableKey = schemaChangeEvent.tablePath().toString();
         CatalogTable inputTable = inputTables.get(tableKey);
-        CatalogTable outputTable = outputTables.get(tableKey);
         inputTable =
                 CatalogTable.of(
                         inputTable.getTableId(),
@@ -85,39 +84,13 @@ public class AdaptSinkTransform implements SeaTunnelTransform<SeaTunnelRow> {
                         inputTable.getComment());
         inputTables.put(tableKey, inputTable);
 
-        if (schemaChangeEvent instanceof AlterTableChangeColumnEvent) {
-            AlterTableChangeColumnEvent changeColumnEvent =
-                    ((AlterTableChangeColumnEvent) schemaChangeEvent);
-            if (config.isAdaptSinkTableType()) {
-                boolean unRename =
-                        changeColumnEvent
-                                .getOldColumn()
-                                .equals(changeColumnEvent.getColumn().getName());
-                if (unRename) {
-                    // skip
-                    return null;
-                }
-                schemaChangeEvent =
-                        AlterTableChangeColumnEvent.change(
-                                changeColumnEvent.tableIdentifier(),
-                                changeColumnEvent.getOldColumn(),
-                                outputTable
-                                        .getTableSchema()
-                                        .getColumn(changeColumnEvent.getOldColumn())
-                                        .rename(changeColumnEvent.getColumn().getName()));
-            }
-        } else if (schemaChangeEvent instanceof AlterTableModifyColumnEvent) {
-            if (config.isAdaptSinkTableType()) {
-                // skip
-                return null;
-            }
-        } else if (schemaChangeEvent instanceof AlterTableAddColumnEvent) {
-            if (config.isAdaptSinkTableColumns()) {
-                // skip
-                return null;
-            }
+        schemaChangeEvent = convertSchemaChangeEvent(schemaChangeEvent);
+        if (schemaChangeEvent == null) {
+            // skip
+            return null;
         }
 
+        CatalogTable outputTable = outputTables.get(tableKey);
         outputTable =
                 CatalogTable.of(
                         outputTable.getTableId(),
@@ -129,6 +102,74 @@ public class AdaptSinkTransform implements SeaTunnelTransform<SeaTunnelRow> {
                         outputTable.getComment());
         outputTables.put(tableKey, outputTable);
         return schemaChangeEvent;
+    }
+
+    private SchemaChangeEvent convertSchemaChangeEvent(SchemaChangeEvent event) {
+        String tableKey = event.tablePath().toString();
+        CatalogTable outputTable = outputTables.get(tableKey);
+
+        if (event instanceof AlterTableColumnsEvent) {
+            AlterTableColumnsEvent columnsEvent = (AlterTableColumnsEvent) event;
+            AlterTableColumnsEvent mergedColumns =
+                    new AlterTableColumnsEvent(columnsEvent.tableIdentifier());
+            for (AlterTableColumnEvent columnEvent : columnsEvent.getEvents()) {
+                AlterTableColumnEvent mergedColumn =
+                        (AlterTableColumnEvent) convertSchemaChangeEvent(columnEvent);
+                if (mergedColumn != null) {
+                    mergedColumns.addEvent(mergedColumn);
+                }
+            }
+            event = mergedColumns.getEvents().isEmpty() ? null : mergedColumns;
+        } else if (event instanceof AlterTableChangeColumnEvent) {
+            AlterTableChangeColumnEvent changeColumnEvent = ((AlterTableChangeColumnEvent) event);
+            if (!outputTable.getTableSchema().contains(changeColumnEvent.getOldColumn())) {
+                // skip
+                return null;
+            }
+
+            if (config.isAdaptSinkTableType()) {
+                boolean unRename =
+                        changeColumnEvent
+                                .getOldColumn()
+                                .equals(changeColumnEvent.getColumn().getName());
+                if (unRename) {
+                    // skip
+                    return null;
+                }
+
+                event =
+                        AlterTableChangeColumnEvent.change(
+                                changeColumnEvent.tableIdentifier(),
+                                changeColumnEvent.getOldColumn(),
+                                outputTable
+                                        .getTableSchema()
+                                        .getColumn(changeColumnEvent.getOldColumn())
+                                        .rename(changeColumnEvent.getColumn().getName()));
+            }
+        } else if (event instanceof AlterTableModifyColumnEvent) {
+            if (config.isAdaptSinkTableType()) {
+                // skip
+                return null;
+            }
+
+            AlterTableModifyColumnEvent modifyColumnEvent = (AlterTableModifyColumnEvent) event;
+            if (!outputTable.getTableSchema().contains(modifyColumnEvent.getColumn().getName())) {
+                // skip
+                return null;
+            }
+        } else if (event instanceof AlterTableAddColumnEvent) {
+            if (config.isAdaptSinkTableColumns()) {
+                // skip
+                return null;
+            }
+        } else if (event instanceof AlterTableDropColumnEvent) {
+            AlterTableDropColumnEvent dropColumnEvent = (AlterTableDropColumnEvent) event;
+            if (!outputTable.getTableSchema().contains(dropColumnEvent.getColumn())) {
+                // skip
+                return null;
+            }
+        }
+        return event;
     }
 
     @Override
