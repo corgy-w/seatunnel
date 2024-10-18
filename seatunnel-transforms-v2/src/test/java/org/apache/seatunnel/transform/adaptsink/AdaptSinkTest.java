@@ -209,7 +209,8 @@ public class AdaptSinkTest {
                                 .name("f4")
                                 .dataType(BasicType.STRING_TYPE)
                                 .build());
-        transform.mapSchemaChangeEvent(addColumnEvent);
+        addColumnEvent = (AlterTableAddColumnEvent) transform.mapSchemaChangeEvent(addColumnEvent);
+        Assertions.assertNull(addColumnEvent);
         inputRow = new SeaTunnelRow(new Object[] {1L, "n1", "1", "2", "4"});
         inputRow.setTableId(TablePath.DEFAULT.toString());
         outputRow = transform.map(inputRow);
@@ -222,7 +223,9 @@ public class AdaptSinkTest {
                                 .name("f1")
                                 .dataType(BasicType.BOOLEAN_TYPE)
                                 .build());
-        transform.mapSchemaChangeEvent(modifyColumnEvent);
+        modifyColumnEvent =
+                (AlterTableModifyColumnEvent) transform.mapSchemaChangeEvent(modifyColumnEvent);
+        Assertions.assertNull(modifyColumnEvent);
         inputRow = new SeaTunnelRow(new Object[] {1L, "n1", true, "2", "4"});
         inputRow.setTableId(TablePath.DEFAULT.toString());
         outputRow = transform.map(inputRow);
@@ -236,7 +239,9 @@ public class AdaptSinkTest {
                                 .name("f1_1")
                                 .dataType(BasicType.STRING_TYPE)
                                 .build());
-        transform.mapSchemaChangeEvent(changeColumnEvent);
+        changeColumnEvent =
+                (AlterTableChangeColumnEvent) transform.mapSchemaChangeEvent(changeColumnEvent);
+        Assertions.assertNotNull(changeColumnEvent);
         inputRow = new SeaTunnelRow(new Object[] {1L, "n1", "1", "2", "4"});
         inputRow.setTableId(TablePath.DEFAULT.toString());
         outputRow = transform.map(inputRow);
@@ -245,11 +250,40 @@ public class AdaptSinkTest {
         AlterTableDropColumnEvent dropColumnEvent =
                 new AlterTableDropColumnEvent(
                         TableIdentifier.of("default", TablePath.DEFAULT), "f1_1");
-        transform.mapSchemaChangeEvent(dropColumnEvent);
+        dropColumnEvent =
+                (AlterTableDropColumnEvent) transform.mapSchemaChangeEvent(dropColumnEvent);
+        Assertions.assertNotNull(dropColumnEvent);
         inputRow = new SeaTunnelRow(new Object[] {1L, "n1", "2", "4"});
         inputRow.setTableId(TablePath.DEFAULT.toString());
         outputRow = transform.map(inputRow);
         Assertions.assertArrayEquals(new Object[] {1L, "n1"}, outputRow.getFields());
+
+        modifyColumnEvent =
+                AlterTableModifyColumnEvent.modify(
+                        TableIdentifier.of("default", TablePath.DEFAULT),
+                        PhysicalColumn.builder().name("f2").dataType(BasicType.INT_TYPE).build());
+        modifyColumnEvent =
+                (AlterTableModifyColumnEvent) transform.mapSchemaChangeEvent(modifyColumnEvent);
+        Assertions.assertNull(modifyColumnEvent);
+
+        changeColumnEvent =
+                AlterTableChangeColumnEvent.change(
+                        TableIdentifier.of("default", TablePath.DEFAULT),
+                        "f2",
+                        PhysicalColumn.builder()
+                                .name("f2_1")
+                                .dataType(BasicType.STRING_TYPE)
+                                .build());
+        changeColumnEvent =
+                (AlterTableChangeColumnEvent) transform.mapSchemaChangeEvent(changeColumnEvent);
+        Assertions.assertNull(changeColumnEvent);
+
+        dropColumnEvent =
+                new AlterTableDropColumnEvent(
+                        TableIdentifier.of("default", TablePath.DEFAULT), "f2_1");
+        dropColumnEvent =
+                (AlterTableDropColumnEvent) transform.mapSchemaChangeEvent(dropColumnEvent);
+        Assertions.assertNull(dropColumnEvent);
     }
 
     static Map<String, CatalogTable> createMap(String key, CatalogTable table) {
