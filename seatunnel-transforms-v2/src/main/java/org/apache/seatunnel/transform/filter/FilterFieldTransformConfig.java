@@ -36,11 +36,11 @@ import java.util.Optional;
 @Setter
 public class FilterFieldTransformConfig implements Serializable {
     public static final Option<List<String>> INCLUDE_FIELDS =
-            Options.key("include_fields")
+            Options.key("fields")
                     .listType()
                     .noDefaultValue()
                     .withDescription("The list of fields that need to be kept.")
-                    .withFallbackKeys("fields");
+                    .withFallbackKeys("include_fields");
 
     public static final Option<List<String>> EXCLUDE_FIELDS =
             Options.key("exclude_fields")
