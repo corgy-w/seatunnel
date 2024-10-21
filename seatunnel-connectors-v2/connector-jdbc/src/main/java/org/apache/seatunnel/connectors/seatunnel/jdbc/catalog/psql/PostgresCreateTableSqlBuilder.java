@@ -31,14 +31,19 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuilder {
     private static final List<String> COMPATIBLE_DATABASES =
             Arrays.asList(
@@ -101,6 +106,39 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
                 switch (constraintKey.getConstraintType()) {
                     case UNIQUE_KEY:
                         isHaveConstraintKey = true;
+                        Map<String, ConstraintKey.ConstraintKeyColumn> uniqueKeyColumns =
+                                constraintKey.getColumnNames().stream()
+                                        .collect(
+                                                Collectors.toMap(
+                                                        ConstraintKey.ConstraintKeyColumn
+                                                                ::getColumnName,
+                                                        e -> e,
+                                                        (a, b) -> a,
+                                                        LinkedHashMap::new));
+                        if (primaryKey != null
+                                && primaryKey.getColumnNames() != null
+                                && !primaryKey.getColumnNames().isEmpty()) {
+                            for (String pkColumn : primaryKey.getColumnNames()) {
+                                if (!uniqueKeyColumns.containsKey(pkColumn)) {
+                                    uniqueKeyColumns.put(
+                                            pkColumn,
+                                            new ConstraintKey.ConstraintKeyColumn(
+                                                    pkColumn, ConstraintKey.ColumnSortType.ASC));
+                                }
+                            }
+                            if (uniqueKeyColumns.size() != constraintKey.getColumnNames().size()) {
+                                log.info(
+                                        "Primary key columns are added to unique key columns, new unique key columns: {}",
+                                        uniqueKeyColumns.values());
+                            }
+                        }
+
+                        constraintKey =
+                                ConstraintKey.of(
+                                        constraintKey.getConstraintType(),
+                                        constraintKey.getConstraintName(),
+                                        new ArrayList<>(uniqueKeyColumns.values()));
+
                         String uniqueKeySql = buildUniqueKeySql(constraintKey);
                         columnSqls.add("\t" + uniqueKeySql);
                         break;
@@ -197,10 +235,7 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
     }
 
     private String buildUniqueKeySql(ConstraintKey constraintKey) {
-        String constraintName = constraintKey.getConstraintName();
-        if (constraintName.length() > 25) {
-            constraintName = constraintName.substring(0, 25);
-        }
+        String constraintName = UUID.randomUUID().toString().replace("-", "");
         String indexColumns =
                 constraintKey.getColumnNames().stream()
                         .map(
@@ -211,16 +246,12 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
                                                         constraintKeyColumn.getColumnName(),
                                                         fieldIde)))
                         .collect(Collectors.joining(", "));
-        return "CONSTRAINT " + constraintName + " UNIQUE (" + indexColumns + ")";
+        return "CONSTRAINT \"" + constraintName + "\" UNIQUE (" + indexColumns + ")";
     }
 
     private String buildIndexKeySql(TablePath tablePath, ConstraintKey constraintKey) {
-        // We add table name to index name to avoid name conflict in PG
-        // Since index name in PG should unique in the schema
-        String constraintName = tablePath.getTableName() + "_" + constraintKey.getConstraintName();
-        if (constraintName.length() > 25) {
-            constraintName = constraintName.substring(0, 25);
-        }
+        // If the index name is omitted, PostgreSQL will choose an appropriate name based on table
+        // name and indexed columns.
         String indexColumns =
                 constraintKey.getColumnNames().stream()
                         .map(
@@ -232,9 +263,7 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
                                                         fieldIde)))
                         .collect(Collectors.joining(", "));
 
-        return "CREATE INDEX "
-                + constraintName
-                + " ON "
+        return "CREATE INDEX ON "
                 + tablePath.getSchemaAndTableName("\"")
                 + "("
                 + indexColumns
