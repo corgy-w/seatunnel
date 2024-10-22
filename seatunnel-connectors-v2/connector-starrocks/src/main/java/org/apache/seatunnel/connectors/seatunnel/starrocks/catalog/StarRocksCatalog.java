@@ -19,7 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.starrocks.catalog;
 
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PreviewResult;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.SQLPreviewResult;
@@ -31,6 +31,7 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseAlreadyExistExce
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
@@ -38,6 +39,7 @@ import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
+import org.apache.seatunnel.connectors.seatunnel.starrocks.datatype.StarRocksTypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.exception.StarRocksConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.starrocks.sink.StarRocksSaveModeUtil;
 
@@ -65,7 +67,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.IntStream;
 
 import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkArgument;
 
@@ -163,32 +164,58 @@ public class StarRocksCatalog implements Catalog {
             PreparedStatement ps =
                     conn.prepareStatement(
                             String.format(
-                                    "SELECT * FROM %s WHERE 1 = 0;",
-                                    tablePath.getFullNameWithQuoted()));
+                                    "SELECT \n"
+                                            + "COLUMN_NAME AS COLUMN_NAME,\n"
+                                            + "DATA_TYPE AS DATA_TYPE,\n"
+                                            + "CHARACTER_MAXIMUM_LENGTH AS COLUMN_LENGTH,\n"
+                                            + "IS_NULLABLE AS NULL_ABLE,\n"
+                                            + "COLUMN_DEFAULT AS DEFAULT_VALUE,\n"
+                                            + "COLUMN_COMMENT AS COMMENT,\n"
+                                            + "COLUMN_TYPE AS SOURCE_TYPE,\n"
+                                            + "NUMERIC_PRECISION AS PRECISION,\n"
+                                            + "NUMERIC_SCALE AS SCALE\n"
+                                            + "FROM information_schema.columns WHERE table_schema = '%s' AND table_name = '%s';",
+                                    tablePath.getDatabaseName(), tablePath.getTableName()));
 
-            ResultSetMetaData tableMetaData = ps.getMetaData();
-
+            final ResultSet resultSet = ps.executeQuery();
+            List<Column> columns = new ArrayList<>();
+            StarRocksTypeConverter starRocksTypeConverter = new StarRocksTypeConverter();
+            while (resultSet.next()) {
+                String columnName = resultSet.getString("COLUMN_NAME");
+                String dataType = resultSet.getString("DATA_TYPE");
+                Long columnLength =
+                        resultSet.getString("COLUMN_LENGTH") == null
+                                ? null
+                                : Long.valueOf(resultSet.getString("COLUMN_LENGTH"));
+                boolean nullAble = !resultSet.getString("NULL_ABLE").equals("NO");
+                String defaultValue = resultSet.getString("DEFAULT_VALUE");
+                String comment = resultSet.getString("COMMENT");
+                String sourceType = resultSet.getString("SOURCE_TYPE");
+                Long precision =
+                        resultSet.getString("PRECISION") == null
+                                ? null
+                                : Long.valueOf(resultSet.getString("PRECISION"));
+                Integer scale =
+                        resultSet.getString("SCALE") == null
+                                ? null
+                                : Integer.parseInt(resultSet.getString("SCALE"));
+                BasicTypeDefine<Object> build =
+                        BasicTypeDefine.builder()
+                                .name(columnName)
+                                .dataType(dataType)
+                                .columnType(sourceType)
+                                .length(columnLength)
+                                .nullable(nullAble)
+                                .defaultValue(defaultValue)
+                                .comment(comment)
+                                .precision(precision)
+                                .scale(scale)
+                                .build();
+                Column column = starRocksTypeConverter.convert(build);
+                columns.add(column);
+            }
             TableSchema.Builder builder = TableSchema.builder();
-            buildColumnsWithErrorCheck(
-                    tablePath,
-                    builder,
-                    IntStream.range(1, tableMetaData.getColumnCount() + 1).iterator(),
-                    i -> {
-                        try {
-                            SeaTunnelDataType<?> type = fromJdbcType(tableMetaData, i);
-                            // TODO add default value and test it
-                            return PhysicalColumn.of(
-                                    tableMetaData.getColumnName(i),
-                                    type,
-                                    tableMetaData.getColumnDisplaySize(i),
-                                    tableMetaData.isNullable(i) == ResultSetMetaData.columnNullable,
-                                    null,
-                                    tableMetaData.getColumnLabel(i));
-                        } catch (SQLException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-
+            builder.columns(columns);
             primaryKey.ifPresent(builder::primaryKey);
 
             TableIdentifier tableIdentifier =
