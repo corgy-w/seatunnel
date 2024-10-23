@@ -162,7 +162,7 @@ public class OgOutputMessageDecoder extends AbstractMessageDecoder {
             }
         } finally {
             // Reset buffer position
-            buffer.position(position);
+            ((java.nio.Buffer) buffer).position(position);
         }
     }
 
