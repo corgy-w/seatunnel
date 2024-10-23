@@ -503,6 +503,18 @@
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
+                <include>com.highgo:highgo-jdbc:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-cdc-highgo</outputDirectory>
+            <scope>system</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
                 <include>org.postgresql:postgresql:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
