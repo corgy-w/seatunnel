@@ -38,7 +38,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -116,7 +116,7 @@ public class ConfigBuilder {
     public static Map<String, Object> configDesensitization(Map<String, Object> configMap) {
         return configMap.entrySet().stream()
                 .collect(
-                        HashMap::new,
+                        LinkedHashMap::new,
                         (m, p) -> {
                             String key = p.getKey();
                             Object value = p.getValue();
@@ -147,7 +147,7 @@ public class ConfigBuilder {
                                 }
                             }
                         },
-                        HashMap::putAll);
+                        LinkedHashMap::putAll);
     }
 
     public static Config of(
