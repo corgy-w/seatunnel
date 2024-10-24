@@ -212,7 +212,8 @@ public class MysqlDialect implements JdbcDialect {
                                 && table.getTablePath() != null
                                 && !TablePath.DEFAULT
                                         .getFullName()
-                                        .equals(table.getTablePath().getFullName()));
+                                        .equals(table.getTablePath().getFullName())
+                                && existTable(connection, table.getTablePath()));
 
         if (useTableStats) {
             // The statement used to get approximate row count which is less
@@ -245,6 +246,12 @@ public class MysqlDialect implements JdbcDialect {
         }
 
         return SQLUtils.countForSubquery(connection, table.getQuery());
+    }
+
+    public String getExistTableSql(TablePath tablePath) {
+        return String.format(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = '%s' AND table_name = '%s'",
+                tablePath.getDatabaseName(), tablePath.getTableName());
     }
 
     @Override

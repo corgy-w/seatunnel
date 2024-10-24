@@ -202,7 +202,8 @@ public class OracleDialect implements JdbcDialect {
                                 && table.getTablePath() != null
                                 && !TablePath.DEFAULT
                                         .getFullName()
-                                        .equals(table.getTablePath().getFullName()));
+                                        .equals(table.getTablePath().getFullName())
+                                && existTable(connection, table.getTablePath()));
 
         if (table.getUseSelectCount()) {
             useTableStats = false;
@@ -251,6 +252,12 @@ public class OracleDialect implements JdbcDialect {
             return count;
         }
         return SQLUtils.countForSubquery(connection, query);
+    }
+
+    public String getExistTableSql(TablePath tablePath) {
+        return String.format(
+                "select TABLE_NAME from all_tables where OWNER = '%s' AND TABLE_NAME = '%s' ",
+                tablePath.getSchemaName(), tablePath.getTableName());
     }
 
     @Override

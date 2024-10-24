@@ -153,7 +153,8 @@ public class RedshiftDialect implements JdbcDialect {
                                 && table.getTablePath() != null
                                 && !TablePath.DEFAULT
                                         .getFullName()
-                                        .equals(table.getTablePath().getFullName()));
+                                        .equals(table.getTablePath().getFullName())
+                                && existTable(connection, table.getTablePath()));
         if (useTableStats) {
             String rowCountQuery =
                     String.format(
@@ -178,5 +179,11 @@ public class RedshiftDialect implements JdbcDialect {
             }
         }
         return SQLUtils.countForSubquery(connection, table.getQuery());
+    }
+
+    public String getExistTableSql(TablePath tablePath) {
+        return String.format(
+                "SELECT tablename FROM pg_table_def WHERE schemaname = '%s' AND tablename = '%s'",
+                tablePath.getSchemaName(), tablePath.getTableName());
     }
 }

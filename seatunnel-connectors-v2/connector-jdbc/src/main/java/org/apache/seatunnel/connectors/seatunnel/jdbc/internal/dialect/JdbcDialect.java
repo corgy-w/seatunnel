@@ -312,6 +312,21 @@ public interface JdbcDialect extends Serializable {
         return SQLUtils.countForTable(connection, tableIdentifier(table.getTablePath()));
     }
 
+    default Boolean existTable(Connection connection, TablePath tablePath) {
+        String existTableSql = getExistTableSql(tablePath);
+        try (PreparedStatement preparedStatement = connection.prepareStatement(existTableSql);
+                ResultSet resultSet = preparedStatement.executeQuery()) {
+            return resultSet.next();
+        } catch (SQLException e) {
+            log.warn("Determine whether the database table has failed, fallback false", e);
+            return false;
+        }
+    }
+
+    default String getExistTableSql(TablePath tablePath) {
+        throw new UnsupportedOperationException();
+    }
+
     /**
      * Performs a sampling operation on the specified column of a table in a JDBC-connected
      * database.
