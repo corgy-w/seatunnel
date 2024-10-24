@@ -75,9 +75,7 @@ public class JdbcSourceConfig implements Serializable {
                 .ifPresent(
                         whereConditionClause -> {
                             if (!whereConditionClause.toLowerCase().startsWith("where")) {
-                                throw new IllegalArgumentException(
-                                        "The where condition clause must start with 'where'. value: "
-                                                + whereConditionClause);
+                                whereConditionClause = "where " + whereConditionClause;
                             }
                             builder.whereConditionClause(whereConditionClause);
                         });
