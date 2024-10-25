@@ -30,6 +30,7 @@ import org.apache.seatunnel.api.table.type.MapType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.exception.CommonError;
 
+import com.google.auto.service.AutoService;
 import com.mysql.cj.MysqlType;
 import lombok.extern.slf4j.Slf4j;
 
@@ -40,6 +41,7 @@ import java.util.regex.Pattern;
 import static org.apache.seatunnel.connectors.seatunnel.starrocks.catalog.StarRocksCatalogFactory.IDENTIFIER;
 
 @Slf4j
+@AutoService(TypeConverter.class)
 public class StarRocksTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final String STARTROCKS_NULL = "NULL";
     public static final String STARTROCKS_BOOLEAN = "BOOLEAN";
