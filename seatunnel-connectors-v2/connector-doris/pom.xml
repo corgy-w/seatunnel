@@ -82,6 +82,12 @@
             <artifactId>seatunnel-thrift-service</artifactId>
             <version>${project.version}</version>
             <classifier>optional</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.doris</groupId>
+                    <artifactId>thrift-service</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
