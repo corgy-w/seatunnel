@@ -52,6 +52,7 @@ public class SapHanaTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final String HANA_BOOLEAN = "BOOLEAN";
 
     // -------------------------string----------------------------
+    public static final String HANA_CHAR = "CHAR";
     public static final String HANA_VARCHAR = "VARCHAR";
     public static final String HANA_NVARCHAR = "NVARCHAR";
     public static final String HANA_ALPHANUM = "ALPHANUM";
@@ -103,6 +104,7 @@ public class SapHanaTypeConverter implements TypeConverter<BasicTypeDefine> {
             Arrays.asList(
                     HANA_BINARY,
                     HANA_VARBINARY,
+                    HANA_CHAR,
                     HANA_VARCHAR,
                     HANA_NVARCHAR,
                     HANA_ALPHANUM,
@@ -195,6 +197,7 @@ public class SapHanaTypeConverter implements TypeConverter<BasicTypeDefine> {
             case HANA_BOOLEAN:
                 builder.dataType(BasicType.BOOLEAN_TYPE);
                 break;
+            case HANA_CHAR:
             case HANA_VARCHAR:
             case HANA_ALPHANUM:
             case HANA_CLOB:
