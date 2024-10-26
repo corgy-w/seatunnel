@@ -21,11 +21,9 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.transform.common.MultipleFieldOutputTransform;
 import org.apache.seatunnel.transform.common.SeaTunnelRowAccessor;
 
-import com.google.auto.service.AutoService;
 import lombok.NonNull;
 
 import java.util.ArrayList;
@@ -33,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-@AutoService(SeaTunnelTransform.class)
 public class MultiFieldSplitTransform extends MultipleFieldOutputTransform {
 
     public static String PLUGIN_NAME = "MultiFieldSplit";

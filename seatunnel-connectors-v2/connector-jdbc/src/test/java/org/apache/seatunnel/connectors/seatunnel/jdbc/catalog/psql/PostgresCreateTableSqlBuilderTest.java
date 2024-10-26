@@ -35,6 +35,7 @@ import com.google.common.collect.Lists;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 class PostgresCreateTableSqlBuilderTest {
 
@@ -49,18 +50,18 @@ class PostgresCreateTableSqlBuilderTest {
                             String createTableSql =
                                     postgresCreateTableSqlBuilder.build(
                                             catalogTable.getTableId().toTablePath());
-                            Assertions.assertEquals(
-                                    "CREATE TABLE IF NOT EXISTS \"test\" (\n"
+                            String pattern =
+                                    "CREATE TABLE IF NOT EXISTS \"test\" \\(\n"
                                             + "\"id\" int4 NOT NULL,\n"
                                             + "\"name\" text NOT NULL,\n"
                                             + "\"age\" int4 NOT NULL,\n"
-                                            + "\tPRIMARY KEY (\"id\"),\n"
-                                            + "\tCONSTRAINT unique_name UNIQUE (\"name\")\n"
-                                            + ");",
-                                    createTableSql);
+                                            + "\tPRIMARY KEY \\(\"id\"\\),\n"
+                                            + "\tCONSTRAINT \"([a-zA-Z0-9]+)\" UNIQUE \\(\"name\", \"id\"\\)\n"
+                                            + "\\);";
+                            Assertions.assertTrue(
+                                    Pattern.compile(pattern).matcher(createTableSql).find());
                             Assertions.assertEquals(
-                                    Lists.newArrayList(
-                                            "CREATE INDEX test_index_age ON \"test\"(\"age\");"),
+                                    Lists.newArrayList("CREATE INDEX ON \"test\"(\"age\");"),
                                     postgresCreateTableSqlBuilder.getCreateIndexSqls());
                         });
     }

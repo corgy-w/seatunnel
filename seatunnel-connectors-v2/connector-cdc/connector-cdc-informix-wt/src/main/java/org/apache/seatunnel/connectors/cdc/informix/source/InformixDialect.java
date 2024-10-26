@@ -94,7 +94,8 @@ public class InformixDialect implements JdbcDataSourceDialect {
     public List<TableId> discoverDataCollections(JdbcSourceConfig sourceConfig) {
         InformixSourceConfig informixSourceConfig = (InformixSourceConfig) sourceConfig;
         try (InformixConnection jdbcConnection = openJdbcConnection(sourceConfig)) {
-            return jdbcConnection.listTables(informixSourceConfig.getTableFilters());
+            return jdbcConnection.listTables(
+                    informixSourceConfig.getTableFilters(), sourceConfig.getDatabaseList());
         } catch (SQLException e) {
             throw new SeaTunnelException("Error to discover tables: " + e.getMessage(), e);
         }

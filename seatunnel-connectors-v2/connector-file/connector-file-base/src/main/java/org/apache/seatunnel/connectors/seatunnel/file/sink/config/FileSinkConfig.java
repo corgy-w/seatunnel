@@ -79,7 +79,7 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
     private List<String> parquetAvroWriteFixedAsInt96 =
             BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.defaultValue();
 
-    private long fileBlockSize;
+    private long fileBlockSize = 128 * 1024 * 1024L;
 
     public FileSinkConfig(@NonNull Config config, @NonNull SeaTunnelRowType seaTunnelRowTypeInfo) {
         super(config);
