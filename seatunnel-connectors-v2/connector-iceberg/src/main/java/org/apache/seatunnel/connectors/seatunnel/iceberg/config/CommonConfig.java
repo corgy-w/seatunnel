@@ -133,8 +133,8 @@ public class CommonConfig extends KerberosConfig implements Serializable {
         if (pluginConfig.getOptional(KERBEROS_PRINCIPAL).isPresent()) {
             this.kerberosPrincipal = pluginConfig.getOptional(KERBEROS_PRINCIPAL).get();
         }
-        if (pluginConfig.getOptional(KRB5_PATH).isPresent()) {
-            this.kerberosKrb5ConfPath = pluginConfig.getOptional(KRB5_PATH).get();
+        if (pluginConfig.getOptional(KERBEROS_KRB5_CONF_PATH).isPresent()) {
+            this.kerberosKrb5ConfPath = pluginConfig.getOptional(KERBEROS_KRB5_CONF_PATH).get();
         }
         if (pluginConfig.getOptional(KERBEROS_KEYTAB_PATH).isPresent()) {
             this.kerberosKeytabPath = pluginConfig.getOptional(KERBEROS_KEYTAB_PATH).get();
