@@ -63,6 +63,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 @Slf4j
 public class IcebergCatalog implements Catalog {
 
+    private static final String PROPS_TABLE_COMMENT = "comment";
+
     IcebergCatalogFactory icebergCatalogFactory;
     String catalogName;
     IcebergDataTypeConvertor icebergDataTypeConvertor = new IcebergDataTypeConvertor();
@@ -179,6 +181,7 @@ public class IcebergCatalog implements Catalog {
 
         Map<String, String> options = new HashMap<>(table.getOptions());
         options.put("format-version", "2");
+        Optional.ofNullable(table.getComment()).map(e -> options.put(PROPS_TABLE_COMMENT, e));
         log.info(
                 "tablePath: {}, tableSchema: {}, partitionKeys: {}, options: {}",
                 tablePath,
@@ -267,13 +270,17 @@ public class IcebergCatalog implements Catalog {
                         .map(PartitionField::name)
                         .collect(Collectors.toList());
 
+        String comment =
+                Optional.ofNullable(icebergTable.properties())
+                        .map(e -> e.get(PROPS_TABLE_COMMENT))
+                        .orElse(null);
         return CatalogTable.of(
                 org.apache.seatunnel.api.table.catalog.TableIdentifier.of(
                         catalogName, tablePath.getDatabaseName(), tablePath.getTableName()),
                 builder.build(),
                 icebergTable.properties(),
                 partitionKeys,
-                null,
+                comment,
                 catalogName);
     }
 
