@@ -157,6 +157,19 @@ public class OracleTypeConverterTest {
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(new DecimalType(38, 0), column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("number(2,7)")
+                        .dataType("number")
+                        .precision(2L)
+                        .scale(7)
+                        .build();
+        column = converter.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(new DecimalType(8, 7), column.getDataType());
+        Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType());
     }
 
     @Test
