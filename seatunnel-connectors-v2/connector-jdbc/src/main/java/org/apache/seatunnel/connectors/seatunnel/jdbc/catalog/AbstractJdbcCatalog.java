@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -191,6 +192,29 @@ public abstract class AbstractJdbcCatalog implements Catalog {
                 buildColumnsWithErrorCheck(tablePath, resultSet, builder);
                 // add primary key
                 primaryKey.ifPresent(builder::primaryKey);
+                // filter constraint key
+                List<String> columnNames = builder.build().getColumnNames();
+                constraintKeys =
+                        constraintKeys.stream()
+                                .filter(
+                                        key -> {
+                                            boolean valid =
+                                                    key.getColumnNames().stream()
+                                                            .allMatch(
+                                                                    column ->
+                                                                            columnNames.contains(
+                                                                                    column
+                                                                                            .getColumnName()));
+                                            if (!valid) {
+                                                log.warn(
+                                                        "The table {} constraint key [{}] is not supported. {}",
+                                                        tablePath,
+                                                        key.getConstraintName(),
+                                                        key);
+                                            }
+                                            return valid;
+                                        })
+                                .collect(Collectors.toList());
                 // add constraint key
                 constraintKeys.forEach(builder::constraintKey);
                 TableIdentifier tableIdentifier = getTableIdentifier(tablePath);
@@ -244,6 +268,29 @@ public abstract class AbstractJdbcCatalog implements Catalog {
                 }
                 // add primary key
                 primaryKey.ifPresent(builder::primaryKey);
+                // filter constraint key
+                List<String> columnNames = builder.build().getColumnNames();
+                constraintKeys =
+                        constraintKeys.stream()
+                                .filter(
+                                        key -> {
+                                            boolean valid =
+                                                    key.getColumnNames().stream()
+                                                            .allMatch(
+                                                                    column ->
+                                                                            columnNames.contains(
+                                                                                    column
+                                                                                            .getColumnName()));
+                                            if (!valid) {
+                                                log.warn(
+                                                        "The table {} constraint key [{}] is not supported. {}",
+                                                        tablePath,
+                                                        key.getConstraintName(),
+                                                        key);
+                                            }
+                                            return valid;
+                                        })
+                                .collect(Collectors.toList());
                 // add constraint key
                 constraintKeys.forEach(builder::constraintKey);
                 TableIdentifier tableIdentifier = getTableIdentifier(tablePath);

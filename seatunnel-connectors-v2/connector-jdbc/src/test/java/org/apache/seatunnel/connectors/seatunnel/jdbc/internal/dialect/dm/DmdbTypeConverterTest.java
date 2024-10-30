@@ -320,6 +320,21 @@ public class DmdbTypeConverterTest {
         typeDefine =
                 BasicTypeDefine.builder()
                         .name("test")
+                        .columnType("nchar(2)")
+                        .dataType("nchar")
+                        .length(2L)
+                        .build();
+        column = DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
+        Assertions.assertEquals(4, column.getColumnLength());
+        Assertions.assertEquals(
+                String.format("nchar(%s)", typeDefine.getLength()),
+                column.getSourceType().toLowerCase());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
                         .columnType("varchar(2)")
                         .dataType("varchar")
                         .length(2L)
@@ -344,6 +359,36 @@ public class DmdbTypeConverterTest {
         Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
         Assertions.assertEquals(8, column.getColumnLength());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("nvarchar(2)")
+                        .dataType("nvarchar")
+                        .length(2L)
+                        .build();
+        column = DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
+        Assertions.assertEquals(4, column.getColumnLength());
+        Assertions.assertEquals(
+                String.format("nvarchar2(%s)", typeDefine.getLength()),
+                column.getSourceType().toLowerCase());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("nvarchar2(2)")
+                        .dataType("nvarchar2")
+                        .length(2L)
+                        .build();
+        column = DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
+        Assertions.assertEquals(4, column.getColumnLength());
+        Assertions.assertEquals(
+                String.format("nvarchar2(%s)", typeDefine.getLength()),
+                column.getSourceType().toLowerCase());
     }
 
     @Test
