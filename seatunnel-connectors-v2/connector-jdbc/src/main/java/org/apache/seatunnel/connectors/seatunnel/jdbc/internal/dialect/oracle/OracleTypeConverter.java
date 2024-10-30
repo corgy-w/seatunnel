@@ -119,10 +119,13 @@ public class OracleTypeConverter implements TypeConverter<BasicTypeDefine> {
                 break;
             case ORACLE_NUMBER:
                 Long precision = typeDefine.getPrecision();
+                Integer scale = typeDefine.getScale();
+                if (precision != null && scale != null && scale > precision) {
+                    precision = (long) (scale + 1);
+                }
                 if (precision == null || precision == 0 || precision > DEFAULT_PRECISION) {
                     precision = Long.valueOf(DEFAULT_PRECISION);
                 }
-                Integer scale = typeDefine.getScale();
                 if (scale == null) {
                     scale = 127;
                 }
