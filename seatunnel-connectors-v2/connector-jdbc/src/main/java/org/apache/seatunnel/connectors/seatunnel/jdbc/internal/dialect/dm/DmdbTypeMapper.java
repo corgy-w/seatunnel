@@ -38,7 +38,11 @@ public class DmdbTypeMapper implements JdbcDialectTypeMapper {
         int isNullable = metadata.isNullable(colIndex);
         int precision = metadata.getPrecision(colIndex);
         int scale = metadata.getScale(colIndex);
-
+        if (DmdbTypeConverter.DM_NVARCHAR.equalsIgnoreCase(nativeType)
+                || DmdbTypeConverter.DM_NVARCHAR2.equalsIgnoreCase(nativeType)) {
+            precision = precision / 2;
+            scale = 0;
+        }
         BasicTypeDefine typeDefine =
                 BasicTypeDefine.builder()
                         .name(columnName)
