@@ -15,9 +15,6 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.iceberg.sink;
+package org.apache.seatunnel.connectors.seatunnel.iceberg.sink.schema;
 
-import java.io.Serializable;
-
-/** @Author: Liuli @Date: 2023/7/12 18:25 */
-public class IcebergSinkState implements Serializable {}
+public interface ISchemaChange {}

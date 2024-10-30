@@ -19,44 +19,26 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.sink;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
-import lombok.extern.slf4j.Slf4j;
 
-import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_REPLICA;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HDFS_SITE_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HIVE_SITE_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KEYTAB_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KRB5_CONF_PATH;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_PRINCIPAL;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_CATALOG_NAME;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_CATALOG_TYPE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_NAMESPACE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_TABLE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_URI;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KEY_WAREHOUSE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HIVE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.DATA_SAVE_MODE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.ENABLE_UPSERT;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.PRIMARY_KEYS;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.SCHEMA_SAVE_MODE;
-import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SinkConfig.TARGET_FILE_SIZE_BYTES;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HADOOP_CONF_PATH_PROP;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.REMOTE_USER;
 
 @AutoService(Factory.class)
-@Slf4j
 public class IcebergSinkFactory implements TableSinkFactory {
+
     @Override
     public String factoryIdentifier() {
         return "Iceberg";
@@ -65,65 +47,59 @@ public class IcebergSinkFactory implements TableSinkFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(KEY_CATALOG_NAME, KEY_CATALOG_TYPE, KEY_WAREHOUSE)
-                .conditional(KEY_CATALOG_TYPE, HIVE, KEY_URI)
+                .required(
+                        CommonConfig.KEY_CATALOG_NAME,
+                        SinkConfig.KEY_NAMESPACE,
+                        SinkConfig.KEY_TABLE,
+                        SinkConfig.CATALOG_PROPS)
                 .optional(
-                        KERBEROS_PRINCIPAL,
-                        KERBEROS_KEYTAB_PATH,
-                        KERBEROS_KRB5_CONF_PATH,
-                        HDFS_SITE_PATH,
-                        HIVE_SITE_PATH)
-                .optional(KEY_NAMESPACE, KEY_TABLE)
-                .optional(ENABLE_UPSERT)
-                .optional(DATA_SAVE_MODE, SCHEMA_SAVE_MODE)
-                .optional(PRIMARY_KEYS)
-                .optional(TARGET_FILE_SIZE_BYTES)
-                .optional(MULTI_TABLE_SINK_REPLICA)
+                        SinkConfig.TABLE_PROPS,
+                        SinkConfig.HADOOP_PROPS,
+                        SinkConfig.KERBEROS_PRINCIPAL,
+                        SinkConfig.KERBEROS_KEYTAB_PATH,
+                        SinkConfig.KERBEROS_KRB5_CONF_PATH,
+                        SinkConfig.WRITE_PROPS,
+                        SinkConfig.SCHEMA_SAVE_MODE,
+                        SinkConfig.DATA_SAVE_MODE,
+                        SinkConfig.AUTO_CREATE_PROPS,
+                        SinkConfig.TABLE_PRIMARY_KEYS,
+                        SinkConfig.TABLE_DEFAULT_PARTITION_KEYS,
+                        SinkConfig.TABLE_UPSERT_MODE_ENABLED_PROP,
+                        SinkConfig.TABLE_SCHEMA_EVOLUTION_ENABLED_PROP,
+                        SinkConfig.TABLES_DEFAULT_COMMIT_BRANCH,
+                        HADOOP_CONF_PATH_PROP,
+                        REMOTE_USER,
+                        SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
                 .build();
     }
 
     @Override
     public TableSink createSink(TableSinkFactoryContext context) {
         ReadonlyConfig config = context.getOptions();
-        SinkConfig sinkConfig = new SinkConfig(config);
-        CatalogTable catalogTable = renameCatalogTable(sinkConfig, context.getCatalogTable());
-        return () -> new IcebergSink(catalogTable, config);
+        CatalogTable catalogTable =
+                renameCatalogTable(new SinkConfig(config), context.getCatalogTable());
+        return () -> new IcebergSink(config, catalogTable);
     }
 
     private CatalogTable renameCatalogTable(SinkConfig sinkConfig, CatalogTable catalogTable) {
-
         TableIdentifier tableId = catalogTable.getTableId();
         String tableName;
         String namespace;
         if (StringUtils.isNotEmpty(sinkConfig.getTable())) {
-            tableName = replaceName(sinkConfig.getTable(), tableId);
+            tableName = sinkConfig.getTable();
         } else {
             tableName = tableId.getTableName();
         }
 
         if (StringUtils.isNotEmpty(sinkConfig.getNamespace())) {
-            namespace = replaceName(sinkConfig.getNamespace(), tableId);
+            namespace = sinkConfig.getNamespace();
         } else {
             namespace = tableId.getSchemaName();
         }
 
         TableIdentifier newTableId =
-                TableIdentifier.of(
-                        tableId.getCatalogName(), namespace, tableId.getSchemaName(), tableName);
+                TableIdentifier.of(tableId.getCatalogName(), namespace, tableName);
 
         return CatalogTable.of(newTableId, catalogTable);
-    }
-
-    private String replaceName(String original, TableIdentifier tableId) {
-        if (tableId.getTableName() != null) {
-            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
-        }
-        if (tableId.getSchemaName() != null) {
-            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
-        }
-        if (tableId.getDatabaseName() != null) {
-            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
-        }
-        return original;
     }
 }

@@ -21,7 +21,9 @@ import org.apache.seatunnel.common.exception.SeaTunnelErrorCode;
 
 public enum IcebergConnectorErrorCode implements SeaTunnelErrorCode {
     FILE_SCAN_SPLIT_FAILED("ICEBERG-01", "File Scan Split failed"),
-    INVALID_STARTING_RECORD_OFFSET("ICEBERG-02", "Invalid starting record offset");
+    INVALID_STARTING_RECORD_OFFSET("ICEBERG-02", "Invalid starting record offset"),
+    KRB5_FILE_LOADER_FAILED("ICEBERG-03", "Krb5 file loader failed"),
+    KERBEROS_LOGIN_FAILED("ICEBERG-04", "Kerberos login failed");
 
     private final String code;
     private final String description;
