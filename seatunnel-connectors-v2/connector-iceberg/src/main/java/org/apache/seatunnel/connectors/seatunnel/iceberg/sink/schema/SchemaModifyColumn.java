@@ -15,18 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.iceberg.sink.commiter;
+package org.apache.seatunnel.connectors.seatunnel.iceberg.sink.schema;
 
-import org.apache.iceberg.io.WriteResult;
+import org.apache.iceberg.types.Type;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+/** Modify column type */
+public class SchemaModifyColumn implements ISchemaChange {
+    private final String name;
+    private final Type.PrimitiveType type;
 
-import java.io.Serializable;
-import java.util.List;
+    public SchemaModifyColumn(String name, Type.PrimitiveType type) {
+        this.name = name;
+        this.type = type;
+    }
 
-@Data
-@AllArgsConstructor
-public class IcebergAggregatedCommitInfo implements Serializable {
-    List<WriteResult> writeResults;
+    public String name() {
+        return name;
+    }
+
+    public Type.PrimitiveType type() {
+        return type;
+    }
 }

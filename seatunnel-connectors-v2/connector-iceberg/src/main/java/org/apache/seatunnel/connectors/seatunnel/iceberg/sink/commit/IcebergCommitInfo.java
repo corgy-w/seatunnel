@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.iceberg.sink.commiter;
+package org.apache.seatunnel.connectors.seatunnel.iceberg.sink.commit;
 
-import org.apache.iceberg.io.WriteResult;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.sink.writer.WriteResult;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
-/** @Author: Liuli @Date: 2023/7/12 18:29 */
 @Data
 @AllArgsConstructor
 public class IcebergCommitInfo implements Serializable {
-    WriteResult writeResult;
+    private List<WriteResult> results;
 }

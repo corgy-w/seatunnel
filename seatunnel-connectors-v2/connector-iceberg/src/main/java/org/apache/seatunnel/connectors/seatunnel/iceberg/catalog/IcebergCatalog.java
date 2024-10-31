@@ -17,12 +17,13 @@
 
 package org.apache.seatunnel.connectors.seatunnel.iceberg.catalog;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.InfoPreviewResult;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PreviewResult;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
@@ -30,13 +31,12 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseAlreadyExistExce
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
-import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
-import org.apache.seatunnel.api.table.type.SqlType;
-import org.apache.seatunnel.connectors.seatunnel.iceberg.IcebergCatalogFactory;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.IcebergCatalogLoader;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.utils.SchemaUtils;
 
 import org.apache.iceberg.PartitionField;
-import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Snapshot;
 import org.apache.iceberg.Table;
@@ -44,7 +44,6 @@ import org.apache.iceberg.catalog.Namespace;
 import org.apache.iceberg.catalog.SupportsNamespaces;
 import org.apache.iceberg.catalog.TableIdentifier;
 import org.apache.iceberg.exceptions.NoSuchTableException;
-import org.apache.iceberg.types.Type;
 import org.apache.iceberg.types.Types;
 
 import lombok.extern.slf4j.Slf4j;
@@ -52,41 +51,46 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.utils.SchemaUtils.toIcebergTableIdentifier;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.utils.SchemaUtils.toTablePath;
 
 @Slf4j
 public class IcebergCatalog implements Catalog {
+    public static final String PROPS_TABLE_COMMENT = "comment";
 
-    IcebergCatalogFactory icebergCatalogFactory;
-    String catalogName;
-    IcebergDataTypeConvertor icebergDataTypeConvertor = new IcebergDataTypeConvertor();
-    org.apache.iceberg.catalog.Catalog catalog;
+    private final String catalogName;
+    private final ReadonlyConfig readonlyConfig;
+    private final IcebergCatalogLoader icebergCatalogLoader;
+    private org.apache.iceberg.catalog.Catalog catalog;
 
-    public IcebergCatalog(IcebergCatalogFactory icebergCatalogFactory, String catalogName) {
-        this.icebergCatalogFactory = icebergCatalogFactory;
+    public IcebergCatalog(String catalogName, ReadonlyConfig readonlyConfig) {
+        this.readonlyConfig = readonlyConfig;
         this.catalogName = catalogName;
+        this.icebergCatalogLoader = new IcebergCatalogLoader(new CommonConfig(readonlyConfig));
+    }
+
+    @Override
+    public String name() {
+        return this.catalogName;
     }
 
     @Override
     public void open() throws CatalogException {
-        log.info("Opening IcebergCatalog...");
-        this.catalog = icebergCatalogFactory.create();
-        log.info("IcebergCatalog opened successfully.");
+        this.catalog = icebergCatalogLoader.loadCatalog();
     }
 
     @Override
     public void close() throws CatalogException {
-        log.info("Closing IcebergCatalog...");
         if (catalog != null && catalog instanceof Closeable) {
             try {
                 ((Closeable) catalog).close();
-                log.info("IcebergCatalog closed successfully.");
             } catch (IOException e) {
                 log.error("Error while closing IcebergCatalog.", e);
                 throw new CatalogException(e);
@@ -95,13 +99,7 @@ public class IcebergCatalog implements Catalog {
     }
 
     @Override
-    public String name() {
-        return catalogName;
-    }
-
-    @Override
     public String getDefaultDatabase() throws CatalogException {
-        log.info("Fetching default database...");
         return "default";
     }
 
@@ -126,7 +124,7 @@ public class IcebergCatalog implements Catalog {
                             .listNamespaces().stream()
                                     .map(Namespace::toString)
                                     .collect(Collectors.toList());
-            log.info("Fetched {} databases.", databases.size());
+            log.info("Fetched {} namespaces.", databases.size());
             return databases;
         } else {
             throw new UnsupportedOperationException(
@@ -147,9 +145,7 @@ public class IcebergCatalog implements Catalog {
 
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
-        boolean exists = catalog.tableExists(toIcebergTableIdentifier(tablePath));
-        log.info("Table {} existence status: {}", tablePath, exists);
-        return exists;
+        return catalog.tableExists(toIcebergTableIdentifier(tablePath));
     }
 
     @Override
@@ -162,7 +158,7 @@ public class IcebergCatalog implements Catalog {
             log.info("Fetched table details for: {}", tablePath);
             return catalogTable;
         } catch (NoSuchTableException e) {
-            throw new TableNotExistException("table not exist", tablePath, e);
+            throw new TableNotExistException("Table not exist", tablePath, e);
         }
     }
 
@@ -170,23 +166,7 @@ public class IcebergCatalog implements Catalog {
     public void createTable(TablePath tablePath, CatalogTable table, boolean ignoreIfExists)
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         log.info("Creating table at path: {}", tablePath);
-        TableSchema tableSchema = table.getTableSchema();
-        Schema icebergSchema = toIcebergSchema(tableSchema);
-        PartitionSpec.Builder psBuilder = PartitionSpec.builderFor(icebergSchema);
-        for (String p : table.getPartitionKeys()) {
-            psBuilder.identity(p);
-        }
-
-        Map<String, String> options = new HashMap<>(table.getOptions());
-        options.put("format-version", "2");
-        log.info(
-                "tablePath: {}, tableSchema: {}, partitionKeys: {}, options: {}",
-                tablePath,
-                tableSchema,
-                table.getPartitionKeys(),
-                options);
-        catalog.createTable(
-                toIcebergTableIdentifier(tablePath), icebergSchema, psBuilder.build(), options);
+        SchemaUtils.autoCreateTable(catalog, tablePath, table, readonlyConfig);
     }
 
     @Override
@@ -207,15 +187,16 @@ public class IcebergCatalog implements Catalog {
     @Override
     public void createDatabase(TablePath tablePath, boolean ignoreIfExists)
             throws DatabaseAlreadyExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        // Do nothing
     }
 
     @Override
     public void dropDatabase(TablePath tablePath, boolean ignoreIfNotExists)
             throws DatabaseNotExistException, CatalogException {
-        throw new UnsupportedOperationException();
+        // Do nothing
     }
 
+    @Override
     public boolean isExistsData(TablePath tablePath) {
         if (!tableExists(tablePath)) {
             throw new TableNotExistException("table not exist", tablePath);
@@ -227,6 +208,11 @@ public class IcebergCatalog implements Catalog {
             return total != null && !total.equals("0");
         }
         return false;
+    }
+
+    @Override
+    public void executeSql(TablePath tablePath, String sql) {
+        throw new UnsupportedOperationException("Does not support executing custom SQL");
     }
 
     public void truncateTable(TablePath tablePath, boolean ignoreIfNotExists)
@@ -242,26 +228,33 @@ public class IcebergCatalog implements Catalog {
         log.info("Truncated table at path: {}", tablePath);
     }
 
-    public void executeSql(String sql) {
-        throw new UnsupportedOperationException();
-    }
-
     public CatalogTable toCatalogTable(Table icebergTable, TablePath tablePath) {
-        List<Types.NestedField> columns = icebergTable.schema().columns();
+        Schema schema = icebergTable.schema();
+        List<Types.NestedField> columns = schema.columns();
         TableSchema.Builder builder = TableSchema.builder();
-        buildColumnsWithErrorCheck(
-                tablePath,
-                builder,
-                columns.iterator(),
+        columns.forEach(
                 nestedField -> {
                     String name = nestedField.name();
                     SeaTunnelDataType<?> seaTunnelType =
-                            icebergDataTypeConvertor.toSeaTunnelType(
-                                    name, nestedField.type().typeId());
-                    return PhysicalColumn.of(
-                            name, seaTunnelType, (Long) null, true, null, nestedField.doc());
+                            SchemaUtils.toSeaTunnelType(name, nestedField.type());
+                    PhysicalColumn physicalColumn =
+                            PhysicalColumn.of(
+                                    name,
+                                    seaTunnelType,
+                                    (Long) null,
+                                    nestedField.isOptional(),
+                                    null,
+                                    nestedField.doc());
+                    builder.column(physicalColumn);
                 });
-
+        Optional.ofNullable(schema.identifierFieldNames())
+                .map(
+                        (Function<Set<String>, Object>)
+                                names ->
+                                        builder.primaryKey(
+                                                PrimaryKey.of(
+                                                        tablePath.getTableName() + "_pk",
+                                                        new ArrayList<>(names))));
         List<String> partitionKeys =
                 icebergTable.spec().fields().stream()
                         .map(PartitionField::name)
@@ -275,40 +268,6 @@ public class IcebergCatalog implements Catalog {
                 partitionKeys,
                 null,
                 catalogName);
-    }
-
-    public org.apache.iceberg.Schema toIcebergSchema(TableSchema tableSchema) {
-        int index = 1;
-        List<Column> columns = tableSchema.getColumns();
-        List<Types.NestedField> nestedFields = new ArrayList<>(columns.size());
-        for (int i = 0; i < columns.size(); i++) {
-            Column column = columns.get(i);
-            SeaTunnelDataType<?> dataType = column.getDataType();
-            String name = column.getName();
-            Map<String, Object> options =
-                    column.getOptions() != null
-                            ? new HashMap<>(column.getOptions())
-                            : new HashMap<>();
-            if (dataType.getSqlType().equals(SqlType.DECIMAL)) {
-                DecimalType decimalType = (DecimalType) dataType;
-                options.put(IcebergDataTypeConvertor.PRECISION, decimalType.getPrecision());
-                options.put(IcebergDataTypeConvertor.SCALE, decimalType.getScale());
-            }
-            Type type = icebergDataTypeConvertor.toConnectorTypeType(name, dataType, options);
-            nestedFields.add(Types.NestedField.of(i + 1, true, name, type, column.getComment()));
-        }
-        return new org.apache.iceberg.Schema(nestedFields);
-    }
-
-    public static org.apache.iceberg.catalog.TableIdentifier toIcebergTableIdentifier(
-            TablePath tablePath) {
-        return org.apache.iceberg.catalog.TableIdentifier.of(
-                tablePath.getDatabaseName(), tablePath.getTableName());
-    }
-
-    public static TablePath toTablePath(
-            org.apache.iceberg.catalog.TableIdentifier tableIdentifier) {
-        return TablePath.of(tableIdentifier.namespace().toString(), tableIdentifier.name());
     }
 
     @Override

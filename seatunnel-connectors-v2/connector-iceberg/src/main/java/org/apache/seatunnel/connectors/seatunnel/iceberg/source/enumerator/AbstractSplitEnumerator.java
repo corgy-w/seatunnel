@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.iceberg.source.enumerator;
 
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.IcebergTableLoader;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.source.split.IcebergFileScanTaskSplit;
@@ -41,25 +42,28 @@ import java.util.Set;
 public abstract class AbstractSplitEnumerator
         implements SourceSplitEnumerator<IcebergFileScanTaskSplit, IcebergSplitEnumeratorState> {
 
-    protected final SourceSplitEnumerator.Context<IcebergFileScanTaskSplit> context;
+    protected final Context<IcebergFileScanTaskSplit> context;
     protected final SourceConfig sourceConfig;
     protected final Map<Integer, List<IcebergFileScanTaskSplit>> pendingSplits;
 
     protected IcebergTableLoader icebergTableLoader;
     @Getter private volatile boolean isOpen = false;
+    private CatalogTable catalogTable;
 
     public AbstractSplitEnumerator(
             @NonNull SourceSplitEnumerator.Context<IcebergFileScanTaskSplit> context,
             @NonNull SourceConfig sourceConfig,
-            @NonNull Map<Integer, List<IcebergFileScanTaskSplit>> pendingSplits) {
+            @NonNull Map<Integer, List<IcebergFileScanTaskSplit>> pendingSplits,
+            CatalogTable catalogTable) {
         this.context = context;
         this.sourceConfig = sourceConfig;
         this.pendingSplits = new HashMap<>(pendingSplits);
+        this.catalogTable = catalogTable;
     }
 
     @Override
     public void open() {
-        icebergTableLoader = IcebergTableLoader.create(sourceConfig);
+        icebergTableLoader = IcebergTableLoader.create(sourceConfig, catalogTable);
         icebergTableLoader.open();
         isOpen = true;
     }
@@ -99,7 +103,8 @@ public abstract class AbstractSplitEnumerator
     public void notifyCheckpointComplete(long checkpointId) throws Exception {}
 
     protected void refreshPendingSplits() {
-        List<IcebergFileScanTaskSplit> newSplits = loadNewSplits(icebergTableLoader.loadTable());
+        Table table = icebergTableLoader.loadTable();
+        List<IcebergFileScanTaskSplit> newSplits = loadNewSplits(table);
         addPendingSplits(newSplits);
     }
 

@@ -15,31 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.iceberg.sink.writer;
+package org.apache.seatunnel.transform.common;
 
-import org.apache.iceberg.io.TaskWriter;
+public enum ErrorHandleWay {
+    // Fail the transformation when error occurs
+    FAIL,
+    // Skip the data when error occurs
+    SKIP,
+    // Skip the row when error occurs
+    SKIP_ROW;
 
-import java.io.Serializable;
+    public boolean allowSkipThisRow() {
+        return this == SKIP_ROW;
+    }
 
-/**
- * Factory to create {@link TaskWriter}
- *
- * @param <T> data type of record.
- */
-public interface TaskWriterFactory<T> extends Serializable {
-
-    /**
-     * Initialize the factory with a given taskId and attemptId.
-     *
-     * @param taskId the identifier of task.
-     * @param attemptId the attempt id of this task.
-     */
-    void initialize(int taskId, int attemptId);
-
-    /**
-     * Initialize a {@link TaskWriter} with given task id and attempt id.
-     *
-     * @return a newly created task writer.
-     */
-    TaskWriter<T> create();
+    public boolean allowSkip() {
+        return this == SKIP;
+    }
 }
