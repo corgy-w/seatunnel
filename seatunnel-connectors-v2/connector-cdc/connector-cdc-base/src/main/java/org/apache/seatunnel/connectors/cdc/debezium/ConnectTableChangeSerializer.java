@@ -54,7 +54,8 @@ import static io.debezium.relational.history.ConnectTableChangeSerializer.TYPE_N
 public class ConnectTableChangeSerializer
         implements TableChanges.TableChangesSerializer<List<Struct>>, Serializable {
 
-    private static final SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create();
+    private static final SchemaNameAdjuster schemaNameAdjuster =
+            DebeziumSchemaNameAdjuster.create();
 
     private static final Schema COLUMN_SCHEMA =
             SchemaBuilder.struct()

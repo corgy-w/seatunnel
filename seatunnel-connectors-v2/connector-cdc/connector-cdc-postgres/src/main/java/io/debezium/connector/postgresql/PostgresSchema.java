@@ -17,6 +17,8 @@
 
 package io.debezium.connector.postgresql;
 
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.errors.ConnectException;
 
@@ -33,7 +35,6 @@ import io.debezium.relational.TableId;
 import io.debezium.relational.TableSchemaBuilder;
 import io.debezium.relational.Tables;
 import io.debezium.schema.TopicSelector;
-import io.debezium.util.SchemaNameAdjuster;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -90,7 +91,7 @@ public class PostgresSchema extends RelationalDatabaseSchema {
             PostgresConnectorConfig config, PostgresValueConverter valueConverter) {
         return new TableSchemaBuilder(
                 valueConverter,
-                SchemaNameAdjuster.create(),
+                DebeziumSchemaNameAdjuster.create(),
                 config.customConverterRegistry(),
                 config.getSourceInfoStructMaker().schema(),
                 config.getSanitizeFieldNames());

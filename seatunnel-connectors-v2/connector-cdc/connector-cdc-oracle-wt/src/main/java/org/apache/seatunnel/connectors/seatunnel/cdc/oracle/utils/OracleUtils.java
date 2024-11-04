@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.offset.RedoLogOffset;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.SQLUtils;
 
@@ -383,7 +384,7 @@ public class OracleUtils {
     public static OracleDatabaseSchema createOracleDatabaseSchema(
             OracleConnectorConfig dbzOracleConfig, OracleConnection connection) {
         TopicSelector<TableId> topicSelector = OracleTopicSelector.defaultSelector(dbzOracleConfig);
-        SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create();
+        SchemaNameAdjuster schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         OracleValueConverters oracleValueConverters =
                 new OracleValueConverters(dbzOracleConfig, connection);
         StreamingAdapter.TableNameCaseSensitivity tableNameCaseSensitivity =
@@ -403,7 +404,7 @@ public class OracleUtils {
             OracleConnection connection,
             boolean tableIdCaseInsensitive) {
         TopicSelector<TableId> topicSelector = OracleTopicSelector.defaultSelector(dbzOracleConfig);
-        SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create();
+        SchemaNameAdjuster schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         OracleValueConverters oracleValueConverters =
                 new OracleValueConverters(dbzOracleConfig, connection);
         StreamingAdapter.TableNameCaseSensitivity tableNameCaseSensitivity =

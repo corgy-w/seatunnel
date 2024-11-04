@@ -369,7 +369,7 @@ public class OracleUtils {
     public static OracleDatabaseSchema createOracleDatabaseSchema(
             OracleConnectorConfig dbzOracleConfig, OracleConnection connection) {
         TopicSelector<TableId> topicSelector = OracleTopicSelector.defaultSelector(dbzOracleConfig);
-        SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create();
+        SchemaNameAdjuster schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         OracleValueConverters oracleValueConverters =
                 new OracleValueConverters(dbzOracleConfig, connection);
         StreamingAdapter.TableNameCaseSensitivity tableNameCaseSensitivity =
@@ -389,7 +389,7 @@ public class OracleUtils {
             OracleConnection connection,
             boolean tableIdCaseInsensitive) {
         TopicSelector<TableId> topicSelector = OracleTopicSelector.defaultSelector(dbzOracleConfig);
-        SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create();
+        SchemaNameAdjuster schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         OracleValueConverters oracleValueConverters =
                 new OracleValueConverters(dbzOracleConfig, connection);
         StreamingAdapter.TableNameCaseSensitivity tableNameCaseSensitivity =
