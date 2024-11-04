@@ -6,6 +6,8 @@
 
 package io.debezium.connector.opengauss;
 
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
+
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -68,7 +70,7 @@ public class LogicalDecodingMessageMonitor {
 
     public LogicalDecodingMessageMonitor(
             OpengaussConnectorConfig connectorConfig, BlockingConsumer<SourceRecord> sender) {
-        this.schemaNameAdjuster = SchemaNameAdjuster.create();
+        this.schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         this.sender = sender;
         this.topicName = connectorConfig.getLogicalName() + LOGICAL_DECODING_MESSAGE_TOPIC_SUFFIX;
         this.binaryMode = connectorConfig.binaryHandlingMode();

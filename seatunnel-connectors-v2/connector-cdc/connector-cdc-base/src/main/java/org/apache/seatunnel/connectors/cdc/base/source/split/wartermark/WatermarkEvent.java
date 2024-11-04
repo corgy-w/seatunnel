@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.cdc.base.source.split.wartermark;
 
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
 
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -40,7 +41,8 @@ public class WatermarkEvent {
     public static final String SIGNAL_EVENT_VALUE_SCHEMA_NAME =
             "io.debezium.connector.seatunnel.cdc.embedded.watermark.value";
 
-    private static final SchemaNameAdjuster SCHEMA_NAME_ADJUSTER = SchemaNameAdjuster.create();
+    private static final SchemaNameAdjuster SCHEMA_NAME_ADJUSTER =
+            DebeziumSchemaNameAdjuster.create();
 
     private static final Schema SIGNAL_EVENT_KEY_SCHEMA =
             SchemaBuilder.struct()
