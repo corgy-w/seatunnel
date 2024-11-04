@@ -26,6 +26,7 @@ import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorException;
 import org.apache.seatunnel.format.avro.AvroSerializationSchema;
+import org.apache.seatunnel.format.cdc.custom.json.CustomJsonSerializationSchema;
 import org.apache.seatunnel.format.compatible.debezium.json.CompatibleDebeziumJsonDeserializationSchema;
 import org.apache.seatunnel.format.compatible.debezium.json.CompatibleDebeziumJsonSerializationSchema;
 import org.apache.seatunnel.format.json.JsonSerializationSchema;
@@ -175,6 +176,11 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
                     new CompatibleDebeziumJsonSerializationSchema(rowType, true);
             return row -> serializationSchema.serialize(row);
         }
+        if (MessageFormat.CUSTOM_CDC_JSON.equals(format)) {
+            CustomJsonSerializationSchema serializationSchema =
+                    new CustomJsonSerializationSchema(rowType, true);
+            return row -> serializationSchema.serialize(row);
+        }
 
         if (keyFields == null || keyFields.isEmpty()) {
             return row -> null;
@@ -257,6 +263,8 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
                 String protobufSchema = pluginConfig.get(PROTOBUF_SCHEMA);
                 return new ProtobufSerializationSchema(
                         rowType, protobufMessageName, protobufSchema);
+            case CUSTOM_CDC_JSON:
+                return new CustomJsonSerializationSchema(rowType, isKey);
             default:
                 throw new SeaTunnelJsonFormatException(
                         CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
