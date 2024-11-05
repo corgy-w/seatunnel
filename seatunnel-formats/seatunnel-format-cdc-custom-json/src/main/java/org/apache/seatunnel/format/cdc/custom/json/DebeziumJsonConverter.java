@@ -45,7 +45,7 @@ public class DebeziumJsonConverter implements Serializable {
     public static final String SOURCE_ORACLE_SCN = "scn";
     public static final String SOURCE_DAMENG_SCN = "scn";
     public static final String SOURCE_POSTGRES_LSN = "lsn";
-    public static final String OP_INSERT = "i";
+    public static final String OP_INSERT = "c";
     public static final String OP_UPDATE = "u";
     public static final String OP_DELETE = "d";
     public static final String OP_READ = "r";
