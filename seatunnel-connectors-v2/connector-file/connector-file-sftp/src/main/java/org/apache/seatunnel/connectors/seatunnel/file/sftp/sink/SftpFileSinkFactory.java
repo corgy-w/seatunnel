@@ -69,6 +69,10 @@ public class SftpFileSinkFactory extends BaseMultipleTableFinkSinkFactory {
                         BaseSinkConfig.ENABLE_HEADER_WRITE)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
+                        FileFormat.EXCEL,
+                        BaseSinkConfig.ENABLE_HEADER_WRITE)
+                .conditional(
+                        BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.JSON,
                         BaseSinkConfig.TXT_COMPRESS)
                 .conditional(

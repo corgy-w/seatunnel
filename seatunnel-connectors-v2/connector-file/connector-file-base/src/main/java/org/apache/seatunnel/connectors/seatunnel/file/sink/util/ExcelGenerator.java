@@ -29,6 +29,7 @@ import org.apache.seatunnel.common.utils.TimeUtils;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.config.FileSinkConfig;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CreationHelper;
@@ -81,11 +82,7 @@ public class ExcelGenerator {
         this.st =
                 wb.createSheet(
                         sheetName.orElseGet(() -> String.format("Sheet%d", random.nextInt())));
-        Row row = st.createRow(this.row);
-        for (Integer i : sinkColumnsIndexInRow) {
-            String fieldName = seaTunnelRowType.getFieldName(i);
-            row.createCell(i).setCellValue(fieldName);
-        }
+        writeHeader(fileSinkConfig.getEnableHeaderWriter());
         this.dateFormat = fileSinkConfig.getDateFormat();
         this.dateTimeFormat = fileSinkConfig.getDatetimeFormat();
         this.timeFormat = fileSinkConfig.getTimeFormat();
@@ -95,8 +92,6 @@ public class ExcelGenerator {
         dateCellStyle = createStyle(wb, dateFormat.getValue());
         dateTimeCellStyle = createStyle(wb, dateTimeFormat.getValue());
         timeCellStyle = createStyle(wb, timeFormat.getValue());
-
-        this.row += 1;
     }
 
     public void writeData(SeaTunnelRow seaTunnelRow) {
@@ -108,6 +103,17 @@ public class ExcelGenerator {
             setCellValue(fieldTypes[i], seaTunnelRowType.getFieldName(i), value, cell);
         }
         this.row += 1;
+    }
+
+    public void writeHeader(Boolean enableHeaderWriter) {
+        if (BooleanUtils.isTrue(enableHeaderWriter)) {
+            Row row = st.createRow(this.row);
+            for (Integer i : sinkColumnsIndexInRow) {
+                String fieldName = seaTunnelRowType.getFieldName(i);
+                row.createCell(i).setCellValue(fieldName);
+            }
+            this.row += 1;
+        }
     }
 
     public void flushAndCloseExcel(OutputStream output) throws IOException {
