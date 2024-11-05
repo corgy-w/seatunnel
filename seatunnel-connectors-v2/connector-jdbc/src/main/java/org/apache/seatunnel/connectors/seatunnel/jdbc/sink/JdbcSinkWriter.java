@@ -220,26 +220,27 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
                                     jdbcSinkConfig,
                                     catalogTable.getTableSchema())
                             .build();
+            // Before OutputFormat opens, you need to update the database first
+            TablePath tablePath =
+                    TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable());
+            JdbcConnectionProvider refreshTableSchemaConnectionProvider =
+                    dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
+            try (Connection connection =
+                    refreshTableSchemaConnectionProvider.getOrEstablishConnection()) {
+                dialect.applySchemaChange(connection, tablePath, event);
+            } catch (Exception throwables) {
+                log.error("schema change error :", throwables);
+                throw new JdbcConnectorException(
+                        CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
+                        "schema change error",
+                        throwables);
+            }
             outputFormat.open();
         } catch (Exception e) {
             throw new JdbcConnectorException(
                     CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
                     " rebuild outputFormat fail",
                     e);
-        }
-
-        TablePath tablePath = TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable());
-        JdbcConnectionProvider refreshTableSchemaConnectionProvider =
-                dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
-        try (Connection connection =
-                refreshTableSchemaConnectionProvider.getOrEstablishConnection()) {
-            dialect.applySchemaChange(connection, tablePath, event);
-        } catch (Exception throwables) {
-            log.error("schema change error :", throwables);
-            throw new JdbcConnectorException(
-                    CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
-                    "schema change error",
-                    throwables);
         }
     }
 }
