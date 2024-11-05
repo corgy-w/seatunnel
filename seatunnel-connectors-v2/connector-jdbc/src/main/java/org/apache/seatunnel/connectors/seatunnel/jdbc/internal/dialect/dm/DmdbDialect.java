@@ -19,6 +19,12 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
+import org.apache.seatunnel.api.table.converter.TypeConverter;
+import org.apache.seatunnel.api.table.event.AlterTableAddColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableChangeColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableDropColumnEvent;
+import org.apache.seatunnel.api.table.event.AlterTableModifyColumnEvent;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
@@ -27,6 +33,9 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +55,11 @@ public class DmdbDialect implements JdbcDialect {
     public DmdbDialect(String fieldIde, ReadonlyConfig config) {
         this.fieldIde = fieldIde;
         this.config = config;
+    }
+
+    @Override
+    public TypeConverter<BasicTypeDefine> typeConverter() {
+        return (TypeConverter) DmdbTypeConverter.INSTANCE;
     }
 
     @Override
@@ -260,5 +274,131 @@ public class DmdbDialect implements JdbcDialect {
         }
 
         return "\"" + getFieldIde(identifier, fieldIde) + "\"";
+    }
+
+    @Override
+    public void applySchemaChange(
+            Connection connection, TablePath tablePath, AlterTableAddColumnEvent event)
+            throws SQLException {
+
+        boolean someCatalog = event.tableIdentifier().getCatalogName().equals(dialectName());
+        BasicTypeDefine typeDefine = typeConverter().reconvert(event.getColumn());
+        String columnType =
+                someCatalog ? event.getColumn().getSourceType() : typeDefine.getColumnType();
+        StringBuilder sqlBuilder =
+                new StringBuilder()
+                        .append("ALTER TABLE")
+                        .append(" ")
+                        .append(tableIdentifier(tablePath))
+                        .append(" ")
+                        .append("ADD")
+                        .append(" ")
+                        .append(quoteIdentifier(event.getColumn().getName()))
+                        .append(" ")
+                        .append(columnType)
+                        .append(" ")
+                        .append(event.getColumn().isNullable() ? "NULL" : "NOT NULL");
+        if (event.getColumn().getDefaultValue() != null) {
+            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine));
+        }
+        String addColumnSQL = sqlBuilder.toString();
+        try (Statement statement = connection.createStatement()) {
+            log.info("Executing add column SQL: " + addColumnSQL);
+            statement.execute(addColumnSQL);
+            addComment(
+                    statement,
+                    event.getColumn().getComment(),
+                    tablePath,
+                    quoteIdentifier(event.getColumn().getName()));
+        }
+    }
+
+    @Override
+    public void applySchemaChange(
+            Connection connection, TablePath tablePath, AlterTableChangeColumnEvent event)
+            throws SQLException {
+        StringBuilder sqlBuilder =
+                new StringBuilder()
+                        .append("ALTER TABLE")
+                        .append(" ")
+                        .append(tableIdentifier(tablePath))
+                        .append(" ")
+                        .append("RENAME COLUMN")
+                        .append(" ")
+                        .append(quoteIdentifier(event.getOldColumn()))
+                        .append(" TO ")
+                        .append(quoteIdentifier(event.getColumn().getName()));
+        String changeColumnSQL = sqlBuilder.toString();
+        try (Statement statement = connection.createStatement()) {
+            log.info("Executing change column SQL: " + changeColumnSQL);
+            statement.execute(changeColumnSQL);
+        }
+    }
+
+    @Override
+    public void applySchemaChange(
+            Connection connection, TablePath tablePath, AlterTableModifyColumnEvent event)
+            throws SQLException {
+
+        boolean someCatalog = event.tableIdentifier().getCatalogName().equals(dialectName());
+        BasicTypeDefine typeDefine = typeConverter().reconvert(event.getColumn());
+        String columnType =
+                someCatalog ? event.getColumn().getSourceType() : typeDefine.getColumnType();
+        StringBuilder sqlBuilder =
+                new StringBuilder()
+                        .append("ALTER TABLE")
+                        .append(" ")
+                        .append(tableIdentifier(tablePath))
+                        .append(" ")
+                        .append("MODIFY")
+                        .append(" ")
+                        .append(quoteIdentifier(event.getColumn().getName()))
+                        .append(" ")
+                        .append(columnType)
+                        .append(" ")
+                        .append(event.getColumn().isNullable() ? "NULL" : "NOT NULL");
+        if (event.getColumn().getDefaultValue() != null) {
+            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine));
+        }
+        String modifyColumnSQL = sqlBuilder.toString();
+        try (Statement statement = connection.createStatement()) {
+            log.info("Executing modify column SQL: " + modifyColumnSQL);
+            statement.execute(modifyColumnSQL);
+            addComment(
+                    statement,
+                    event.getColumn().getComment(),
+                    tablePath,
+                    quoteIdentifier(event.getColumn().getName()));
+        }
+    }
+
+    @Override
+    public void applySchemaChange(
+            Connection connection, TablePath tablePath, AlterTableDropColumnEvent event)
+            throws SQLException {
+        String dropColumnSQL =
+                String.format(
+                        "ALTER TABLE %s DROP COLUMN %s",
+                        tableIdentifier(tablePath), quoteIdentifier(event.getColumn()));
+        try (Statement statement = connection.createStatement()) {
+            log.info("Executing drop column SQL: " + dropColumnSQL);
+            statement.execute(dropColumnSQL);
+        }
+    }
+
+    private void addComment(
+            Statement statement, String comment, TablePath tablePath, String columnName) {
+        if (comment != null) {
+            String addCommentSql =
+                    String.format(
+                            "comment on column %s.%s is '%s'",
+                            tableIdentifier(tablePath), quoteIdentifier(columnName), comment);
+            log.info("Executing add column comment SQL: " + addCommentSql);
+            try {
+                statement.execute(addCommentSql);
+            } catch (SQLException exception) {
+                log.warn("Executing add column comment SQL fail : {}", addCommentSql);
+            }
+        }
     }
 }
