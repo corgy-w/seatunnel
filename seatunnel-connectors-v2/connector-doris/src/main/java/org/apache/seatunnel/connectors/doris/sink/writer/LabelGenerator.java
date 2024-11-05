@@ -17,13 +17,20 @@
 
 package org.apache.seatunnel.connectors.doris.sink.writer;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+
 /** Generator label for stream load. */
 public class LabelGenerator {
     private final String labelPrefix;
     private final boolean enable2PC;
 
     public LabelGenerator(String labelPrefix, boolean enable2PC) {
-        this.labelPrefix = labelPrefix;
+        try {
+            this.labelPrefix = URLEncoder.encode(labelPrefix, "UTF-8").replace("%", "");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
         this.enable2PC = enable2PC;
     }
 
