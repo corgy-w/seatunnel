@@ -180,6 +180,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
             DatabaseMetaData metaData = conn.getMetaData();
             Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
             List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            String tableComment = getTableComment(metaData, tablePath);
             try (PreparedStatement ps = conn.prepareStatement(getSelectColumnsSql(tablePath));
                     ResultSet resultSet = ps.executeQuery()) {
 
@@ -218,7 +219,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
                         builder.build(),
                         buildConnectorOptions(tablePath),
                         Collections.emptyList(),
-                        "",
+                        tableComment,
                         catalogName);
             }
         } catch (SeaTunnelRuntimeException e) {
@@ -246,6 +247,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
             DatabaseMetaData metaData = conn.getMetaData();
             Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
             List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            String tableComment = getTableComment(metaData, tablePath);
             try (PreparedStatement ps = conn.prepareStatement(getSelectColumnsSql(tablePath));
                     ResultSet resultSet = ps.executeQuery()) {
 
@@ -294,7 +296,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
                         builder.build(),
                         buildConnectorOptions(tablePath),
                         Collections.emptyList(),
-                        "",
+                        tableComment,
                         catalogName);
             }
         } catch (SeaTunnelRuntimeException e) {
@@ -355,6 +357,20 @@ public abstract class AbstractJdbcCatalog implements Catalog {
             DatabaseMetaData metaData, String database, String schema, String table)
             throws SQLException {
         return CatalogUtils.getConstraintKeys(metaData, TablePath.of(database, schema, table));
+    }
+
+    protected String getTableComment(DatabaseMetaData metaData, TablePath tablePath)
+            throws SQLException {
+        ResultSet resultSet =
+                metaData.getTables(
+                        tablePath.getDatabaseName(),
+                        tablePath.getSchemaName(),
+                        tablePath.getTableName(),
+                        null);
+        while (resultSet.next()) {
+            return resultSet.getString("REMARKS");
+        }
+        return null;
     }
 
     protected String getListDatabaseSql() {

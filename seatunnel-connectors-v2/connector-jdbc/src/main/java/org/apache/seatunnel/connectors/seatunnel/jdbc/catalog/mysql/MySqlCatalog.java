@@ -38,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -215,6 +216,27 @@ public class MySqlCatalog extends AbstractJdbcCatalog {
         return String.format(
                 "SELECT * FROM `%s`.`%s` LIMIT 1;",
                 tablePath.getDatabaseName(), tablePath.getTableName());
+    }
+
+    @Override
+    protected String getTableComment(DatabaseMetaData metaData, TablePath tablePath)
+            throws SQLException {
+        try (PreparedStatement statement =
+                getConnection(defaultUrl)
+                        .prepareStatement(
+                                "SELECT TABLE_COMMENT FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?")) {
+            statement.setString(1, tablePath.getDatabaseName());
+            statement.setString(2, tablePath.getTableName());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString(1);
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            log.warn("Failed to get table comment", e);
+            return null;
+        }
     }
 
     private MySqlVersion resolveVersion() {

@@ -166,7 +166,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
                             tablePath.getDatabaseName(),
                             tablePath.getSchemaName(),
                             tablePath.getTableName());
-
+            String tableComment = getTableComment(metaData, tablePath);
             try (ResultSet resultSet =
                     metaData.getColumns(
                             tablePath.getDatabaseName(),
@@ -190,7 +190,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
                         builder.build(),
                         buildConnectorOptions(tablePath),
                         Collections.emptyList(),
-                        "",
+                        tableComment,
                         catalogName);
             }
 
