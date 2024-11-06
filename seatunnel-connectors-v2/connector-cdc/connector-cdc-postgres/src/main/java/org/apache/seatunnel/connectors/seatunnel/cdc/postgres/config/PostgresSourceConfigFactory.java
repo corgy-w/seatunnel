@@ -75,6 +75,9 @@ public class PostgresSourceConfigFactory extends JdbcSourceConfigFactory {
         props.setProperty("database.tcpKeepAlive", String.valueOf(true));
         props.setProperty("include.schema.changes", String.valueOf(false));
 
+        // tombstones.on.delete is set to false to avoid tombstones being sent to the sink
+        props.setProperty("tombstones.on.delete", String.valueOf(false));
+
         if (tableList != null) {
             // pg identifier is of the form schemaName.tableName
             props.setProperty(

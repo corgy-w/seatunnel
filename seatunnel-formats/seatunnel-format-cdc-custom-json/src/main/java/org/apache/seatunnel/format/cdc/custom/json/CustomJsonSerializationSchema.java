@@ -30,6 +30,9 @@ import org.apache.kafka.connect.data.Struct;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.debezium.data.Envelope;
+import io.debezium.data.SpecialValueDecimal;
+import io.debezium.data.VariableScaleDecimal;
+import io.debezium.time.MicroTimestamp;
 import lombok.SneakyThrows;
 
 import java.time.Instant;
@@ -91,35 +94,39 @@ public class CustomJsonSerializationSchema implements SerializationSchema {
     @SneakyThrows
     @Override
     public byte[] serialize(SeaTunnelRow row) {
-        String key = (String) row.getField(1);
-        Map<String, Object> keys = Collections.emptyMap();
-        if (!StringUtils.isEmpty(key)) {
-            keys = parseDebeziumRecordKey(key);
-        }
-        if (isKey) {
-            return keys.isEmpty() ? null : OBJECT_MAPPER.writeValueAsBytes(keys);
-        }
+        try {
+            String key = (String) row.getField(1);
+            Map<String, Object> keys = Collections.emptyMap();
+            if (!StringUtils.isEmpty(key)) {
+                keys = parseDebeziumRecordKey(key);
+            }
+            if (isKey) {
+                return keys.isEmpty() ? null : OBJECT_MAPPER.writeValueAsBytes(keys);
+            }
 
-        String value = (String) row.getField(2);
-        SchemaAndValue valueSchemaAndaValue = debeziumJsonConverter.deserializeValue(value);
-        Struct valueStruct = (Struct) valueSchemaAndaValue.value();
-        String op = valueStruct.getString(Envelope.FieldName.OPERATION);
-        Struct source = valueStruct.getStruct(Envelope.FieldName.SOURCE);
-        Struct before = valueStruct.getStruct(Envelope.FieldName.BEFORE);
-        Struct after = valueStruct.getStruct(Envelope.FieldName.AFTER);
+            String value = (String) row.getField(2);
+            SchemaAndValue valueSchemaAndaValue = debeziumJsonConverter.deserializeValue(value);
+            Struct valueStruct = (Struct) valueSchemaAndaValue.value();
+            String op = valueStruct.getString(Envelope.FieldName.OPERATION);
+            Struct source = valueStruct.getStruct(Envelope.FieldName.SOURCE);
+            Struct before = valueStruct.getStruct(Envelope.FieldName.BEFORE);
+            Struct after = valueStruct.getStruct(Envelope.FieldName.AFTER);
 
-        CustomJsonRecord customJsonRecord =
-                CustomJsonRecord.builder()
-                        .table(parseTablePath(source).toUpperCase())
-                        .primaryKeys(new ArrayList<>(keys.keySet()))
-                        .before(before == null ? null : parseData(before))
-                        .after(after == null ? null : parseData(after))
-                        .op(parseOp(op))
-                        .opTs(parseOpTs(source))
-                        .currentTs(parseCurrentTs())
-                        .pos(parsePos(keys, op, source, after))
-                        .build();
-        return OBJECT_MAPPER.writeValueAsBytes(customJsonRecord);
+            CustomJsonRecord customJsonRecord =
+                    CustomJsonRecord.builder()
+                            .table(parseTablePath(source).toUpperCase())
+                            .primaryKeys(new ArrayList<>(keys.keySet()))
+                            .before(before == null ? null : parseData(before))
+                            .after(after == null ? null : parseData(after))
+                            .op(parseOp(op))
+                            .opTs(parseOpTs(source))
+                            .currentTs(parseCurrentTs())
+                            .pos(parsePos(keys, op, source, after))
+                            .build();
+            return OBJECT_MAPPER.writeValueAsBytes(customJsonRecord);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize row: " + row, e);
+        }
     }
 
     private Map<String, Object> parseDebeziumRecordKey(String key) {
@@ -128,7 +135,8 @@ public class CustomJsonSerializationSchema implements SerializationSchema {
         SchemaAndValue keySchemaAndaValue = debeziumJsonConverter.deserializeKey(key);
         Struct keyStruct = (Struct) keySchemaAndaValue.value();
         for (Field field : keySchemaAndaValue.schema().fields()) {
-            keyMap.put(field.name(), keyStruct.get(field));
+            Object value = parseField(keyStruct, field);
+            keyMap.put(field.name(), value);
         }
         return keyMap;
     }
@@ -202,38 +210,60 @@ public class CustomJsonSerializationSchema implements SerializationSchema {
     private Map<String, Object> parseData(Struct struct) {
         Map<String, Object> data = new LinkedHashMap<>();
         for (Field field : struct.schema().fields()) {
-            String schemaName = field.schema().name();
-            Object value;
-            switch (field.schema().type()) {
-                case INT32:
-                    if (schemaName != null
-                            && io.debezium.time.Date.SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
-                        value =
-                                LocalDate.ofEpochDay(struct.getInt32(field.name()))
-                                        .format(DateTimeFormatter.ISO_DATE);
-                    } else {
-                        value = struct.get(field);
-                    }
-                    break;
-                case INT64:
-                    if (schemaName != null
-                            && io.debezium.time.Timestamp.SCHEMA_NAME.equalsIgnoreCase(
-                                    schemaName)) {
+            Object value = parseField(struct, field);
+            data.put(field.name(), value);
+        }
+        return data;
+    }
+
+    private Object parseField(Struct struct, Field field) {
+        String schemaName = field.schema().name();
+        Object value;
+        switch (field.schema().type()) {
+            case INT32:
+                if (schemaName != null
+                        && io.debezium.time.Date.SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
+                    value =
+                            LocalDate.ofEpochDay(struct.getInt32(field.name()))
+                                    .format(DateTimeFormatter.ISO_DATE);
+                } else {
+                    value = struct.get(field);
+                }
+                break;
+            case INT64:
+                if (schemaName != null) {
+                    if (io.debezium.time.Timestamp.SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
                         value =
                                 Instant.ofEpochMilli(struct.getInt64(field.name()))
+                                        .atZone(ZoneOffset.UTC)
+                                        .toLocalDateTime()
+                                        .format(DATE_TIME_FORMATTER);
+                    } else if (MicroTimestamp.SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
+                        value =
+                                Instant.ofEpochMilli(struct.getInt64(field.name()) / 6)
                                         .atZone(ZoneOffset.UTC)
                                         .toLocalDateTime()
                                         .format(DATE_TIME_FORMATTER);
                     } else {
                         value = struct.get(field);
                     }
-                    break;
-                default:
+                } else {
                     value = struct.get(field);
-                    break;
-            }
-            data.put(field.name(), value);
+                }
+                break;
+            case STRUCT:
+                if (schemaName != null && VariableScaleDecimal.LOGICAL_NAME.equals(schemaName)) {
+                    SpecialValueDecimal specialValueDecimal =
+                            VariableScaleDecimal.toLogical(struct.getStruct(field.name()));
+                    value = specialValueDecimal.getDecimalValue().orElse(null);
+                } else {
+                    value = struct.get(field);
+                }
+                break;
+            default:
+                value = struct.get(field);
+                break;
         }
-        return data;
+        return value;
     }
 }

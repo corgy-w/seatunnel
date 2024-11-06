@@ -77,7 +77,7 @@ public class OracleSourceConfigFactory extends JdbcSourceConfigFactory {
         props.setProperty("include.schema.changes", String.valueOf(false));
 
         props.setProperty("connect.timeout.ms", String.valueOf(connectTimeoutMillis));
-        // disable tombstones
+        // tombstones.on.delete is set to false to avoid tombstones being sent to the sink
         props.setProperty("tombstones.on.delete", String.valueOf(false));
 
         // If the maximum value is not set, logminer may fail to capture data
