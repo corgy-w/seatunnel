@@ -107,7 +107,7 @@ public class OracleAgentSourceConfigFactory extends JdbcSourceConfigFactory {
         }
 
         props.setProperty("connect.timeout.ms", String.valueOf(connectTimeoutMillis));
-        // disable tombstones
+        // tombstones.on.delete is set to false to avoid tombstones being sent to the sink
         props.setProperty("tombstones.on.delete", String.valueOf(false));
 
         // override the user-defined debezium properties

@@ -48,6 +48,8 @@ public class DamengSourceConfigFactory extends JdbcSourceConfigFactory {
 
         // TODO Not yet supported
         props.setProperty("include.schema.changes", String.valueOf(false));
+        // tombstones.on.delete is set to false to avoid tombstones being sent to the sink
+        props.setProperty("tombstones.on.delete", String.valueOf(false));
 
         if (tableList != null) {
             // Oracle identifier is of the form schemaName.tableName

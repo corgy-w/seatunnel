@@ -48,6 +48,9 @@ public class InformixSourceConfigFactory extends JdbcSourceConfigFactory {
 
         props.setProperty("include.schema.changes", String.valueOf(false));
 
+        // tombstones.on.delete is set to false to avoid tombstones being sent to the sink
+        props.setProperty("tombstones.on.delete", String.valueOf(false));
+
         if (databaseList != null) {
             props.setProperty("database.include.list", String.join(",", databaseList));
         }

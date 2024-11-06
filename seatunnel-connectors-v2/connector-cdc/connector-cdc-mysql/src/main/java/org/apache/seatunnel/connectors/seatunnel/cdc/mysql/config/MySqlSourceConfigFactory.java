@@ -81,7 +81,7 @@ public class MySqlSourceConfigFactory extends JdbcSourceConfigFactory {
         props.setProperty(SCHEMA_CHANGE_KEY, SCHEMA_CHANGE_DEFAULT.toString());
         // disable the offset flush totally
         props.setProperty("offset.flush.interval.ms", String.valueOf(Long.MAX_VALUE));
-        // disable tombstones
+        // tombstones.on.delete is set to false to avoid tombstones being sent to the sink
         props.setProperty("tombstones.on.delete", String.valueOf(false));
         // debezium use "long" mode to handle unsigned bigint by default,
         // but it'll cause lose of precise when the value is larger than 2^63,
