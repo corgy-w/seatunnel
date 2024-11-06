@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -282,6 +283,27 @@ public class OracleCatalog extends AbstractJdbcCatalog {
         } catch (SQLException e) {
             log.info("Obtain constraint failure", e);
             return new ArrayList<>();
+        }
+    }
+
+    @Override
+    protected String getTableComment(DatabaseMetaData metaData, TablePath tablePath)
+            throws SQLException {
+        try (PreparedStatement statement =
+                getConnection(defaultUrl)
+                        .prepareStatement(
+                                "SELECT COMMENTS FROM ALL_TAB_COMMENTS WHERE OWNER = ? AND TABLE_NAME = ?")) {
+            statement.setString(1, tablePath.getSchemaName());
+            statement.setString(2, tablePath.getTableName());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString(1);
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            log.warn("Failed to get table comment", e);
+            return null;
         }
     }
 }

@@ -36,6 +36,8 @@ import org.apache.commons.lang3.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -231,5 +233,32 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     @Override
     protected String getTruncateTableSql(TablePath tablePath) throws CatalogException {
         return String.format("TRUNCATE TABLE  %s", tablePath.getFullNameWithQuoted("[", "]"));
+    }
+
+    @Override
+    protected String getTableComment(DatabaseMetaData metaData, TablePath tablePath)
+            throws SQLException {
+        String sql =
+                "select\n"
+                        + "  p.value\n"
+                        + "from\n"
+                        + "  sys.tables t\n"
+                        + "  join sys.extended_properties p on t.object_id = p.major_id\n"
+                        + "  and p.minor_id = '0'\n"
+                        + "  and schema_name(t.schema_id) = ? \n"
+                        + "  and t.name = ?";
+        try (PreparedStatement statement = getConnection(defaultUrl).prepareStatement(sql)) {
+            statement.setString(1, tablePath.getSchemaName());
+            statement.setString(2, tablePath.getTableName());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString(1);
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            log.warn("Failed to get table comment", e);
+            return null;
+        }
     }
 }
