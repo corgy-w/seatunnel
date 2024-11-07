@@ -29,12 +29,10 @@ import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.debezium.data.Envelope;
-import io.debezium.data.SpecialValueDecimal;
-import io.debezium.data.VariableScaleDecimal;
-import io.debezium.time.MicroTimestamp;
 import lombok.SneakyThrows;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -107,10 +105,10 @@ public class CustomJsonSerializationSchema implements SerializationSchema {
             String value = (String) row.getField(2);
             SchemaAndValue valueSchemaAndaValue = debeziumJsonConverter.deserializeValue(value);
             Struct valueStruct = (Struct) valueSchemaAndaValue.value();
-            String op = valueStruct.getString(Envelope.FieldName.OPERATION);
-            Struct source = valueStruct.getStruct(Envelope.FieldName.SOURCE);
-            Struct before = valueStruct.getStruct(Envelope.FieldName.BEFORE);
-            Struct after = valueStruct.getStruct(Envelope.FieldName.AFTER);
+            String op = valueStruct.getString(DebeziumJsonConverter.OPERATION);
+            Struct source = valueStruct.getStruct(DebeziumJsonConverter.SOURCE);
+            Struct before = valueStruct.getStruct(DebeziumJsonConverter.BEFORE);
+            Struct after = valueStruct.getStruct(DebeziumJsonConverter.AFTER);
 
             CustomJsonRecord customJsonRecord =
                     CustomJsonRecord.builder()
@@ -124,7 +122,7 @@ public class CustomJsonSerializationSchema implements SerializationSchema {
                             .pos(parsePos(keys, op, source, after))
                             .build();
             return OBJECT_MAPPER.writeValueAsBytes(customJsonRecord);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             throw new RuntimeException("Failed to serialize row: " + row, e);
         }
     }
@@ -218,52 +216,49 @@ public class CustomJsonSerializationSchema implements SerializationSchema {
 
     private Object parseField(Struct struct, Field field) {
         String schemaName = field.schema().name();
-        Object value;
         switch (field.schema().type()) {
             case INT32:
-                if (schemaName != null
-                        && io.debezium.time.Date.SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
-                    value =
-                            LocalDate.ofEpochDay(struct.getInt32(field.name()))
-                                    .format(DateTimeFormatter.ISO_DATE);
-                } else {
-                    value = struct.get(field);
+                if (schemaName != null && "io.debezium.time.Date".equalsIgnoreCase(schemaName)) {
+                    Integer epochDay = struct.getInt32(field.name());
+                    if (epochDay == null) {
+                        return null;
+                    }
+                    return LocalDate.ofEpochDay(epochDay).format(DateTimeFormatter.ISO_DATE);
                 }
-                break;
+                return struct.get(field);
             case INT64:
                 if (schemaName != null) {
-                    if (io.debezium.time.Timestamp.SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
-                        value =
-                                Instant.ofEpochMilli(struct.getInt64(field.name()))
-                                        .atZone(ZoneOffset.UTC)
-                                        .toLocalDateTime()
-                                        .format(DATE_TIME_FORMATTER);
-                    } else if (MicroTimestamp.SCHEMA_NAME.equalsIgnoreCase(schemaName)) {
-                        value =
-                                Instant.ofEpochMilli(struct.getInt64(field.name()) / 6)
-                                        .atZone(ZoneOffset.UTC)
-                                        .toLocalDateTime()
-                                        .format(DATE_TIME_FORMATTER);
-                    } else {
-                        value = struct.get(field);
+                    Long epochMilli = struct.getInt64(field.name());
+                    if (epochMilli == null) {
+                        return null;
                     }
-                } else {
-                    value = struct.get(field);
+                    if ("io.debezium.time.Timestamp".equalsIgnoreCase(schemaName)) {
+                        return Instant.ofEpochMilli(epochMilli)
+                                .atZone(ZoneOffset.UTC)
+                                .toLocalDateTime()
+                                .format(DATE_TIME_FORMATTER);
+                    } else if ("io.debezium.time.MicroTimestamp".equalsIgnoreCase(schemaName)) {
+                        return Instant.ofEpochMilli(epochMilli / 6)
+                                .atZone(ZoneOffset.UTC)
+                                .toLocalDateTime()
+                                .format(DATE_TIME_FORMATTER);
+                    }
                 }
-                break;
+                return struct.get(field);
             case STRUCT:
-                if (schemaName != null && VariableScaleDecimal.LOGICAL_NAME.equals(schemaName)) {
-                    SpecialValueDecimal specialValueDecimal =
-                            VariableScaleDecimal.toLogical(struct.getStruct(field.name()));
-                    value = specialValueDecimal.getDecimalValue().orElse(null);
-                } else {
-                    value = struct.get(field);
+                if (schemaName != null
+                        && "io.debezium.data.VariableScaleDecimal".equals(schemaName)) {
+                    Struct variableScaleDecimal = struct.getStruct(field.name());
+                    if (variableScaleDecimal == null) {
+                        return null;
+                    }
+                    return new BigDecimal(
+                            new BigInteger(variableScaleDecimal.getBytes("value")),
+                            variableScaleDecimal.getInt32("scale"));
                 }
-                break;
+                return struct.get(field);
             default:
-                value = struct.get(field);
-                break;
+                return struct.get(field);
         }
-        return value;
     }
 }

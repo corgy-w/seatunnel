@@ -27,6 +27,7 @@
 
     <properties>
         <debezium.version>1.6.4.Final</debezium.version>
+        <kafka-connect.version>2.7.0</kafka-connect.version>
     </properties>
 
     <dependencies>
@@ -37,9 +38,15 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-embedded</artifactId>
-            <version>${debezium.version}</version>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-api</artifactId>
+            <version>${kafka-connect.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-json</artifactId>
+            <version>${kafka-connect.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
