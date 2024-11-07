@@ -30,6 +30,7 @@ import java.util.Map;
 
 @RequiredArgsConstructor
 public class DebeziumJsonConverter implements Serializable {
+    public static final String SOURCE = "source";
     public static final String SOURCE_CONNECTOR = "connector";
     public static final String SOURCE_CONNECTOR_ORACLE = "oracle";
     public static final String SOURCE_CONNECTOR_MYSQL = "mysql";
@@ -45,10 +46,13 @@ public class DebeziumJsonConverter implements Serializable {
     public static final String SOURCE_ORACLE_SCN = "scn";
     public static final String SOURCE_DAMENG_SCN = "scn";
     public static final String SOURCE_POSTGRES_LSN = "lsn";
+    public static final String OPERATION = "op";
     public static final String OP_INSERT = "c";
     public static final String OP_UPDATE = "u";
     public static final String OP_DELETE = "d";
     public static final String OP_READ = "r";
+    public static final String BEFORE = "before";
+    public static final String AFTER = "after";
 
     private final boolean keySchemaEnable;
     private final boolean valueSchemaEnable;
