@@ -491,6 +491,14 @@
                 <scope>provided</scope>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.seatunnel</groupId>
+                <artifactId>seatunnel-hive-mrs-3.1.1-hw-ei-315008-uber</artifactId>
+                <version>${project.version}</version>
+                <classifier>optional</classifier>
+                <scope>provided</scope>
+            </dependency>
+
             <!-- Imap storage dependency package  -->
             <dependency>
                 <groupId>org.apache.hadoop</groupId>

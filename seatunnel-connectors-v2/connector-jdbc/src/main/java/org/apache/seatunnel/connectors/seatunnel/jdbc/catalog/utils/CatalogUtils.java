@@ -113,7 +113,9 @@ public class CatalogUtils {
         try (ResultSet rs =
                 metaData.getPrimaryKeys(
                         tablePath.getDatabaseName(),
-                        tablePath.getSchemaName(),
+                        tablePath.getSchemaName() == null
+                                ? tablePath.getDatabaseName()
+                                : tablePath.getSchemaName(),
                         tablePath.getTableName())) {
 
             while (rs.next()) {
