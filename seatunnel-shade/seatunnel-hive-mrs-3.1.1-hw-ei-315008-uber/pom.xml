@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.seatunnel</groupId>
         <artifactId>seatunnel-shade</artifactId>
-        <version>2.6-WS-test-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>seatunnel-hive-mrs-3.1.1-hw-ei-315008-uber</artifactId>
