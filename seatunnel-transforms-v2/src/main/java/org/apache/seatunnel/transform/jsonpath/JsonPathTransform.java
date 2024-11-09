@@ -26,6 +26,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.format.json.JsonToRowConverters;
+import org.apache.seatunnel.transform.common.ErrorHandleWay;
 import org.apache.seatunnel.transform.common.MultipleFieldOutputTransform;
 import org.apache.seatunnel.transform.common.SeaTunnelRowAccessor;
 import org.apache.seatunnel.transform.exception.ErrorDataTransformException;
@@ -37,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import static org.apache.seatunnel.transform.exception.JsonPathTransformErrorCode.JSON_PATH_COMPILE_ERROR;
 
@@ -162,6 +164,12 @@ public class JsonPathTransform extends MultipleFieldOutputTransform {
                         e);
                 return null;
             }
+            if (columnConfig.errorHandleWay() != null
+                    && columnConfig.errorHandleWay().equals(ErrorHandleWay.DEFAULT_VALUE)) {
+                return converter.convert(
+                        JsonUtils.toJsonNode(columnConfig.getDestColumn().getDefaultValue()), null);
+            }
+
             throw new ErrorDataTransformException(
                     columnConfig.errorHandleWay(),
                     JSON_PATH_COMPILE_ERROR,
@@ -174,5 +182,13 @@ public class JsonPathTransform extends MultipleFieldOutputTransform {
     @Override
     protected Column[] getOutputColumns() {
         return outputColumns;
+    }
+
+    @Override
+    protected List<String> getDeletedColumns() {
+        return this.config.getColumnConfigs().stream()
+                .filter(ColumnConfig::isDeleteSrcField)
+                .map(ColumnConfig::getSrcField)
+                .collect(Collectors.toList());
     }
 }

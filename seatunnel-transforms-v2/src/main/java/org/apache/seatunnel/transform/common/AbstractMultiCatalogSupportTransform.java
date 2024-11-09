@@ -48,6 +48,7 @@ public abstract class AbstractMultiCatalogSupportTransform
         this.rowErrorHandleWay = config.get(CommonOptions.ROW_ERROR_HANDLE_WAY_OPTION);
         this.inputCatalogTables = inputCatalogTables;
         this.transformMap = new HashMap<>();
+        preCheckConfig(config);
         inputCatalogTables.forEach(
                 inputCatalogTable -> {
                     String tableId = inputCatalogTable.getTableId().toTablePath().toString();
@@ -94,6 +95,8 @@ public abstract class AbstractMultiCatalogSupportTransform
 
     protected abstract Optional<SeaTunnelTransform<SeaTunnelRow>> buildTransform(
             CatalogTable inputCatalogTable, ReadonlyConfig config);
+
+    protected void preCheckConfig(ReadonlyConfig config) {}
 
     @Override
     public List<CatalogTable> getProducedCatalogTables() {

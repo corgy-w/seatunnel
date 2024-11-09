@@ -28,6 +28,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -86,8 +87,10 @@ public abstract class MultipleFieldOutputTransform extends AbstractCatalogSuppor
             builder.primaryKey(inputCatalogTable.getTableSchema().getPrimaryKey().copy());
         }
         builder.constraintKey(copiedConstraintKeys);
+        List<String> deletedColumns = getDeletedColumns();
         List<Column> columns =
                 inputCatalogTable.getTableSchema().getColumns().stream()
+                        .filter(c -> !deletedColumns.contains(c.getName()))
                         .map(Column::copy)
                         .collect(Collectors.toList());
 
@@ -157,4 +160,8 @@ public abstract class MultipleFieldOutputTransform extends AbstractCatalogSuppor
     }
 
     protected abstract Column[] getOutputColumns();
+
+    protected List<String> getDeletedColumns() {
+        return Collections.emptyList();
+    }
 }

@@ -19,7 +19,6 @@ package org.apache.seatunnel.transform.jsonpath;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
-import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableTransform;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableTransformFactory;
@@ -38,17 +37,15 @@ public class JsonPathTransformFactory implements TableTransformFactory {
     @Override
     public OptionRule optionRule() {
         return OptionRule.builder()
-                .required(JsonPathTransformConfig.COLUMNS)
+                .optional(JsonPathTransformConfig.COLUMNS)
+                .optional(JsonPathTransformConfig.MULTI_TABLES)
                 .optional(CommonOptions.ROW_ERROR_HANDLE_WAY_OPTION)
                 .build();
     }
 
     @Override
     public TableTransform createTransform(TableTransformFactoryContext context) {
-        CatalogTable catalogTable = context.getCatalogTables().get(0);
         ReadonlyConfig options = context.getOptions();
-        JsonPathTransformConfig jsonPathTransformConfig =
-                JsonPathTransformConfig.of(options, catalogTable);
-        return () -> new JsonPathTransform(jsonPathTransformConfig, catalogTable);
+        return () -> new JsonPathMultiCatalogTransform(context.getCatalogTables(), options);
     }
 }

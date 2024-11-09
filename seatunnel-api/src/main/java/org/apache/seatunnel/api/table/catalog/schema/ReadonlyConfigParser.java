@@ -109,54 +109,46 @@ public class ReadonlyConfigParser implements TableSchemaParser<ReadonlyConfig> {
         public List<Column> parse(ReadonlyConfig schemaConfig) {
             return schemaConfig.get(TableSchemaOptions.ColumnOptions.COLUMNS).stream()
                     .map(ReadonlyConfig::fromMap)
-                    .map(
-                            columnConfig -> {
-                                String name =
-                                        columnConfig
-                                                .getOptional(TableSchemaOptions.ColumnOptions.NAME)
-                                                .orElseThrow(
-                                                        () ->
-                                                                new IllegalArgumentException(
-                                                                        "schema.columns.* config need option [name], please correct your config first"));
-                                SeaTunnelDataType<?> seaTunnelDataType =
-                                        columnConfig
-                                                .getOptional(TableSchemaOptions.ColumnOptions.TYPE)
-                                                .map(
-                                                        column ->
-                                                                SeaTunnelDataTypeConvertorUtil
-                                                                        .deserializeSeaTunnelDataType(
-                                                                                name, column))
-                                                .orElseThrow(
-                                                        () ->
-                                                                new IllegalArgumentException(
-                                                                        "schema.columns.* config need option [type], please correct your config first"));
-
-                                Integer columnLength =
-                                        columnConfig.get(
-                                                TableSchemaOptions.ColumnOptions.COLUMN_LENGTH);
-
-                                Integer columnScale =
-                                        columnConfig.get(
-                                                TableSchemaOptions.ColumnOptions.COLUMN_SCALE);
-
-                                Boolean nullable =
-                                        columnConfig.get(TableSchemaOptions.ColumnOptions.NULLABLE);
-                                Object defaultValue =
-                                        columnConfig.get(
-                                                TableSchemaOptions.ColumnOptions.DEFAULT_VALUE);
-                                String comment =
-                                        columnConfig.get(TableSchemaOptions.ColumnOptions.COMMENT);
-                                return PhysicalColumn.of(
-                                        name,
-                                        seaTunnelDataType,
-                                        Long.valueOf(columnLength),
-                                        columnScale,
-                                        nullable,
-                                        defaultValue,
-                                        comment);
-                            })
+                    .map(ReadonlyConfigParser::parsePhysicalColumn)
                     .collect(Collectors.toList());
         }
+    }
+
+    public static PhysicalColumn parsePhysicalColumn(ReadonlyConfig columnConfig) {
+        String name =
+                columnConfig
+                        .getOptional(TableSchemaOptions.ColumnOptions.NAME)
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "schema.columns.* config need option [name], please correct your config first"));
+        SeaTunnelDataType<?> seaTunnelDataType =
+                columnConfig
+                        .getOptional(TableSchemaOptions.ColumnOptions.TYPE)
+                        .map(
+                                column ->
+                                        SeaTunnelDataTypeConvertorUtil.deserializeSeaTunnelDataType(
+                                                name, column))
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                "schema.columns.* config need option [type], please correct your config first"));
+
+        Integer columnLength = columnConfig.get(TableSchemaOptions.ColumnOptions.COLUMN_LENGTH);
+
+        Integer columnScale = columnConfig.get(TableSchemaOptions.ColumnOptions.COLUMN_SCALE);
+
+        Boolean nullable = columnConfig.get(TableSchemaOptions.ColumnOptions.NULLABLE);
+        Object defaultValue = columnConfig.get(TableSchemaOptions.ColumnOptions.DEFAULT_VALUE);
+        String comment = columnConfig.get(TableSchemaOptions.ColumnOptions.COMMENT);
+        return PhysicalColumn.of(
+                name,
+                seaTunnelDataType,
+                Long.valueOf(columnLength),
+                columnScale,
+                nullable,
+                defaultValue,
+                comment);
     }
 
     private static class ConstraintKeyParser
