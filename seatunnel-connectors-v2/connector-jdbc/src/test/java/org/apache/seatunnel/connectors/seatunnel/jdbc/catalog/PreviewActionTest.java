@@ -430,7 +430,7 @@ public class PreviewActionTest {
         PreviewResult previewResult =
                 catalog.previewAction(
                         actionType, TablePath.of("testddatabase.testtable"), catalogTable);
-        Assertions.assertInstanceOf(SQLPreviewResult.class, previewResult);
+        Assertions.assertTrue(previewResult instanceof SQLPreviewResult);
         Assertions.assertEquals(expectedSql, ((SQLPreviewResult) previewResult).getSql());
     }
 }

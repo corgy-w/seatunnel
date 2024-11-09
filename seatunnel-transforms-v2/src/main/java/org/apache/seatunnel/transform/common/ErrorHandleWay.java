@@ -23,7 +23,9 @@ public enum ErrorHandleWay {
     // Skip the data when error occurs
     SKIP,
     // Skip the row when error occurs
-    SKIP_ROW;
+    SKIP_ROW,
+    // Set the default value when error occurs
+    DEFAULT_VALUE;
 
     public boolean allowSkipThisRow() {
         return this == SKIP_ROW;
