@@ -39,6 +39,7 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
 
     private List<Column> columns;
     private PrimaryKey primaryKey;
+    private String comment;
     private String sourceCatalogName;
     private String fieldIde;
     private boolean createIndex;
@@ -50,6 +51,7 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
     public OracleCreateTableSqlBuilder(CatalogTable catalogTable, boolean createIndex) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
+        this.comment = catalogTable.getComment();
         this.sourceCatalogName = catalogTable.getCatalogName();
         this.fieldIde = catalogTable.getOptions().get("fieldIde");
         this.createIndex = createIndex;
@@ -108,6 +110,13 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
         createTableSql.append(String.join(",\n", columnSqls));
         createTableSql.append("\n)");
         sqls.add(createTableSql.toString());
+        if (comment != null) {
+            StringBuilder commentSql = new StringBuilder();
+            commentSql.append("COMMENT ON TABLE ");
+            commentSql.append(tablePath.getSchemaAndTableName("\""));
+            commentSql.append(" IS '").append(comment).append("'");
+            sqls.add(commentSql.toString());
+        }
         List<String> commentSqls =
                 columns.stream()
                         .filter(column -> StringUtils.isNotBlank(column.getComment()))

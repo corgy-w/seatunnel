@@ -52,6 +52,7 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
 
     private List<Column> columns;
     private PrimaryKey primaryKey;
+    private String comment;
     private String sourceCatalogName;
     private String fieldIde;
     private List<ConstraintKey> constraintKeys;
@@ -69,6 +70,7 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
             CatalogTable catalogTable, Collection<String> pgPlugins, boolean createIndex) {
         this.columns = catalogTable.getTableSchema().getColumns();
         this.primaryKey = catalogTable.getTableSchema().getPrimaryKey();
+        this.comment = catalogTable.getComment();
         this.sourceCatalogName = catalogTable.getCatalogName();
         this.fieldIde = catalogTable.getOptions().get("fieldIde");
         this.constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
@@ -156,6 +158,12 @@ public class PostgresCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBui
 
         createTableSql.append(String.join(",\n", columnSqls));
         createTableSql.append("\n);");
+        if (comment != null) {
+            createTableSql.append("\n");
+            createTableSql.append("COMMENT ON TABLE ");
+            createTableSql.append(tablePath.getSchemaAndTableName("\""));
+            createTableSql.append(" IS '").append(comment).append("';");
+        }
 
         List<String> commentSqls =
                 columns.stream()
