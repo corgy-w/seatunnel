@@ -44,6 +44,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
@@ -238,7 +239,7 @@ public class CustomJsonSerializationSchema implements SerializationSchema {
                                 .toLocalDateTime()
                                 .format(DATE_TIME_FORMATTER);
                     } else if ("io.debezium.time.MicroTimestamp".equalsIgnoreCase(schemaName)) {
-                        return Instant.ofEpochMilli(epochMilli / 6)
+                        return Instant.ofEpochMilli(TimeUnit.MICROSECONDS.toMillis(epochMilli))
                                 .atZone(ZoneOffset.UTC)
                                 .toLocalDateTime()
                                 .format(DATE_TIME_FORMATTER);
