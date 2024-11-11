@@ -250,7 +250,8 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
                         + "  and p.minor_id = '0'\n"
                         + "  and schema_name(t.schema_id) = ? \n"
                         + "  and t.name = ?";
-        try (PreparedStatement statement = getConnection(defaultUrl).prepareStatement(sql)) {
+        try (PreparedStatement statement =
+                getConnection(getJdbcURL(tablePath)).prepareStatement(sql)) {
             statement.setString(1, tablePath.getSchemaName());
             statement.setString(2, tablePath.getTableName());
             try (ResultSet resultSet = statement.executeQuery()) {
@@ -263,5 +264,16 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
             log.warn("Failed to get table comment", e);
             return null;
         }
+    }
+
+    @Override
+    protected String getJdbcURL(TablePath tablePath) {
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        return dbUrl;
     }
 }
