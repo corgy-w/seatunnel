@@ -62,7 +62,7 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                     + "       REMARKS AS column_comment,\n"
                     + "       DEFAULT  AS default_value,\n"
                     + "       NULLS AS is_nullable\n"
-                    + "FROM SYSIBM.SYSCOLUMNS WHERE TBCREATOR = '%s' AND  TBNAME = '%s'";
+                    + "FROM SYSIBM.SYSCOLUMNS WHERE TBCREATOR = '%s' AND  TBNAME = '%s' ORDER BY COLNO ASC";
 
     public DB2Catalog(
             String catalogName,
