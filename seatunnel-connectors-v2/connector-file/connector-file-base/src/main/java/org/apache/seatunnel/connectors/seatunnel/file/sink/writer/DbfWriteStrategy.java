@@ -84,7 +84,7 @@ public class DbfWriteStrategy extends AbstractWriteStrategy {
             DBFWriter newWriter = new DBFWriter(outputStream, StandardCharsets.UTF_8);
             newWriter.setFields(dbfSerializer.getDbfFields());
             beingWrittenWriter.put(filePath, newWriter);
-            return dbfWriter;
+            return newWriter;
         } catch (IOException e) {
             throw new FileConnectorException(
                     CommonErrorCode.FILE_OPERATION_FAILED, "can not get output file stream");
