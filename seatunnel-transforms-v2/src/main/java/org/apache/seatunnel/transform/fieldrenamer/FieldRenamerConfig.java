@@ -168,11 +168,11 @@ public class FieldRenamerConfig implements Serializable {
         if (CollectionUtils.isEmpty(replacementsWithRegex)) {
             List<ReplacementsWithRegex> list = new ArrayList<>();
             if (replacements == null || replacements.isEmpty()) {
-                list.add(new ReplacementsWithRegex(replaceFrom, replaceTo, false));
+                list.add(new ReplacementsWithRegex(replaceFrom, replaceTo, true));
             } else {
                 for (String from : replacements.keySet()) {
                     String to = replacements.get(from);
-                    list.add(new ReplacementsWithRegex(from, to, false));
+                    list.add(new ReplacementsWithRegex(from, to, true));
                 }
             }
             return list;
