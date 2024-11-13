@@ -134,10 +134,8 @@ public class ReadonlyConfigParser implements TableSchemaParser<ReadonlyConfig> {
                                         new IllegalArgumentException(
                                                 "schema.columns.* config need option [type], please correct your config first"));
 
-        Integer columnLength = columnConfig.get(TableSchemaOptions.ColumnOptions.COLUMN_LENGTH);
-
+        Long columnLength = columnConfig.get(TableSchemaOptions.ColumnOptions.COLUMN_LENGTH);
         Integer columnScale = columnConfig.get(TableSchemaOptions.ColumnOptions.COLUMN_SCALE);
-
         Boolean nullable = columnConfig.get(TableSchemaOptions.ColumnOptions.NULLABLE);
         Object defaultValue = columnConfig.get(TableSchemaOptions.ColumnOptions.DEFAULT_VALUE);
         String comment = columnConfig.get(TableSchemaOptions.ColumnOptions.COMMENT);
