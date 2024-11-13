@@ -23,6 +23,7 @@ import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.util.Strings;
 
 import lombok.AccessLevel;
@@ -33,6 +34,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,6 +49,18 @@ public class FieldRenamerConfig implements Serializable {
                     .stringType()
                     .noDefaultValue()
                     .withDescription("The table name match regex");
+
+    public static final Option<Boolean> IS_TABLE_MATCH_REGEX =
+            Options.key("is_table_match_regex")
+                    .booleanType()
+                    .noDefaultValue()
+                    .withDescription("Use table name match regex");
+
+    public static final Option<List<String>> MATCH_TABLES =
+            Options.key("match_tables")
+                    .listType(String.class)
+                    .noDefaultValue()
+                    .withDescription("Match table name list");
 
     public static final Option<ConvertCase> CONVERT_CASE =
             Options.key("convert_case")
@@ -80,9 +94,16 @@ public class FieldRenamerConfig implements Serializable {
                     .defaultValue("")
                     .withDescription("The regex of replace field name to ");
 
+    @Deprecated
     public static final Option<Map<String, String>> REPLACEMENTS =
             Options.key("replacements")
                     .mapType()
+                    .noDefaultValue()
+                    .withDescription("The regex of replace fields name to ");
+
+    public static final Option<List<ReplacementsWithRegex>> REPLACEMENTS_WITH_REGEX =
+            Options.key("replacements_with_regex")
+                    .listType(ReplacementsWithRegex.class)
                     .noDefaultValue()
                     .withDescription("The regex of replace fields name to ");
 
@@ -94,6 +115,12 @@ public class FieldRenamerConfig implements Serializable {
 
     @JsonAlias("table_match_regex")
     private String tableMatchRegex;
+
+    @JsonAlias("is_table_match_regex")
+    private Boolean isTableMatchRegex;
+
+    @JsonAlias("match_tables")
+    private List<String> matchTables;
 
     @JsonAlias("convert_case")
     private ConvertCase convertCase;
@@ -116,12 +143,17 @@ public class FieldRenamerConfig implements Serializable {
     @JsonAlias("replace_to")
     private String replaceTo;
 
+    // TODO remove this after all the old configs are updated
     @JsonAlias("replacements")
     private LinkedHashMap<String, String> replacements;
+
+    @JsonAlias("replacements_with_regex")
+    private List<ReplacementsWithRegex> replacementsWithRegex;
 
     @JsonAlias("specific")
     private List<SpecificModify> specific;
 
+    @Deprecated
     public LinkedHashMap<String, String> getReplacements() {
         if (replacements == null || replacements.isEmpty()) {
             if (Strings.isNotBlank(replaceFrom) && Strings.isNotBlank(replaceTo)) {
@@ -130,6 +162,22 @@ public class FieldRenamerConfig implements Serializable {
             }
         }
         return replacements;
+    }
+
+    public List<ReplacementsWithRegex> getReplacementsWithRegex() {
+        if (CollectionUtils.isEmpty(replacementsWithRegex)) {
+            List<ReplacementsWithRegex> list = new ArrayList<>();
+            if (replacements == null || replacements.isEmpty()) {
+                list.add(new ReplacementsWithRegex(replaceFrom, replaceTo, true));
+            } else {
+                for (String from : replacements.keySet()) {
+                    String to = replacements.get(from);
+                    list.add(new ReplacementsWithRegex(from, to, true));
+                }
+            }
+            return list;
+        }
+        return replacementsWithRegex;
     }
 
     @Data
@@ -146,14 +194,33 @@ public class FieldRenamerConfig implements Serializable {
         private String targetName;
     }
 
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ReplacementsWithRegex implements Serializable {
+        @JsonAlias("replace_from")
+        private String replaceFrom;
+
+        @JsonAlias("replace_to")
+        private String replaceTo;
+
+        @JsonAlias("is_regex")
+        private Boolean isRegex;
+    }
+
     public static FieldRenamerConfig of(ReadonlyConfig config) {
         FieldRenamerConfig fieldRenamerConfig = new FieldRenamerConfig();
         fieldRenamerConfig.setTableMatchRegex(config.get(TABLE_MATCH_REGEX));
+        fieldRenamerConfig.setMatchTables(config.get(MATCH_TABLES));
+        fieldRenamerConfig.setIsTableMatchRegex(
+                config.get(IS_TABLE_MATCH_REGEX) != null && config.get(IS_TABLE_MATCH_REGEX));
         fieldRenamerConfig.setConvertCase(config.get(CONVERT_CASE));
         fieldRenamerConfig.setPrefix(config.get(PREFIX));
         fieldRenamerConfig.setSuffix(config.get(SUFFIX));
+        // TODO remove this after all the old configs are updated
         fieldRenamerConfig.setReplacements(
                 (LinkedHashMap<String, String>) config.get(REPLACEMENTS));
+        fieldRenamerConfig.setReplacementsWithRegex(config.get(REPLACEMENTS_WITH_REGEX));
         fieldRenamerConfig.setSpecific(config.get(SPECIFIC));
 
         // TODO remove this after all the old configs are updated
