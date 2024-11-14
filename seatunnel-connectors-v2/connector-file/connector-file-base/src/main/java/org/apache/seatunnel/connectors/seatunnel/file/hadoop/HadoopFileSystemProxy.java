@@ -61,6 +61,10 @@ public class HadoopFileSystemProxy implements Serializable, Closeable {
         return getFileSystem().exists(new Path(filePath));
     }
 
+    public boolean isFile(@NonNull String filePath) throws IOException {
+        return getFileSystem().getFileStatus(new Path(filePath)).isFile();
+    }
+
     public void createFile(@NonNull String filePath) throws IOException {
         if (!getFileSystem().createNewFile(new Path(filePath))) {
             throw CommonError.fileOperationFailed("SeaTunnel", "create", filePath);
