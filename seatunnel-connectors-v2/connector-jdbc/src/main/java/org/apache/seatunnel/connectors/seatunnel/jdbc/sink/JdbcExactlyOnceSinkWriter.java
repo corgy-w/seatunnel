@@ -86,6 +86,7 @@ public class JdbcExactlyOnceSinkWriter extends AbstractJdbcSinkWriter<Void> {
         this.sinkTablePath = sinkTablePath;
         this.dialect = dialect;
         this.tableSchema = tableSchema;
+        this.databaseTableSchema = databaseTableSchema;
         this.jdbcSinkConfig = jdbcSinkConfig;
         this.context = context;
         this.sinkcontext = sinkcontext;

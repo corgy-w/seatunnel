@@ -58,7 +58,6 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
     private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
     private final JdbcDialect dialect;
     private final TableSchema tableSchema;
-    private final TableSchema databaseTableSchema;
     private JdbcConnectionProvider connectionProvider;
     private transient boolean isOpen;
     private final Integer primaryKeyIndex;
