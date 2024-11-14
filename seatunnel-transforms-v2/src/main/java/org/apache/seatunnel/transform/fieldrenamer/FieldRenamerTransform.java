@@ -39,6 +39,7 @@ import org.apache.seatunnel.transform.exception.TransformCommonError;
 import org.apache.seatunnel.transform.exception.TransformExceptionUtil;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -237,12 +238,18 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
         if (CollectionUtils.isNotEmpty(config.getReplacementsWithRegex())) {
             for (FieldRenamerConfig.ReplacementsWithRegex replacementsWithRegex :
                     config.getReplacementsWithRegex()) {
+                Boolean isRegex = replacementsWithRegex.getIsRegex();
                 String replacement = replacementsWithRegex.getReplaceFrom();
-
-                Matcher matcher = Pattern.compile(replacement).matcher(name);
                 Map<Integer, Integer> matched = new LinkedHashMap<>();
-                while (matcher.find()) {
-                    matched.put(matcher.start(), matcher.end());
+                if (BooleanUtils.isNotTrue(isRegex)) {
+                    if (StringUtils.equals(replacement, name)) {
+                        matched.put(0, name.length());
+                    }
+                } else {
+                    Matcher matcher = Pattern.compile(replacement).matcher(name);
+                    while (matcher.find()) {
+                        matched.put(matcher.start(), matcher.end());
+                    }
                 }
                 if (!matched.isEmpty()) {
                     replaceFrom = replacement;

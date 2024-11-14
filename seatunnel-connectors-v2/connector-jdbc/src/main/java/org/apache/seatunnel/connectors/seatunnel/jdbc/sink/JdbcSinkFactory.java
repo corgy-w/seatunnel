@@ -62,6 +62,7 @@ import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATA_SAVE_MODE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DATE_FORMAT;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.DRIVER;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.ENABLE_TO_DATE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.ENABLE_UPSERT;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.GENERATE_SINK_SQL;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.IS_EXACTLY_ONCE;
@@ -289,7 +290,7 @@ public class JdbcSinkFactory implements TableSinkFactory {
                         SUPPORT_UPSERT_BY_INSERT_ONLY,
                         IS_PRIMARY_KEY_UPDATED,
                         MULTI_TABLE_SINK_REPLICA,
-                        DATE_FORMAT)
+                        ENABLE_TO_DATE)
                 .conditional(
                         IS_EXACTLY_ONCE,
                         true,
@@ -300,6 +301,7 @@ public class JdbcSinkFactory implements TableSinkFactory {
                 .conditional(GENERATE_SINK_SQL, true, DATABASE)
                 .conditional(GENERATE_SINK_SQL, false, QUERY)
                 .conditional(DATA_SAVE_MODE, DataSaveMode.CUSTOM_PROCESSING, CUSTOM_SQL)
+                .conditional(ENABLE_TO_DATE, true, DATE_FORMAT)
                 .build();
     }
 }

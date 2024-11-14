@@ -33,6 +33,9 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
 
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -98,17 +101,18 @@ public class DmdbDialect implements JdbcDialect {
                         .map(this::quoteIdentifier)
                         .collect(Collectors.joining(", "));
         StringBuilder stringBuilder = new StringBuilder();
+        Boolean enableToDate = config.get(JdbcOptions.ENABLE_TO_DATE);
         String dateFormat = config.get(JdbcOptions.DATE_FORMAT);
         for (int i = 0; i < fieldNames.length; i++) {
             final SeaTunnelDataType<?> seaTunnelDataType = columnTypeList.get(i);
             if (i != fieldNames.length - 1) {
-                if (seaTunnelDataType instanceof LocalTimeType) {
+                if (useToDate(seaTunnelDataType)) {
                     stringBuilder.append("to_date( ? ,'").append(dateFormat).append("') ");
                 } else {
                     stringBuilder.append("? ").append(",");
                 }
             } else {
-                if (seaTunnelDataType instanceof LocalTimeType) {
+                if (useToDate(seaTunnelDataType)) {
                     stringBuilder.append("to_date( ? ,'").append(dateFormat).append("') ");
                 } else {
                     stringBuilder.append("? ");
@@ -139,7 +143,7 @@ public class DmdbDialect implements JdbcDialect {
             String fieldName = fieldNames[i];
             final SeaTunnelDataType<?> seaTunnelDataType = columnTypeList.get(i);
             if (i != fieldNames.length - 1) {
-                if (seaTunnelDataType instanceof LocalTimeType) {
+                if (useToDate(seaTunnelDataType)) {
                     stringBuilder
                             .append("to_date( ? ,'")
                             .append(dateFormat)
@@ -150,7 +154,7 @@ public class DmdbDialect implements JdbcDialect {
                     stringBuilder.append("? ").append(quoteIdentifier(fieldName)).append(",");
                 }
             } else {
-                if (seaTunnelDataType instanceof LocalTimeType) {
+                if (useToDate(seaTunnelDataType)) {
                     stringBuilder
                             .append("to_date( ? ,'")
                             .append(dateFormat)
@@ -217,6 +221,19 @@ public class DmdbDialect implements JdbcDialect {
                         insertValues);
 
         return Optional.of(upsertSQL);
+    }
+
+    private Boolean useToDate(SeaTunnelDataType<?> seaTunnelDataType) {
+        Boolean enableToDate = config.get(JdbcOptions.ENABLE_TO_DATE);
+        if (BooleanUtils.isNotTrue(enableToDate)) {
+            return false;
+        }
+        if (seaTunnelDataType instanceof LocalTimeType) {
+            if (!StringUtils.equals(seaTunnelDataType.getSqlType().name(), "TIME")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
