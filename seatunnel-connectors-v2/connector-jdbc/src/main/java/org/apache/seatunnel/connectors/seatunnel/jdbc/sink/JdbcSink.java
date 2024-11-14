@@ -33,6 +33,7 @@ import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.iris.IrisCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.iris.savemode.IrisSaveModeHandler;
@@ -50,6 +51,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.JdbcCatalogUtils;
 
 import org.apache.commons.lang3.StringUtils;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +60,7 @@ import java.util.Optional;
 
 import static org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode.HANDLE_SAVE_MODE_FAILED;
 
+@Slf4j
 public class JdbcSink
         implements SeaTunnelSink<SeaTunnelRow, JdbcSinkState, XidInfo, JdbcAggregatedCommitInfo>,
                 SupportSaveMode,
@@ -124,6 +128,7 @@ public class JdbcSink
                             dialect,
                             jdbcSinkConfig,
                             tableSchema,
+                            getDatabaseTableSchema().orElse(null),
                             new ArrayList<>());
         } else {
             if (catalogTable != null && catalogTable.getTableSchema().getPrimaryKey() != null) {
@@ -131,11 +136,22 @@ public class JdbcSink
                 int index = tableSchema.toPhysicalRowDataType().indexOf(keyName);
                 if (index > -1) {
                     return new JdbcSinkWriter(
-                            sinkTablePath, dialect, jdbcSinkConfig, tableSchema, index);
+                            sinkTablePath,
+                            dialect,
+                            jdbcSinkConfig,
+                            tableSchema,
+                            getDatabaseTableSchema().orElse(null),
+                            index);
                 }
             }
             sinkWriter =
-                    new JdbcSinkWriter(sinkTablePath, dialect, jdbcSinkConfig, tableSchema, null);
+                    new JdbcSinkWriter(
+                            sinkTablePath,
+                            dialect,
+                            jdbcSinkConfig,
+                            tableSchema,
+                            getDatabaseTableSchema().orElse(null),
+                            null);
         }
         return sinkWriter;
     }
@@ -158,9 +174,35 @@ public class JdbcSink
                     dialect,
                     jdbcSinkConfig,
                     tableSchema,
+                    getDatabaseTableSchema().orElse(null),
                     states);
         }
         return SeaTunnelSink.super.restoreWriter(context, states);
+    }
+
+    private Optional<TableSchema> getDatabaseTableSchema() {
+        Optional<Catalog> catalogOptional = getCatalog();
+        FieldIdeEnum fieldIdeEnumEnum = config.get(JdbcOptions.FIELD_IDE);
+        String fieldIde =
+                fieldIdeEnumEnum == null
+                        ? FieldIdeEnum.ORIGINAL.getValue()
+                        : fieldIdeEnumEnum.getValue();
+        TablePath tablePath =
+                TablePath.of(
+                        catalogTable.getTableId().getDatabaseName(),
+                        catalogTable.getTableId().getSchemaName(),
+                        CatalogUtils.quoteTableIdentifier(
+                                catalogTable.getTableId().getTableName(), fieldIde));
+        if (catalogOptional.isPresent()) {
+            try (Catalog catalog = catalogOptional.get()) {
+                catalog.open();
+                return Optional.of(catalog.getTable(tablePath).getTableSchema());
+            } catch (TableNotExistException e) {
+                log.warn("table {} not exist when get the database catalog table", tablePath);
+                return Optional.empty();
+            }
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -207,18 +249,7 @@ public class JdbcSink
             throw new RuntimeException(e);
         }
         if (catalogTable != null) {
-            if (StringUtils.isBlank(jdbcSinkConfig.getDatabase())) {
-                return Optional.empty();
-            }
-            if (StringUtils.isBlank(jdbcSinkConfig.getTable())) {
-                return Optional.empty();
-            }
-            // use query to write data can not support savemode
-            if (StringUtils.isNotBlank(jdbcSinkConfig.getSimpleSql())) {
-                return Optional.empty();
-            }
-            Optional<Catalog> catalogOptional =
-                    JdbcCatalogUtils.findCatalog(jdbcSinkConfig.getJdbcConnectionConfig(), dialect);
+            Optional<Catalog> catalogOptional = getCatalog();
             if (catalogOptional.isPresent()) {
                 try {
                     Catalog catalog = catalogOptional.get();
@@ -260,5 +291,19 @@ public class JdbcSink
             }
         }
         return Optional.empty();
+    }
+
+    private Optional<Catalog> getCatalog() {
+        if (StringUtils.isBlank(jdbcSinkConfig.getDatabase())) {
+            return Optional.empty();
+        }
+        if (StringUtils.isBlank(jdbcSinkConfig.getTable())) {
+            return Optional.empty();
+        }
+        // use query to write data can not support get catalog
+        if (StringUtils.isNotBlank(jdbcSinkConfig.getSimpleSql())) {
+            return Optional.empty();
+        }
+        return JdbcCatalogUtils.findCatalog(jdbcSinkConfig.getJdbcConnectionConfig(), dialect);
     }
 }

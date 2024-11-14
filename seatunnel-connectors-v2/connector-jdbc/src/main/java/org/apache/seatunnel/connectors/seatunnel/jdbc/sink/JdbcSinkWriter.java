@@ -58,6 +58,7 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
     private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
     private final JdbcDialect dialect;
     private final TableSchema tableSchema;
+    private final TableSchema databaseTableSchema;
     private JdbcConnectionProvider connectionProvider;
     private transient boolean isOpen;
     private final Integer primaryKeyIndex;
@@ -69,17 +70,23 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
             JdbcDialect dialect,
             JdbcSinkConfig jdbcSinkConfig,
             TableSchema tableSchema,
+            TableSchema databaseTableSchema,
             Integer primaryKeyIndex) {
         this.sinkTablePath = sinkTablePath;
         this.dialect = dialect;
         this.tableSchema = tableSchema;
+        this.databaseTableSchema = databaseTableSchema;
         this.jdbcSinkConfig = jdbcSinkConfig;
         this.primaryKeyIndex = primaryKeyIndex;
         this.connectionProvider =
                 dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
         this.outputFormat =
                 new JdbcOutputFormatBuilder(
-                                dialect, connectionProvider, jdbcSinkConfig, tableSchema)
+                                dialect,
+                                connectionProvider,
+                                jdbcSinkConfig,
+                                tableSchema,
+                                databaseTableSchema)
                         .build();
         this.rowType = tableSchema.toPhysicalRowDataType();
     }
@@ -128,7 +135,11 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
                         queueIndex);
         this.outputFormat =
                 new JdbcOutputFormatBuilder(
-                                dialect, connectionProvider, jdbcSinkConfig, tableSchema)
+                                dialect,
+                                connectionProvider,
+                                jdbcSinkConfig,
+                                tableSchema,
+                                databaseTableSchema)
                         .build();
     }
 
@@ -218,7 +229,8 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
                                     dialect,
                                     connectionProvider,
                                     jdbcSinkConfig,
-                                    catalogTable.getTableSchema())
+                                    catalogTable.getTableSchema(),
+                                    databaseTableSchema)
                             .build();
             // Before OutputFormat opens, you need to update the database first
             TablePath tablePath =
