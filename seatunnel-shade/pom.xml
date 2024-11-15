@@ -47,6 +47,7 @@
         <module>seatunnel-hive-jdbc-1.2.1-hadoop2.6.5-uber</module>
         <module>seatunnel-hive-jdbc-2.3.9-hadoop3.1.4-uber</module>
         <module>seatunnel-hive-exec-2.3.9-hadoop3.1.4-uber</module>
+        <module>seatunnel-hive-mrs-3.1.1-hw-ei-315008-uber</module>
     </modules>
 
     <build>

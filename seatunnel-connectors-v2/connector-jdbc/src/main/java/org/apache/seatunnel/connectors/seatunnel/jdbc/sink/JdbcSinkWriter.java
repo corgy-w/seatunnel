@@ -62,6 +62,7 @@ public class JdbcSinkWriter
     private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
     private final JdbcDialect dialect;
     private final TableSchema tableSchema;
+    private final TableSchema databaseTableSchema;
     private JdbcConnectionProvider connectionProvider;
     private transient boolean isOpen;
     private final Integer primaryKeyIndex;
@@ -72,16 +73,22 @@ public class JdbcSinkWriter
             JdbcDialect dialect,
             JdbcSinkConfig jdbcSinkConfig,
             TableSchema tableSchema,
+            TableSchema databaseTableSchema,
             Integer primaryKeyIndex) {
         this.jdbcSinkConfig = jdbcSinkConfig;
         this.dialect = dialect;
         this.tableSchema = tableSchema;
+        this.databaseTableSchema = databaseTableSchema;
         this.primaryKeyIndex = primaryKeyIndex;
         this.connectionProvider =
                 dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
         this.outputFormat =
                 new JdbcOutputFormatBuilder(
-                                dialect, connectionProvider, jdbcSinkConfig, tableSchema)
+                                dialect,
+                                connectionProvider,
+                                jdbcSinkConfig,
+                                tableSchema,
+                                databaseTableSchema)
                         .build();
         this.rowType = tableSchema.toPhysicalRowDataType();
     }
@@ -125,7 +132,11 @@ public class JdbcSinkWriter
                         queueIndex);
         this.outputFormat =
                 new JdbcOutputFormatBuilder(
-                                dialect, connectionProvider, jdbcSinkConfig, tableSchema)
+                                dialect,
+                                connectionProvider,
+                                jdbcSinkConfig,
+                                tableSchema,
+                                databaseTableSchema)
                         .build();
     }
 
@@ -215,27 +226,30 @@ public class JdbcSinkWriter
                                     dialect,
                                     connectionProvider,
                                     jdbcSinkConfig,
-                                    catalogTable.getTableSchema())
+                                    catalogTable.getTableSchema(),
+                                    databaseTableSchema)
                             .build();
+            // Before OutputFormat opens, you need to update the database first
+            TablePath tablePath =
+                    TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable());
+            JdbcConnectionProvider refreshTableSchemaConnectionProvider =
+                    dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
+            try (Connection connection =
+                    refreshTableSchemaConnectionProvider.getOrEstablishConnection()) {
+                dialect.applySchemaChange(connection, tablePath, event);
+            } catch (Exception throwables) {
+                log.error("schema change error :", throwables);
+                throw new JdbcConnectorException(
+                        CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
+                        "schema change error",
+                        throwables);
+            }
             outputFormat.open();
         } catch (Exception e) {
             throw new JdbcConnectorException(
                     CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
                     " rebuild outputFormat fail",
                     e);
-        }
-        TablePath tablePath = TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable());
-        JdbcConnectionProvider refreshTableSchemaConnectionProvider =
-                dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
-        try (Connection connection =
-                refreshTableSchemaConnectionProvider.getOrEstablishConnection()) {
-            dialect.applySchemaChange(connection, tablePath, event);
-        } catch (Exception throwables) {
-            log.error("schema change error :", throwables);
-            throw new JdbcConnectorException(
-                    CommonErrorCodeDeprecated.WRITER_OPERATION_FAILED,
-                    "schema change error",
-                    throwables);
         }
     }
 }

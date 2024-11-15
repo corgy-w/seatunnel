@@ -19,10 +19,12 @@ package org.apache.seatunnel.transform.adaptsink;
 
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.type.BasicType;
+import org.apache.seatunnel.api.table.type.DecimalType;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -41,5 +43,93 @@ public class AdaptSinkTableCastsTest {
                         PhysicalColumn.builder().name("f1").dataType(BasicType.STRING_TYPE).build(),
                         "20240901 01:10:10");
         Assertions.assertEquals(LocalDateTime.of(2024, 9, 1, 1, 10, 10), dateTime);
+    }
+
+    @Test
+    public void testCastDecimal() {
+        Object obj =
+                AdaptSinkTableCasts.castAsBoolean(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 2))
+                                .build(),
+                        new BigDecimal(0));
+        Assertions.assertEquals(false, obj);
+
+        obj =
+                AdaptSinkTableCasts.castAsByte(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 2))
+                                .build(),
+                        new BigDecimal(1.1));
+        Assertions.assertEquals(Byte.parseByte("1"), obj);
+
+        obj =
+                AdaptSinkTableCasts.castAsShort(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 2))
+                                .build(),
+                        new BigDecimal(1.1));
+        Assertions.assertEquals(Short.parseShort("1"), obj);
+
+        obj =
+                AdaptSinkTableCasts.castAsInt(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 2))
+                                .build(),
+                        new BigDecimal(1.1));
+        Assertions.assertEquals(Integer.parseInt("1"), obj);
+
+        obj =
+                AdaptSinkTableCasts.castAsLong(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 2))
+                                .build(),
+                        new BigDecimal(1.1));
+        Assertions.assertEquals(Long.parseLong("1"), obj);
+
+        obj =
+                AdaptSinkTableCasts.castAsFloat(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 2))
+                                .build(),
+                        new BigDecimal(1.1));
+        Assertions.assertEquals(Float.parseFloat("1.1"), obj);
+
+        obj =
+                AdaptSinkTableCasts.castAsDouble(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 2))
+                                .build(),
+                        new BigDecimal(1.1));
+        Assertions.assertEquals(Double.parseDouble("1.1"), obj);
+
+        obj =
+                AdaptSinkTableCasts.castAsDecimal(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 2))
+                                .build(),
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 1))
+                                .build(),
+                        new BigDecimal(1.11));
+        Assertions.assertEquals(new BigDecimal("1.1"), obj);
+
+        obj =
+                AdaptSinkTableCasts.castAsString(
+                        PhysicalColumn.builder()
+                                .name("f1")
+                                .dataType(new DecimalType(10, 1))
+                                .build(),
+                        new BigDecimal("1.1"));
+        Assertions.assertEquals("1.1", obj);
     }
 }

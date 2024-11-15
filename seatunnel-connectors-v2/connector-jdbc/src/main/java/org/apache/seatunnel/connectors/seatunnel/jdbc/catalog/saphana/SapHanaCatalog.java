@@ -273,6 +273,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
             DatabaseMetaData metaData = conn.getMetaData();
             Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
             List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            String tableComment = getTableComment(metaData, tablePath);
             try (PreparedStatement ps = conn.prepareStatement(getSelectColumnsSql(tablePath));
                     ResultSet resultSet = ps.executeQuery()) {
 
@@ -288,7 +289,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                         builder.build(),
                         buildConnectorOptions(tablePath),
                         Collections.emptyList(),
-                        "",
+                        tableComment,
                         catalogName);
             }
         } catch (SeaTunnelRuntimeException e) {
@@ -334,6 +335,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
             DatabaseMetaData metaData = conn.getMetaData();
             Optional<PrimaryKey> primaryKey = getPrimaryKey(metaData, tablePath);
             List<ConstraintKey> constraintKeys = getConstraintKeys(metaData, tablePath);
+            String tableComment = getTableComment(metaData, tablePath);
             try (PreparedStatement ps = conn.prepareStatement(getSelectColumnsSql(tablePath));
                     ResultSet resultSet = ps.executeQuery()) {
 
@@ -359,7 +361,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                         builder.build(),
                         buildConnectorOptions(tablePath),
                         Collections.emptyList(),
-                        "",
+                        tableComment,
                         catalogName);
             }
         } catch (SeaTunnelRuntimeException e) {

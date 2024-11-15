@@ -27,6 +27,7 @@ import org.apache.seatunnel.connectors.cdc.base.source.split.SnapshotSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
 import org.apache.seatunnel.connectors.cdc.debezium.ConnectTableChangeSerializer;
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
 import org.apache.seatunnel.connectors.cdc.debezium.EmbeddedDatabaseHistory;
 
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -72,7 +73,7 @@ public abstract class JdbcSourceFetchTaskContext implements FetchTask.Context {
         this.sourceConfig = sourceConfig;
         this.dataSourceDialect = dataSourceDialect;
         this.dbzConnectorConfig = sourceConfig.getDbzConnectorConfig();
-        this.schemaNameAdjuster = SchemaNameAdjuster.create();
+        this.schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         Map<String, ?> configs = Collections.singletonMap("schemas.enable", true);
         jsonConverter.configure(configs, false);
     }

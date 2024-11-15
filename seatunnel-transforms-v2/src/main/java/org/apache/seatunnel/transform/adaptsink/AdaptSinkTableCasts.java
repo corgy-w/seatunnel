@@ -20,8 +20,10 @@ package org.apache.seatunnel.transform.adaptsink;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.type.DecimalType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,6 +33,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.SignStyle;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static java.time.temporal.ChronoField.DAY_OF_MONTH;
@@ -140,7 +143,7 @@ public class AdaptSinkTableCasts {
             case DOUBLE:
                 return (double) columnValue != 0;
             case DECIMAL:
-                return (double) columnValue != 0;
+                return ((BigDecimal) columnValue).longValue() != 0;
             default:
                 throw new UnsupportedOperationException(
                         "Unsupported data type: " + inputColumn.getDataType().getSqlType());
@@ -168,7 +171,7 @@ public class AdaptSinkTableCasts {
             case DOUBLE:
                 return (byte) (double) columnValue;
             case DECIMAL:
-                return (byte) (double) columnValue;
+                return ((BigDecimal) columnValue).byteValue();
             default:
                 throw new UnsupportedOperationException(
                         "Unsupported data type: " + inputColumn.getDataType().getSqlType());
@@ -196,7 +199,7 @@ public class AdaptSinkTableCasts {
             case DOUBLE:
                 return (short) (double) columnValue;
             case DECIMAL:
-                return (short) (double) columnValue;
+                return ((BigDecimal) columnValue).shortValue();
             default:
                 throw new UnsupportedOperationException(
                         "Unsupported data type: " + inputColumn.getDataType().getSqlType());
@@ -224,7 +227,7 @@ public class AdaptSinkTableCasts {
             case DOUBLE:
                 return (int) (double) columnValue;
             case DECIMAL:
-                return (int) (double) columnValue;
+                return ((BigDecimal) columnValue).intValue();
             case TIME:
                 return ((LocalTime) columnValue).toSecondOfDay();
             case DATE:
@@ -258,7 +261,7 @@ public class AdaptSinkTableCasts {
             case DOUBLE:
                 return (long) (double) columnValue;
             case DECIMAL:
-                return (long) (double) columnValue;
+                return ((BigDecimal) columnValue).longValue();
             case TIME:
                 return ((LocalTime) columnValue).toNanoOfDay();
             case DATE:
@@ -295,7 +298,7 @@ public class AdaptSinkTableCasts {
             case DOUBLE:
                 return (float) (double) columnValue;
             case DECIMAL:
-                return (float) (double) columnValue;
+                return ((BigDecimal) columnValue).floatValue();
             default:
                 throw new UnsupportedOperationException(
                         "Unsupported data type: " + inputColumn.getDataType().getSqlType());
@@ -323,7 +326,7 @@ public class AdaptSinkTableCasts {
             case DOUBLE:
                 return (double) columnValue;
             case DECIMAL:
-                return (double) columnValue;
+                return ((BigDecimal) columnValue).doubleValue();
             default:
                 throw new UnsupportedOperationException(
                         "Unsupported data type: " + inputColumn.getDataType().getSqlType());
@@ -356,7 +359,7 @@ public class AdaptSinkTableCasts {
                 DecimalType inputType = (DecimalType) inputColumn.getDataType();
                 if (outputType.getScale() != inputType.getScale()) {
                     BigDecimal value = (BigDecimal) columnValue;
-                    return value.setScale(outputType.getScale());
+                    return value.setScale(outputType.getScale(), RoundingMode.DOWN);
                 }
                 return (BigDecimal) columnValue;
             default:
@@ -400,7 +403,7 @@ public class AdaptSinkTableCasts {
             case DOUBLE:
                 return String.valueOf((double) columnValue);
             case DECIMAL:
-                return String.valueOf((double) columnValue);
+                return ((BigDecimal) columnValue).toPlainString();
             case DATE:
                 return ((LocalDate) columnValue).format(DateTimeFormatter.ISO_DATE);
             case TIME:
@@ -518,6 +521,14 @@ public class AdaptSinkTableCasts {
                 return null;
             case MAP:
                 return (Map) columnValue;
+            case ROW:
+                SeaTunnelRow row = (SeaTunnelRow) columnValue;
+                SeaTunnelRowType rowType = (SeaTunnelRowType) inputColumn.getDataType();
+                Map map = new LinkedHashMap<>();
+                for (int i = 0; i < row.getArity(); i++) {
+                    map.put(rowType.getFieldName(i), row.getField(i));
+                }
+                return map;
             default:
                 throw new UnsupportedOperationException(
                         "Unsupported data type: " + inputColumn.getDataType().getSqlType());

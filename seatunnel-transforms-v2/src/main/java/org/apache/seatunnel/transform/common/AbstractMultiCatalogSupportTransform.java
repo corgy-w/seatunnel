@@ -46,6 +46,7 @@ public abstract class AbstractMultiCatalogSupportTransform
             List<CatalogTable> inputCatalogTables, ReadonlyConfig config) {
         this.inputCatalogTables = inputCatalogTables;
         this.transformMap = new HashMap<>();
+        preCheckConfig(config);
         inputCatalogTables.forEach(
                 inputCatalogTable -> {
                     String tableId = inputCatalogTable.getTableId().toTablePath().toString();
@@ -76,6 +77,8 @@ public abstract class AbstractMultiCatalogSupportTransform
 
     protected abstract Optional<SeaTunnelTransform<SeaTunnelRow>> buildTransform(
             CatalogTable inputCatalogTable, ReadonlyConfig config);
+
+    protected void preCheckConfig(ReadonlyConfig config) {}
 
     @Override
     public List<CatalogTable> getProducedCatalogTables() {

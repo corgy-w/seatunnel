@@ -78,6 +78,7 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final String SQLSERVER_VARBINARY = "VARBINARY";
     public static final String SQLSERVER_IMAGE = "IMAGE";
 
+    public static final String SQLSERVER_UN_SUPPORT_TYPE = "SQLSERVER_UN_SUPPORT_TYPE";
     public static final int MAX_PRECISION = 38;
     public static final int DEFAULT_PRECISION = MAX_PRECISION;
     public static final int MAX_SCALE = MAX_PRECISION - 1;
@@ -109,7 +110,10 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
                         .defaultValue(typeDefine.getDefaultValue())
                         .comment(typeDefine.getComment());
 
-        String sqlServerType = typeDefine.getDataType().toUpperCase();
+        String sqlServerType =
+                typeDefine.getDataType() == null
+                        ? SQLSERVER_UN_SUPPORT_TYPE
+                        : typeDefine.getDataType().toUpperCase();
         switch (sqlServerType) {
             case SQLSERVER_BIT:
                 builder.sourceType(SQLSERVER_BIT);

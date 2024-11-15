@@ -39,6 +39,8 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -88,15 +90,22 @@ public class DorisStreamLoad implements Serializable {
             TablePath tablePath,
             DorisConfig dorisConfig,
             LabelGenerator labelGenerator,
-            CloseableHttpClient httpClient) {
+            CloseableHttpClient httpClient)
+            throws UnsupportedEncodingException {
         this.hostPort = hostPort;
         this.db = tablePath.getDatabaseName();
         this.table = tablePath.getTableName();
         this.user = dorisConfig.getUsername();
         this.passwd = dorisConfig.getPassword();
         this.labelGenerator = labelGenerator;
-        this.loadUrlStr = String.format(LOAD_URL_PATTERN, hostPort, db, table);
-        this.abortUrlStr = String.format(ABORT_URL_PATTERN, hostPort, db);
+        this.loadUrlStr =
+                String.format(
+                        LOAD_URL_PATTERN,
+                        hostPort,
+                        URLEncoder.encode(db, "UTF-8"),
+                        URLEncoder.encode(table, "UTF-8"));
+        this.abortUrlStr =
+                String.format(ABORT_URL_PATTERN, hostPort, URLEncoder.encode(db, "UTF-8"));
         this.enable2PC = dorisConfig.getEnable2PC();
         this.streamLoadProp = dorisConfig.getStreamLoadProps();
         this.enableDelete = dorisConfig.getEnableDelete();

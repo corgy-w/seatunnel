@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.dameng.source.offset.LogMinerOffset;
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
 
 import io.debezium.connector.dameng.DamengConnection;
 import io.debezium.connector.dameng.DamengConnectorConfig;
@@ -44,7 +45,7 @@ public class DamengUtils {
     public static DamengDatabaseSchema createDamengDatabaseSchema(
             DamengConnectorConfig dbzConfig, DamengConnection connection) {
         TopicSelector<TableId> topicSelector = DamengTopicSelector.defaultSelector(dbzConfig);
-        SchemaNameAdjuster schemaNameAdjuster = SchemaNameAdjuster.create();
+        SchemaNameAdjuster schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         DamengValueConverters valueConverters = new DamengValueConverters(dbzConfig, connection);
 
         return new DamengDatabaseSchema(
