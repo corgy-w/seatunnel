@@ -240,21 +240,23 @@ public class FieldRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
                     config.getReplacementsWithRegex()) {
                 Boolean isRegex = replacementsWithRegex.getIsRegex();
                 String replacement = replacementsWithRegex.getReplaceFrom();
-                Map<Integer, Integer> matched = new LinkedHashMap<>();
-                if (BooleanUtils.isNotTrue(isRegex)) {
-                    if (StringUtils.equals(replacement, name)) {
-                        matched.put(0, name.length());
+                if (StringUtils.isNotEmpty(replacement)) {
+                    Map<Integer, Integer> matched = new LinkedHashMap<>();
+                    if (BooleanUtils.isNotTrue(isRegex)) {
+                        if (StringUtils.equals(replacement, name)) {
+                            matched.put(0, name.length());
+                        }
+                    } else {
+                        Matcher matcher = Pattern.compile(replacement).matcher(name);
+                        while (matcher.find()) {
+                            matched.put(matcher.start(), matcher.end());
+                        }
                     }
-                } else {
-                    Matcher matcher = Pattern.compile(replacement).matcher(name);
-                    while (matcher.find()) {
-                        matched.put(matcher.start(), matcher.end());
+                    if (!matched.isEmpty()) {
+                        replaceFrom = replacement;
+                        replaceTo = replacementsWithRegex.getReplaceTo();
+                        replaceIndex = matched;
                     }
-                }
-                if (!matched.isEmpty()) {
-                    replaceFrom = replacement;
-                    replaceTo = replacementsWithRegex.getReplaceTo();
-                    replaceIndex = matched;
                 }
             }
         }
