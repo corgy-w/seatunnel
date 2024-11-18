@@ -171,8 +171,8 @@ public class TextWriteStrategy extends AbstractWriteStrategy {
                     String.join(
                                     FileFormat.CSV.equals(fileFormat) ? "," : fieldDelimiter,
                                     seaTunnelRowType.getFieldNames())
-                            .getBytes());
-            fsDataOutputStream.write(rowDelimiter.getBytes());
+                            .getBytes(charset));
+            fsDataOutputStream.write(rowDelimiter.getBytes(charset));
         }
     }
 }
