@@ -54,7 +54,8 @@ public class HdfsFileSourceFactory implements TableSourceFactory {
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
-                        BaseSourceConfigOptions.FIELD_DELIMITER)
+                        BaseSourceConfigOptions.FIELD_DELIMITER,
+                        BaseSourceConfigOptions.NULL_FORMAT)
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         Arrays.asList(
