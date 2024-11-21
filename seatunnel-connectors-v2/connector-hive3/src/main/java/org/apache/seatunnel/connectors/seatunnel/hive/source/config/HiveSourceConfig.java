@@ -46,11 +46,13 @@ import org.apache.seatunnel.connectors.seatunnel.hive.utils.HiveTableUtils;
 import org.apache.seatunnel.connectors.seatunnel.hive.utils.HiveTypeConvertor;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Table;
 
 import lombok.Getter;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.Serializable;
 import java.net.URI;
@@ -63,7 +65,9 @@ import java.util.Map;
 import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.FIELD_DELIMITER;
 import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.FILE_FORMAT_TYPE;
 import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig.ROW_DELIMITER;
+import static org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOptions.NULL_FORMAT;
 
+@Slf4j
 @Getter
 public class HiveSourceConfig implements Serializable {
 
@@ -122,6 +126,19 @@ public class HiveSourceConfig implements Serializable {
             case TEXT:
                 // if the file format is text, we set the delim.
                 Map<String, String> parameters = table.getSd().getSerdeInfo().getParameters();
+                if (!readonlyConfig.getOptional(NULL_FORMAT).isPresent()) {
+                    String nullFormatKey = "serialization.null.format";
+                    String nullFormat = table.getParameters().get(nullFormatKey);
+                    if (StringUtils.isEmpty(nullFormat)) {
+                        nullFormat = parameters.get(nullFormatKey);
+                    }
+                    if (StringUtils.isEmpty(nullFormat)) {
+                        nullFormat = "\\N";
+                    }
+                    config =
+                            config.withValue(
+                                    NULL_FORMAT.key(), ConfigValueFactory.fromAnyRef(nullFormat));
+                }
                 config =
                         config.withValue(
                                         FIELD_DELIMITER.key(),
