@@ -48,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -84,8 +85,7 @@ public abstract class AbstractJdbcSinkWriter<ResourceT>
     }
 
     protected void processSchemaChangeEvent(AlterTableColumnEvent event) throws IOException {
-        TableSchema newTableSchema = this.tableSchema.copy();
-        List<Column> columns = newTableSchema.getColumns();
+        List<Column> columns = new ArrayList<>(this.tableSchema.getColumns());
         switch (event.getEventType()) {
             case SCHEMA_CHANGE_ADD_COLUMN:
                 Column addColumn = ((AlterTableAddColumnEvent) event).getColumn();
@@ -110,7 +110,12 @@ public abstract class AbstractJdbcSinkWriter<ResourceT>
                 throw new SeaTunnelException(
                         "Unsupported schemaChangeEvent for event type: " + event.getEventType());
         }
-        this.tableSchema = newTableSchema;
+        this.tableSchema =
+                TableSchema.builder()
+                        .columns(columns)
+                        .primaryKey(tableSchema.getPrimaryKey())
+                        .constraintKey(tableSchema.getConstraintKeys())
+                        .build();
         reOpenOutputFormat(event);
     }
 

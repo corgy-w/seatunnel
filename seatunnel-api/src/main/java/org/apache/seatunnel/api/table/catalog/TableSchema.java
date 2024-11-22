@@ -24,6 +24,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,7 +33,6 @@ import java.util.stream.Collectors;
 public final class TableSchema implements Serializable {
     private static final long serialVersionUID = 1L;
     private final List<Column> columns;
-    private final List<String> columnNames;
 
     private final PrimaryKey primaryKey;
 
@@ -41,7 +41,6 @@ public final class TableSchema implements Serializable {
     public TableSchema(
             List<Column> columns, PrimaryKey primaryKey, List<ConstraintKey> constraintKeys) {
         this.columns = columns;
-        this.columnNames = columns.stream().map(Column::getName).collect(Collectors.toList());
         this.primaryKey = primaryKey;
         this.constraintKeys = constraintKeys;
     }
@@ -64,16 +63,39 @@ public final class TableSchema implements Serializable {
         return new SeaTunnelRowType(fields, fieldTypes);
     }
 
+    public List<String> getColumnNames() {
+        return columns.stream().map(Column::getName).collect(Collectors.toList());
+    }
+
     public String[] getFieldNames() {
-        return columnNames.toArray(new String[0]);
+        return columns.stream().map(Column::getName).toArray(String[]::new);
+    }
+
+    public int indexOf(String columnName) {
+        for (int i = 0; i < columns.size(); i++) {
+            if (columns.get(i).getName().equals(columnName)) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public Column getColumn(String columnName) {
-        return columns.get(columnNames.indexOf(columnName));
+        for (Column column : columns) {
+            if (column.getName().equals(columnName)) {
+                return column;
+            }
+        }
+        throw new IllegalArgumentException(
+                "Column " + columnName + " not found. columns: " + columns);
     }
 
     public boolean contains(String columnName) {
-        return columnNames.contains(columnName);
+        return indexOf(columnName) != -1;
+    }
+
+    public List<Column> getColumns() {
+        return Collections.unmodifiableList(columns);
     }
 
     public static final class Builder {

@@ -31,6 +31,7 @@ import io.debezium.util.SchemaNameAdjuster;
 import java.io.Serializable;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static io.debezium.relational.history.ConnectTableChangeSerializer.AUTO_INCREMENTED_KEY;
 import static io.debezium.relational.history.ConnectTableChangeSerializer.CHARSET_NAME_KEY;
@@ -51,15 +52,20 @@ import static io.debezium.relational.history.ConnectTableChangeSerializer.TYPE_E
 import static io.debezium.relational.history.ConnectTableChangeSerializer.TYPE_KEY;
 import static io.debezium.relational.history.ConnectTableChangeSerializer.TYPE_NAME_KEY;
 
+/**
+ * Copy {@link io.debezium.relational.history.ConnectTableChangeSerializer} to fix the issue of
+ * missing ENUM_VALUES_KEY and DEFAULT_VALUE_KEY in the schema.
+ */
 public class ConnectTableChangeSerializer
         implements TableChanges.TableChangesSerializer<List<Struct>>, Serializable {
 
-    private static final SchemaNameAdjuster schemaNameAdjuster =
+    private static final SchemaNameAdjuster SCHEMA_NAME_ADJUSTER =
             DebeziumSchemaNameAdjuster.create();
+    private static final String ENUM_VALUES_KEY = "enumValues";
 
     private static final Schema COLUMN_SCHEMA =
             SchemaBuilder.struct()
-                    .name(schemaNameAdjuster.adjust("io.debezium.connector.schema.Column"))
+                    .name(SCHEMA_NAME_ADJUSTER.adjust("io.debezium.connector.schema.Column"))
                     .field(NAME_KEY, Schema.STRING_SCHEMA)
                     .field(JDBC_TYPE_KEY, Schema.INT32_SCHEMA)
                     .field(NATIVE_TYPE_KEY, Schema.OPTIONAL_INT32_SCHEMA)
@@ -72,11 +78,34 @@ public class ConnectTableChangeSerializer
                     .field(OPTIONAL_KEY, Schema.OPTIONAL_BOOLEAN_SCHEMA)
                     .field(AUTO_INCREMENTED_KEY, Schema.OPTIONAL_BOOLEAN_SCHEMA)
                     .field(GENERATED_KEY, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                    .field(
+                            ENUM_VALUES_KEY,
+                            SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
+                    .build();
+
+    public static final Schema TABLE_SCHEMA =
+            SchemaBuilder.struct()
+                    .name(SCHEMA_NAME_ADJUSTER.adjust("io.debezium.connector.schema.Table"))
+                    .field(DEFAULT_CHARSET_NAME_KEY, Schema.OPTIONAL_STRING_SCHEMA)
+                    .field(
+                            PRIMARY_KEY_COLUMN_NAMES_KEY,
+                            SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
+                    .field(COLUMNS_KEY, SchemaBuilder.array(COLUMN_SCHEMA).build())
+                    .build();
+
+    public static final Schema CHANGE_SCHEMA =
+            SchemaBuilder.struct()
+                    .name(SCHEMA_NAME_ADJUSTER.adjust("io.debezium.connector.schema.Change"))
+                    .field(TYPE_KEY, Schema.STRING_SCHEMA)
+                    .field(ID_KEY, Schema.STRING_SCHEMA)
+                    .field(TABLE_KEY, TABLE_SCHEMA)
                     .build();
 
     @Override
     public List<Struct> serialize(TableChanges tableChanges) {
-        throw new UnsupportedOperationException();
+        return StreamSupport.stream(tableChanges.spliterator(), false)
+                .map(this::toStruct)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -139,6 +168,60 @@ public class ConnectTableChangeSerializer
         if (struct.get(SCALE_KEY) != null) {
             editor.scale(struct.getInt32(SCALE_KEY));
         }
+        if (struct.schema().field(ENUM_VALUES_KEY) != null) {
+            editor.enumValues(struct.getArray(ENUM_VALUES_KEY));
+        }
         return editor.create();
+    }
+
+    public Struct toStruct(TableChanges.TableChange tableChange) {
+        final Struct struct = new Struct(CHANGE_SCHEMA);
+
+        struct.put(TYPE_KEY, tableChange.getType().name());
+        struct.put(ID_KEY, tableChange.getId().toDoubleQuotedString());
+        struct.put(TABLE_KEY, toStruct(tableChange.getTable()));
+        return struct;
+    }
+
+    private Struct toStruct(Table table) {
+        final Struct struct = new Struct(TABLE_SCHEMA);
+
+        struct.put(DEFAULT_CHARSET_NAME_KEY, table.defaultCharsetName());
+        struct.put(PRIMARY_KEY_COLUMN_NAMES_KEY, table.primaryKeyColumnNames());
+
+        final List<Struct> columns =
+                table.columns().stream().map(this::toStruct).collect(Collectors.toList());
+
+        struct.put(COLUMNS_KEY, columns);
+        return struct;
+    }
+
+    private Struct toStruct(Column column) {
+        final Struct struct = new Struct(COLUMN_SCHEMA);
+
+        struct.put(NAME_KEY, column.name());
+        struct.put(JDBC_TYPE_KEY, column.jdbcType());
+
+        if (column.nativeType() != Column.UNSET_INT_VALUE) {
+            struct.put(NATIVE_TYPE_KEY, column.nativeType());
+        }
+
+        struct.put(TYPE_NAME_KEY, column.typeName());
+        struct.put(TYPE_EXPRESSION_KEY, column.typeExpression());
+        struct.put(CHARSET_NAME_KEY, column.charsetName());
+
+        if (column.length() != Column.UNSET_INT_VALUE) {
+            struct.put(LENGTH_KEY, column.length());
+        }
+
+        column.scale().ifPresent(s -> struct.put(SCALE_KEY, s));
+
+        struct.put(POSITION_KEY, column.position());
+        struct.put(OPTIONAL_KEY, column.isOptional());
+        struct.put(AUTO_INCREMENTED_KEY, column.isAutoIncremented());
+        struct.put(GENERATED_KEY, column.isGenerated());
+        struct.put(ENUM_VALUES_KEY, column.enumValues());
+
+        return struct;
     }
 }

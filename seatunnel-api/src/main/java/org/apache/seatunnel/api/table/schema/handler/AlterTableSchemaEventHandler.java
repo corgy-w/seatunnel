@@ -1,12 +1,13 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,6 +30,7 @@ import org.apache.seatunnel.api.table.schema.event.AlterTableModifyColumnEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableNameEvent;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -117,7 +119,7 @@ public class AlterTableSchemaEventHandler implements TableSchemaChangeEventHandl
             TableSchema schema, AlterTableDropColumnEvent dropColumnEvent) {
         String[] fieldNames = schema.getFieldNames();
 
-        List<Column> newColumns = schema.getColumns();
+        List<Column> newColumns = new ArrayList<>(schema.getColumns());
         for (int i = 0; i < fieldNames.length; i++) {
             if (fieldNames[i].equals(dropColumnEvent.getColumn())) {
                 newColumns.remove(i);
@@ -150,17 +152,21 @@ public class AlterTableSchemaEventHandler implements TableSchemaChangeEventHandl
     private TableSchema applyChangeColumn(
             TableSchema schema, AlterTableChangeColumnEvent changeColumnEvent) {
         String oldColumn = changeColumnEvent.getOldColumn();
-        int oldColumnIndex =
-                schema.getColumns().stream()
-                        .filter(c -> c.getName().equals(oldColumn))
-                        .findFirst()
-                        .map(schema.getColumns()::indexOf)
-                        .get();
+        int oldColumnIndex = schema.indexOf(oldColumn);
+
+        // The operation of rename column which only has the name of old column and the name of new
+        // column,
+        // so we need to fill the data type which is the same as the old column.
+        Column column = changeColumnEvent.getColumn();
+        if (column.getDataType() == null) {
+            SeaTunnelDataType<?> fieldType = schema.getColumn(oldColumn).getDataType();
+            column = column.copy(fieldType);
+        }
 
         return applyModifyColumn(
                 schema,
                 oldColumnIndex,
-                changeColumnEvent.getColumn(),
+                column,
                 changeColumnEvent.isFirst(),
                 changeColumnEvent.getAfterColumn());
     }

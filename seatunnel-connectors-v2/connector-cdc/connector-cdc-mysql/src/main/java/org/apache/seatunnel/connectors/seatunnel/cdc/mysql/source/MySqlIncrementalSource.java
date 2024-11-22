@@ -34,6 +34,7 @@ import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
 import org.apache.seatunnel.connectors.cdc.base.source.IncrementalSource;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.OffsetFactory;
+import org.apache.seatunnel.connectors.cdc.debezium.ConnectTableChangeSerializer;
 import org.apache.seatunnel.connectors.cdc.debezium.DebeziumDeserializationSchema;
 import org.apache.seatunnel.connectors.cdc.debezium.DeserializeFormat;
 import org.apache.seatunnel.connectors.cdc.debezium.row.DebeziumJsonDeserializeSchema;
@@ -49,7 +50,6 @@ import org.apache.kafka.connect.data.Struct;
 import io.debezium.connector.mysql.MySqlConnectorConfig;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
-import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
 
 import java.time.ZoneId;
