@@ -29,10 +29,12 @@ import org.apache.seatunnel.api.table.event.AlterTableEvent;
 import org.apache.seatunnel.api.table.event.AlterTableModifyColumnEvent;
 import org.apache.seatunnel.api.table.event.AlterTableNameEvent;
 import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class AlterTableSchemaEventHandler implements TableSchemaChangeEventHandler {
     private TableSchema schema;
@@ -116,14 +118,10 @@ public class AlterTableSchemaEventHandler implements TableSchemaChangeEventHandl
 
     private TableSchema applyDropColumn(
             TableSchema schema, AlterTableDropColumnEvent dropColumnEvent) {
-        String[] fieldNames = schema.getFieldNames();
-
-        List<Column> newColumns = schema.getColumns();
-        for (int i = 0; i < fieldNames.length; i++) {
-            if (fieldNames[i].equals(dropColumnEvent.getColumn())) {
-                newColumns.remove(i);
-            }
-        }
+        List<Column> newColumns =
+                schema.getColumns().stream()
+                        .filter(c -> !c.getName().equals(dropColumnEvent.getColumn()))
+                        .collect(Collectors.toList());
         return TableSchema.builder()
                 .columns(newColumns)
                 .primaryKey(schema.getPrimaryKey())
@@ -151,17 +149,21 @@ public class AlterTableSchemaEventHandler implements TableSchemaChangeEventHandl
     private TableSchema applyChangeColumn(
             TableSchema schema, AlterTableChangeColumnEvent changeColumnEvent) {
         String oldColumn = changeColumnEvent.getOldColumn();
-        int oldColumnIndex =
-                schema.getColumns().stream()
-                        .filter(c -> c.getName().equals(oldColumn))
-                        .findFirst()
-                        .map(schema.getColumns()::indexOf)
-                        .get();
+        int oldColumnIndex = schema.indexOf(oldColumn);
+
+        // The operation of rename column which only has the name of old column and the name of new
+        // column,
+        // so we need to fill the data type which is the same as the old column.
+        Column column = changeColumnEvent.getColumn();
+        if (column.getDataType() == null) {
+            SeaTunnelDataType<?> fieldType = schema.getColumn(oldColumn).getDataType();
+            column = column.copy(fieldType);
+        }
 
         return applyModifyColumn(
                 schema,
                 oldColumnIndex,
-                changeColumnEvent.getColumn(),
+                column,
                 changeColumnEvent.isFirst(),
                 changeColumnEvent.getAfterColumn());
     }

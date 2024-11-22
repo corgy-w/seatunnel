@@ -145,6 +145,8 @@ public class IncrementalSourceRecordEmitter<T>
                 emitElement(element, output);
             }
         } else if (isSchemaChangeEvent(element) && splitState.isIncrementalSplitState()) {
+            Offset position = getOffsetPosition(element);
+            splitState.asIncrementalSplitState().setStartupOffset(position);
             emitElement(element, output);
         } else if (isDataChangeRecord(element)) {
             if (splitState.isIncrementalSplitState()) {
