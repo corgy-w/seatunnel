@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.sink;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.sink.DataSaveMode;
 import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
@@ -73,6 +74,10 @@ public class IcebergSinkFactory implements TableSinkFactory {
                         HADOOP_CONF_PATH_PROP,
                         REMOTE_USER,
                         SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
+                .conditional(
+                        SinkConfig.DATA_SAVE_MODE,
+                        DataSaveMode.CUSTOM_PROCESSING,
+                        SinkConfig.DATA_SAVE_MODE_CUSTOM_SQL)
                 .build();
     }
 
