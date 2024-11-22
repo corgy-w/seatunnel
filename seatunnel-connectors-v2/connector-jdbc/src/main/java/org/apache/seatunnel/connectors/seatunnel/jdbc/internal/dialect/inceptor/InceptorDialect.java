@@ -79,6 +79,6 @@ public class InceptorDialect implements JdbcDialect {
 
     @Override
     public TablePath parse(String tablePath) {
-        return TablePath.of(tablePath, true);
+        return TablePath.of(tablePath, false);
     }
 }

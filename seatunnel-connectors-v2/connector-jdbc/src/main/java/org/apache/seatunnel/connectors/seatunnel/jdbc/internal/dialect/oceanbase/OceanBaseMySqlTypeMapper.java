@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.inceptor;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oceanbase;
 
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
@@ -26,48 +26,45 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-public class InceptorTypeMapper implements JdbcDialectTypeMapper {
+public class OceanBaseMySqlTypeMapper implements JdbcDialectTypeMapper {
+
+    private OceanBaseMySqlTypeConverter typeConverter;
+
+    public OceanBaseMySqlTypeMapper() {
+        this.typeConverter = new OceanBaseMySqlTypeConverter();
+    }
+
+    public OceanBaseMySqlTypeMapper(OceanBaseMySqlTypeConverter typeConverter) {
+        this.typeConverter = typeConverter;
+    }
 
     @Override
     public Column mappingColumn(BasicTypeDefine typeDefine) {
-        return InceptorTypeConverter.INSTANCE.convert(typeDefine);
+        return typeConverter.convert(typeDefine);
     }
 
     @Override
     public Column mappingColumn(ResultSetMetaData metadata, int colIndex) throws SQLException {
         String columnName = metadata.getColumnLabel(colIndex);
-        String columnType = metadata.getColumnTypeName(colIndex);
-        String nativeColumnType = columnType;
+        // e.g. tinyint unsigned
+        String nativeType = metadata.getColumnTypeName(colIndex);
         int isNullable = metadata.isNullable(colIndex);
-        long precision = metadata.getPrecision(colIndex);
+        int precision = metadata.getPrecision(colIndex);
         int scale = metadata.getScale(colIndex);
 
-        if (Arrays.asList("CHAR", "VARCHAR", "VARCHAR2").contains(columnType)) {
-            long octetLength = TypeDefineUtils.charTo4ByteLength(precision);
-            precision = Math.max(precision, octetLength);
-            switch (columnType) {
-                case "CHAR":
-                    nativeColumnType = "char(" + precision + ")";
-                    break;
-                case "VARCHAR":
-                case "VARCHAR2":
-                    nativeColumnType = "varchar(" + precision + ")";
-                    break;
-            }
-        }
-
-        if (columnType.equalsIgnoreCase("decimal")) {
-            nativeColumnType = "decimal(" + precision + "," + scale + ")";
+        if (Arrays.asList("CHAR", "VARCHAR", "ENUM").contains(nativeType)) {
+            long octetLength = TypeDefineUtils.charTo4ByteLength((long) precision);
+            precision = (int) Math.max(precision, octetLength);
         }
 
         BasicTypeDefine typeDefine =
                 BasicTypeDefine.builder()
                         .name(columnName)
-                        .columnType(nativeColumnType)
-                        .dataType(columnType)
+                        .columnType(nativeType)
+                        .dataType(nativeType)
                         .nullable(isNullable == ResultSetMetaData.columnNullable)
-                        .length(precision)
-                        .precision(precision)
+                        .length((long) precision)
+                        .precision((long) precision)
                         .scale(scale)
                         .build();
         return mappingColumn(typeDefine);

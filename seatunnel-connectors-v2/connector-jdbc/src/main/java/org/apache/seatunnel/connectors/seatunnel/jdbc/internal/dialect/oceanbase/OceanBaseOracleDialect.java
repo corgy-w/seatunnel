@@ -17,31 +17,16 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oceanbase;
 
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectFactory;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oracle.OracleDialect;
 
-import com.google.auto.service.AutoService;
+import lombok.extern.slf4j.Slf4j;
 
-import javax.annotation.Nonnull;
-
-@AutoService(JdbcDialectFactory.class)
-public class OceanBaseDialectFactory implements JdbcDialectFactory {
-    @Override
-    public boolean acceptsURL(String url) {
-        return url.startsWith("jdbc:oceanbase:");
-    }
+@Slf4j
+public class OceanBaseOracleDialect extends OracleDialect {
 
     @Override
-    public JdbcDialect create() {
-        throw new UnsupportedOperationException(
-                "Can't create JdbcDialect without compatible mode for OceanBase");
-    }
-
-    @Override
-    public JdbcDialect create(@Nonnull String compatibleMode, String fieldIde) {
-        if ("oracle".equalsIgnoreCase(compatibleMode)) {
-            return new OceanBaseOracleDialect();
-        }
-        return new OceanBaseMysqlDialect();
+    public String dialectName() {
+        return DatabaseIdentifier.OCENABASE;
     }
 }
