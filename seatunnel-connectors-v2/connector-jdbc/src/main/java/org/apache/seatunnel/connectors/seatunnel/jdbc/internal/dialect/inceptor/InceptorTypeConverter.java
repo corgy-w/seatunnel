@@ -74,7 +74,7 @@ public class InceptorTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final InceptorTypeConverter INSTANCE = new InceptorTypeConverter();
     public static final int MAX_PRECISION = 38;
     public static final int DEFAULT_PRECISION = MAX_PRECISION;
-    public static final int MAX_SCALE = 127;
+    public static final int MAX_SCALE = 38;
     public static final int DEFAULT_SCALE = 18;
 
     public static final long KB_4 = 4096L;

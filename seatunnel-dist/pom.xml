@@ -107,6 +107,7 @@
                 <dws-gaussdb.version>8.2.1.300-200</dws-gaussdb.version>
                 <iceberg-aws.version>1.4.2</iceberg-aws.version>
                 <software.amazon.version>2.27.12</software.amazon.version>
+                <oceanbase.version>2.4.3</oceanbase.version>
 
                 <!-- Imap storage dependency package  -->
                 <hadoop-aliyun.version>3.3.6</hadoop-aliyun.version>
@@ -582,6 +583,12 @@
                     <groupId>com.huaweicloud.dws</groupId>
                     <artifactId>huaweicloud-dws-jdbc</artifactId>
                     <version>${dws-gaussdb.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.oceanbase</groupId>
+                    <artifactId>oceanbase-client</artifactId>
+                    <version>${oceanbase.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <!-- jdbc driver end -->

@@ -15,33 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.inceptor;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oceanbase;
 
-import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.hive.HiveDialect;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oracle.OracleDialect;
 
-public class InceptorDialect extends HiveDialect {
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+public class OceanBaseOracleDialect extends OracleDialect {
 
     @Override
     public String dialectName() {
-        return DatabaseIdentifier.INCEPTOR;
-    }
-
-    @Override
-    public JdbcRowConverter getRowConverter() {
-        return new InceptorJdbcRowConverter();
-    }
-
-    @Override
-    public JdbcDialectTypeMapper getJdbcDialectTypeMapper() {
-        return new InceptorTypeMapper();
-    }
-
-    @Override
-    public TablePath parse(String tablePath) {
-        return TablePath.of(tablePath, false);
+        return DatabaseIdentifier.OCENABASE;
     }
 }

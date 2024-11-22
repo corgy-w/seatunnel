@@ -55,10 +55,6 @@ public class OceanBaseCatalogFactory implements CatalogFactory {
                 StringUtils.isNotBlank(urlWithDatabase),
                 "Miss config <base-url>! Please check your config.");
         JdbcUrlUtil.UrlInfo urlInfo = JdbcUrlUtil.getUrlInfo(urlWithDatabase);
-        Optional<String> defaultDatabase = urlInfo.getDefaultDatabase();
-        if (!defaultDatabase.isPresent()) {
-            throw new OptionValidationException(JdbcCatalogOptions.BASE_URL);
-        }
 
         String compatibleMode = options.get(JdbcCatalogOptions.COMPATIBLE_MODE);
         Preconditions.checkArgument(
@@ -72,6 +68,11 @@ public class OceanBaseCatalogFactory implements CatalogFactory {
                     options.get(JdbcCatalogOptions.PASSWORD),
                     urlInfo,
                     options.get(JdbcCatalogOptions.SCHEMA));
+        }
+
+        Optional<String> defaultDatabase = urlInfo.getDefaultDatabase();
+        if (!defaultDatabase.isPresent()) {
+            throw new OptionValidationException(JdbcCatalogOptions.BASE_URL);
         }
         return new OceanBaseMySqlCatalog(
                 catalogName,

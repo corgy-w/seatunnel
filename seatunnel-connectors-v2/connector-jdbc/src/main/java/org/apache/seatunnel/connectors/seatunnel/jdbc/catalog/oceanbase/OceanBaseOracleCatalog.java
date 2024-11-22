@@ -25,12 +25,21 @@ import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistExcepti
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.oracle.OracleCatalog;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oracle.OracleTypeMapper;
 
+import lombok.extern.slf4j.Slf4j;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.List;
 
 import static org.apache.seatunnel.shade.com.google.common.base.Preconditions.checkNotNull;
 
+@Slf4j
 public class OceanBaseOracleCatalog extends OracleCatalog {
 
     public OceanBaseOracleCatalog(
@@ -40,6 +49,11 @@ public class OceanBaseOracleCatalog extends OracleCatalog {
             JdbcUrlUtil.UrlInfo urlInfo,
             String defaultSchema) {
         super(catalogName, username, pwd, urlInfo, defaultSchema);
+    }
+
+    @Override
+    public boolean databaseExists(String databaseName) throws CatalogException {
+        return true;
     }
 
     @Override
@@ -97,5 +111,24 @@ public class OceanBaseOracleCatalog extends OracleCatalog {
         }
 
         createTableInternal(tablePath, table, createIndex);
+    }
+
+    @Override
+    public CatalogTable getTable(String sqlQuery) throws SQLException {
+        try {
+            return super.getTable(sqlQuery);
+        } catch (Throwable e) {
+            log.warn(
+                    "Failed to get table from preparedStatement MetaData, try to get table from resultSet MetaData",
+                    e);
+            String sql = "SELECT t.* FROM (" + sqlQuery + ") t WHERE rownum < 1";
+            Connection defaultConnection = getConnection(defaultUrl);
+            try (PreparedStatement ps = defaultConnection.prepareStatement(sql);
+                    ResultSet resultSet = ps.executeQuery(); ) {
+                ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                return CatalogUtils.getCatalogTable(
+                        resultSetMetaData, new OracleTypeMapper(), sqlQuery);
+            }
+        }
     }
 }
