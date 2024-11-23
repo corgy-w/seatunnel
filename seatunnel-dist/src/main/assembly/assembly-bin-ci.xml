@@ -268,6 +268,20 @@
             <scope>system</scope>
         </dependencySet>
 
+        <!-- =================== JDBC Connector Drivers ===================  -->
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>org.apache.seatunnel:seatunnel-hive-jdbc-2.1.1-hadoop2.6.5-uber:jar</include>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-2.1.1-hadoop2.6.5-uber:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-jdbc-hive2</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
         <!-- =================== Hive3 Connector Dependency ===================  -->
         <dependencySet>
             <useProjectArtifact>false</useProjectArtifact>
