@@ -181,6 +181,8 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                     return formatter.formatCellValue(cell);
                 }
                 return cell.getNumericCellValue();
+            case BLANK:
+                return "";
             case ERROR:
                 break;
             default:
@@ -194,15 +196,26 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
     @SneakyThrows
     private Object convert(Object field, SeaTunnelDataType<?> fieldType) {
         if (field == null) {
-            return "";
+            return null;
         }
+
         SqlType sqlType = fieldType.getSqlType();
+        if (!(SqlType.STRING.equals(sqlType)) && "".equals(field)) {
+            return null;
+        }
         switch (sqlType) {
             case MAP:
             case ARRAY:
                 return objectMapper.readValue((String) field, fieldType.getTypeClass());
             case STRING:
-                return field;
+                if (field instanceof Double) {
+                    String stringValue = field.toString();
+                    if (stringValue.endsWith(".0")) {
+                        return stringValue.substring(0, stringValue.length() - 2);
+                    }
+                    return stringValue;
+                }
+                return String.valueOf(field);
             case DOUBLE:
                 return Double.parseDouble(field.toString());
             case BOOLEAN:
@@ -229,7 +242,7 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                 return LocalDateTime.parse(
                         (String) field, DateTimeFormatter.ofPattern(datetimeFormat.getValue()));
             case NULL:
-                return "";
+                return null;
             case BYTES:
                 return field.toString().getBytes(StandardCharsets.UTF_8);
             case ROW:
