@@ -57,8 +57,7 @@ public class LocalFileSourceFactory implements TableSourceFactory {
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
-                        BaseSourceConfigOptions.FIELD_DELIMITER,
-                        BaseSourceConfigOptions.NULL_FORMAT)
+                        BaseSourceConfigOptions.FIELD_DELIMITER)
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         Arrays.asList(
@@ -74,6 +73,7 @@ public class LocalFileSourceFactory implements TableSourceFactory {
                 .optional(BaseSourceConfigOptions.DATETIME_FORMAT)
                 .optional(BaseSourceConfigOptions.TIME_FORMAT)
                 .optional(BaseSourceConfigOptions.FILE_FILTER_PATTERN)
+                .optional(BaseSourceConfigOptions.NULL_FORMAT)
                 .build();
     }
 

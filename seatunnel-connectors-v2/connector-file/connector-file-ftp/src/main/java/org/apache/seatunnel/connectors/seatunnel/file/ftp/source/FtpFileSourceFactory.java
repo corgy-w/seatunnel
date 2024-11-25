@@ -54,8 +54,7 @@ public class FtpFileSourceFactory implements TableSourceFactory {
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
-                        BaseSourceConfigOptions.FIELD_DELIMITER,
-                        BaseSourceConfigOptions.NULL_FORMAT)
+                        BaseSourceConfigOptions.FIELD_DELIMITER)
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         Arrays.asList(
@@ -74,6 +73,7 @@ public class FtpFileSourceFactory implements TableSourceFactory {
                 .optional(BaseSourceConfigOptions.COMPRESS_CODEC)
                 .optional(FtpConfigOptions.FTP_CONNECTION_MODE)
                 .optional(BaseSourceConfigOptions.ENCODING)
+                .optional(BaseSourceConfigOptions.NULL_FORMAT)
                 .build();
     }
 

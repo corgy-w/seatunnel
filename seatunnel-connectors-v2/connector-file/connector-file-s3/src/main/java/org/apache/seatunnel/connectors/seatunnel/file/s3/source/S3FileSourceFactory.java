@@ -65,8 +65,7 @@ public class S3FileSourceFactory implements TableSourceFactory {
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
-                        BaseSourceConfigOptions.FIELD_DELIMITER,
-                        BaseSourceConfigOptions.NULL_FORMAT)
+                        BaseSourceConfigOptions.FIELD_DELIMITER)
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         Arrays.asList(
@@ -84,6 +83,7 @@ public class S3FileSourceFactory implements TableSourceFactory {
                 .optional(BaseSourceConfigOptions.FILE_FILTER_PATTERN)
                 .optional(BaseSourceConfigOptions.COMPRESS_CODEC)
                 .optional(BaseSourceConfigOptions.ENCODING)
+                .optional(BaseSourceConfigOptions.NULL_FORMAT)
                 .build();
     }
 
