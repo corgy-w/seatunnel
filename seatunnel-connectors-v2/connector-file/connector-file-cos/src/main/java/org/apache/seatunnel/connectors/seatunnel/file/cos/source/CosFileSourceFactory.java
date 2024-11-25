@@ -50,8 +50,7 @@ public class CosFileSourceFactory implements TableSourceFactory {
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,
-                        BaseSourceConfigOptions.FIELD_DELIMITER,
-                        BaseSourceConfigOptions.NULL_FORMAT)
+                        BaseSourceConfigOptions.FIELD_DELIMITER)
                 .conditional(
                         BaseSourceConfigOptions.FILE_FORMAT_TYPE,
                         FileFormat.XML,
@@ -75,6 +74,7 @@ public class CosFileSourceFactory implements TableSourceFactory {
                 .optional(BaseSourceConfigOptions.FILE_FILTER_PATTERN)
                 .optional(BaseSourceConfigOptions.COMPRESS_CODEC)
                 .optional(BaseSourceConfigOptions.ARCHIVE_COMPRESS_CODEC)
+                .optional(BaseSourceConfigOptions.NULL_FORMAT)
                 .build();
     }
 
