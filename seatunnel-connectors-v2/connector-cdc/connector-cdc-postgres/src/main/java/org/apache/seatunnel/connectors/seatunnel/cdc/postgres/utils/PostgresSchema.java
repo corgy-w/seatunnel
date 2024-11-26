@@ -23,7 +23,6 @@ import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 
 import io.debezium.connector.postgresql.PostgresConnectorConfig;
 import io.debezium.connector.postgresql.connection.PostgresConnection;
-import io.debezium.connector.postgresql.connection.ServerInfo;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
@@ -63,15 +62,6 @@ public class PostgresSchema {
         PostgresConnection postgresConnection = (PostgresConnection) jdbc;
         Tables tables = new Tables();
         try {
-            ServerInfo.ReplicaIdentity replicaIdentity =
-                    postgresConnection.readReplicaIdentityInfo(tableId);
-            if (!ServerInfo.ReplicaIdentity.FULL.equals(replicaIdentity)) {
-                throw new SeaTunnelException(
-                        String.format(
-                                "Table %s does not have a full replica identity, please execute: ALTER TABLE %s REPLICA IDENTITY FULL;",
-                                tableId, tableId));
-            }
-
             postgresConnection.readSchema(
                     tables,
                     tableIdWithoutCatalog.catalog(),

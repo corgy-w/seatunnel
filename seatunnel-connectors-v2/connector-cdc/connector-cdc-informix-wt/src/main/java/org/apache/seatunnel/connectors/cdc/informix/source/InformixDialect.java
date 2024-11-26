@@ -47,6 +47,8 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class InformixDialect implements JdbcDataSourceDialect {
     private final InformixSourceConfig sourceConfig;
@@ -94,10 +96,30 @@ public class InformixDialect implements JdbcDataSourceDialect {
     public List<TableId> discoverDataCollections(JdbcSourceConfig sourceConfig) {
         InformixSourceConfig informixSourceConfig = (InformixSourceConfig) sourceConfig;
         try (InformixConnection jdbcConnection = openJdbcConnection(sourceConfig)) {
-            return jdbcConnection.listTables(
-                    informixSourceConfig.getTableFilters(), sourceConfig.getDatabaseList());
+            List<TableId> tables =
+                    jdbcConnection.listTables(
+                            informixSourceConfig.getTableFilters(), sourceConfig.getDatabaseList());
+            this.checkAllTablesEnabledCapture(jdbcConnection, tables);
+            return tables;
         } catch (SQLException e) {
             throw new SeaTunnelException("Error to discover tables: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void checkAllTablesEnabledCapture(JdbcConnection jdbcConnection, List<TableId> tableIds)
+            throws SQLException {
+        InformixConnection informixConnection = (InformixConnection) jdbcConnection;
+        List<String> databases =
+                tableIds.stream().map(TableId::catalog).distinct().collect(Collectors.toList());
+        List<String> enableDatabases = informixConnection.listDatabasesWithEnableCDC(databases);
+        Set<String> disableDatabases =
+                databases.stream()
+                        .filter(db -> !enableDatabases.contains(db))
+                        .collect(Collectors.toSet());
+        if (!disableDatabases.isEmpty()) {
+            throw new SeaTunnelException(
+                    "The following databases are not enabled for capture: " + disableDatabases);
         }
     }
 
@@ -132,6 +154,12 @@ public class InformixDialect implements JdbcDataSourceDialect {
         if (sourceSplitBase.isSnapshotSplit()) {
             return new InformixSnapshotFetchTask(sourceSplitBase.asSnapshotSplit(), this);
         } else {
+            try (JdbcConnection jdbcConnection = openJdbcConnection(sourceConfig)) {
+                List<TableId> tables = sourceSplitBase.asIncrementalSplit().getTableIds();
+                this.checkAllTablesEnabledCapture(jdbcConnection, tables);
+            } catch (SQLException e) {
+                throw new SeaTunnelException("Error to check tables: " + e.getMessage(), e);
+            }
             return new InformixCDCLogFetchTask(sourceSplitBase.asIncrementalSplit());
         }
     }

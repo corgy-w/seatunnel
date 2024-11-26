@@ -43,6 +43,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
+import io.debezium.connector.opengauss.connection.ServerInfo;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.TableChanges;
@@ -101,10 +102,29 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
     public List<TableId> discoverDataCollections(JdbcSourceConfig sourceConfig) {
         OpenGaussSourceConfig postgresSourceConfig = (OpenGaussSourceConfig) sourceConfig;
         try (JdbcConnection jdbcConnection = openJdbcConnection(sourceConfig)) {
-            return TableDiscoveryUtils.listTables(
-                    jdbcConnection, postgresSourceConfig.getTableFilters());
+            List<TableId> tables =
+                    TableDiscoveryUtils.listTables(
+                            jdbcConnection, postgresSourceConfig.getTableFilters());
+            this.checkAllTablesEnabledCapture(jdbcConnection, tables);
+            return tables;
         } catch (SQLException e) {
             throw new SeaTunnelException("Error to discover tables: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void checkAllTablesEnabledCapture(JdbcConnection jdbcConnection, List<TableId> tableIds)
+            throws SQLException {
+        OpengaussConnection opengaussConnection = (OpengaussConnection) jdbcConnection;
+        for (TableId tableId : tableIds) {
+            ServerInfo.ReplicaIdentity replicaIdentity =
+                    opengaussConnection.readReplicaIdentityInfo(tableId);
+            if (!ServerInfo.ReplicaIdentity.FULL.equals(replicaIdentity)) {
+                throw new SeaTunnelException(
+                        String.format(
+                                "Table %s does not have a full replica identity, please execute: ALTER TABLE %s REPLICA IDENTITY FULL;",
+                                tableId, tableId));
+            }
         }
     }
 
@@ -149,6 +169,12 @@ public class OpenGaussDialect implements JdbcDataSourceDialect {
         if (sourceSplitBase.isSnapshotSplit()) {
             return new OpenGaussSnapshotFetchTask(sourceSplitBase.asSnapshotSplit());
         } else {
+            try (JdbcConnection jdbcConnection = openJdbcConnection(sourceConfig)) {
+                List<TableId> tables = sourceSplitBase.asIncrementalSplit().getTableIds();
+                this.checkAllTablesEnabledCapture(jdbcConnection, tables);
+            } catch (SQLException e) {
+                throw new SeaTunnelException("Error to check tables: " + e.getMessage(), e);
+            }
             openGaussWalFetchTask = new OpenGaussWalFetchTask(sourceSplitBase.asIncrementalSplit());
             return openGaussWalFetchTask;
         }

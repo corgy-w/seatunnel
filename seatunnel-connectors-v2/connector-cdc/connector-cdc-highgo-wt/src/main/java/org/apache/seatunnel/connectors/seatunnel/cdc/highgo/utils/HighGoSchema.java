@@ -23,7 +23,6 @@ import org.apache.seatunnel.connectors.cdc.base.utils.CatalogTableUtils;
 
 import io.debezium.connector.highgo.HighGoConnectorConfig;
 import io.debezium.connector.highgo.connection.HighGoConnection;
-import io.debezium.connector.highgo.connection.ServerInfo;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
@@ -63,15 +62,6 @@ public class HighGoSchema {
         HighGoConnection postgresConnection = (HighGoConnection) jdbc;
         Tables tables = new Tables();
         try {
-            ServerInfo.ReplicaIdentity replicaIdentity =
-                    postgresConnection.readReplicaIdentityInfo(tableId);
-            if (!ServerInfo.ReplicaIdentity.FULL.equals(replicaIdentity)) {
-                throw new SeaTunnelException(
-                        String.format(
-                                "Table %s does not have a full replica identity, please execute: ALTER TABLE %s REPLICA IDENTITY FULL;",
-                                tableId, tableId));
-            }
-
             postgresConnection.readSchema(
                     tables,
                     tableIdWithoutCatalog.catalog(),

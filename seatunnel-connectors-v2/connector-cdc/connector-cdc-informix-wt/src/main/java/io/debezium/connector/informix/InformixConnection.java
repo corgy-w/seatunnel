@@ -163,6 +163,33 @@ public class InformixConnection extends JdbcConnection {
         return Lsn.valueOf(-1);
     }
 
+    public List<String> listDatabasesWithEnableCDC(List<String> database) throws SQLException {
+        String sql =
+                "SELECT is_logging, is_buff_log, is_ansi FROM \n"
+                        + " sysmaster:sysdatabases WHERE name= '%s'";
+        List<String> enableDatabases = new ArrayList<>();
+        for (String s : database) {
+            JdbcConnection.ResultSetMapper<Boolean> mapper =
+                    rs -> {
+                        while (rs.next()) {
+                            String is_logging = rs.getString(1).trim();
+                            String is_buff_log = rs.getString(2).trim();
+                            String is_ansi = rs.getString(3).trim();
+                            if (is_logging.equals("1")
+                                    || is_buff_log.equals("1")
+                                    || is_ansi.equals("1")) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    };
+            if (queryAndMap(String.format(sql, s), mapper)) {
+                enableDatabases.add(s);
+            }
+        }
+        return enableDatabases;
+    }
+
     public List<String> listDatabases(List<String> selectedDataBases) throws SQLException {
         String sql = "select name from sysmaster:sysdatabases";
         JdbcConnection.ResultSetMapper<List<String>> mapper =
