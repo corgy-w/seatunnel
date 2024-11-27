@@ -76,7 +76,6 @@ public class IcebergSinkWriter
         this.rowType = tableSchema.toPhysicalRowDataType();
         this.filesCommitter = IcebergFilesCommitter.of(config, icebergTableLoader);
         this.dataTypeChangeEventHandler = new DataTypeChangeEventDispatcher();
-        tryCreateRecordWriter();
         if (Objects.nonNull(states) && !states.isEmpty()) {
             this.commitUser = states.get(0).getCommitUser();
             preCommit(states);
@@ -117,7 +116,12 @@ public class IcebergSinkWriter
 
     @Override
     public Optional<IcebergCommitInfo> prepareCommit() throws IOException {
-        List<WriteResult> writeResults = writer.complete();
+        List<WriteResult> writeResults;
+        if (writer != null) {
+            writeResults = writer.complete();
+        } else {
+            writeResults = Collections.emptyList();
+        }
         IcebergCommitInfo icebergCommitInfo = new IcebergCommitInfo(writeResults);
         this.results.addAll(writeResults);
         return Optional.of(icebergCommitInfo);
@@ -130,6 +134,7 @@ public class IcebergSinkWriter
             log.info("changed rowType before: {}", fieldsInfo(rowType));
             this.rowType = dataTypeChangeEventHandler.reset(rowType).apply(event);
             log.info("changed rowType after: {}", fieldsInfo(rowType));
+            tryCreateRecordWriter();
             writer.applySchemaChange(this.rowType, event);
         }
     }
