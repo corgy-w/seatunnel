@@ -104,8 +104,7 @@ public class IcebergSinkWriter
 
     public static IcebergSinkWriter of(
             SinkConfig config, CatalogTable catalogTable, List<IcebergSinkState> states) {
-        IcebergTableLoader icebergTableLoader =
-                IcebergTableLoader.create(config, catalogTable).open();
+        IcebergTableLoader icebergTableLoader = IcebergTableLoader.create(config, catalogTable);
         return new IcebergSinkWriter(
                 icebergTableLoader, config, catalogTable.getTableSchema(), states);
     }
