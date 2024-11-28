@@ -17,6 +17,10 @@
 
 package org.apache.seatunnel.api.connector;
 
+import org.apache.seatunnel.api.sink.SeaTunnelSink;
+import org.apache.seatunnel.api.sink.SinkWriter;
+import org.apache.seatunnel.api.sink.SupportMultiTableSink;
+import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.table.factory.FactoryUtil;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -33,8 +37,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceLoader;
 
 @Slf4j
 public class ConnectorSpecificationCheckTest {
@@ -85,14 +93,28 @@ public class ConnectorSpecificationCheckTest {
         List<TableSinkFactory> sinkFactories =
                 FactoryUtil.discoverFactories(
                         Thread.currentThread().getContextClassLoader(), TableSinkFactory.class);
+        ServiceLoader<SeaTunnelSink> sinks =
+                ServiceLoader.load(
+                        SeaTunnelSink.class, Thread.currentThread().getContextClassLoader());
+        Map<String, String> sinkWithSPI = new HashMap<>();
+        Iterator<SeaTunnelSink> sinkIterator = sinks.iterator();
+        while (sinkIterator.hasNext()) {
+            SeaTunnelSink sink = sinkIterator.next();
+            sinkWithSPI.put(sink.getPluginName(), sink.getClass().getName());
+        }
         for (TableSinkFactory factory : sinkFactories) {
             String factoryName = factory.getClass().getSimpleName();
             if (ReflectionUtils.getDeclaredMethod(
                                     factory.getClass(), "createSink", TableSinkFactoryContext.class)
                             .isPresent()
                     && !blockList.contains(factoryName)) {
-                Class<? extends SeaTunnelSource> sinkClass =
-                        (Class<? extends SeaTunnelSource>)
+
+                Assertions.assertFalse(
+                        sinkWithSPI.containsKey(factory.factoryIdentifier()),
+                        "Please remove `@AutoService(SeaTunnelSink.class)` annotation in "
+                                + sinkWithSPI.get(factory.factoryIdentifier()));
+                Class<? extends SeaTunnelSink> sinkClass =
+                        (Class<? extends SeaTunnelSink>)
                                 Class.forName(
                                         factory.getClass()
                                                 .getName()
@@ -116,7 +138,31 @@ public class ConnectorSpecificationCheckTest {
                         "Please remove `getConsumedType` method in " + sinkClass.getSimpleName());
                 log.info(
                         "Check sink connector {} successfully", factory.getClass().getSimpleName());
+
+                checkSupportMultiTableSink(sinkClass);
             }
         }
+    }
+
+    private void checkSupportMultiTableSink(Class<? extends SeaTunnelSink> sinkClass) {
+        if (!SupportMultiTableSink.class.isAssignableFrom(sinkClass)) {
+            return;
+        }
+
+        // Validate the `createWriter` method return type
+        Optional<Method> createWriter =
+                ReflectionUtils.getDeclaredMethod(
+                        sinkClass, "createWriter", SinkWriter.Context.class);
+        Assertions.assertTrue(
+                createWriter.isPresent(),
+                "Please add `createWriter` method in " + sinkClass.getSimpleName());
+        Class<? extends SinkWriter> createWriterClass =
+                (Class<? extends SinkWriter>) createWriter.get().getReturnType();
+        Assertions.assertTrue(
+                SupportMultiTableSinkWriter.class.isAssignableFrom(createWriterClass),
+                String.format(
+                        "Please update the `createWriter` method return type to the subclass of `SupportMultiTableSinkWriter`, "
+                                + "because `%s` implements `SupportMultiTableSink` interface",
+                        sinkClass.getSimpleName()));
     }
 }

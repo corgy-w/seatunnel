@@ -19,9 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.hive.sink;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
-import org.apache.seatunnel.api.sink.SinkReplaceNameConstant;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -33,9 +31,6 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
 import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
 
 import com.google.auto.service.AutoService;
-
-import java.util.HashMap;
-import java.util.Map;
 
 @AutoService(Factory.class)
 public class HiveSinkFactory
@@ -57,57 +52,11 @@ public class HiveSinkFactory
             createSink(TableSinkFactoryContext context) {
         ReadonlyConfig readonlyConfig = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
-
-        ReadonlyConfig finalReadonlyConfig =
-                generateCurrentReadonlyConfig(readonlyConfig, catalogTable);
-        return () -> new HiveSink(finalReadonlyConfig, catalogTable);
+        return () -> new HiveSink(readonlyConfig, catalogTable);
     }
 
     @Override
     public String factoryIdentifier() {
         return HiveConstants.CONNECTOR_NAME;
-    }
-
-    protected ReadonlyConfig generateCurrentReadonlyConfig(
-            ReadonlyConfig readonlyConfig, CatalogTable catalogTable) {
-
-        Map<String, String> configMap = readonlyConfig.toMap();
-
-        readonlyConfig
-                .getOptional(HiveSinkOptions.TABLE_NAME)
-                .ifPresent(
-                        tableName -> {
-                            String replacedPath =
-                                    replaceCatalogTableInPath(tableName, catalogTable);
-                            configMap.put(HiveSinkOptions.TABLE_NAME.key(), replacedPath);
-                        });
-
-        return ReadonlyConfig.fromMap(new HashMap<>(configMap));
-    }
-
-    private String replaceCatalogTableInPath(String originTableName, CatalogTable catalogTable) {
-        String tableName = originTableName;
-        TableIdentifier tableIdentifier = catalogTable.getTableId();
-        if (tableIdentifier != null) {
-            if (tableIdentifier.getDatabaseName() != null) {
-                tableName =
-                        tableName.replace(
-                                SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY,
-                                tableIdentifier.getDatabaseName());
-            }
-            if (tableIdentifier.getSchemaName() != null) {
-                tableName =
-                        tableName.replace(
-                                SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY,
-                                tableIdentifier.getSchemaName());
-            }
-            if (tableIdentifier.getTableName() != null) {
-                tableName =
-                        tableName.replace(
-                                SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY,
-                                tableIdentifier.getTableName());
-            }
-        }
-        return tableName;
     }
 }

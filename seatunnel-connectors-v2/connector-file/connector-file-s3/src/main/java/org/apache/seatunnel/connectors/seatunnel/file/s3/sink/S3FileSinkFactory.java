@@ -116,7 +116,6 @@ public class S3FileSinkFactory extends BaseMultipleTableFinkSinkFactory {
             createSink(TableSinkFactoryContext context) {
         final CatalogTable catalogTable = context.getCatalogTable();
         final ReadonlyConfig options = context.getOptions();
-        ReadonlyConfig finalReadonlyConfig = generateCurrentReadonlyConfig(options, catalogTable);
-        return () -> new S3FileSink(catalogTable, finalReadonlyConfig);
+        return () -> new S3FileSink(catalogTable, options);
     }
 }

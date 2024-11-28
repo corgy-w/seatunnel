@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.starrocks.catalog;
 
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
@@ -57,17 +58,28 @@ public class StarRocksCreateTableTest {
 
         String result =
                 StarRocksSaveModeUtil.getCreateTableSql(
-                        "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (                                                                                                                                                   \n"
-                                + "${rowtype_primary_key}  ,       \n"
-                                + "${rowtype_unique_key} , \n"
+                        "CREATE TABLE IF NOT EXISTS `"
+                                + SaveModePlaceHolder.DATABASE.getPlaceHolder()
+                                + "`.`"
+                                + SaveModePlaceHolder.TABLE.getPlaceHolder()
+                                + "` (                                                                                                                                                   \n"
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + "  ,       \n"
+                                + SaveModePlaceHolder.ROWTYPE_UNIQUE_KEY.getPlaceHolder()
+                                + " , \n"
                                 + "`create_time` DATETIME NOT NULL ,  \n"
-                                + "${rowtype_fields}  \n"
+                                + SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder()
+                                + "  \n"
                                 + ") ENGINE=OLAP  \n"
-                                + "PRIMARY KEY(${rowtype_primary_key},`create_time`)  \n"
+                                + "PRIMARY KEY("
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ",`create_time`)  \n"
                                 + "PARTITION BY RANGE (`create_time`)(  \n"
                                 + "   PARTITION p20230329 VALUES LESS THAN (\"2023-03-29\")                                                                                                                                                           \n"
                                 + ")                                      \n"
-                                + "DISTRIBUTED BY HASH (${rowtype_primary_key})  \n"
+                                + "DISTRIBUTED BY HASH ("
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ")  \n"
                                 + "PROPERTIES (                           \n"
                                 + "    \"dynamic_partition.enable\" = \"true\",                                                                                                                                                                       \n"
                                 + "    \"dynamic_partition.time_unit\" = \"DAY\",                                                                                                                                                                     \n"
@@ -185,14 +197,24 @@ public class StarRocksCreateTableTest {
 
         String result =
                 StarRocksSaveModeUtil.getCreateTableSql(
-                        "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (\n"
+                        "CREATE TABLE IF NOT EXISTS `"
+                                + SaveModePlaceHolder.DATABASE.getPlaceHolder()
+                                + "`.`"
+                                + SaveModePlaceHolder.TABLE.getPlaceHolder()
+                                + "` (\n"
                                 + "`L_COMMITDATE`,\n"
-                                + "${rowtype_primary_key},\n"
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ",\n"
                                 + "L_SUPPKEY BIGINT NOT NULL,\n"
-                                + "${rowtype_fields}\n"
+                                + SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder()
+                                + "\n"
                                 + ") ENGINE=OLAP\n"
-                                + " PRIMARY KEY (L_COMMITDATE, ${rowtype_primary_key}, L_SUPPKEY)\n"
-                                + "DISTRIBUTED BY HASH (${rowtype_primary_key})"
+                                + " PRIMARY KEY (L_COMMITDATE, "
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ", L_SUPPKEY)\n"
+                                + "DISTRIBUTED BY HASH ("
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ")"
                                 + "PROPERTIES (\n"
                                 + "    \"replication_num\" = \"1\" \n"
                                 + ")",
@@ -242,16 +264,26 @@ public class StarRocksCreateTableTest {
 
         String result =
                 StarRocksSaveModeUtil.getCreateTableSql(
-                        "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (                                                                                                                                                   \n"
-                                + "${rowtype_primary_key}  ,       \n"
+                        "CREATE TABLE IF NOT EXISTS `"
+                                + SaveModePlaceHolder.DATABASE.getPlaceHolder()
+                                + "`.`"
+                                + SaveModePlaceHolder.TABLE.getPlaceHolder()
+                                + "` (                                                                                                                                                   \n"
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + "  ,       \n"
                                 + "`create_time` DATETIME NOT NULL ,  \n"
-                                + "${rowtype_fields}  \n"
+                                + SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder()
+                                + "  \n"
                                 + ") ENGINE=OLAP  \n"
-                                + "PRIMARY KEY(${rowtype_primary_key},`create_time`)  \n"
+                                + "PRIMARY KEY("
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ",`create_time`)  \n"
                                 + "PARTITION BY RANGE (`create_time`)(  \n"
                                 + "   PARTITION p20230329 VALUES LESS THAN (\"2023-03-29\")                                                                                                                                                           \n"
                                 + ")                                      \n"
-                                + "DISTRIBUTED BY HASH (${rowtype_primary_key})  \n"
+                                + "DISTRIBUTED BY HASH ("
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ")  \n"
                                 + "PROPERTIES (                           \n"
                                 + "    \"dynamic_partition.enable\" = \"true\",                                                                                                                                                                       \n"
                                 + "    \"dynamic_partition.time_unit\" = \"DAY\",                                                                                                                                                                     \n"
@@ -284,6 +316,49 @@ public class StarRocksCreateTableTest {
                         + "    \"dynamic_partition.end\" = \"3\", \n"
                         + "    \"dynamic_partition.prefix\" = \"p\"                                                                                                                                                                           \n"
                         + ");",
+                result);
+    }
+
+    @Test
+    public void testWithThreePrimaryKeys() {
+        List<Column> columns = new ArrayList<>();
+
+        columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("comment", BasicType.STRING_TYPE, 500, true, null, ""));
+        columns.add(PhysicalColumn.of("description", BasicType.STRING_TYPE, 70000, true, null, ""));
+
+        String result =
+                StarRocksSaveModeUtil.getCreateTableSql(
+                        "create table '"
+                                + SaveModePlaceHolder.DATABASE.getPlaceHolder()
+                                + "'.'"
+                                + SaveModePlaceHolder.TABLE.getPlaceHolder()
+                                + "'(\n"
+                                + SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder()
+                                + "\n"
+                                + " )\n"
+                                + " partitioned by "
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ";",
+                        "test1",
+                        "test2",
+                        TableSchema.builder()
+                                .primaryKey(
+                                        PrimaryKey.of("test", Arrays.asList("id", "age", "name")))
+                                .columns(columns)
+                                .build());
+
+        Assertions.assertEquals(
+                "create table 'test1'.'test2'(\n"
+                        + "     `id` BIGINT NULL ,\n"
+                        + "`name` STRING NULL ,\n"
+                        + "`age` INT NULL ,\n"
+                        + "`comment` VARCHAR(500) NULL ,\n"
+                        + "`description` STRING NULL \n"
+                        + " )\n"
+                        + " partitioned by `id`,`age`,`name`;",
                 result);
     }
 }

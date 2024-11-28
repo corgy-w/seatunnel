@@ -34,12 +34,11 @@ import static org.apache.seatunnel.connectors.dws.guassdb.sink.config.DwsGaussDB
 
 public class DwsGaussDBSinkWriterFactory {
 
-    public static SinkWriter<SeaTunnelRow, DwsGaussDBSinkCommitInfo, DwsGaussDBSinkState>
-            createDwsGaussDBSinkWriter(
-                    DwsGaussSqlGenerator sqlGenerator,
-                    CatalogTable catalogTable,
-                    ReadonlyConfig readonlyConfig)
-                    throws SQLException {
+    public static DwsGaussDBSinkWriter createDwsGaussDBSinkWriter(
+            DwsGaussSqlGenerator sqlGenerator,
+            CatalogTable catalogTable,
+            ReadonlyConfig readonlyConfig)
+            throws SQLException {
 
         DwsGaussDBSinkOption.WriteMode writeMode = readonlyConfig.get(WRITE_MODE);
         switch (writeMode) {

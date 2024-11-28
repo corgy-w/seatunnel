@@ -122,8 +122,19 @@ public final class FactoryUtil {
             TableSinkFactory<IN, StateT, CommitInfoT, AggregatedCommitInfoT> factory =
                     discoverFactory(classLoader, TableSinkFactory.class, factoryIdentifier);
             TableSinkFactoryContext context =
-                    new TableSinkFactoryContext(catalogTable, options, classLoader);
+                    TableSinkFactoryContext.replacePlaceholderAndCreate(
+                            catalogTable,
+                            options,
+                            classLoader,
+                            factory.excludeTablePlaceholderReplaceKeys());
             ConfigValidator.of(context.getOptions()).validate(factory.optionRule());
+
+            LOG.info(
+                    "Create sink '{}' with upstream input catalog-table[database: {}, schema: {}, table: {}]",
+                    factoryIdentifier,
+                    catalogTable.getTablePath().getDatabaseName(),
+                    catalogTable.getTablePath().getSchemaName(),
+                    catalogTable.getTablePath().getTableName());
             return factory.createSink(context).createSink();
         } catch (Throwable t) {
             throw new FactoryException(

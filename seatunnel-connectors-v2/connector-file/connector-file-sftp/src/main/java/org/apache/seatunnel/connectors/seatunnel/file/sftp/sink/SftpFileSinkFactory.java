@@ -112,8 +112,6 @@ public class SftpFileSinkFactory extends BaseMultipleTableFinkSinkFactory {
             createSink(TableSinkFactoryContext context) {
         ReadonlyConfig readonlyConfig = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
-        ReadonlyConfig finalReadonlyConfig =
-                generateCurrentReadonlyConfig(readonlyConfig, catalogTable);
-        return () -> new SftpFileSink(finalReadonlyConfig, catalogTable);
+        return () -> new SftpFileSink(readonlyConfig, catalogTable);
     }
 }

@@ -18,12 +18,15 @@
 package org.apache.seatunnel.connectors.selectdb.sink;
 
 import org.apache.seatunnel.api.sink.SaveModeConstants;
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.connectors.selectdb.catalog.SelectDBTypeConverter;
 import org.apache.seatunnel.connectors.selectdb.util.CreateTableParser;
 
 import org.apache.commons.lang3.StringUtils;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
 import java.util.List;
@@ -33,6 +36,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Slf4j
 public class SelectDBSaveModeUtil {
 
     public static String fillingCreateSql(
@@ -69,12 +73,19 @@ public class SelectDBSaveModeUtil {
                         .filter(column -> !columnInTemplate.containsKey(column.getName()))
                         .map(SelectDBSaveModeUtil::columnToSelectDBType)
                         .collect(Collectors.joining(",\n"));
-        return template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.DATABASE), database)
-                .replaceAll(String.format("\\$\\{%s\\}", SaveModeConstants.TABLE_NAME), table)
-                .replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_FIELDS),
-                        rowTypeFields);
+
+        if (template.contains(SaveModePlaceHolder.TABLE_NAME.getPlaceHolder())) {
+            // TODO: Remove this compatibility config
+            template =
+                    template.replaceAll(
+                            SaveModePlaceHolder.TABLE_NAME.getReplacePlaceHolder(), table);
+            log.warn(
+                    "The variable placeholder `${table_name}` has been marked as deprecated and will be removed soon, please use `${table}`");
+        }
+
+        return template.replaceAll(SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(), database)
+                .replaceAll(SaveModePlaceHolder.TABLE.getReplacePlaceHolder(), table)
+                .replaceAll(SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder(), rowTypeFields);
     }
 
     public static String columnToSelectDBType(Column column) {

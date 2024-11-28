@@ -34,12 +34,11 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.auto.service.AutoService;
 import com.xxdb.multithreadedtablewriter.MultithreadedTableWriter;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 import static org.apache.seatunnel.api.table.catalog.schema.TableSchemaOptions.SCHEMA;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.ADDRESS;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.BATCH_SIZE;
@@ -87,22 +86,17 @@ public class DolphinDBSinkFactory implements TableSinkFactory<SeaTunnelRow, Void
     }
 
     @Override
+    public List<String> excludeTablePlaceholderReplaceKeys() {
+        return Arrays.asList(SAVE_MODE_CREATE_TEMPLATE.key());
+    }
+
+    @Override
     public TableSink<SeaTunnelRow, Void, Void, Void> createSink(TableSinkFactoryContext context) {
-        ReadonlyConfig config = context.getOptions();
-        CatalogTable catalogTable;
-        ReadonlyConfig readonlyConfig;
-        if (config.getOptional(TABLE).isPresent()) {
-            // if the table is not exist in config, will use the table name from catalog table
-            // inject the table name from config to catalog table
-            // do nothing if the table name is exist in config
-            catalogTable = context.getCatalogTable();
-            String tableName = replaceFullTableName(config.get(TABLE), catalogTable.getTableId());
-            Map<String, String> map = config.toMap();
-            map.put(TABLE.key(), tableName);
-            readonlyConfig = ReadonlyConfig.fromMap(new HashMap<>(map));
-        } else {
+        ReadonlyConfig readonlyConfig = context.getOptions();
+        CatalogTable catalogTable = context.getCatalogTable();
+        if (!readonlyConfig.getOptional(TABLE).isPresent()) {
             catalogTable = tableNameFromUpstream(context);
-            Map<String, String> map = config.toMap();
+            Map<String, String> map = readonlyConfig.toMap();
             if (StringUtils.isNotBlank(catalogTable.getTableId().getSchemaName())) {
                 map.put(
                         TABLE.key(),
@@ -115,8 +109,7 @@ public class DolphinDBSinkFactory implements TableSinkFactory<SeaTunnelRow, Void
             readonlyConfig = ReadonlyConfig.fromMap(new HashMap<>(map));
         }
 
-        String tableName =
-                replaceFullTableName(readonlyConfig.get(TABLE), catalogTable.getTableId());
+        String tableName = readonlyConfig.get(TABLE);
         catalogTable =
                 CatalogTable.of(
                         TableIdentifier.of(
@@ -143,18 +136,5 @@ public class DolphinDBSinkFactory implements TableSinkFactory<SeaTunnelRow, Void
                         tableId.getSchemaName(),
                         tableId.getTableName());
         return CatalogTable.of(newTableId, catalogTable);
-    }
-
-    private String replaceFullTableName(String original, TableIdentifier tableId) {
-        if (StringUtils.isNotBlank(tableId.getDatabaseName())) {
-            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
-        }
-        if (StringUtils.isNotBlank(tableId.getSchemaName())) {
-            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
-        }
-        if (StringUtils.isNotBlank(tableId.getTableName())) {
-            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
-        }
-        return original;
     }
 }

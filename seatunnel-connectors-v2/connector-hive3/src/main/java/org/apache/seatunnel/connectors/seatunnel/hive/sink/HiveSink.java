@@ -180,8 +180,7 @@ public class HiveSink
     }
 
     @Override
-    public SinkWriter<SeaTunnelRow, FileCommitInfo, FileSinkState> createWriter(
-            SinkWriter.Context context) {
+    public HiveSinkWriter createWriter(SinkWriter.Context context) {
         return new HiveSinkWriter(createWriteStrategy(), hiveHadoopConfig, context, jobId);
     }
 

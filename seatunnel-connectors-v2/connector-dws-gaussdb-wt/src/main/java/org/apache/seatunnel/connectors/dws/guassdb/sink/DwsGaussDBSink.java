@@ -39,6 +39,7 @@ import org.apache.seatunnel.connectors.dws.guassdb.sink.commit.DwsGaussDBSinkCom
 import org.apache.seatunnel.connectors.dws.guassdb.sink.savemode.DwsGaussDBSaveModeHandler;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.sql.DwsGaussSqlGenerator;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.state.DwsGaussDBSinkState;
+import org.apache.seatunnel.connectors.dws.guassdb.sink.writer.DwsGaussDBSinkWriter;
 import org.apache.seatunnel.connectors.dws.guassdb.sink.writer.DwsGaussDBSinkWriterFactory;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -88,8 +89,7 @@ public class DwsGaussDBSink
     }
 
     @Override
-    public SinkWriter<SeaTunnelRow, DwsGaussDBSinkCommitInfo, DwsGaussDBSinkState> createWriter(
-            SinkWriter.Context context) {
+    public DwsGaussDBSinkWriter createWriter(SinkWriter.Context context) {
         try {
             try {
                 Class.forName("com.huawei.gauss200.jdbc.Driver");

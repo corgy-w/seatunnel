@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.dolphindb.config;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.sink.DataSaveMode;
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
 
 import com.xxdb.multithreadedtablewriter.MultithreadedTableWriter;
@@ -100,10 +101,17 @@ public class DolphinDBConfig {
             Options.key("save_mode_create_template")
                     .stringType()
                     .defaultValue(
-                            "create table '${database}'.'${table_name}'(\n"
-                                    + "     ${rowtype_fields}\n"
+                            "create table '"
+                                    + SaveModePlaceHolder.DATABASE.getPlaceHolder()
+                                    + "'.'"
+                                    + SaveModePlaceHolder.TABLE.getPlaceHolder()
+                                    + "'(\n"
+                                    + SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder()
+                                    + "     \n"
                                     + " )\n"
-                                    + " partitioned by ${rowtype_primary_key};")
+                                    + " partitioned by "
+                                    + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                    + ";")
                     .withDescription(
                             "Create table statement template, used to create DolphinDB table");
 

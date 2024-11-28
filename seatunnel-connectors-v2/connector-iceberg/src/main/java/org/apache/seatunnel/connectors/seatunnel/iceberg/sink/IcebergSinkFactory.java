@@ -34,9 +34,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
 
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HADOOP_CONF_PATH_PROP;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.REMOTE_USER;
 
@@ -94,13 +91,13 @@ public class IcebergSinkFactory implements TableSinkFactory {
         String tableName;
         String namespace;
         if (StringUtils.isNotEmpty(sinkConfig.getTable())) {
-            tableName = replaceName(sinkConfig.getTable(), tableId);
+            tableName = sinkConfig.getTable();
         } else {
             tableName = tableId.getTableName();
         }
 
         if (StringUtils.isNotEmpty(sinkConfig.getNamespace())) {
-            namespace = replaceName(sinkConfig.getNamespace(), tableId);
+            namespace = sinkConfig.getNamespace();
         } else {
             namespace = tableId.getSchemaName();
         }
@@ -109,18 +106,5 @@ public class IcebergSinkFactory implements TableSinkFactory {
                 TableIdentifier.of(tableId.getCatalogName(), namespace, tableName);
 
         return CatalogTable.of(newTableId, catalogTable);
-    }
-
-    private String replaceName(String original, TableIdentifier tableId) {
-        if (tableId.getTableName() != null) {
-            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
-        }
-        if (tableId.getSchemaName() != null) {
-            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
-        }
-        if (tableId.getDatabaseName() != null) {
-            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
-        }
-        return original;
     }
 }
