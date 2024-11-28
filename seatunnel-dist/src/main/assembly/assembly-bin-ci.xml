@@ -268,7 +268,19 @@
             <scope>system</scope>
         </dependencySet>
 
-        <!-- =================== JDBC Connector Drivers ===================  -->
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>org.apache.seatunnel:seatunnel-hive-jdbc-1.2.1-hadoop2.6.5-uber:jar</include>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-1.2.1-hadoop2.6.5-uber:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-jdbc-hive1</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
         <dependencySet>
             <useProjectArtifact>false</useProjectArtifact>
             <useTransitiveDependencies>true</useTransitiveDependencies>
