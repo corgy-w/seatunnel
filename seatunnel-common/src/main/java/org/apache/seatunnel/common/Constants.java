@@ -55,5 +55,7 @@ public final class Constants {
     public static final String COPYRIGHT_LINE =
             "Copyright © 2021-2022 The Apache Software Foundation. Apache SeaTunnel, SeaTunnel, and its feather logo are trademarks of The Apache Software Foundation.";
 
+    public static final String FAKE_HOST = "1.1.1.1";
+
     private Constants() {}
 }

@@ -41,6 +41,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.seatunnel.common.Constants.FAKE_HOST;
+
 public class SeaTunnelClient implements SeaTunnelClientInstance, AutoCloseable {
     private final SeaTunnelHazelcastClient hazelcastClient;
     @Getter private final JobClient jobClient;
@@ -151,13 +153,19 @@ public class SeaTunnelClient implements SeaTunnelClientInstance, AutoCloseable {
         members.stream()
                 .forEach(
                         member -> {
+                            Map<String, String> kvMap = new LinkedHashMap<>();
+                            if (FAKE_HOST.equals(member.getAddress().getHost())) {
+                                healthMetricsMap.put(
+                                        member.getAddress().toString(),
+                                        JsonUtils.toJsonString(kvMap));
+                                return;
+                            }
                             String metrics =
                                     hazelcastClient.requestAndDecodeResponse(
                                             member.getUuid(),
                                             SeaTunnelGetClusterHealthMetricsCodec.encodeRequest(),
                                             SeaTunnelGetClusterHealthMetricsCodec::decodeResponse);
                             String[] split = metrics.split(",");
-                            Map<String, String> kvMap = new LinkedHashMap<>();
                             Arrays.stream(split)
                                     .forEach(
                                             kv -> {
