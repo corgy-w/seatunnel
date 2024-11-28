@@ -24,4 +24,4 @@ hazelcast-client:
       cluster-connect-timeout-millis: 3000
   network:
     cluster-members:
-      - localhost:5801
+      - 1.1.1.1:5801
