@@ -58,5 +58,6 @@ header:
     - 'maven-settings.xml'
     - 'tools/build/packaging.sh'
     - '**/*.license'
+    - '**/*.csv'
 
   comment: on-failure
