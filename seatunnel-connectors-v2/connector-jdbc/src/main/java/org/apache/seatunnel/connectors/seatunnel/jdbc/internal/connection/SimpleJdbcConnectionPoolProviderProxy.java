@@ -23,6 +23,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.sink.ConnectionPoolManager
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 @Slf4j
@@ -46,10 +48,26 @@ public class SimpleJdbcConnectionPoolProviderProxy implements JdbcConnectionProv
 
     @Override
     public boolean isConnectionValid() throws SQLException {
-        return poolManager.containsConnection(queueIndex)
-                && poolManager
-                        .getConnection(queueIndex)
-                        .isValid(jdbcConfig.getConnectionCheckTimeoutSeconds());
+        try {
+            return poolManager.containsConnection(queueIndex)
+                    && poolManager
+                            .getConnection(queueIndex)
+                            .isValid(jdbcConfig.getConnectionCheckTimeoutSeconds());
+        } catch (SQLException e) {
+            if ("Method not supported".equals(e.getMessage())) {
+                log.warn(
+                        "The JDBC driver does not support the isValid method, falling back to executing a query \"select 1\" to check the connection.");
+                try (PreparedStatement statement =
+                                poolManager.getConnection(queueIndex).prepareStatement("select 1");
+                        ResultSet resultSet = statement.executeQuery()) {
+                    return resultSet.next();
+                } catch (SQLException e1) {
+                    return false;
+                }
+            } else {
+                throw e;
+            }
+        }
     }
 
     @Override
