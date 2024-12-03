@@ -97,6 +97,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode.HANDLE_SAVE_MODE_FAILED;
 import static org.apache.seatunnel.api.table.factory.FactoryUtil.DEFAULT_ID;
@@ -211,29 +212,18 @@ public class MultipleTableJobConfigParser {
                 TypesafeConfigUtils.getConfigList(
                         seaTunnelJobConfig, "sink", Collections.emptyList());
 
-        List<URL> sourceConnectorJarAndDependencies =
-                getConnectorJarAndDependencyList(sourceConfigs, PluginType.SOURCE);
-        List<URL> transformConnectorJarAndDependencies =
-                getConnectorJarAndDependencyList(transformConfigs, PluginType.TRANSFORM);
-        List<URL> sinkConnectorJarAndDependencies =
-                getConnectorJarAndDependencyList(sinkConfigs, PluginType.SINK);
-        if (!commonPluginJars.isEmpty()) {
-            sourceConnectorJarAndDependencies.addAll(commonPluginJars);
-            sinkConnectorJarAndDependencies.addAll(commonPluginJars);
-        }
+        List<URL> sourceConnectorJars = getConnectorJarList(sourceConfigs, PluginType.SOURCE);
+        List<URL> transformConnectorJars =
+                getConnectorJarList(transformConfigs, PluginType.TRANSFORM);
+        List<URL> sinkConnectorJars = getConnectorJarList(sinkConfigs, PluginType.SINK);
         ClassLoader parentClassLoader = Thread.currentThread().getContextClassLoader();
 
         ClassLoader sourceClassLoader =
-                getClassLoader(
-                        classLoaderService, parentClassLoader, sourceConnectorJarAndDependencies);
+                getClassLoader(classLoaderService, parentClassLoader, sourceConnectorJars);
         ClassLoader transformClassLoader =
-                getClassLoader(
-                        classLoaderService,
-                        parentClassLoader,
-                        transformConnectorJarAndDependencies);
+                getClassLoader(classLoaderService, parentClassLoader, transformConnectorJars);
         ClassLoader sinkClassLoader =
-                getClassLoader(
-                        classLoaderService, parentClassLoader, sinkConnectorJarAndDependencies);
+                getClassLoader(classLoaderService, parentClassLoader, sinkConnectorJars);
 
         try {
             Thread.currentThread().setContextClassLoader(sourceClassLoader);
@@ -257,7 +247,7 @@ public class MultipleTableJobConfigParser {
 
             Thread.currentThread().setContextClassLoader(transformClassLoader);
             log.info("start generating all transforms.");
-            parseTransforms(transformConfigs, sourceClassLoader, tableWithActionMap);
+            parseTransforms(transformConfigs, transformClassLoader, tableWithActionMap);
 
             Thread.currentThread().setContextClassLoader(sinkClassLoader);
             log.info("start generating all sinks.");
@@ -278,14 +268,12 @@ public class MultipleTableJobConfigParser {
             Thread.currentThread().setContextClassLoader(parentClassLoader);
             if (classLoaderService != null) {
                 classLoaderService.releaseClassLoader(
-                        Long.parseLong(jobConfig.getJobContext().getJobId()),
-                        sourceConnectorJarAndDependencies);
+                        Long.parseLong(jobConfig.getJobContext().getJobId()), sourceConnectorJars);
                 classLoaderService.releaseClassLoader(
                         Long.parseLong(jobConfig.getJobContext().getJobId()),
-                        transformConnectorJarAndDependencies);
+                        transformConnectorJars);
                 classLoaderService.releaseClassLoader(
-                        Long.parseLong(jobConfig.getJobContext().getJobId()),
-                        sinkConnectorJarAndDependencies);
+                        Long.parseLong(jobConfig.getJobContext().getJobId()), sinkConnectorJars);
             }
         }
     }
@@ -314,8 +302,7 @@ public class MultipleTableJobConfigParser {
         return urls;
     }
 
-    private List<URL> getConnectorJarAndDependencyList(
-            List<? extends Config> configs, PluginType type) {
+    private List<URL> getConnectorJarList(List<? extends Config> configs, PluginType type) {
         List<PluginIdentifier> factoryIds =
                 configs.stream()
                         .map(ConfigParserUtil::getFactoryId)
@@ -326,7 +313,10 @@ public class MultipleTableJobConfigParser {
                                                 type.getType(),
                                                 factory))
                         .collect(Collectors.toList());
-        return new SeaTunnelSinkPluginDiscovery().getPluginJarAndDependencyPaths(factoryIds);
+        List<URL> jarPaths = new ArrayList<>();
+        jarPaths.addAll(new SeaTunnelSinkPluginDiscovery().getPluginJarPaths(factoryIds));
+        jarPaths.addAll(commonPluginJars);
+        return jarPaths;
     }
 
     private void fillUsedFactoryUrls(List<Action> actions, Set<URL> result) {
