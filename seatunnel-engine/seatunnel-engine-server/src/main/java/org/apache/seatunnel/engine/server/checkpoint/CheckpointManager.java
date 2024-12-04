@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.engine.server.checkpoint;
 
+import org.apache.seatunnel.api.tracing.MDCTracer;
 import org.apache.seatunnel.engine.checkpoint.storage.PipelineState;
 import org.apache.seatunnel.engine.checkpoint.storage.api.CheckpointStorage;
 import org.apache.seatunnel.engine.checkpoint.storage.api.CheckpointStorageFactory;
@@ -104,9 +105,7 @@ public class CheckpointManager {
                                 checkpointConfig.getStorage().getStorage())
                         .create(checkpointConfig.getStorage().getStoragePluginConfig());
         this.coordinatorMap =
-                checkpointPlanMap
-                        .values()
-                        .parallelStream()
+                MDCTracer.tracing(checkpointPlanMap.values().parallelStream())
                         .map(
                                 plan -> {
                                     IMapCheckpointIDCounter idCounter =
@@ -158,9 +157,7 @@ public class CheckpointManager {
      */
     @SuppressWarnings("unchecked")
     public PassiveCompletableFuture<CompletedCheckpoint>[] triggerSavePoints() {
-        return coordinatorMap
-                .values()
-                .parallelStream()
+        return MDCTracer.tracing(coordinatorMap.values().parallelStream())
                 .map(CheckpointCoordinator::startSavepoint)
                 .toArray(PassiveCompletableFuture[]::new);
     }
