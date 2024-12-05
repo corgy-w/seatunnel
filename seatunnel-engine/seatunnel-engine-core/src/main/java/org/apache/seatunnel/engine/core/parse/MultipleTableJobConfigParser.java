@@ -314,7 +314,8 @@ public class MultipleTableJobConfigParser {
                                                 factory))
                         .collect(Collectors.toList());
         List<URL> jarPaths = new ArrayList<>();
-        jarPaths.addAll(new SeaTunnelSinkPluginDiscovery().getPluginJarPaths(factoryIds));
+        jarPaths.addAll(
+                new SeaTunnelSinkPluginDiscovery().getPluginJarAndDependencyPaths(factoryIds));
         jarPaths.addAll(commonPluginJars);
         return jarPaths;
     }
