@@ -85,7 +85,8 @@ public class SelectDBSaveModeUtil {
 
         return template.replaceAll(SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(), database)
                 .replaceAll(SaveModePlaceHolder.TABLE.getReplacePlaceHolder(), table)
-                .replaceAll(SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder(), rowTypeFields);
+                .replaceAll(
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields);
     }
 
     public static String columnToSelectDBType(Column column) {

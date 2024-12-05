@@ -172,10 +172,12 @@ public class DorisCatalogUtil {
                     "The variable placeholder `${table_name}` has been marked as deprecated and will be removed soon, please use `${table}`");
         }
         return template.replaceAll(
-                        SaveModePlaceHolder.DATABASE.getPlaceHolder(), tablePath.getDatabaseName())
+                        SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(),
+                        tablePath.getDatabaseName())
                 .replaceAll(
                         SaveModePlaceHolder.TABLE.getReplacePlaceHolder(), tablePath.getTableName())
-                .replaceAll(SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder(), rowTypeFields);
+                .replaceAll(
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields);
     }
 
     private static String mergeColumnInTemplate(
