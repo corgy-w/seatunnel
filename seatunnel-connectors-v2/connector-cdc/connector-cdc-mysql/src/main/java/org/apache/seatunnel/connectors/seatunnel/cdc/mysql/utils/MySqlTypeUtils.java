@@ -40,6 +40,7 @@ public class MySqlTypeUtils {
                         .name(column.name())
                         .columnType(column.typeName())
                         .dataType(column.typeName())
+                        .nullable(column.isOptional())
                         .length((long) column.length())
                         .precision((long) column.length())
                         .scale(column.scale().orElse(0))
