@@ -328,7 +328,7 @@ public class CoordinatorService {
                 new JobMaster(
                         jobInfo.getJobImmutableInformation(),
                         nodeEngine,
-                        executorService,
+                        MDCTracer.tracing(jobId, executorService),
                         getResourceManager(),
                         getJobHistoryService(),
                         runningJobStateIMap,
@@ -370,7 +370,7 @@ public class CoordinatorService {
                         }
                     }
                 },
-                executorService);
+                MDCTracer.tracing(jobId, executorService));
     }
 
     private void checkNewActiveMaster() {

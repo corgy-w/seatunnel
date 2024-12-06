@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.doris.util;
 
 import org.apache.seatunnel.api.sink.SaveModeConstants;
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TablePath;
@@ -27,6 +28,8 @@ import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.connectors.doris.catalog.DorisCatalog;
 
 import org.apache.commons.lang3.StringUtils;
+
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,6 +41,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Slf4j
 public class DorisCatalogUtil {
 
     public static final String ALL_DATABASES_QUERY =
@@ -157,15 +161,23 @@ public class DorisCatalogUtil {
                         .filter(column -> !columnInTemplate.containsKey(column.getName()))
                         .map(x -> DorisCatalogUtil.columnToDorisType(x, typeConverter))
                         .collect(Collectors.joining(",\n"));
+
+        if (template.contains(SaveModePlaceHolder.TABLE_NAME.getPlaceHolder())) {
+            // TODO: Remove this compatibility config
+            template =
+                    template.replaceAll(
+                            SaveModePlaceHolder.TABLE_NAME.getReplacePlaceHolder(),
+                            tablePath.getTableName());
+            log.warn(
+                    "The variable placeholder `${table_name}` has been marked as deprecated and will be removed soon, please use `${table}`");
+        }
         return template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.DATABASE),
+                        SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(),
                         tablePath.getDatabaseName())
                 .replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.TABLE_NAME),
-                        tablePath.getTableName())
+                        SaveModePlaceHolder.TABLE.getReplacePlaceHolder(), tablePath.getTableName())
                 .replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_FIELDS),
-                        rowTypeFields);
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields);
     }
 
     private static String mergeColumnInTemplate(

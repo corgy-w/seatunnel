@@ -34,6 +34,7 @@ import org.apache.seatunnel.format.text.exception.SeaTunnelTextFormatException;
 import org.apache.commons.lang3.StringUtils;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -49,8 +50,10 @@ import java.time.temporal.TemporalQueries;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
+@Slf4j
 public class TextDeserializationSchema implements DeserializationSchema<SeaTunnelRow> {
     private final SeaTunnelRowType seaTunnelRowType;
     private final String[] separators;
@@ -58,6 +61,7 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
     private final DateTimeUtils.Formatter dateTimeFormatter;
     private final TimeUtils.Formatter timeFormatter;
     private final String encoding;
+    private final String nullFormat;
 
     @SuppressWarnings("MagicNumber")
     public static final DateTimeFormatter TIME_FORMAT =
@@ -74,13 +78,15 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
             DateUtils.Formatter dateFormatter,
             DateTimeUtils.Formatter dateTimeFormatter,
             TimeUtils.Formatter timeFormatter,
-            String encoding) {
+            String encoding,
+            String nullFormat) {
         this.seaTunnelRowType = seaTunnelRowType;
         this.separators = separators;
         this.dateFormatter = dateFormatter;
         this.dateTimeFormatter = dateTimeFormatter;
         this.timeFormatter = timeFormatter;
         this.encoding = encoding;
+        this.nullFormat = nullFormat;
     }
 
     public static Builder builder() {
@@ -95,6 +101,7 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
                 DateTimeUtils.Formatter.YYYY_MM_DD_HH_MM_SS;
         private TimeUtils.Formatter timeFormatter = TimeUtils.Formatter.HH_MM_SS;
         private String encoding = StandardCharsets.UTF_8.name();
+        private String nullFormat;
 
         private Builder() {}
 
@@ -133,6 +140,11 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
             return this;
         }
 
+        public Builder nullFormat(String nullFormat) {
+            this.nullFormat = nullFormat;
+            return this;
+        }
+
         public TextDeserializationSchema build() {
             return new TextDeserializationSchema(
                     seaTunnelRowType,
@@ -140,7 +152,8 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
                     dateFormatter,
                     dateTimeFormatter,
                     timeFormatter,
-                    encoding);
+                    encoding,
+                    nullFormat);
         }
     }
 
@@ -150,9 +163,16 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
         Map<Integer, String> splitsMap = splitLineBySeaTunnelRowType(content, seaTunnelRowType, 0);
         Object[] objects = new Object[seaTunnelRowType.getTotalFields()];
         for (int i = 0; i < objects.length; i++) {
+            String fieldValue = splitsMap.get(i);
+            if (StringUtils.isBlank(fieldValue)) {
+                continue;
+            }
+            if (StringUtils.equals(fieldValue, nullFormat)) {
+                continue;
+            }
             objects[i] =
                     convert(
-                            splitsMap.get(i),
+                            fieldValue,
                             seaTunnelRowType.getFieldType(i),
                             0,
                             seaTunnelRowType.getFieldNames()[i]);
@@ -165,14 +185,17 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
         return seaTunnelRowType;
     }
 
-    private Map<Integer, String> splitLineBySeaTunnelRowType(
+    Map<Integer, String> splitLineBySeaTunnelRowType(
             String line, SeaTunnelRowType seaTunnelRowType, int level) {
-        String[] splits = line.split(separators[level], -1);
         LinkedHashMap<Integer, String> splitsMap = new LinkedHashMap<>();
         SeaTunnelDataType<?>[] fieldTypes = seaTunnelRowType.getFieldTypes();
+        // split line into fields
+        String[] splits = getFields(line, level);
+
         for (int i = 0; i < splits.length; i++) {
             splitsMap.put(i, splits[i]);
         }
+
         if (fieldTypes.length > splits.length) {
             // contains partition columns
             for (int i = splits.length; i < fieldTypes.length; i++) {
@@ -180,6 +203,65 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
             }
         }
         return splitsMap;
+    }
+
+    /**
+     * Split a line into fields based on the given separator and level.
+     *
+     * <p>This method handles quoted fields by ignoring the separator inside the quotes. If the line
+     * can't be split by the separator, the method will fallback to default split. for example:
+     * line: "a,b,c", separator: "," -> ["a", "b", "c"] line: "a,"b,c",d, separator: "," ->
+     * ["a","b,c","d"] line: "a,"b,"c,d",e",f", separator: "," -> ["a","b,"c,d",e","f"] and note
+     * that `b,"c,d",e` is the entire field.
+     *
+     * @param line the line to be split
+     * @param level the level of the separator
+     * @return an array of fields
+     */
+    private String[] getFields(String line, int level) {
+        // return empty array if the line is empty
+        if (StringUtils.isBlank(line)) {
+            return new String[0];
+        }
+
+        String separator = separators[level];
+        List<String> fields = new ArrayList<>();
+        StringBuilder field = new StringBuilder();
+        boolean inQuotes = false;
+        int i = 0;
+
+        while (i < line.length()) {
+            if (inQuotes) {
+                if (line.charAt(i) == '"') {
+                    if (i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                        // handle escaped double quote
+                        field.append('"');
+                        i += 2;
+                    } else {
+                        inQuotes = false;
+                        i++;
+                    }
+                } else {
+                    field.append(line.charAt(i));
+                    i++;
+                }
+            } else {
+                if (line.startsWith(separator, i)) {
+                    fields.add(field.toString());
+                    field.setLength(0);
+                    i += separator.length(); // Skip the entire separator
+                } else if (line.charAt(i) == '"') {
+                    inQuotes = true;
+                    i++;
+                } else {
+                    field.append(line.charAt(i));
+                    i++;
+                }
+            }
+        }
+
+        fields.add(field.toString()); // Add the last field
+        return fields.toArray(new String[0]);
     }
 
     private Object convert(

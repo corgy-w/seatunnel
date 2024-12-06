@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.starrocks;
 
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
@@ -50,16 +51,26 @@ public class StarRocksCreateTableTest {
 
         String result =
                 StarRocksSaveModeUtil.getCreateTableSql(
-                        "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (                                                                                                                                                   \n"
-                                + "${rowtype_primary_key}  ,       \n"
+                        "CREATE TABLE IF NOT EXISTS `"
+                                + SaveModePlaceHolder.DATABASE.getPlaceHolder()
+                                + "`.`"
+                                + SaveModePlaceHolder.TABLE.getPlaceHolder()
+                                + "` (                                                                                                                                                   \n"
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + "  ,       \n"
                                 + "`create_time` DATETIME NOT NULL ,  \n"
-                                + "${rowtype_fields}  \n"
+                                + SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder()
+                                + "  \n"
                                 + ") ENGINE=OLAP  \n"
-                                + "PRIMARY KEY(${rowtype_primary_key},`create_time`)  \n"
+                                + "PRIMARY KEY("
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ",`create_time`)  \n"
                                 + "PARTITION BY RANGE (`create_time`)(  \n"
                                 + "   PARTITION p20230329 VALUES LESS THAN (\"2023-03-29\")                                                                                                                                                           \n"
                                 + ")                                      \n"
-                                + "DISTRIBUTED BY HASH (${rowtype_primary_key})  \n"
+                                + "DISTRIBUTED BY HASH ("
+                                + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                + ")  \n"
                                 + "PROPERTIES (                           \n"
                                 + "    \"dynamic_partition.enable\" = \"true\",                                                                                                                                                                       \n"
                                 + "    \"dynamic_partition.time_unit\" = \"DAY\",                                                                                                                                                                     \n"

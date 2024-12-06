@@ -224,10 +224,25 @@ public class DorisCatalogIT extends AbstractDorisIT {
                                 put(DorisOptions.NEEDS_UNSUPPORTED_TYPE_CASTING.key(), true);
                             }
                         });
-        upstreamTable
-                .getTableSchema()
-                .getColumns()
-                .add(PhysicalColumn.of("v3", new DecimalType(66, 22), 66, false, null, "v3"));
+        upstreamTable =
+                CatalogTable.of(
+                        upstreamTable.getTableId(),
+                        TableSchema.builder()
+                                .columns(upstreamTable.getTableSchema().getColumns())
+                                .column(
+                                        PhysicalColumn.of(
+                                                "v3",
+                                                new DecimalType(66, 22),
+                                                66,
+                                                false,
+                                                null,
+                                                "v3"))
+                                .primaryKey(upstreamTable.getTableSchema().getPrimaryKey())
+                                .constraintKey(upstreamTable.getTableSchema().getConstraintKeys())
+                                .build(),
+                        upstreamTable.getOptions(),
+                        upstreamTable.getPartitionKeys(),
+                        upstreamTable.getComment());
         CatalogTable newTable = assertCreateTable(upstreamTable, config5, "test4.test4");
         Assertions.assertEquals(
                 BasicType.DOUBLE_TYPE, newTable.getTableSchema().getColumns().get(4).getDataType());
@@ -237,8 +252,11 @@ public class DorisCatalogIT extends AbstractDorisIT {
             CatalogTable upstreamTable, ReadonlyConfig config, String fullName) {
         DorisSinkFactory dorisSinkFactory = new DorisSinkFactory();
         TableSinkFactoryContext context =
-                new TableSinkFactoryContext(
-                        upstreamTable, config, Thread.currentThread().getContextClassLoader());
+                TableSinkFactoryContext.replacePlaceholderAndCreate(
+                        upstreamTable,
+                        config,
+                        Thread.currentThread().getContextClassLoader(),
+                        dorisSinkFactory.excludeTablePlaceholderReplaceKeys());
         SupportSaveMode sink = (SupportSaveMode) dorisSinkFactory.createSink(context).createSink();
         SaveModeHandler handler = sink.getSaveModeHandler().get();
         handler.open();

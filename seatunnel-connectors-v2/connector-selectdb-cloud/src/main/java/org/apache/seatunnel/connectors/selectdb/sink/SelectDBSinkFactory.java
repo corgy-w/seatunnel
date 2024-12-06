@@ -40,6 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,9 +49,6 @@ import java.util.stream.Collectors;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_REPLICA;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.BASE_URL;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.CLUSTER_NAME;
 import static org.apache.seatunnel.connectors.selectdb.config.SelectDBConfig.CUSTOM_SQL;
@@ -106,6 +104,11 @@ public class SelectDBSinkFactory
     }
 
     @Override
+    public List<String> excludeTablePlaceholderReplaceKeys() {
+        return Arrays.asList(SAVE_MODE_CREATE_TEMPLATE.key());
+    }
+
+    @Override
     public TableSink<SeaTunnelRow, SelectDBSinkState, SelectDBCommitInfo, SelectDBCommitInfo>
             createSink(TableSinkFactoryContext context) {
         ReadonlyConfig options = context.getOptions();
@@ -123,13 +126,13 @@ public class SelectDBSinkFactory
         String tableName;
         String namespace;
         if (StringUtils.isNotEmpty(options.get(TABLE))) {
-            tableName = replaceName(options.get(TABLE), tableId);
+            tableName = options.get(TABLE);
         } else {
             tableName = tableId.getTableName();
         }
 
         if (StringUtils.isNotEmpty(options.get(DATABASE))) {
-            namespace = replaceName(options.get(DATABASE), tableId);
+            namespace = options.get(DATABASE);
         } else {
             namespace = tableId.getSchemaName();
         }
@@ -138,19 +141,6 @@ public class SelectDBSinkFactory
                 TableIdentifier.of(tableId.getCatalogName(), namespace, null, tableName);
 
         return CatalogTable.of(newTableId, catalogTable);
-    }
-
-    private String replaceName(String original, TableIdentifier tableId) {
-        if (tableId.getTableName() != null) {
-            original = original.replace(REPLACE_TABLE_NAME_KEY, tableId.getTableName());
-        }
-        if (tableId.getSchemaName() != null) {
-            original = original.replace(REPLACE_SCHEMA_NAME_KEY, tableId.getSchemaName());
-        }
-        if (tableId.getDatabaseName() != null) {
-            original = original.replace(REPLACE_DATABASE_NAME_KEY, tableId.getDatabaseName());
-        }
-        return original;
     }
 
     @VisibleForTesting

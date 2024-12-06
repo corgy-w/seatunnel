@@ -26,11 +26,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -38,6 +41,7 @@ import java.util.Properties;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /** Simple JDBC connection provider. */
+@Slf4j
 public class SimpleJdbcConnectionProvider implements JdbcConnectionProvider, Serializable {
 
     private static final Logger LOG = LoggerFactory.getLogger(SimpleJdbcConnectionProvider.class);
@@ -60,8 +64,23 @@ public class SimpleJdbcConnectionProvider implements JdbcConnectionProvider, Ser
 
     @Override
     public boolean isConnectionValid() throws SQLException {
-        return connection != null
-                && connection.isValid(jdbcConfig.getConnectionCheckTimeoutSeconds());
+        try {
+            return connection != null
+                    && connection.isValid(jdbcConfig.getConnectionCheckTimeoutSeconds());
+        } catch (SQLException e) {
+            if ("Method not supported".equals(e.getMessage())) {
+                log.warn(
+                        "The JDBC driver does not support the isValid method, falling back to executing a query \"select 1\" to check the connection.");
+                try (PreparedStatement statement = connection.prepareStatement("select 1");
+                        ResultSet resultSet = statement.executeQuery()) {
+                    return resultSet.next();
+                } catch (SQLException e1) {
+                    return false;
+                }
+            } else {
+                throw e;
+            }
+        }
     }
 
     private static Driver loadDriver(String driverName) throws ClassNotFoundException {

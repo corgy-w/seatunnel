@@ -17,11 +17,8 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kafka.sink;
 
-import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
-import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -29,16 +26,9 @@ import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.Config;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.auto.service.AutoService;
 
 import java.util.Arrays;
-import java.util.Map;
-
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
-import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
 
 @AutoService(Factory.class)
 public class KafkaSinkFactory implements TableSinkFactory {
@@ -85,33 +75,9 @@ public class KafkaSinkFactory implements TableSinkFactory {
 
     @Override
     public TableSink createSink(TableSinkFactoryContext context) {
-        CatalogTable catalogTable = context.getCatalogTable();
-        ReadonlyConfig options = context.getOptions();
-        TableIdentifier tableId = catalogTable.getTableId();
-        Map<String, Object> confData = options.getConfData();
-        // get source database schema table
-        String sourceDatabase = tableId.getDatabaseName();
-        String sourceSchema = tableId.getSchemaName();
-        String sourceTableName = tableId.getTableName();
-        // replace topic name
-        String topic = options.get(Config.TOPIC);
-        if (StringUtils.isNotEmpty(topic)) {
-            if (sourceDatabase != null) {
-                topic = topic.replace(REPLACE_DATABASE_NAME_KEY, sourceDatabase);
-            }
-            if (sourceSchema != null) {
-                topic = topic.replace(REPLACE_SCHEMA_NAME_KEY, sourceSchema);
-            }
-            if (sourceTableName != null) {
-                topic = topic.replace(REPLACE_TABLE_NAME_KEY, sourceTableName);
-            }
-            // rebuild
-            confData.put(Config.TOPIC.key(), topic);
-        }
-        final ReadonlyConfig finalOptions = ReadonlyConfig.fromMap(confData);
         return () ->
                 new KafkaSink(
-                        finalOptions,
+                        context.getOptions(),
                         context.getCatalogTable().getTableSchema().toPhysicalRowDataType());
     }
 }

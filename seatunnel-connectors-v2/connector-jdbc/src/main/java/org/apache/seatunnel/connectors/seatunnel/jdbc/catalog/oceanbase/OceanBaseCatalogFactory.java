@@ -31,12 +31,17 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.auto.service.AutoService;
 
 import java.util.Optional;
 
 @AutoService(Factory.class)
 public class OceanBaseCatalogFactory implements CatalogFactory {
+
+    private static final Logger log = LoggerFactory.getLogger(OceanBaseCatalogFactory.class);
 
     @Override
     public String factoryIdentifier() {
@@ -50,10 +55,6 @@ public class OceanBaseCatalogFactory implements CatalogFactory {
                 StringUtils.isNotBlank(urlWithDatabase),
                 "Miss config <base-url>! Please check your config.");
         JdbcUrlUtil.UrlInfo urlInfo = JdbcUrlUtil.getUrlInfo(urlWithDatabase);
-        Optional<String> defaultDatabase = urlInfo.getDefaultDatabase();
-        if (!defaultDatabase.isPresent()) {
-            throw new OptionValidationException(JdbcCatalogOptions.BASE_URL);
-        }
 
         String compatibleMode = options.get(JdbcCatalogOptions.COMPATIBLE_MODE);
         Preconditions.checkArgument(
@@ -67,6 +68,11 @@ public class OceanBaseCatalogFactory implements CatalogFactory {
                     options.get(JdbcCatalogOptions.PASSWORD),
                     urlInfo,
                     options.get(JdbcCatalogOptions.SCHEMA));
+        }
+
+        Optional<String> defaultDatabase = urlInfo.getDefaultDatabase();
+        if (!defaultDatabase.isPresent()) {
+            throw new OptionValidationException(JdbcCatalogOptions.BASE_URL);
         }
         return new OceanBaseMySqlCatalog(
                 catalogName,

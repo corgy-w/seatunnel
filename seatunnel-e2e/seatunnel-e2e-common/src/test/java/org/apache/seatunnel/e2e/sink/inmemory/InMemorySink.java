@@ -49,8 +49,7 @@ public class InMemorySink
     }
 
     @Override
-    public SinkWriter<SeaTunnelRow, InMemoryCommitInfo, InMemoryState> createWriter(
-            SinkWriter.Context context) throws IOException {
+    public InMemorySinkWriter createWriter(SinkWriter.Context context) throws IOException {
         return new InMemorySinkWriter(config);
     }
 

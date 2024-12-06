@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.DataSaveMode;
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
 
 import lombok.Getter;
@@ -129,11 +130,20 @@ public class SelectDBConfig implements Serializable {
             Options.key("save_mode_create_template")
                     .stringType()
                     .defaultValue(
-                            "CREATE TABLE IF NOT EXISTS `${database}`.`${table_name}` (\n"
-                                    + "${rowtype_fields}\n"
+                            "CREATE TABLE IF NOT EXISTS `"
+                                    + SaveModePlaceHolder.DATABASE.getPlaceHolder()
+                                    + "`.`"
+                                    + SaveModePlaceHolder.TABLE.getPlaceHolder()
+                                    + "` (\n"
+                                    + SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder()
+                                    + "\n"
                                     + ") ENGINE=OLAP\n"
-                                    + " UNIQUE KEY (${rowtype_primary_key})\n"
-                                    + "DISTRIBUTED BY HASH (${rowtype_primary_key})")
+                                    + " UNIQUE KEY ("
+                                    + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                    + ")\n"
+                                    + "DISTRIBUTED BY HASH ("
+                                    + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                    + ")")
                     .withDescription(
                             "Create table statement template, used to create StarRocks table");
 

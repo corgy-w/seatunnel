@@ -79,8 +79,7 @@ public class SelectDBSink
     }
 
     @Override
-    public SinkWriter<SeaTunnelRow, SelectDBCommitInfo, SelectDBSinkState> createWriter(
-            SinkWriter.Context context) throws IOException {
+    public SelectDBSinkWriter createWriter(SinkWriter.Context context) throws IOException {
         SelectDBSinkWriter selectDBSinkWriter =
                 new SelectDBSinkWriter(
                         context, Collections.emptyList(), catalogTable, selectDBConfig, jobId);
@@ -125,7 +124,12 @@ public class SelectDBSink
 
     @Override
     public Optional<SaveModeHandler> getSaveModeHandler() {
-
+        // Load the JDBC driver in to DriverManager
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         CatalogFactory catalogFactory =
                 discoverFactory(
                         Thread.currentThread().getContextClassLoader(),

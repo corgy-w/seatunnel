@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.dolphindb.utils;
 
 import org.apache.seatunnel.api.sink.SaveModeConstants;
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.ArrayType;
@@ -27,6 +28,7 @@ import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.commons.lang3.StringUtils;
 
 import com.xxdb.data.Entity;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Comparator;
 import java.util.List;
@@ -36,6 +38,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+@Slf4j
 public class DolphinDBSaveModeUtil {
 
     public static String fillingCreateSql(
@@ -57,12 +60,20 @@ public class DolphinDBSaveModeUtil {
                         .filter(column -> !columnInTemplate.containsKey(column.getName()))
                         .map(DolphinDBSaveModeUtil::columnToDolphinDBType)
                         .collect(Collectors.joining(",\n"));
-        return template.replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.DATABASE), database)
-                .replaceAll(String.format("\\$\\{%s\\}", SaveModeConstants.TABLE_NAME), table)
+
+        if (template.contains(SaveModePlaceHolder.TABLE_NAME.getPlaceHolder())) {
+            // TODO: Remove this compatibility config
+            template =
+                    template.replaceAll(
+                            SaveModePlaceHolder.TABLE_NAME.getReplacePlaceHolder(), table);
+            log.warn(
+                    "The variable placeholder `${table_name}` has been marked as deprecated and will be removed soon, please use `${table}`");
+        }
+
+        return template.replaceAll(SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(), database)
+                .replaceAll(SaveModePlaceHolder.TABLE.getReplacePlaceHolder(), table)
                 .replaceAll(
-                        String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_FIELDS),
-                        rowTypeFields);
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields);
     }
 
     private static String columnToDolphinDBType(Column column) {

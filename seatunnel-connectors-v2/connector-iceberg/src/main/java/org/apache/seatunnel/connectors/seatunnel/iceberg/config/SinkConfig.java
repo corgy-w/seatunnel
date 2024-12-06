@@ -105,14 +105,15 @@ public class SinkConfig extends CommonConfig {
 
     public static final Option<DataSaveMode> DATA_SAVE_MODE =
             Options.key("data_save_mode")
-                    .singleChoice(
-                            DataSaveMode.class,
-                            Arrays.asList(
-                                    DataSaveMode.DROP_DATA,
-                                    DataSaveMode.APPEND_DATA,
-                                    DataSaveMode.ERROR_WHEN_DATA_EXISTS))
+                    .enumType(DataSaveMode.class)
                     .defaultValue(DataSaveMode.APPEND_DATA)
                     .withDescription("data save mode");
+
+    public static final Option<String> DATA_SAVE_MODE_CUSTOM_SQL =
+            Options.key("custom_sql")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("custom sql for data save mode");
 
     public static final Option<String> TABLES_DEFAULT_COMMIT_BRANCH =
             Options.key("iceberg.table.commit-branch")
@@ -133,6 +134,7 @@ public class SinkConfig extends CommonConfig {
     private boolean tableSchemaEvolutionEnabled;
     private SchemaSaveMode schemaSaveMode;
     private DataSaveMode dataSaveMode;
+    private String dataSaveModeSQL;
 
     public SinkConfig(ReadonlyConfig readonlyConfig) {
         super(readonlyConfig);
@@ -145,6 +147,7 @@ public class SinkConfig extends CommonConfig {
         this.tableSchemaEvolutionEnabled = readonlyConfig.get(TABLE_SCHEMA_EVOLUTION_ENABLED_PROP);
         this.schemaSaveMode = readonlyConfig.get(SCHEMA_SAVE_MODE);
         this.dataSaveMode = readonlyConfig.get(DATA_SAVE_MODE);
+        this.dataSaveModeSQL = readonlyConfig.get(DATA_SAVE_MODE_CUSTOM_SQL);
         this.commitBranch = readonlyConfig.get(TABLES_DEFAULT_COMMIT_BRANCH);
     }
 

@@ -36,21 +36,35 @@ public class InceptorTypeMapper implements JdbcDialectTypeMapper {
     @Override
     public Column mappingColumn(ResultSetMetaData metadata, int colIndex) throws SQLException {
         String columnName = metadata.getColumnLabel(colIndex);
-        String nativeType = metadata.getColumnTypeName(colIndex);
+        String columnType = metadata.getColumnTypeName(colIndex);
+        String nativeColumnType = columnType;
         int isNullable = metadata.isNullable(colIndex);
         long precision = metadata.getPrecision(colIndex);
         int scale = metadata.getScale(colIndex);
 
-        if (Arrays.asList("CHAR", "VARCHAR", "VARCHAR2").contains(nativeType)) {
+        if (Arrays.asList("CHAR", "VARCHAR", "VARCHAR2").contains(columnType)) {
             long octetLength = TypeDefineUtils.charTo4ByteLength(precision);
             precision = Math.max(precision, octetLength);
+            switch (columnType) {
+                case "CHAR":
+                    nativeColumnType = "char(" + precision + ")";
+                    break;
+                case "VARCHAR":
+                case "VARCHAR2":
+                    nativeColumnType = "varchar(" + precision + ")";
+                    break;
+            }
+        }
+
+        if (columnType.equalsIgnoreCase("decimal")) {
+            nativeColumnType = "decimal(" + precision + "," + scale + ")";
         }
 
         BasicTypeDefine typeDefine =
                 BasicTypeDefine.builder()
                         .name(columnName)
-                        .columnType(nativeType)
-                        .dataType(nativeType)
+                        .columnType(nativeColumnType)
+                        .dataType(columnType)
                         .nullable(isNullable == ResultSetMetaData.columnNullable)
                         .length(precision)
                         .precision(precision)
