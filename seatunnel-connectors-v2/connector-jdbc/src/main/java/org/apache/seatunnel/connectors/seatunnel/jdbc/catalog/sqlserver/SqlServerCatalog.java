@@ -79,14 +79,14 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getDatabaseWithConditionSql(String databaseName) {
-        return String.format(getListDatabaseSql() + "  where name = '%s'", databaseName);
+        return String.format(getListDatabaseSql() + "  where name = N'%s'", databaseName);
     }
 
     @Override
     protected String getTableWithConditionSql(TablePath tablePath) {
         return String.format(
                 getListTableSql(tablePath.getDatabaseName())
-                        + "  and  TABLE_SCHEMA = '%s' and TABLE_NAME = '%s'",
+                        + "  and  TABLE_SCHEMA = N'%s' and TABLE_NAME = N'%s'",
                 tablePath.getSchemaName(),
                 tablePath.getTableName());
     }
@@ -158,7 +158,7 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     protected String getSelectColumnsSql(TablePath tablePath) {
         String tableSql =
                 StringUtils.isNotEmpty(tablePath.getTableName())
-                        ? "AND tbl.name = '" + tablePath.getTableName() + "'"
+                        ? "AND tbl.name = N'" + tablePath.getTableName() + "'"
                         : "";
 
         return String.format(SELECT_COLUMNS_SQL_TEMPLATE, tablePath.getSchemaName(), tableSql);
@@ -198,7 +198,7 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected String getDropTableSql(TablePath tablePath) {
-        return String.format("DROP TABLE %s", tablePath.getFullName());
+        return String.format("DROP TABLE %s", tablePath.getFullNameWithQuoted("[", "]"));
     }
 
     @Override
