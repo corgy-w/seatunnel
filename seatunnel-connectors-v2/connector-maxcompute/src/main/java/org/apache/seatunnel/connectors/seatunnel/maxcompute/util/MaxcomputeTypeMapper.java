@@ -242,11 +242,10 @@ public class MaxcomputeTypeMapper implements Serializable {
             case DOUBLE:
             case BIGINT:
             case BOOLEAN:
+            case DECIMAL:
                 return field;
             case BINARY:
                 return new Binary((byte[]) field);
-            case DECIMAL:
-                return null;
             case VARCHAR:
                 return new Varchar((String) field);
             case CHAR:
