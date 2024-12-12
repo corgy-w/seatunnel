@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.maxcompute.sink;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.common.sink.AbstractSinkWriter;
 import org.apache.seatunnel.connectors.seatunnel.maxcompute.exception.MaxcomputeConnectorException;
@@ -47,9 +48,11 @@ public class MaxcomputeWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
     private final TableTunnel.UploadSession session;
     private final TableSchema tableSchema;
     private static final Long BLOCK_0 = 0L;
+    private final SeaTunnelRowType rowType;
 
-    public MaxcomputeWriter(ReadonlyConfig readonlyConfig) {
+    public MaxcomputeWriter(ReadonlyConfig readonlyConfig, SeaTunnelRowType rowType) {
         try {
+            this.rowType = rowType;
             Table table = MaxcomputeUtil.getTable(readonlyConfig);
             this.tableSchema = table.getSchema();
             TableTunnel tunnel = MaxcomputeUtil.getTableTunnel(readonlyConfig);
@@ -75,7 +78,9 @@ public class MaxcomputeWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
 
     @Override
     public void write(SeaTunnelRow seaTunnelRow) throws IOException {
-        Record record = MaxcomputeTypeMapper.getMaxcomputeRowData(seaTunnelRow, this.tableSchema);
+        Record record =
+                MaxcomputeTypeMapper.getMaxcomputeRowData(
+                        seaTunnelRow, this.tableSchema, this.rowType);
         recordWriter.write(record);
     }
 

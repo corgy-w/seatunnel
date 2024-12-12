@@ -68,14 +68,23 @@ public class MaxcomputeTypeMapper implements Serializable {
         return new SeaTunnelRow(fields.toArray());
     }
 
-    public static Record getMaxcomputeRowData(SeaTunnelRow seaTunnelRow, TableSchema tableSchema) {
+    public static Record getMaxcomputeRowData(
+            SeaTunnelRow seaTunnelRow, TableSchema tableSchema, SeaTunnelRowType rowType) {
         ArrayRecord arrayRecord = new ArrayRecord(tableSchema);
-        List<Column> columns = tableSchema.getColumns();
         for (int i = 0; i < seaTunnelRow.getFields().length; i++) {
+            String fieldName = rowType.getFieldName(i);
+            if (!tableSchema.containsColumn(fieldName)) {
+                throw new MaxcomputeConnectorException(
+                        CommonErrorCodeDeprecated.ILLEGAL_ARGUMENT,
+                        String.format(
+                                "field not found in written table: %s,rowType: %s",
+                                fieldName, seaTunnelRow.getField(i)));
+            }
+            Column column = tableSchema.getColumn(fieldName);
+
             arrayRecord.set(
-                    i,
-                    resolveObject2Maxcompute(
-                            seaTunnelRow.getField(i), columns.get(i).getTypeInfo()));
+                    tableSchema.getColumnIndex(fieldName),
+                    resolveObject2Maxcompute(seaTunnelRow.getField(i), column.getTypeInfo()));
         }
         return arrayRecord;
     }
@@ -252,6 +261,7 @@ public class MaxcomputeTypeMapper implements Serializable {
             case CHAR:
                 return new Char((String) field);
             case STRING:
+            case JSON:
                 if (field instanceof byte[]) {
                     return new String((byte[]) field);
                 }
@@ -260,6 +270,7 @@ public class MaxcomputeTypeMapper implements Serializable {
                 }
                 return String.valueOf(field);
             case TIMESTAMP:
+            case TIMESTAMP_NTZ:
                 return Timestamp.valueOf((LocalDateTime) field);
             case DATETIME:
                 return Date.from(
