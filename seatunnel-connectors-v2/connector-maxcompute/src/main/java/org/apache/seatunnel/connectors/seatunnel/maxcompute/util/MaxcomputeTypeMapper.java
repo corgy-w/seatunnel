@@ -261,6 +261,7 @@ public class MaxcomputeTypeMapper implements Serializable {
             case CHAR:
                 return new Char((String) field);
             case STRING:
+            case JSON:
                 if (field instanceof byte[]) {
                     return new String((byte[]) field);
                 }
@@ -269,6 +270,7 @@ public class MaxcomputeTypeMapper implements Serializable {
                 }
                 return String.valueOf(field);
             case TIMESTAMP:
+            case TIMESTAMP_NTZ:
                 return Timestamp.valueOf((LocalDateTime) field);
             case DATETIME:
                 return Date.from(
