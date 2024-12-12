@@ -47,7 +47,6 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
@@ -195,8 +194,8 @@ public class RowConverterTest {
         // get system offset for the local timestamp
         ZoneOffset systemOffset = ZoneId.systemDefault().getRules().getOffset(localDateTime);
         // convert local timestamp to UTC
-        OffsetDateTime expected = localDateTime.minusSeconds(systemOffset.getTotalSeconds())
-                .atOffset(ZoneOffset.UTC);
+        OffsetDateTime expected =
+                localDateTime.minusSeconds(systemOffset.getTotalSeconds()).atOffset(ZoneOffset.UTC);
 
         assertEquals(expected, converted, "Should convert to correct UTC time");
     }
