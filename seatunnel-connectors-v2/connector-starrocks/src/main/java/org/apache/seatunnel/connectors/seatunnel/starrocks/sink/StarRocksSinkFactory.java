@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.starrocks.sink;
 
 import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.sink.DataSaveMode;
+import org.apache.seatunnel.api.sink.SinkCommonOptions;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.connector.TableSink;
@@ -64,7 +65,8 @@ public class StarRocksSinkFactory implements TableSinkFactory {
                         StarRocksSinkOptions.SCHEMA_SAVE_MODE,
                         StarRocksSinkOptions.DATA_SAVE_MODE,
                         StarRocksSinkOptions.SAVE_MODE_CREATE_TEMPLATE,
-                        StarRocksSinkOptions.HTTP_SOCKET_TIMEOUT_MS)
+                        StarRocksSinkOptions.HTTP_SOCKET_TIMEOUT_MS,
+                        SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
                 .conditional(
                         DATA_SAVE_MODE,
                         DataSaveMode.CUSTOM_PROCESSING,
