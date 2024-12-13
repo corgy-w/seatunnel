@@ -398,6 +398,8 @@ public class JdbcCatalogUtils {
                 .ifPresent(val -> catalogConfig.put(JdbcCatalogOptions.COMPATIBLE_MODE.key(), val));
         catalogConfig.put(
                 JdbcOptions.DECIMAL_TYPE_NARROWING.key(), config.isDecimalTypeNarrowing());
+        catalogConfig.put(JdbcOptions.WRITE_MODE.key(), config.getWriteMode());
+        catalogConfig.put(JdbcOptions.TEMP_TABLE_NAME.key(), config.getTempTableName());
         return ReadonlyConfig.fromMap(catalogConfig);
     }
 }
