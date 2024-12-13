@@ -36,6 +36,7 @@ import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.Maxcom
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.PARTITION_SPEC;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.PLUGIN_NAME;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.PROJECT;
+import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.SAVE_MODE_CREATE_TEMPLATE;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.SCHEMA_SAVE_MODE;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.TABLE_NAME;
 
@@ -50,7 +51,13 @@ public class MaxcomputeSinkFactory implements TableSinkFactory {
     public OptionRule optionRule() {
         return OptionRule.builder()
                 .required(ACCESS_ID, ACCESS_KEY, ENDPOINT, PROJECT, TABLE_NAME)
-                .optional(PARTITION_SPEC, OVERWRITE, SCHEMA_SAVE_MODE, DATA_SAVE_MODE, CUSTOM_SQL)
+                .optional(
+                        PARTITION_SPEC,
+                        OVERWRITE,
+                        SCHEMA_SAVE_MODE,
+                        DATA_SAVE_MODE,
+                        SAVE_MODE_CREATE_TEMPLATE,
+                        CUSTOM_SQL)
                 .build();
     }
 
