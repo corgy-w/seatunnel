@@ -43,6 +43,8 @@ public class JdbcSinkConfig implements Serializable {
     private List<String> primaryKeys;
     private boolean enableUpsert;
     @Builder.Default private boolean isPrimaryKeyUpdated = true;
+    private WriteMode writeMode;
+    private String tempTableName;
     private boolean supportUpsertByInsertOnly;
     private boolean useCopyStatement;
     @Builder.Default private boolean createIndex = true;
@@ -60,6 +62,16 @@ public class JdbcSinkConfig implements Serializable {
         builder.simpleSql(config.get(JdbcOptions.QUERY));
         builder.useCopyStatement(config.get(JdbcOptions.USE_COPY_STATEMENT));
         builder.createIndex(config.get(JdbcCatalogOptions.CREATE_INDEX));
+        builder.writeMode(config.get(JdbcOptions.WRITE_MODE));
+        builder.tempTableName(config.get(JdbcOptions.TEMP_TABLE_NAME));
         return builder.build();
+    }
+
+    public enum WriteMode {
+        SQL,
+        COPY,
+        COPY_SQL,
+        MERGE,
+        COPY_MERGE,
     }
 }

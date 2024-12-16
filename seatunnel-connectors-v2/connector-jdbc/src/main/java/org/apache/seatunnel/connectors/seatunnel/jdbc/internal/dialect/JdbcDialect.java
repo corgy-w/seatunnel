@@ -236,6 +236,16 @@ public interface JdbcDialect extends Serializable {
             String[] uniqueKeyFields,
             boolean isPrimaryKeyUpdated);
 
+    default Optional<String> getMergeStatement(
+            String sourceSQL,
+            String database,
+            String tableName,
+            String[] fieldNames,
+            String[] uniqueKeyFields,
+            boolean isPrimaryKeyUpdated) {
+        return Optional.empty();
+    }
+
     /**
      * Different dialects optimize their PreparedStatement
      *

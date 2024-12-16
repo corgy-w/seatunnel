@@ -59,6 +59,9 @@ public class JdbcConnectionConfig implements Serializable {
 
     private Map<String, String> properties;
 
+    private JdbcSinkConfig.WriteMode writeMode;
+    private String tempTableName;
+
     public static JdbcConnectionConfig of(ReadonlyConfig config) {
         JdbcConnectionConfig.Builder builder = JdbcConnectionConfig.builder();
         builder.url(config.get(JdbcOptions.URL));
@@ -85,6 +88,8 @@ public class JdbcConnectionConfig implements Serializable {
         config.getOptional(JdbcOptions.PROPERTIES).ifPresent(builder::properties);
         config.getOptional(JdbcOptions.DECIMAL_TYPE_NARROWING)
                 .ifPresent(builder::decimalTypeNarrowing);
+        builder.writeMode(config.get(JdbcOptions.WRITE_MODE));
+        builder.tempTableName(config.get(JdbcOptions.TEMP_TABLE_NAME));
         return builder.build();
     }
 
@@ -144,6 +149,14 @@ public class JdbcConnectionConfig implements Serializable {
         return properties;
     }
 
+    public String getTempTableName() {
+        return tempTableName;
+    }
+
+    public JdbcSinkConfig.WriteMode getWriteMode() {
+        return writeMode;
+    }
+
     public static JdbcConnectionConfig.Builder builder() {
         return new JdbcConnectionConfig.Builder();
     }
@@ -169,6 +182,11 @@ public class JdbcConnectionConfig implements Serializable {
         public String kerberosPrincipal;
         public String kerberosKeytabPath;
         public String krb5Path = JdbcOptions.KRB5_PATH.defaultValue();
+
+        public JdbcSinkConfig.WriteMode writeMode;
+        public boolean useTempTable;
+
+        public String tempTableName;
 
         private Builder() {}
 
@@ -267,6 +285,16 @@ public class JdbcConnectionConfig implements Serializable {
             return this;
         }
 
+        public Builder writeMode(JdbcSinkConfig.WriteMode writeMode) {
+            this.writeMode = writeMode;
+            return this;
+        }
+
+        public Builder tempTableName(String tempTableName) {
+            this.tempTableName = tempTableName;
+            return this;
+        }
+
         public JdbcConnectionConfig build() {
             JdbcConnectionConfig jdbcConnectionConfig = new JdbcConnectionConfig();
             jdbcConnectionConfig.batchSize = this.batchSize;
@@ -288,6 +316,8 @@ public class JdbcConnectionConfig implements Serializable {
             jdbcConnectionConfig.krb5Path = this.krb5Path;
             jdbcConnectionConfig.properties =
                     this.properties == null ? new HashMap<>() : this.properties;
+            jdbcConnectionConfig.writeMode = this.writeMode;
+            jdbcConnectionConfig.tempTableName = this.tempTableName;
             return jdbcConnectionConfig;
         }
     }

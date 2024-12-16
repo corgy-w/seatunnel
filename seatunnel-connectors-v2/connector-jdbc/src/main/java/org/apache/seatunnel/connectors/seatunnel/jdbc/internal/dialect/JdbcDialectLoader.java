@@ -65,7 +65,7 @@ public final class JdbcDialectLoader {
                             JdbcDialectFactory.class.getName()));
         }
 
-        final List<JdbcDialectFactory> matchingFactories =
+        List<JdbcDialectFactory> matchingFactories =
                 foundFactories.stream().filter(f -> f.acceptsURL(url)).collect(Collectors.toList());
 
         if (matchingFactories.isEmpty()) {

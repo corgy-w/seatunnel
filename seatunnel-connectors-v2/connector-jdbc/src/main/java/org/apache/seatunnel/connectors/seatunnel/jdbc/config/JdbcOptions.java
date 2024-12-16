@@ -162,6 +162,18 @@ public interface JdbcOptions {
                     .defaultValue(true)
                     .withDescription(
                             "is the primary key updated when performing an update operation");
+
+    Option<JdbcSinkConfig.WriteMode> WRITE_MODE =
+            Options.key("write_mode")
+                    .enumType(JdbcSinkConfig.WriteMode.class)
+                    .defaultValue(JdbcSinkConfig.WriteMode.SQL)
+                    .withDescription("write mode: SQL/COPY/MERGE/AUTO (postgresql like)");
+    Option<String> TEMP_TABLE_NAME =
+            Options.key("temp_table_name")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("temp table name");
+
     Option<Boolean> SUPPORT_UPSERT_BY_INSERT_ONLY =
             Options.key("support_upsert_by_insert_only")
                     .booleanType()
