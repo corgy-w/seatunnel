@@ -56,7 +56,6 @@
         <xugu.jdbc.version>12.2.0</xugu.jdbc.version>
         <iris.jdbc.version>3.0.0</iris.jdbc.version>
         <tikv.version>3.2.0</tikv.version>
-        <commons.csv.version>1.10.0</commons.csv.version>
     </properties>
 
     <dependencyManagement>
@@ -229,11 +228,6 @@
                 <scope>provided</scope>
             </dependency>
             <!-- dependency by phoenix end -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-csv</artifactId>
-                <version>${commons.csv.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -355,9 +349,10 @@
             <artifactId>huaweicloud-dws-jdbc</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-csv</artifactId>
-            <version>${commons.csv.version}</version>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>seatunnel-commons-csv</artifactId>
+            <version>${project.version}</version>
+            <classifier>optional</classifier>
         </dependency>
         <!-- dependency by phoenix -->
         <dependency>
