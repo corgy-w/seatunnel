@@ -19,12 +19,15 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.config;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
 import java.util.List;
 
+import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TARGET_TABLE_NAME_KEY;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.ENABLE_UPSERT;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.IS_PRIMARY_KEY_UPDATED;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.SUPPORT_UPSERT_BY_INSERT_ONLY;
@@ -45,6 +48,8 @@ public class JdbcSinkConfig implements Serializable {
     private boolean supportUpsertByInsertOnly;
     private WriteMode writeMode;
     private String tempTableName;
+    private String tempColumnRowKind;
+    private String tempColumnBatchCode;
 
     public static JdbcSinkConfig of(ReadonlyConfig config) {
         JdbcSinkConfigBuilder builder = JdbcSinkConfig.builder();
@@ -58,7 +63,19 @@ public class JdbcSinkConfig implements Serializable {
         builder.supportUpsertByInsertOnly(config.get(SUPPORT_UPSERT_BY_INSERT_ONLY));
         builder.simpleSql(config.get(JdbcOptions.QUERY));
         builder.writeMode(config.get(JdbcOptions.WRITE_MODE));
-        builder.tempTableName(config.get(JdbcOptions.TEMP_TABLE_NAME));
+        String tempTableName = config.get(JdbcOptions.TEMP_TABLE_NAME);
+        if (StringUtils.isNotBlank(tempTableName)
+                && config.getOptional(JdbcOptions.TABLE).isPresent()) {
+            String tableName = config.get(JdbcOptions.TABLE);
+            int index = tableName.lastIndexOf(".");
+            if (index > -1) {
+                tableName = tableName.substring(index + 1);
+            }
+            tempTableName = tempTableName.replace(REPLACE_TARGET_TABLE_NAME_KEY, tableName);
+        }
+        builder.tempTableName(tempTableName);
+        builder.tempColumnBatchCode(config.get(JdbcOptions.TEMP_COLUMN_BATCH_CODE));
+        builder.tempColumnRowKind(config.get(JdbcOptions.TEMP_COLUMN_ROW_KIND));
         return builder.build();
     }
 
