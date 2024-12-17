@@ -134,10 +134,22 @@ public class DynamicBufferedBatchStatementExecutor
         List<Column> tmpColumnsSchema = new ArrayList<>(tableSchema.getColumns());
         tmpColumnsSchema.add(
                 new PhysicalColumn(
-                        "_st_batch_code", BasicType.STRING_TYPE, null, null, false, null, null));
+                        jdbcSinkConfig.getTempColumnBatchCode(),
+                        BasicType.STRING_TYPE,
+                        null,
+                        null,
+                        false,
+                        null,
+                        null));
         tmpColumnsSchema.add(
                 new PhysicalColumn(
-                        "_st_row_kind", BasicType.INT_TYPE, null, null, false, null, null));
+                        jdbcSinkConfig.getTempColumnRowKind(),
+                        BasicType.INT_TYPE,
+                        null,
+                        null,
+                        false,
+                        null,
+                        null));
         TableSchema tmpTableSchema =
                 new TableSchema(
                         tmpColumnsSchema,
@@ -163,7 +175,8 @@ public class DynamicBufferedBatchStatementExecutor
 
     @Override
     public void addToBatch(SeaTunnelRow record) throws SQLException {
-        if (jdbcSinkConfig.getWriteMode().equals(JdbcSinkConfig.WriteMode.COPY)) {
+        if (jdbcSinkConfig.isUseCopyStatement()
+                || jdbcSinkConfig.getWriteMode().equals(JdbcSinkConfig.WriteMode.COPY)) {
             if (!RowKind.INSERT.equals(record.getRowKind())) {
                 throw new RuntimeException("Only support INSERT row kind when writeMode is COPY");
             }
@@ -205,7 +218,8 @@ public class DynamicBufferedBatchStatementExecutor
 
     @Override
     public void executeBatch() throws SQLException {
-        if (jdbcSinkConfig.getWriteMode().equals(JdbcSinkConfig.WriteMode.COPY)) {
+        if (jdbcSinkConfig.isUseCopyStatement()
+                || jdbcSinkConfig.getWriteMode().equals(JdbcSinkConfig.WriteMode.COPY)) {
             copyBatchStatementExecutor.executeBatch();
             return;
         }
@@ -262,8 +276,12 @@ public class DynamicBufferedBatchStatementExecutor
         String tmpTable = dialect.extractTableName(tmpTablePath);
         String deleteSQL =
                 String.format(
-                        "DELETE FROM %s WHERE EXISTS (SELECT 1 FROM %s tmp WHERE tmp._st_batch_code=? AND tmp._st_row_kind=? AND %s)",
-                        table, tmpTable, condition);
+                        "DELETE FROM %s WHERE EXISTS (SELECT 1 FROM %s tmp WHERE tmp.%s=? AND tmp.%s=? AND %s)",
+                        table,
+                        tmpTable,
+                        jdbcSinkConfig.getTempColumnBatchCode(),
+                        jdbcSinkConfig.getTempColumnRowKind(),
+                        condition);
         try (PreparedStatement pStmt = connection.prepareStatement(deleteSQL)) {
             pStmt.setString(1, batchCode);
             pStmt.setInt(2, RowKind.DELETE.toByteValue());
@@ -278,9 +296,11 @@ public class DynamicBufferedBatchStatementExecutor
         }
         String sourceSQL =
                 String.format(
-                        "SELECT %s FROM %s WHERE _st_batch_code = ? AND _st_row_kind != ? ",
+                        "SELECT %s FROM %s WHERE %s = ? AND %s != ? ",
                         baseColumns,
-                        dialect.tableIdentifier(jdbcSinkConfig.getDatabase(), tmpTable));
+                        dialect.tableIdentifier(jdbcSinkConfig.getDatabase(), tmpTable),
+                        jdbcSinkConfig.getTempColumnBatchCode(),
+                        jdbcSinkConfig.getTempColumnRowKind());
         Optional<String> mergeStatement =
                 dialect.getMergeStatement(
                         sourceSQL,
@@ -301,7 +321,10 @@ public class DynamicBufferedBatchStatementExecutor
         }
 
         // delete temp date from tmp table
-        String deleteTmpSQL = String.format("DELETE FROM %s WHERE _st_batch_code=?", tmpTable);
+        String deleteTmpSQL =
+                String.format(
+                        "DELETE FROM %s WHERE %s=?",
+                        tmpTable, jdbcSinkConfig.getTempColumnBatchCode());
         try (PreparedStatement pStmt = connection.prepareStatement(deleteTmpSQL)) {
             pStmt.setString(1, batchCode);
             pStmt.executeUpdate();

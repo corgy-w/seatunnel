@@ -73,9 +73,13 @@ import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.SCHEMA_SAVE_MODE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.SUPPORT_UPSERT_BY_INSERT_ONLY;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.TABLE;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.TEMP_COLUMN_BATCH_CODE;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.TEMP_COLUMN_ROW_KIND;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.TEMP_TABLE_NAME;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.TRANSACTION_TIMEOUT_SEC;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.URL;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.USER;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.WRITE_MODE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions.XA_DATA_SOURCE_CLASS_NAME;
 
 @AutoService(Factory.class)
@@ -287,7 +291,8 @@ public class JdbcSinkFactory implements TableSinkFactory {
                         COMPATIBLE_MODE,
                         SUPPORT_UPSERT_BY_INSERT_ONLY,
                         IS_PRIMARY_KEY_UPDATED,
-                        MULTI_TABLE_SINK_REPLICA)
+                        MULTI_TABLE_SINK_REPLICA,
+                        WRITE_MODE)
                 .conditional(
                         IS_EXACTLY_ONCE,
                         true,
@@ -298,6 +303,18 @@ public class JdbcSinkFactory implements TableSinkFactory {
                 .conditional(GENERATE_SINK_SQL, true, DATABASE)
                 .conditional(GENERATE_SINK_SQL, false, QUERY)
                 .conditional(DATA_SAVE_MODE, DataSaveMode.CUSTOM_PROCESSING, CUSTOM_SQL)
+                .conditional(
+                        WRITE_MODE,
+                        JdbcSinkConfig.WriteMode.MERGE,
+                        TEMP_TABLE_NAME,
+                        TEMP_COLUMN_BATCH_CODE,
+                        TEMP_COLUMN_ROW_KIND)
+                .conditional(
+                        WRITE_MODE,
+                        JdbcSinkConfig.WriteMode.COPY_MERGE,
+                        TEMP_TABLE_NAME,
+                        TEMP_COLUMN_BATCH_CODE,
+                        TEMP_COLUMN_ROW_KIND)
                 .build();
     }
 }
