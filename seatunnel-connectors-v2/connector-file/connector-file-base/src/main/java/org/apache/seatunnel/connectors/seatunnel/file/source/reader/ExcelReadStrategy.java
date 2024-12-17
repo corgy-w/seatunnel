@@ -72,8 +72,6 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private DataFormatter formatter = new DataFormatter();
-
     @SneakyThrows
     @Override
     public void read(String path, String tableId, Collector<SeaTunnelRow> output) {
@@ -90,6 +88,7 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                     "Only support read excel file");
         }
         FormulaEvaluator formulaEvaluator = new XSSFFormulaEvaluator((XSSFWorkbook) workbook);
+        DataFormatter formatter = new DataFormatter();
         Sheet sheet =
                 pluginConfig.hasPath(BaseSourceConfigOptions.SHEET_NAME.key())
                         ? workbook.getSheet(
@@ -127,7 +126,8 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                                                         getCellValue(
                                                                 cell.getCellType(),
                                                                 cell,
-                                                                formulaEvaluator),
+                                                                formulaEvaluator,
+                                                                formatter),
                                                         fieldTypes[z - 1]));
                             }
                             if (isMergePartition) {
@@ -178,7 +178,11 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                 "User must defined schema for json file type");
     }
 
-    private Object getCellValue(CellType cellType, Cell cell, FormulaEvaluator formulaEvaluator) {
+    private Object getCellValue(
+            CellType cellType,
+            Cell cell,
+            FormulaEvaluator formulaEvaluator,
+            DataFormatter formatter) {
         switch (cellType) {
             case STRING:
                 return cell.getStringCellValue();
