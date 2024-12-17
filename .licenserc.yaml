@@ -40,6 +40,7 @@ header:
     - '**/*.txt'
     - '**/.gitignore'
     - '**/LICENSE'
+    - '**/*.csv'
     - '**/NOTICE'
     - '**/.gitkeep'
     - '**/com/typesafe/config/**'
