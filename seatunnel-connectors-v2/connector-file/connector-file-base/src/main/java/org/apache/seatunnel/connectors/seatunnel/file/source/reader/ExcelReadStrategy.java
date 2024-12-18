@@ -37,10 +37,13 @@ import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorExc
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.CellValue;
 import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.NumberToTextConverter;
+import org.apache.poi.xssf.usermodel.XSSFFormulaEvaluator;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import lombok.SneakyThrows;
@@ -103,6 +106,8 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                         ? workbook.getSheet(
                                 pluginConfig.getString(BaseSourceConfigOptions.SHEET_NAME.key()))
                         : workbook.getSheetAt(0);
+        FormulaEvaluator formulaEvaluator = new XSSFFormulaEvaluator((XSSFWorkbook) workbook);
+        DataFormatter formatter = new DataFormatter();
         cellCount = seaTunnelRowType.getTotalFields();
         cellCount = partitionsMap.isEmpty() ? cellCount : cellCount + partitionsMap.size();
         SeaTunnelDataType<?>[] fieldTypes = seaTunnelRowType.getFieldTypes();
@@ -132,7 +137,11 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                                         cell == null
                                                 ? null
                                                 : convert(
-                                                        getCellValue(cell.getCellType(), cell),
+                                                        getCellValue(
+                                                                cell.getCellType(),
+                                                                cell,
+                                                                formulaEvaluator,
+                                                                formatter),
                                                         fieldTypes[z - 1]));
                             }
                             if (isMergePartition) {
@@ -183,22 +192,29 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                 "User must defined schema for json file type");
     }
 
-    private Object getCellValue(CellType cellType, Cell cell) {
+    private Object getCellValue(
+            CellType cellType,
+            Cell cell,
+            FormulaEvaluator formulaEvaluator,
+            DataFormatter formatter) {
         switch (cellType) {
             case STRING:
                 return cell.getStringCellValue();
             case BOOLEAN:
                 return cell.getBooleanCellValue();
             case NUMERIC:
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    DataFormatter formatter = new DataFormatter();
-                    return formatter.formatCellValue(cell);
-                }
-                return cell.getNumericCellValue();
+                return formatter.formatCellValue(cell);
             case BLANK:
                 return "";
             case ERROR:
                 break;
+            case FORMULA:
+                CellValue evaluate = formulaEvaluator.evaluate(cell);
+                if (evaluate.getCellType().equals(CellType.NUMERIC)) {
+                    return NumberToTextConverter.toText(evaluate.getNumberValue());
+                } else {
+                    return evaluate.formatAsString();
+                }
             default:
                 throw new FileConnectorException(
                         CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
