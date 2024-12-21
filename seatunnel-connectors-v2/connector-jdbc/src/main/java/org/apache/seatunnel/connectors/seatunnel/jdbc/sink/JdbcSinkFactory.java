@@ -295,14 +295,14 @@ public class JdbcSinkFactory implements TableSinkFactory {
                         IS_PRIMARY_KEY_UPDATED,
                         MULTI_TABLE_SINK_REPLICA,
                         ENABLE_TO_DATE,
-                        WRITE_MODE)
+                        WRITE_MODE,
+                        MAX_RETRIES)
                 .conditional(
                         IS_EXACTLY_ONCE,
                         true,
                         XA_DATA_SOURCE_CLASS_NAME,
                         MAX_COMMIT_ATTEMPTS,
                         TRANSACTION_TIMEOUT_SEC)
-                .conditional(IS_EXACTLY_ONCE, false, MAX_RETRIES)
                 .conditional(GENERATE_SINK_SQL, true, DATABASE)
                 .conditional(GENERATE_SINK_SQL, false, QUERY)
                 .conditional(DATA_SAVE_MODE, DataSaveMode.CUSTOM_PROCESSING, CUSTOM_SQL)
