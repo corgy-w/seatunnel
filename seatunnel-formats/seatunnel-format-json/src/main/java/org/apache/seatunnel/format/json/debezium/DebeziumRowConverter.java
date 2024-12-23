@@ -213,7 +213,9 @@ public class DebeziumRowConverter implements Serializable {
                             getValue(
                                     rowType.getFieldName(i),
                                     rowType.getFieldType(i),
-                                    value.get(rowType.getFieldName(i))));
+                                    value.has(rowType.getFieldName(i))
+                                            ? value.get(rowType.getFieldName(i))
+                                            : null));
                 }
                 return row;
             default:
