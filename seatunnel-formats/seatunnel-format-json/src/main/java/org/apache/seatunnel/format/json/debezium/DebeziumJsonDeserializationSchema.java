@@ -22,6 +22,7 @@ import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.seatunnel.api.serialization.DeserializationSchema;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.RowKind;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -43,7 +44,7 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
     private static final String OP_CREATE = "c"; // insert
     private static final String OP_UPDATE = "u"; // update
     private static final String OP_DELETE = "d"; // delete
-    private static final String DATA_PAYLOAD = "payload";
+    public static final String DATA_PAYLOAD = "payload";
     private static final String DATA_BEFORE = "before";
     private static final String DATA_AFTER = "after";
 
@@ -78,6 +79,14 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
     }
 
     public DebeziumJsonDeserializationSchema(
+            SeaTunnelRowType rowType, boolean ignoreParseErrors, boolean debeziumEnabledSchema) {
+        this(
+                CatalogTableUtil.getCatalogTable("default", null, null, "default", rowType),
+                ignoreParseErrors,
+                debeziumEnabledSchema);
+    }
+
+    public DebeziumJsonDeserializationSchema(
             CatalogTable catalogTable, boolean ignoreParseErrors, boolean debeziumEnabledSchema) {
         this.catalogTable = catalogTable;
         this.rowType = catalogTable.getSeaTunnelRowType();
@@ -102,7 +111,7 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
         deserializeMessage(message, out, tablePath);
     }
 
-    private void deserializeMessage(
+    public void deserializeMessage(
             byte[] message, Collector<SeaTunnelRow> out, TablePath tablePath) {
         if (message == null || message.length == 0) {
             // skip tombstone messages
@@ -111,58 +120,63 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
 
         try {
             JsonNode payload = getPayload(jsonDeserializer.deserializeToJsonNode(message));
-            String op = payload.get(OP_KEY).asText();
-
-            switch (op) {
-                case OP_CREATE:
-                case OP_READ:
-                    SeaTunnelRow insert = debeziumRowConverter.parse(payload.get(DATA_AFTER));
-                    insert.setRowKind(RowKind.INSERT);
-                    if (tablePath != null) {
-                        insert.setTableId(tablePath.toString());
-                    }
-                    out.collect(insert);
-                    break;
-                case OP_UPDATE:
-                    SeaTunnelRow before = debeziumRowConverter.parse(payload.get(DATA_BEFORE));
-                    if (before == null) {
-                        throw new IllegalStateException(
-                                String.format(REPLICA_IDENTITY_EXCEPTION, "UPDATE"));
-                    }
-                    before.setRowKind(RowKind.UPDATE_BEFORE);
-                    if (tablePath != null) {
-                        before.setTableId(tablePath.toString());
-                    }
-                    out.collect(before);
-
-                    SeaTunnelRow after = debeziumRowConverter.parse(payload.get(DATA_AFTER));
-                    after.setRowKind(RowKind.UPDATE_AFTER);
-
-                    if (tablePath != null) {
-                        after.setTableId(tablePath.toString());
-                    }
-                    out.collect(after);
-                    break;
-                case OP_DELETE:
-                    SeaTunnelRow delete = debeziumRowConverter.parse(payload.get(DATA_BEFORE));
-                    if (delete == null) {
-                        throw new IllegalStateException(
-                                String.format(REPLICA_IDENTITY_EXCEPTION, "DELETE"));
-                    }
-                    delete.setRowKind(RowKind.DELETE);
-                    if (tablePath != null) {
-                        delete.setTableId(tablePath.toString());
-                    }
-                    out.collect(delete);
-                    break;
-                default:
-                    throw new IllegalStateException(format("Unknown operation type '%s'.", op));
-            }
+            parsePayload(out, tablePath, payload);
         } catch (Exception e) {
             // a big try catch to protect the processing.
             if (!ignoreParseErrors) {
                 throw CommonError.jsonOperationError(FORMAT, new String(message), e);
             }
+        }
+    }
+
+    public void parsePayload(Collector<SeaTunnelRow> out, TablePath tablePath, JsonNode payload)
+            throws IOException {
+        String op = payload.get(OP_KEY).asText();
+
+        switch (op) {
+            case OP_CREATE:
+            case OP_READ:
+                SeaTunnelRow insert = debeziumRowConverter.parse(payload.get(DATA_AFTER));
+                insert.setRowKind(RowKind.INSERT);
+                if (tablePath != null) {
+                    insert.setTableId(tablePath.toString());
+                }
+                out.collect(insert);
+                break;
+            case OP_UPDATE:
+                SeaTunnelRow before = debeziumRowConverter.parse(payload.get(DATA_BEFORE));
+                if (before == null) {
+                    throw new IllegalStateException(
+                            String.format(REPLICA_IDENTITY_EXCEPTION, "UPDATE"));
+                }
+                before.setRowKind(RowKind.UPDATE_BEFORE);
+                if (tablePath != null) {
+                    before.setTableId(tablePath.toString());
+                }
+                out.collect(before);
+
+                SeaTunnelRow after = debeziumRowConverter.parse(payload.get(DATA_AFTER));
+                after.setRowKind(RowKind.UPDATE_AFTER);
+
+                if (tablePath != null) {
+                    after.setTableId(tablePath.toString());
+                }
+                out.collect(after);
+                break;
+            case OP_DELETE:
+                SeaTunnelRow delete = debeziumRowConverter.parse(payload.get(DATA_BEFORE));
+                if (delete == null) {
+                    throw new IllegalStateException(
+                            String.format(REPLICA_IDENTITY_EXCEPTION, "DELETE"));
+                }
+                delete.setRowKind(RowKind.DELETE);
+                if (tablePath != null) {
+                    delete.setTableId(tablePath.toString());
+                }
+                out.collect(delete);
+                break;
+            default:
+                throw new IllegalStateException(format("Unknown operation type '%s'.", op));
         }
     }
 
