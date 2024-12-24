@@ -24,9 +24,6 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.offset.RedoLo
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.utils.OracleConnectionUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.utils.OracleUtils;
 
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.errors.ConnectException;
 
 import org.slf4j.Logger;
@@ -37,7 +34,6 @@ import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleConnectorConfig;
 import io.debezium.connector.oracle.OracleDatabaseSchema;
 import io.debezium.connector.oracle.OracleOffsetContext;
-import io.debezium.connector.oracle.OracleValueConverters;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.AbstractSnapshotChangeEventSource;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
@@ -49,7 +45,6 @@ import io.debezium.relational.RelationalSnapshotChangeEventSource;
 import io.debezium.relational.SnapshotChangeRecordEmitter;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
-import io.debezium.relational.ValueConverter;
 import io.debezium.util.Clock;
 import io.debezium.util.ColumnUtils;
 import io.debezium.util.Strings;
@@ -277,18 +272,7 @@ public class OracleSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
      */
     private Object readField(ResultSet rs, int fieldNo, Column actualColumn, Table actualTable)
             throws SQLException {
-
-        OracleValueConverters oracleValueConverters =
-                new OracleValueConverters(connectorConfig, jdbcConnection);
-
-        final SchemaBuilder schemaBuilder = oracleValueConverters.schemaBuilder(actualColumn);
-        if (schemaBuilder == null) {
-            return null;
-        }
-        Schema schema = schemaBuilder.build();
-        Field field = new Field(actualColumn.name(), 1, schema);
-        final ValueConverter valueConverter = oracleValueConverters.converter(actualColumn, field);
-        return valueConverter.convert(rs.getObject(fieldNo));
+        return rs.getObject(fieldNo);
     }
 
     private static class OracleSnapshotContext
