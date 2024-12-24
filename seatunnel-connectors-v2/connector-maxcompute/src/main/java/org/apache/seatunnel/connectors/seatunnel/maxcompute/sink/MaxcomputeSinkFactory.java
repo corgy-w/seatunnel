@@ -27,6 +27,8 @@ import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 
 import com.google.auto.service.AutoService;
 
+import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_REPLICA;
+import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_TTL_SEC;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.ACCESS_ID;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.ACCESS_KEY;
 import static org.apache.seatunnel.connectors.seatunnel.maxcompute.config.MaxcomputeConfig.CUSTOM_SQL;
@@ -58,6 +60,7 @@ public class MaxcomputeSinkFactory implements TableSinkFactory {
                         DATA_SAVE_MODE,
                         SAVE_MODE_CREATE_TEMPLATE,
                         CUSTOM_SQL)
+                .optional(MULTI_TABLE_SINK_REPLICA, MULTI_TABLE_SINK_TTL_SEC)
                 .build();
     }
 
