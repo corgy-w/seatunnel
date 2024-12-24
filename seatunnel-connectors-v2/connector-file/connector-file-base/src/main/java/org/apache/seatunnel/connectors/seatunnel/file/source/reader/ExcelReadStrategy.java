@@ -39,6 +39,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.CellValue;
 import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.FormulaEvaluator;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -92,10 +93,13 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
             String currentFileName)
             throws IOException {
         Workbook workbook;
+        FormulaEvaluator formulaEvaluator;
         if (currentFileName.endsWith(".xls")) {
             workbook = new HSSFWorkbook(inputStream);
+            formulaEvaluator = workbook.getCreationHelper().createFormulaEvaluator();
         } else if (currentFileName.endsWith(".xlsx")) {
             workbook = new XSSFWorkbook(inputStream);
+            formulaEvaluator = new XSSFFormulaEvaluator((XSSFWorkbook) workbook);
         } else {
             throw new FileConnectorException(
                     CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
@@ -106,7 +110,6 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
                         ? workbook.getSheet(
                                 pluginConfig.getString(BaseSourceConfigOptions.SHEET_NAME.key()))
                         : workbook.getSheetAt(0);
-        FormulaEvaluator formulaEvaluator = new XSSFFormulaEvaluator((XSSFWorkbook) workbook);
         DataFormatter formatter = new DataFormatter();
         cellCount = seaTunnelRowType.getTotalFields();
         cellCount = partitionsMap.isEmpty() ? cellCount : cellCount + partitionsMap.size();
@@ -203,6 +206,9 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
             case BOOLEAN:
                 return cell.getBooleanCellValue();
             case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return cell.getLocalDateTimeCellValue();
+                }
                 return formatter.formatCellValue(cell);
             case BLANK:
                 return "";
