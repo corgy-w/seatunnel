@@ -56,7 +56,9 @@ public class SftpFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(BaseSinkConfig.SCHEMA_SAVE_MODE)
                 .optional(BaseSinkConfig.DATA_SAVE_MODE)
                 .optional(BaseSinkConfig.ENCODING)
-                .optional(SinkCommonOptions.MULTI_TABLE_SINK_REPLICA)
+                .optional(
+                        SinkCommonOptions.MULTI_TABLE_SINK_REPLICA,
+                        SinkCommonOptions.MULTI_TABLE_SINK_TTL_SEC)
                 .conditional(
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.TEXT,

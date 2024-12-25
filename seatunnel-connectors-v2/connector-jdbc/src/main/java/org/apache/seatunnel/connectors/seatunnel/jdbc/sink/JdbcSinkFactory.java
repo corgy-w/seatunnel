@@ -49,6 +49,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_REPLICA;
+import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_TTL_SEC;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_DATABASE_NAME_KEY;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_SCHEMA_NAME_KEY;
 import static org.apache.seatunnel.api.sink.SinkReplaceNameConstant.REPLACE_TABLE_NAME_KEY;
@@ -292,6 +293,7 @@ public class JdbcSinkFactory implements TableSinkFactory {
                         SUPPORT_UPSERT_BY_INSERT_ONLY,
                         IS_PRIMARY_KEY_UPDATED,
                         MULTI_TABLE_SINK_REPLICA,
+                        MULTI_TABLE_SINK_TTL_SEC,
                         WRITE_MODE,
                         MAX_RETRIES)
                 .conditional(

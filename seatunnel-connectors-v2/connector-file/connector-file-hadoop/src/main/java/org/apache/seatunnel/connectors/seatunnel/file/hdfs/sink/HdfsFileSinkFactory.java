@@ -31,6 +31,9 @@ import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOpti
 
 import com.google.auto.service.AutoService;
 
+import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_REPLICA;
+import static org.apache.seatunnel.api.sink.SinkCommonOptions.MULTI_TABLE_SINK_TTL_SEC;
+
 @AutoService(Factory.class)
 public class HdfsFileSinkFactory extends BaseMultipleTableFileSinkFactory {
     @Override
@@ -104,6 +107,7 @@ public class HdfsFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
                 .optional(HdfsConfigOptions.KRB5_PATH)
                 .optional(HdfsConfigOptions.REMOTE_USER)
+                .optional(MULTI_TABLE_SINK_REPLICA, MULTI_TABLE_SINK_TTL_SEC)
                 .build();
     }
 

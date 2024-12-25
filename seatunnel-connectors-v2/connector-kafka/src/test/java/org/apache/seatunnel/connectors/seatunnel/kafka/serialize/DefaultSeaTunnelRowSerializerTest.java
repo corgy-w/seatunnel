@@ -18,6 +18,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kafka.serialize;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
@@ -27,6 +28,8 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.util.LinkedHashMap;
 
 public class DefaultSeaTunnelRowSerializerTest {
 
@@ -38,8 +41,11 @@ public class DefaultSeaTunnelRowSerializerTest {
         MessageFormat format = MessageFormat.COMPATIBLE_DEBEZIUM_JSON;
         String delimiter = null;
 
+        ReadonlyConfig pluginConfig = ReadonlyConfig.fromMap(new LinkedHashMap<>());
+
         DefaultSeaTunnelRowSerializer serializer =
-                DefaultSeaTunnelRowSerializer.create(topic, rowType, format, delimiter);
+                DefaultSeaTunnelRowSerializer.create(
+                        topic, rowType, format, delimiter, pluginConfig);
         ProducerRecord<byte[], byte[]> record =
                 serializer.serializeRow(
                         new SeaTunnelRow(new Object[] {"test.database1.table1", "key1", "value1"}));
@@ -49,7 +55,9 @@ public class DefaultSeaTunnelRowSerializerTest {
         Assertions.assertEquals("value1", new String(record.value()));
 
         topic = "test_topic";
-        serializer = DefaultSeaTunnelRowSerializer.create(topic, rowType, format, delimiter);
+        serializer =
+                DefaultSeaTunnelRowSerializer.create(
+                        topic, rowType, format, delimiter, pluginConfig);
         record =
                 serializer.serializeRow(
                         new SeaTunnelRow(new Object[] {"test.database1.table1", "key1", "value1"}));
