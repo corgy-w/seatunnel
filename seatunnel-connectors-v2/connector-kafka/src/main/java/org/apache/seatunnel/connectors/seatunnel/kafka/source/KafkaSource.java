@@ -60,6 +60,7 @@ public class KafkaSource
     public List<CatalogTable> getProducedCatalogTables() {
         return kafkaSourceConfig.getMapMetadata().values().stream()
                 .map(ConsumerMetadata::getCatalogTable)
+                .flatMap(List::stream)
                 .collect(Collectors.toList());
     }
 

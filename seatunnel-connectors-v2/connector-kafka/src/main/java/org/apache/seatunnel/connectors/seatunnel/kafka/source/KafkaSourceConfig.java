@@ -122,6 +122,7 @@ public class KafkaSourceConfig implements Serializable {
                     new KingbaseCatalogFactory().createCatalog("KafkaKingbase", readonlyConfig)) {
                 List<CatalogTable> catalogTables = catalog.getTables(readonlyConfig);
                 ConsumerMetadata metadata = createConsumerMetadata(readonlyConfig);
+                metadata.setCatalogTable(catalogTables);
                 metadata.setDeserializationSchema(
                         createDeserializationSchema(catalogTables, readonlyConfig));
                 consumerMetadataList = Collections.singletonList(metadata);
@@ -146,7 +147,7 @@ public class KafkaSourceConfig implements Serializable {
         consumerMetadata.setProperties(new Properties());
         // Create a catalog
         CatalogTable catalogTable = createCatalogTable(readonlyConfig);
-        consumerMetadata.setCatalogTable(catalogTable);
+        consumerMetadata.setCatalogTable(Collections.singletonList(catalogTable));
         consumerMetadata.setDeserializationSchema(
                 createDeserializationSchema(
                         Collections.singletonList(catalogTable), readonlyConfig));
