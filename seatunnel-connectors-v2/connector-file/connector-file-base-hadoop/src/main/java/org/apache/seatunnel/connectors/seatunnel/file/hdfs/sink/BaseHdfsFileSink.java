@@ -29,6 +29,8 @@ import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorExc
 import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.BaseFileSink;
 
+import org.apache.commons.lang3.StringUtils;
+
 import static org.apache.hadoop.fs.CommonConfigurationKeysPublic.FS_DEFAULT_NAME_KEY;
 
 public abstract class BaseHdfsFileSink extends BaseFileSink {
@@ -54,7 +56,8 @@ public abstract class BaseHdfsFileSink extends BaseFileSink {
             hadoopConf.setRemoteUser(pluginConfig.getString(HdfsConfigOptions.REMOTE_USER.key()));
         }
 
-        if (pluginConfig.hasPath(HdfsConfigOptions.KRB5_PATH.key())) {
+        if (pluginConfig.hasPath(HdfsConfigOptions.KRB5_PATH.key())
+                && StringUtils.isBlank(hadoopConf.getKrb5Path())) {
             hadoopConf.setKrb5Path(pluginConfig.getString(HdfsConfigOptions.KRB5_PATH.key()));
         }
 
