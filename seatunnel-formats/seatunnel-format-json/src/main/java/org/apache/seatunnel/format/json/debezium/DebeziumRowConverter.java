@@ -162,12 +162,14 @@ public class DebeziumRowConverter implements Serializable {
                 String timestampStr = value.asText();
                 if (value.canConvertToLong()) {
                     long timestamp = Long.parseLong(value.toString());
-                    if (timestampStr.length() == 10) {
-                        timestamp = TimeUnit.SECONDS.toMillis(timestamp);
-                    } else if (timestampStr.length() == 19) {
+                    if (timestampStr.length() > 16) {
                         timestamp = TimeUnit.NANOSECONDS.toMillis(timestamp);
-                    } else if (timestampStr.length() == 16) {
+                    } else if (timestampStr.length() > 13) {
                         timestamp = TimeUnit.MICROSECONDS.toMillis(timestamp);
+                    } else if (timestampStr.length() > 10) {
+                        // already in milliseconds
+                    } else {
+                        timestamp = TimeUnit.SECONDS.toMillis(timestamp);
                     }
                     return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneOffset.UTC);
                 }
