@@ -68,7 +68,7 @@ public class DebeziumRowConverter implements Serializable {
     private Object getValue(String fieldName, SeaTunnelDataType<?> dataType, JsonNode value)
             throws IOException {
         SqlType sqlType = dataType.getSqlType();
-        if (value == null) {
+        if (value == null || value.isNull()) {
             return null;
         }
         switch (sqlType) {
