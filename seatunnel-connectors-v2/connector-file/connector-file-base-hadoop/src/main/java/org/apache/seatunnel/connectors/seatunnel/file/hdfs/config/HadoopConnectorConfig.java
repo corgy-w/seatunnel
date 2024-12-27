@@ -20,8 +20,6 @@ package org.apache.seatunnel.connectors.seatunnel.file.hdfs.config;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 
-import org.apache.commons.lang3.StringUtils;
-
 public class HadoopConnectorConfig extends HadoopConf {
 
     public HadoopConnectorConfig(String hdfsNameKey) {
@@ -38,8 +36,7 @@ public class HadoopConnectorConfig extends HadoopConf {
             hadoopConf.setRemoteUser(config.get(HdfsConfigOptions.REMOTE_USER));
         }
 
-        if (config.getOptional(HdfsConfigOptions.KRB5_PATH).isPresent()
-                && StringUtils.isBlank(hadoopConf.getKrb5Path())) {
+        if (config.getOptional(HdfsConfigOptions.KRB5_PATH).isPresent()) {
             hadoopConf.setKrb5Path(config.get(HdfsConfigOptions.KRB5_PATH));
         }
 
