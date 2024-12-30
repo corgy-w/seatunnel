@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.apache.seatunnel.format.json.debezium.DebeziumJsonDeserializationSchema.DATA_PAYLOAD;
@@ -50,6 +51,7 @@ public class DebeziumJsonDeserializationSchemaDispatcher
     private static final String TABLE = "table";
     private static final String SCHEMA = "schema";
     private static final String DATABASE = "db";
+    private static final String CONNECTOR = "connector";
 
     public DebeziumJsonDeserializationSchemaDispatcher(
             Map<TablePath, DebeziumJsonDeserializationSchema> tableDeserializationMap,
@@ -76,13 +78,22 @@ public class DebeziumJsonDeserializationSchemaDispatcher
         try {
             JsonNode payload = getPayload(JsonUtils.readTree(message));
             JsonNode source = payload.get(SOURCE);
-            String database = source.has(DATABASE) ? source.get(DATABASE).asText() : null;
-            String schema = source.has(SCHEMA) ? source.get(SCHEMA).asText() : null;
-            String table = source.has(TABLE) ? source.get(TABLE).asText() : null;
+            String database = getNodeValue(source, DATABASE);
+            String schema = getNodeValue(source, SCHEMA);
+            String table = getNodeValue(source, TABLE);
             TablePath tablePath = TablePath.of(database, schema, table);
             if (tableDeserializationMap.containsKey(tablePath)) {
                 tableDeserializationMap.get(tablePath).parsePayload(out, tablePath, payload);
             } else {
+                if (isConnectorCanWithOutDB(source.get(CONNECTOR))) {
+                    tablePath = TablePath.of(null, schema, table);
+                    if (tableDeserializationMap.containsKey(tablePath)) {
+                        tableDeserializationMap
+                                .get(tablePath)
+                                .parsePayload(out, tablePath, payload);
+                        return;
+                    }
+                }
                 log.debug("Unsupported table path {}, just skip.", tablePath);
             }
 
@@ -94,11 +105,23 @@ public class DebeziumJsonDeserializationSchemaDispatcher
         }
     }
 
+    private static String getNodeValue(JsonNode source, String key) {
+        return source.has(key) && !source.get(key).isNull() ? source.get(key).asText() : null;
+    }
+
     private JsonNode getPayload(JsonNode jsonNode) {
         if (debeziumEnabledSchema) {
             return jsonNode.get(DATA_PAYLOAD);
         }
         return jsonNode;
+    }
+
+    private boolean isConnectorCanWithOutDB(JsonNode connectorNode) {
+        if (connectorNode == null || connectorNode.isNull()) {
+            return true;
+        }
+        String connector = connectorNode.toString().toLowerCase(Locale.ROOT);
+        return connector.equals("oracle") || connector.equals("dameng");
     }
 
     @Override
