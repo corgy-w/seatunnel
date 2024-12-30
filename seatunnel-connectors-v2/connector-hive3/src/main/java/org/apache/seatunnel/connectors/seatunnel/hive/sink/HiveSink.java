@@ -221,9 +221,7 @@ public class HiveSink
         readonlyConfig
                 .getOptional(HdfsConfigOptions.REMOTE_USER)
                 .ifPresent(hadoopConf::setRemoteUser);
-        readonlyConfig
-                .getOptional(HdfsConfigOptions.KERBEROS_KRB5_CONF_PATH)
-                .ifPresent(hadoopConf::setKrb5Path);
+        readonlyConfig.getOptional(HdfsConfigOptions.KRB5_PATH).ifPresent(hadoopConf::setKrb5Path);
         readonlyConfig
                 .getOptional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
                 .ifPresent(hadoopConf::setKerberosPrincipal);
