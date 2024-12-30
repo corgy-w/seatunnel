@@ -83,14 +83,12 @@ public class DebeziumJsonDeserializationSchemaDispatcher
             String table = getNodeValue(source, TABLE);
             TablePath tablePath = TablePath.of(database, schema, table);
             if (tableDeserializationMap.containsKey(tablePath)) {
-                tableDeserializationMap.get(tablePath).parsePayload(out, tablePath, payload);
+                tableDeserializationMap.get(tablePath).parsePayload(out, payload);
             } else {
                 if (isConnectorCanWithOutDB(source.get(CONNECTOR))) {
                     tablePath = TablePath.of(null, schema, table);
                     if (tableDeserializationMap.containsKey(tablePath)) {
-                        tableDeserializationMap
-                                .get(tablePath)
-                                .parsePayload(out, tablePath, payload);
+                        tableDeserializationMap.get(tablePath).parsePayload(out, payload);
                         return;
                     }
                 }
@@ -120,7 +118,7 @@ public class DebeziumJsonDeserializationSchemaDispatcher
         if (connectorNode == null || connectorNode.isNull()) {
             return true;
         }
-        String connector = connectorNode.toString().toLowerCase(Locale.ROOT);
+        String connector = connectorNode.asText().toLowerCase(Locale.ROOT);
         return connector.equals("oracle") || connector.equals("dameng");
     }
 

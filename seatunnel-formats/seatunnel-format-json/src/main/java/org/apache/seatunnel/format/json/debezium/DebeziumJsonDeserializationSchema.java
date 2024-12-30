@@ -65,17 +65,10 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
 
     private final boolean debeziumEnabledSchema;
 
-    private CatalogTable catalogTable;
+    private final TablePath tablePath;
 
     public DebeziumJsonDeserializationSchema(CatalogTable catalogTable, boolean ignoreParseErrors) {
-        this.catalogTable = catalogTable;
-        this.rowType = catalogTable.getSeaTunnelRowType();
-        this.ignoreParseErrors = ignoreParseErrors;
-        this.jsonDeserializer =
-                new JsonDeserializationSchema(catalogTable, false, ignoreParseErrors);
-        new JsonDeserializationSchema(catalogTable, false, ignoreParseErrors);
-        this.debeziumRowConverter = new DebeziumRowConverter(rowType);
-        this.debeziumEnabledSchema = false;
+        this(catalogTable, ignoreParseErrors, false);
     }
 
     public DebeziumJsonDeserializationSchema(
@@ -88,14 +81,13 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
 
     public DebeziumJsonDeserializationSchema(
             CatalogTable catalogTable, boolean ignoreParseErrors, boolean debeziumEnabledSchema) {
-        this.catalogTable = catalogTable;
         this.rowType = catalogTable.getSeaTunnelRowType();
         this.ignoreParseErrors = ignoreParseErrors;
         this.jsonDeserializer =
                 new JsonDeserializationSchema(catalogTable, false, ignoreParseErrors);
         this.debeziumRowConverter = new DebeziumRowConverter(rowType);
         this.debeziumEnabledSchema = debeziumEnabledSchema;
-        this.catalogTable = catalogTable;
+        this.tablePath = Optional.of(catalogTable).map(CatalogTable::getTablePath).orElse(null);
     }
 
     @Override
@@ -106,8 +98,6 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
 
     @Override
     public void deserialize(byte[] message, Collector<SeaTunnelRow> out) {
-        TablePath tablePath =
-                Optional.ofNullable(catalogTable).map(CatalogTable::getTablePath).orElse(null);
         deserializeMessage(message, out, tablePath);
     }
 
@@ -129,7 +119,11 @@ public class DebeziumJsonDeserializationSchema implements DeserializationSchema<
         }
     }
 
-    public void parsePayload(Collector<SeaTunnelRow> out, TablePath tablePath, JsonNode payload)
+    public void parsePayload(Collector<SeaTunnelRow> out, JsonNode payload) throws IOException {
+        parsePayload(out, tablePath, payload);
+    }
+
+    private void parsePayload(Collector<SeaTunnelRow> out, TablePath tablePath, JsonNode payload)
             throws IOException {
         String op = payload.get(OP_KEY).asText();
 
