@@ -151,7 +151,7 @@ public class MysqlCreateTableSqlBuilder {
             sqls.add("COLLATE = " + collate);
         }
         if (comment != null) {
-            sqls.add("COMMENT = '" + comment + "'");
+            sqls.add("COMMENT = '" + comment.replace("'", "''").replace("\\", "\\\\") + "'");
         }
         return String.join(" ", sqls) + ";";
     }
