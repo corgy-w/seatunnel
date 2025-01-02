@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.sink.DataSaveMode;
+import org.apache.seatunnel.api.sink.SaveModePlaceHolder;
 import org.apache.seatunnel.api.sink.SchemaSaveMode;
 
 import lombok.Getter;
@@ -133,6 +134,9 @@ public class SelectDBConfig implements Serializable {
                                     + "${rowtype_fields}\n"
                                     + ") ENGINE=OLAP\n"
                                     + " UNIQUE KEY (${rowtype_primary_key})\n"
+                                    + "COMMENT \""
+                                    + SaveModePlaceHolder.COMMENT.getPlaceHolder()
+                                    + "\"\n"
                                     + "DISTRIBUTED BY HASH (${rowtype_primary_key})")
                     .withDescription(
                             "Create table statement template, used to create StarRocks table");

@@ -71,7 +71,8 @@ public class StarRocksCreateTableTest {
                         TableSchema.builder()
                                 .primaryKey(PrimaryKey.of("", Arrays.asList("id", "age")))
                                 .columns(columns)
-                                .build());
+                                .build(),
+                        "");
 
         System.out.println(result);
     }

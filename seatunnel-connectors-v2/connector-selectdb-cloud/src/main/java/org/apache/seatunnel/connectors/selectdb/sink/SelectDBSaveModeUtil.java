@@ -32,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -41,7 +42,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class SelectDBSaveModeUtil {
 
     public static String fillingCreateSql(
-            String template, String database, String table, TableSchema tableSchema) {
+            String template,
+            String database,
+            String table,
+            TableSchema tableSchema,
+            String comment) {
         String tablePath = database + "." + table;
         String primaryKey = "";
         if (tableSchema.getPrimaryKey() != null) {
@@ -102,7 +107,10 @@ public class SelectDBSaveModeUtil {
         return template.replaceAll(SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(), database)
                 .replaceAll(SaveModePlaceHolder.TABLE.getReplacePlaceHolder(), table)
                 .replaceAll(
-                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields);
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields)
+                .replaceAll(
+                        SaveModePlaceHolder.COMMENT.getReplacePlaceHolder(),
+                        Objects.isNull(comment) ? "" : comment);
     }
 
     public static String columnToSelectDBType(Column column) {

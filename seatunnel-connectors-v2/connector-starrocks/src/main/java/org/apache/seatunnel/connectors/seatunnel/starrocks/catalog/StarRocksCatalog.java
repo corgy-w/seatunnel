@@ -233,7 +233,8 @@ public class StarRocksCatalog implements Catalog {
                         template,
                         tablePath.getDatabaseName(),
                         tablePath.getTableName(),
-                        table.getTableSchema()));
+                        table.getTableSchema(),
+                        table.getComment()));
     }
 
     @Override
@@ -527,7 +528,8 @@ public class StarRocksCatalog implements Catalog {
                             template,
                             tablePath.getDatabaseName(),
                             tablePath.getTableName(),
-                            catalogTable.get().getTableSchema()));
+                            catalogTable.get().getTableSchema(),
+                            catalogTable.get().getComment()));
         } else if (actionType == ActionType.DROP_TABLE) {
             return new SQLPreviewResult(StarRocksSaveModeUtil.getDropTableSql(tablePath, true));
         } else if (actionType == ActionType.TRUNCATE_TABLE) {
