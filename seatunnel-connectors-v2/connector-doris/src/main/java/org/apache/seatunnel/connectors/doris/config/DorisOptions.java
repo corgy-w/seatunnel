@@ -253,12 +253,12 @@ public interface DorisOptions {
                                     + " UNIQUE KEY ("
                                     + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
                                     + ")\n"
+                                    + "COMMENT '"
+                                    + SaveModePlaceHolder.COMMENT.getPlaceHolder()
+                                    + "'\n"
                                     + "DISTRIBUTED BY HASH ("
                                     + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
                                     + ")\n "
-                                    + "COMMENT \""
-                                    + SaveModePlaceHolder.COMMENT.getPlaceHolder()
-                                    + "\"\n"
                                     + "PROPERTIES (\n"
                                     + "\"replication_allocation\" = \"tag.location.default: 1\",\n"
                                     + "\"in_memory\" = \"false\",\n"

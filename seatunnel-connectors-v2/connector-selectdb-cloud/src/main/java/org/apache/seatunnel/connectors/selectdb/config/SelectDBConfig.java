@@ -134,9 +134,9 @@ public class SelectDBConfig implements Serializable {
                                     + "${rowtype_fields}\n"
                                     + ") ENGINE=OLAP\n"
                                     + " UNIQUE KEY (${rowtype_primary_key})\n"
-                                    + "COMMENT \""
+                                    + "COMMENT '"
                                     + SaveModePlaceHolder.COMMENT.getPlaceHolder()
-                                    + "\"\n"
+                                    + "'\n"
                                     + "DISTRIBUTED BY HASH (${rowtype_primary_key})")
                     .withDescription(
                             "Create table statement template, used to create StarRocks table");
