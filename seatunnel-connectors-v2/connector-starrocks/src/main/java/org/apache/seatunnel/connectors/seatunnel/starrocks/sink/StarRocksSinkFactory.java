@@ -102,7 +102,7 @@ public class StarRocksSinkFactory implements TableSinkFactory {
                         catalogTable.getTableSchema(),
                         catalogTable.getOptions(),
                         catalogTable.getPartitionKeys(),
-                        catalogTable.getCatalogName());
+                        catalogTable.getComment());
 
         // reset
         sinkConfig.setTable(sinkTableName);

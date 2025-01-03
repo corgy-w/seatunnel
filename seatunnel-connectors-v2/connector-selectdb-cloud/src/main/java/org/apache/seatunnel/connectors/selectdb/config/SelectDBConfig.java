@@ -141,9 +141,9 @@ public class SelectDBConfig implements Serializable {
                                     + " UNIQUE KEY ("
                                     + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
                                     + ")\n"
-                                    + "COMMENT \""
+                                    + "COMMENT '"
                                     + SaveModePlaceHolder.COMMENT.getPlaceHolder()
-                                    + "\"\n"
+                                    + "'\n"
                                     + "DISTRIBUTED BY HASH ("
                                     + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
                                     + ")")
