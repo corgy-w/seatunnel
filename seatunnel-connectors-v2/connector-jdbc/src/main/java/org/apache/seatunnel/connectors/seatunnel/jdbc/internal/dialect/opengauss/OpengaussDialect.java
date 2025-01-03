@@ -15,34 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.opengauss;
 
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresDialect;
 
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class DwsDialect extends PostgresDialect {
-    private static final long serialVersionUID = -5834746193472465210L;
-
-    @Override
-    public String dialectName() {
-        return DatabaseIdentifier.DWS;
-    }
-
-    @Override
-    public JdbcRowConverter getRowConverter() {
-        return new DwsJdbcRowConverter();
-    }
-
-    @Override
-    public JdbcDialectTypeMapper getJdbcDialectTypeMapper() {
-        return new DwsTypeMapper();
-    }
+public class OpengaussDialect extends PostgresDialect {
 
     @Override
     public Optional<String> getUpsertStatement(
