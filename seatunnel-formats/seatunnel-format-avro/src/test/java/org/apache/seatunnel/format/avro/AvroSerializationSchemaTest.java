@@ -47,17 +47,17 @@ class AvroSerializationSchemaTest {
 
     private SeaTunnelRow buildSeaTunnelRow() {
         SeaTunnelRow subSeaTunnelRow = new SeaTunnelRow(14);
-        Map<String, String> map = new HashMap<>();
-        map.put("k1", "v1");
-        map.put("k2", "v2");
+        Map<String, Short> mapData = new HashMap<>();
+        mapData.put("k1", Short.valueOf("1"));
+        mapData.put("k2", Short.valueOf("2"));
         String[] strArray = new String[] {"l1", "l2"};
         byte byteVal = 100;
-        subSeaTunnelRow.setField(0, map);
+        subSeaTunnelRow.setField(0, mapData);
         subSeaTunnelRow.setField(1, strArray);
         subSeaTunnelRow.setField(2, "strVal");
         subSeaTunnelRow.setField(3, true);
-        subSeaTunnelRow.setField(4, 1);
-        subSeaTunnelRow.setField(5, 2);
+        subSeaTunnelRow.setField(4, new Byte("1"));
+        subSeaTunnelRow.setField(5, Short.valueOf("2"));
         subSeaTunnelRow.setField(6, 3);
         subSeaTunnelRow.setField(7, Long.MAX_VALUE - 1);
         subSeaTunnelRow.setField(8, 33.333F);
@@ -68,12 +68,12 @@ class AvroSerializationSchemaTest {
         subSeaTunnelRow.setField(13, localDateTime);
 
         SeaTunnelRow seaTunnelRow = new SeaTunnelRow(15);
-        seaTunnelRow.setField(0, map);
+        seaTunnelRow.setField(0, mapData);
         seaTunnelRow.setField(1, strArray);
         seaTunnelRow.setField(2, "strVal");
         seaTunnelRow.setField(3, true);
-        seaTunnelRow.setField(4, 1);
-        seaTunnelRow.setField(5, 2);
+        seaTunnelRow.setField(4, new Byte("1"));
+        seaTunnelRow.setField(5, Short.valueOf("2"));
         seaTunnelRow.setField(6, 3);
         seaTunnelRow.setField(7, Long.MAX_VALUE - 1);
         seaTunnelRow.setField(8, 33.333F);
@@ -104,12 +104,12 @@ class AvroSerializationSchemaTest {
             "c_timestamp"
         };
         SeaTunnelDataType<?>[] subFieldTypes = {
-            new MapType<>(BasicType.STRING_TYPE, BasicType.STRING_TYPE),
+            new MapType<>(BasicType.STRING_TYPE, BasicType.SHORT_TYPE),
             ArrayType.STRING_ARRAY_TYPE,
             BasicType.STRING_TYPE,
             BasicType.BOOLEAN_TYPE,
-            BasicType.INT_TYPE,
-            BasicType.INT_TYPE,
+            BasicType.BYTE_TYPE,
+            BasicType.SHORT_TYPE,
             BasicType.INT_TYPE,
             BasicType.LONG_TYPE,
             BasicType.FLOAT_TYPE,
@@ -138,12 +138,12 @@ class AvroSerializationSchemaTest {
             "c_row"
         };
         SeaTunnelDataType<?>[] fieldTypes = {
-            new MapType<>(BasicType.STRING_TYPE, BasicType.STRING_TYPE),
+            new MapType<>(BasicType.STRING_TYPE, BasicType.SHORT_TYPE),
             ArrayType.STRING_ARRAY_TYPE,
             BasicType.STRING_TYPE,
             BasicType.BOOLEAN_TYPE,
-            BasicType.INT_TYPE,
-            BasicType.INT_TYPE,
+            BasicType.BYTE_TYPE,
+            BasicType.SHORT_TYPE,
             BasicType.INT_TYPE,
             BasicType.LONG_TYPE,
             BasicType.FLOAT_TYPE,
