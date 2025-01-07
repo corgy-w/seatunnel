@@ -173,9 +173,11 @@ public class SeaTunnelFTPFileSystem extends FileSystem {
     private void setFsFtpConnectionMode(FTPClient client, String mode) {
         switch (FtpConnectionMode.fromMode(mode)) {
             case ACTIVE_LOCAL_DATA_CONNECTION_MODE:
+            case ACTIVE_LOCAL:
                 client.enterLocalActiveMode();
                 break;
             case PASSIVE_LOCAL_DATA_CONNECTION_MODE:
+            case PASSIVE_LOCAL:
                 client.enterLocalPassiveMode();
                 break;
             default:
