@@ -44,8 +44,9 @@
         <module>connector-kafka</module>
         <module>connector-pulsar</module>
         <module>connector-socket</module>
-        <module>connector-hive3</module>
+        <module>connector-hive1</module>
         <module>connector-hive2</module>
+        <module>connector-hive3</module>
         <module>connector-file</module>
         <module>connector-hudi</module>
         <module>connector-assert</module>
