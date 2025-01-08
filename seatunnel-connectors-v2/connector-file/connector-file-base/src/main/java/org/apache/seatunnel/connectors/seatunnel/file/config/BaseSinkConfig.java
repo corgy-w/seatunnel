@@ -50,7 +50,7 @@ public class BaseSinkConfig {
     public static final Option<CompressFormat> COMPRESS_CODEC =
             Options.key("compress_codec")
                     .enumType(CompressFormat.class)
-                    .defaultValue(CompressFormat.SNAPPY)
+                    .defaultValue(CompressFormat.NONE)
                     .withDescription("Compression codec");
 
     public static final Option<CompressFormat> TXT_COMPRESS =
