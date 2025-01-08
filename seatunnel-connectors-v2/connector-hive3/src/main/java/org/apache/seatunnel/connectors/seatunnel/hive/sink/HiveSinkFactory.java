@@ -25,6 +25,7 @@ import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
@@ -50,6 +51,7 @@ public class HiveSinkFactory
                 .optional(HdfsConfigOptions.REMOTE_USER)
                 .optional(HiveConfig.HADOOP_CONF)
                 .optional(HiveConfig.HADOOP_CONF_PATH)
+                .optional(BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96)
                 .build();
     }
 
