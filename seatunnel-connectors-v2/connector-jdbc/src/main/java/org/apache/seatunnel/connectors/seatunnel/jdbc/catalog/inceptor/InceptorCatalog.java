@@ -23,11 +23,15 @@ import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.inceptor.InceptorJdbcUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.inceptor.InceptorTypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.inceptor.InceptorTypeMapper;
 
@@ -38,6 +42,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -208,5 +213,22 @@ public class InceptorCatalog extends AbstractJdbcCatalog {
             dbUrl = getUrlFromDatabaseName(defaultDatabase);
         }
         return getConnection(dbUrl);
+    }
+
+    @Override
+    protected Connection getConnection(String url) {
+        if (connectionMap.containsKey(url)) {
+            return connectionMap.get(url);
+        }
+        try {
+            if (options.getOptional(JdbcOptions.KERBEROS_PRINCIPAL).isPresent()) {
+                InceptorJdbcUtils.doKerberosAuthentication(JdbcConnectionConfig.of(options));
+            }
+            Connection connection = DriverManager.getConnection(url, username, pwd);
+            connectionMap.put(url, connection);
+            return connection;
+        } catch (SQLException e) {
+            throw new CatalogException(String.format("Failed connecting to %s via JDBC.", url), e);
+        }
     }
 }
