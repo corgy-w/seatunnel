@@ -27,6 +27,7 @@ import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.OrcWriteStrate
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.ParquetWriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.TextWriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.WriteStrategy;
+import org.apache.seatunnel.connectors.seatunnel.file.sink.writer.XmlWriteStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.BinaryReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.DbfReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.DebeziumJsonReadStrategy;
@@ -36,8 +37,10 @@ import org.apache.seatunnel.connectors.seatunnel.file.source.reader.OrcReadStrat
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ParquetReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.TextReadStrategy;
+import org.apache.seatunnel.connectors.seatunnel.file.source.reader.XmlReadStrategy;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 public enum FileFormat implements Serializable {
     CSV("csv") {
@@ -129,6 +132,17 @@ public enum FileFormat implements Serializable {
             return new DbfReadStrategy();
         }
     },
+    XML("xml") {
+        @Override
+        public WriteStrategy getWriteStrategy(FileSinkConfig fileSinkConfig) {
+            return new XmlWriteStrategy(fileSinkConfig);
+        }
+
+        @Override
+        public ReadStrategy getReadStrategy() {
+            return new XmlReadStrategy();
+        }
+    },
     BINARY("") {
         @Override
         public WriteStrategy getWriteStrategy(FileSinkConfig fileSinkConfig) {
@@ -141,14 +155,21 @@ public enum FileFormat implements Serializable {
         }
     };
 
-    private final String suffix;
+    private final String[] suffix;
 
-    FileFormat(String suffix) {
+    FileFormat(String... suffix) {
         this.suffix = suffix;
     }
 
     public String getSuffix() {
-        return "." + suffix;
+        if (suffix.length > 0) {
+            return "." + suffix[0];
+        }
+        return "";
+    }
+
+    public String[] getAllSuffix() {
+        return Arrays.stream(suffix).map(suffix -> "." + suffix).toArray(String[]::new);
     }
 
     public ReadStrategy getReadStrategy() {
