@@ -108,6 +108,7 @@
                 <iceberg-aws.version>1.4.2</iceberg-aws.version>
                 <software.amazon.version>2.27.12</software.amazon.version>
                 <oceanbase.version>2.4.3</oceanbase.version>
+                <inceptor.version>8.31.0</inceptor.version>
 
                 <!-- Imap storage dependency package  -->
                 <hadoop-aliyun.version>3.3.6</hadoop-aliyun.version>
@@ -613,6 +614,12 @@
                     <groupId>com.oceanbase</groupId>
                     <artifactId>oceanbase-client</artifactId>
                     <version>${oceanbase.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.inceptor</groupId>
+                    <artifactId>jdbc</artifactId>
+                    <version>${inceptor.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <!-- jdbc driver end -->

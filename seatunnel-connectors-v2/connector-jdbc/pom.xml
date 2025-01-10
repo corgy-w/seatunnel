@@ -56,6 +56,7 @@
         <xugu.jdbc.version>12.2.0</xugu.jdbc.version>
         <iris.jdbc.version>3.0.0</iris.jdbc.version>
         <tikv.version>3.2.0</tikv.version>
+        <inceptor.version>8.31.0</inceptor.version>
     </properties>
 
     <dependencyManagement>
@@ -228,6 +229,12 @@
                 <scope>provided</scope>
             </dependency>
             <!-- dependency by phoenix end -->
+            <dependency>
+                <groupId>com.inceptor</groupId>
+                <artifactId>jdbc</artifactId>
+                <version>${inceptor.version}</version>
+                <scope>provided</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -347,6 +354,10 @@
         <dependency>
             <groupId>com.huaweicloud.dws</groupId>
             <artifactId>huaweicloud-dws-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.inceptor</groupId>
+            <artifactId>jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
