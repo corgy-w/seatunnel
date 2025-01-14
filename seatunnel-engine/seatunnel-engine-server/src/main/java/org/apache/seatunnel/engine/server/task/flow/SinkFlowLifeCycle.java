@@ -295,19 +295,13 @@ public class SinkFlowLifeCycle<T, CommitInfoT extends Serializable, AggregatedCo
                                                                     .deserialize(bytes)))
                             .collect(Collectors.toList());
         }
+        SinkWriter.Context writerContext =
+                new SinkWriterContext(
+                        sinkAction.getParallelism(), indexID, metricsContext, eventListener);
         if (states.isEmpty()) {
-            this.writer =
-                    sinkAction
-                            .getSink()
-                            .createWriter(
-                                    new SinkWriterContext(indexID, metricsContext, eventListener));
+            this.writer = sinkAction.getSink().createWriter(writerContext);
         } else {
-            this.writer =
-                    sinkAction
-                            .getSink()
-                            .restoreWriter(
-                                    new SinkWriterContext(indexID, metricsContext, eventListener),
-                                    states);
+            this.writer = sinkAction.getSink().restoreWriter(writerContext, states);
         }
         if (this.writer instanceof SupportResourceShare) {
             resourceManager =

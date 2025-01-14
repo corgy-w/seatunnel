@@ -111,6 +111,7 @@ public class OssFileSinkFactory extends BaseMultipleTableFinkSinkFactory {
                 .optional(BaseSinkConfig.DATE_FORMAT)
                 .optional(BaseSinkConfig.DATETIME_FORMAT)
                 .optional(BaseSinkConfig.TIME_FORMAT)
+                .optional(BaseSinkConfig.SINGLE_FILE_MODE)
                 .build();
     }
 }
