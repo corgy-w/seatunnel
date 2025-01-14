@@ -107,6 +107,7 @@ public class HdfsFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
                 .optional(HdfsConfigOptions.KRB5_PATH)
                 .optional(HdfsConfigOptions.REMOTE_USER)
+                .optional(BaseSinkConfig.SINGLE_FILE_MODE)
                 .optional(MULTI_TABLE_SINK_REPLICA, MULTI_TABLE_SINK_TTL_SEC)
                 .build();
     }

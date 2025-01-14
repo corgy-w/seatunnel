@@ -112,6 +112,7 @@ public class S3FileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(BaseSinkConfig.DATE_FORMAT)
                 .optional(BaseSinkConfig.DATETIME_FORMAT)
                 .optional(BaseSinkConfig.TIME_FORMAT)
+                .optional(BaseSinkConfig.SINGLE_FILE_MODE)
                 .optional(BaseSinkConfig.TMP_PATH)
                 .optional(
                         SinkCommonOptions.MULTI_TABLE_SINK_REPLICA,
