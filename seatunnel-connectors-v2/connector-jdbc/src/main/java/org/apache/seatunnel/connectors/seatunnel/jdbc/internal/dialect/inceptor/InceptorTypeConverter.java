@@ -308,7 +308,7 @@ public class InceptorTypeConverter implements TypeConverter<BasicTypeDefine> {
                 builder.dataType(TIME);
                 break;
             case TIMESTAMP:
-                if (column.getScale() > 9) {
+                if (column.getScale() != null && column.getScale() > 9) {
                     log.warn(
                             "The timestamp column {} type timestamp({}) is out of range, "
                                     + "which exceeds the maximum scale of {}, "
