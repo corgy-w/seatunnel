@@ -104,8 +104,27 @@ public class DbfWriteStrategy extends AbstractWriteStrategy {
                 dbfFields[i] = new DBFField();
                 dbfFields[i].setName(fieldName);
                 dbfFields[i].setType(convertToDbfType(seaTunnelRowType.getFieldType(i)));
-                // TODO: set length
-                // dbfFields[i].setLength(20);
+                // TODO: Configure according to user configuration
+                switch (dbfFields[i].getType()) {
+                    case CHARACTER:
+                        dbfFields[i].setLength(DBFDataType.CHARACTER.getMaxSize());
+                        break;
+                    case NUMERIC:
+                        dbfFields[i].setLength(DBFDataType.NUMERIC.getMaxSize());
+                        break;
+                    case CURRENCY:
+                        dbfFields[i].setLength(DBFDataType.CURRENCY.getMaxSize());
+                        break;
+                    case DATE:
+                        dbfFields[i].setLength(DBFDataType.DATE.getMaxSize());
+                        break;
+                    case VARCHAR:
+                        dbfFields[i].setLength(DBFDataType.VARCHAR.getMaxSize());
+                        break;
+                    case LOGICAL:
+                        dbfFields[i].setLength(DBFDataType.LOGICAL.getMaxSize());
+                    default:
+                }
             }
         }
 
