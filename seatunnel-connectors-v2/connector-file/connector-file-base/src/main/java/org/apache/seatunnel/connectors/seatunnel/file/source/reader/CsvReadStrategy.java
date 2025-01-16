@@ -32,10 +32,10 @@ import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSourceConfigOpt
 import org.apache.seatunnel.connectors.seatunnel.file.config.CompressFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
-import org.apache.seatunnel.format.text.TextDeserializationSchema;
-import org.apache.seatunnel.format.text.constant.TextFormatConstant;
-import org.apache.seatunnel.format.text.splitor.DefaultTextLineSplitor;
-import org.apache.seatunnel.format.text.splitor.TextLineSplitor;
+import org.apache.seatunnel.format.csv.CsvDeserializationSchema;
+import org.apache.seatunnel.format.csv.constant.CsvFormatConstant;
+import org.apache.seatunnel.format.csv.processor.CsvLineProcessor;
+import org.apache.seatunnel.format.csv.processor.DefaultCsvLineProcessor;
 
 import io.airlift.compress.lzo.LzopCodec;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
-public class TextReadStrategy extends AbstractReadStrategy {
+public class CsvReadStrategy extends AbstractReadStrategy {
     private DeserializationSchema<SeaTunnelRow> deserializationSchema;
     private String fieldDelimiter = BaseSourceConfigOptions.FIELD_DELIMITER.defaultValue();
     private DateUtils.Formatter dateFormat = BaseSourceConfigOptions.DATE_FORMAT.defaultValue();
@@ -59,7 +59,7 @@ public class TextReadStrategy extends AbstractReadStrategy {
     private CompressFormat compressFormat = BaseSourceConfigOptions.COMPRESS_CODEC.defaultValue();
     private int[] indexes;
     private String encoding = BaseSourceConfigOptions.ENCODING.defaultValue();
-    private TextLineSplitor textLineSplitor;
+    private CsvLineProcessor csvLineProcessor;
 
     @Override
     public void read(String path, String tableId, Collector<SeaTunnelRow> output)
@@ -76,7 +76,7 @@ public class TextReadStrategy extends AbstractReadStrategy {
                 break;
             default:
                 log.warn(
-                        "Text file does not support this compress type: {}",
+                        "Csv file does not support this compress type: {}",
                         compressFormat.getCompressCodec());
                 inputStream = hadoopFileSystemProxy.getInputStream(path);
                 break;
@@ -139,19 +139,18 @@ public class TextReadStrategy extends AbstractReadStrategy {
         if (pluginConfig.hasPath(BaseSourceConfigOptions.READ_COLUMNS.key())) {
             throw new FileConnectorException(
                     SeaTunnelAPIErrorCode.CONFIG_VALIDATION_FAILED,
-                    "When reading text files, if user has not specified schema information, "
+                    "When reading csv files, if user has not specified schema information, "
                             + "SeaTunnel will not support column projection");
         }
         ReadonlyConfig readonlyConfig = ReadonlyConfig.fromConfig(pluginConfig);
-        TextDeserializationSchema.Builder builder =
-                TextDeserializationSchema.builder()
-                        .delimiter(TextFormatConstant.PLACEHOLDER)
+        CsvDeserializationSchema.Builder builder =
+                CsvDeserializationSchema.builder()
+                        .delimiter(CsvFormatConstant.PLACEHOLDER)
                         .nullFormat(
                                 readonlyConfig
                                         .getOptional(BaseSourceConfigOptions.NULL_FORMAT)
                                         .orElse(null))
-                        .textLineSplitor(textLineSplitor);
-        ;
+                        .csvLineProcessor(csvLineProcessor);
         if (isMergePartition) {
             deserializationSchema =
                     builder.seaTunnelRowType(this.seaTunnelRowTypeWithPartition).build();
@@ -172,16 +171,16 @@ public class TextReadStrategy extends AbstractReadStrategy {
                 readonlyConfig
                         .getOptional(BaseSourceConfigOptions.ENCODING)
                         .orElse(StandardCharsets.UTF_8.name());
-        fieldDelimiterOptional.ifPresent(s -> fieldDelimiter = s);
+        fieldDelimiter = fieldDelimiterOptional.orElse(",");
         initFormatter();
-        TextDeserializationSchema.Builder builder =
-                TextDeserializationSchema.builder()
+        CsvDeserializationSchema.Builder builder =
+                CsvDeserializationSchema.builder()
                         .delimiter(fieldDelimiter)
                         .nullFormat(
                                 readonlyConfig
                                         .getOptional(BaseSourceConfigOptions.NULL_FORMAT)
                                         .orElse(null))
-                        .textLineSplitor(textLineSplitor);
+                        .csvLineProcessor(csvLineProcessor);
         if (isMergePartition) {
             deserializationSchema =
                     builder.seaTunnelRowType(userDefinedRowTypeWithPartition).build();
@@ -229,6 +228,6 @@ public class TextReadStrategy extends AbstractReadStrategy {
                     pluginConfig.getString(BaseSourceConfigOptions.COMPRESS_CODEC.key());
             compressFormat = CompressFormat.valueOf(compressCodec.toUpperCase());
         }
-        textLineSplitor = new DefaultTextLineSplitor();
+        csvLineProcessor = new DefaultCsvLineProcessor();
     }
 }
