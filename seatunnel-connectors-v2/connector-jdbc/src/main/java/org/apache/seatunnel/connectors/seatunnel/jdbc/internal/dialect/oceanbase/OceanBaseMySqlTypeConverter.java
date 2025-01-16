@@ -100,6 +100,9 @@ public class OceanBaseMySqlTypeConverter
     public static final long POWER_2_32 = (long) Math.pow(2, 32);
     public static final long MAX_VARBINARY_LENGTH = POWER_2_16 - 4;
 
+    public static final OceanBaseMySqlTypeConverter DEFAULT_INSTANCE =
+            new OceanBaseMySqlTypeConverter();
+
     @Override
     public String identifier() {
         return DatabaseIdentifier.OCENABASE;
