@@ -113,6 +113,7 @@ public class FtpFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(BaseSinkConfig.TIME_FORMAT)
                 .optional(FtpConfigOptions.FTP_CONNECTION_MODE)
                 .optional(BaseSinkConfig.SINGLE_FILE_MODE)
+                .optional(BaseSinkConfig.CREATE_EMPTY_FILE_WHEN_NO_DATA)
                 .build();
     }
 

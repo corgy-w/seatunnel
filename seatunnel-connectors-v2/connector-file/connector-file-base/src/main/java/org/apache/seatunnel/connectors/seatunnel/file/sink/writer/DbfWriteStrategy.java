@@ -39,7 +39,7 @@ import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.LinkedHashMap;
 
-public class DbfWriteStrategy extends AbstractWriteStrategy {
+public class DbfWriteStrategy extends AbstractWriteStrategy<DBFWriter> {
     private final LinkedHashMap<String, DBFWriter> beingWrittenWriter;
 
     private DbfSerializer dbfSerializer;
@@ -60,7 +60,7 @@ public class DbfWriteStrategy extends AbstractWriteStrategy {
     public void write(SeaTunnelRow seaTunnelRow) {
         super.write(seaTunnelRow);
         String filePath = getOrCreateFilePathBeingWritten(seaTunnelRow);
-        DBFWriter dbfWriter = getOrCreateDBFWriter(filePath);
+        DBFWriter dbfWriter = getOrCreateOutputStream(filePath);
         Object[] dbfRow = dbfSerializer.serializeToDbfRow(seaTunnelRow);
         dbfWriter.addRecord(dbfRow);
     }
@@ -74,7 +74,8 @@ public class DbfWriteStrategy extends AbstractWriteStrategy {
                 });
     }
 
-    private DBFWriter getOrCreateDBFWriter(@NonNull String filePath) {
+    @Override
+    public DBFWriter getOrCreateOutputStream(@NonNull String filePath) {
         DBFWriter dbfWriter = beingWrittenWriter.get(filePath);
         if (dbfWriter != null) {
             return dbfWriter;
