@@ -53,7 +53,6 @@
         <hive.jdbc.version>3.1.3</hive.jdbc.version>
         <oceanbase.jdbc.version>2.4.3</oceanbase.jdbc.version>
         <dws.jdbc.version>8.2.1.300-200</dws.jdbc.version>
-        <inceptor.version>8.31.0</inceptor.version>
     </properties>
 
     <dependencyManagement>
@@ -208,12 +207,6 @@
                 <scope>provided</scope>
             </dependency>
             <!-- dependency by phoenix end -->
-            <dependency>
-                <groupId>com.inceptor</groupId>
-                <artifactId>jdbc</artifactId>
-                <version>${inceptor.version}</version>
-                <scope>provided</scope>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -325,10 +318,6 @@
         <dependency>
             <groupId>com.huaweicloud.dws</groupId>
             <artifactId>huaweicloud-dws-jdbc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.inceptor</groupId>
-            <artifactId>jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
