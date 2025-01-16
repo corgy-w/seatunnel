@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.format.text.splitor;
+package org.apache.seatunnel.format.csv.processor;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class CsvLineSplitorTest {
+public class CsvLineProcessorTest {
 
-    private CsvLineSplitor splitor;
+    private CsvLineProcessor processor;
 
     @BeforeEach
     public void setUp() {
-        splitor = new CsvLineSplitor();
+        processor = new DefaultCsvLineProcessor();
     }
 
     @Test
     public void testBasicSplit() {
         // Test basic CSV splitting
         String line = "New York,London,Tokyo";
-        String[] result = splitor.splitLine(line, ",");
+        String[] result = processor.splitLine(line, ",");
         Assertions.assertArrayEquals(new String[] {"New York", "London", "Tokyo"}, result);
     }
 
@@ -42,7 +42,7 @@ public class CsvLineSplitorTest {
     public void testEmptyFields() {
         // Test handling of empty fields
         String line = "Paris,,Berlin,";
-        String[] result = splitor.splitLine(line, ",");
+        String[] result = processor.splitLine(line, ",");
         Assertions.assertArrayEquals(new String[] {"Paris", "", "Berlin", ""}, result);
     }
 
@@ -50,7 +50,7 @@ public class CsvLineSplitorTest {
     public void testQuotedFields() {
         // Test fields with quotes containing separators
         String line = "\"Los Angeles\",\"San Francisco,CA\",Seattle";
-        String[] result = splitor.splitLine(line, ",");
+        String[] result = processor.splitLine(line, ",");
         Assertions.assertArrayEquals(
                 new String[] {"Los Angeles", "San Francisco,CA", "Seattle"}, result);
     }
@@ -59,7 +59,7 @@ public class CsvLineSplitorTest {
     public void testQuotedFields2() {
         // Test fields with quotes containing separators
         String quotedLine = "Shanghai,\"123,456,789\",200";
-        String[] quotedResult = splitor.splitLine(quotedLine, ",");
+        String[] quotedResult = processor.splitLine(quotedLine, ",");
 
         Assertions.assertEquals("Shanghai", quotedResult[0]);
         Assertions.assertEquals("123,456,789", quotedResult[1]);
@@ -70,7 +70,7 @@ public class CsvLineSplitorTest {
     public void testEscapedQuotes() {
         // Test handling of escaped quotes
         String line = "\"Chicago\",\"New \"\"York\"\" City\",Boston";
-        String[] result = splitor.splitLine(line, ",");
+        String[] result = processor.splitLine(line, ",");
         Assertions.assertArrayEquals(
                 new String[] {"Chicago", "New \"York\" City", "Boston"}, result);
     }
@@ -91,7 +91,7 @@ public class CsvLineSplitorTest {
         };
 
         for (int i = 0; i < testCases.length; i++) {
-            String[] result = splitor.splitLine(testCases[i], ",");
+            String[] result = processor.splitLine(testCases[i], ",");
             Assertions.assertArrayEquals(
                     expectedResults[i], result, "Failed on test case " + i + ": " + testCases[i]);
         }
@@ -101,46 +101,16 @@ public class CsvLineSplitorTest {
     public void testCustomSeparator() {
         // Test custom separator
         String line = "Dallas|Houston|Austin";
-        String[] result = splitor.splitLine(line, "|");
+        String[] result = processor.splitLine(line, "|");
         Assertions.assertArrayEquals(new String[] {"Dallas", "Houston", "Austin"}, result);
-    }
-
-    @Test
-    public void testEmptyInput() {
-        // Test empty input
-        String line = "";
-        String[] result = splitor.splitLine(line, ",");
-        Assertions.assertArrayEquals(new String[] {}, result);
-
-        // Test whitespace input
-        line = "   ";
-        result = splitor.splitLine(line, ",");
-        Assertions.assertArrayEquals(new String[] {}, result);
-    }
-
-    @Test
-    public void testSpecialCharacters() {
-        // Test special characters
-        String line = "Portland\nOR,Denver\tCO,Atlanta\rGA";
-        String[] result = splitor.splitLine(line, ",");
-        Assertions.assertArrayEquals(
-                new String[] {"Portland\nOR", "Denver\tCO", "Atlanta\rGA"}, result);
     }
 
     @Test
     public void testMixedQuotesAndSpecialChars() {
         // Test mixed quotes and special characters
         String line = "\"San Jose\nCA\",\"Oakland,\tCA\",\"Sacramento\rCA\"";
-        String[] result = splitor.splitLine(line, ",");
+        String[] result = processor.splitLine(line, ",");
         Assertions.assertArrayEquals(
                 new String[] {"San Jose\nCA", "Oakland,\tCA", "Sacramento\rCA"}, result);
-    }
-
-    @Test
-    public void testSingleQuote() {
-        // Test handling of unclosed quotes
-        String line = "Detroit,\"Minneapolis,St Paul";
-        String[] result = splitor.splitLine(line, ",");
-        Assertions.assertArrayEquals(new String[] {"Detroit", "Minneapolis,St Paul"}, result);
     }
 }

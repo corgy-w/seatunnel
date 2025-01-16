@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.format.text;
+package org.apache.seatunnel.format.csv;
 
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.BasicType;
@@ -26,7 +26,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.utils.DateTimeUtils.Formatter;
-import org.apache.seatunnel.format.text.splitor.CsvLineSplitor;
+import org.apache.seatunnel.format.csv.processor.DefaultCsvLineProcessor;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -133,11 +133,11 @@ public class CsvTextFormatSchemaTest {
     @Test
     public void testParse() throws IOException {
         String delimiter = ",";
-        TextDeserializationSchema deserializationSchema =
-                TextDeserializationSchema.builder()
+        CsvDeserializationSchema deserializationSchema =
+                CsvDeserializationSchema.builder()
                         .seaTunnelRowType(seaTunnelRowType)
                         .delimiter(delimiter)
-                        .textLineSplitor(new CsvLineSplitor())
+                        .csvLineProcessor(new DefaultCsvLineProcessor())
                         .build();
         SeaTunnelRow seaTunnelRow = deserializationSchema.deserialize(content.getBytes());
         Assertions.assertEquals("mess,age", seaTunnelRow.getField(0));
@@ -164,8 +164,8 @@ public class CsvTextFormatSchemaTest {
                         new String[] {"timestamp"},
                         new SeaTunnelDataType[] {LocalTimeType.LOCAL_DATE_TIME_TYPE});
         LocalDateTime timestamp = LocalDateTime.of(2022, 9, 24, 22, 45, 0, 123456000);
-        TextSerializationSchema textSerializationSchema =
-                TextSerializationSchema.builder()
+        CsvSerializationSchema csvSerializationSchema =
+                CsvSerializationSchema.builder()
                         .seaTunnelRowType(schema)
                         .dateTimeFormatter(Formatter.YYYY_MM_DD_HH_MM_SS_SSSSSS)
                         .delimiter(delimiter)
@@ -173,22 +173,22 @@ public class CsvTextFormatSchemaTest {
         SeaTunnelRow row = new SeaTunnelRow(new Object[] {timestamp});
 
         assertEquals(
-                "2022-09-24 22:45:00.123456", new String(textSerializationSchema.serialize(row)));
+                "2022-09-24 22:45:00.123456", new String(csvSerializationSchema.serialize(row)));
 
         timestamp = LocalDateTime.of(2022, 9, 24, 22, 45, 0, 0);
         row = new SeaTunnelRow(new Object[] {timestamp});
         assertEquals(
-                "2022-09-24 22:45:00.000000", new String(textSerializationSchema.serialize(row)));
+                "2022-09-24 22:45:00.000000", new String(csvSerializationSchema.serialize(row)));
 
         timestamp = LocalDateTime.of(2022, 9, 24, 22, 45, 0, 1000);
         row = new SeaTunnelRow(new Object[] {timestamp});
         assertEquals(
-                "2022-09-24 22:45:00.000001", new String(textSerializationSchema.serialize(row)));
+                "2022-09-24 22:45:00.000001", new String(csvSerializationSchema.serialize(row)));
 
         timestamp = LocalDateTime.of(2022, 9, 24, 22, 45, 0, 123456);
         row = new SeaTunnelRow(new Object[] {timestamp});
         assertEquals(
-                "2022-09-24 22:45:00.000123", new String(textSerializationSchema.serialize(row)));
+                "2022-09-24 22:45:00.000123", new String(csvSerializationSchema.serialize(row)));
     }
 
     @Test
@@ -219,11 +219,11 @@ public class CsvTextFormatSchemaTest {
                             BasicType.STRING_TYPE, BasicType.STRING_TYPE, BasicType.INT_TYPE
                         });
 
-        TextDeserializationSchema schema =
-                TextDeserializationSchema.builder()
+        CsvDeserializationSchema schema =
+                CsvDeserializationSchema.builder()
                         .seaTunnelRowType(rowType)
                         .delimiter(",")
-                        .textLineSplitor(new CsvLineSplitor())
+                        .csvLineProcessor(new DefaultCsvLineProcessor())
                         .build();
 
         for (int i = 0; i < lines.size(); i++) {
