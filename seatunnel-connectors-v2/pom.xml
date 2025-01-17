@@ -92,6 +92,8 @@
         <module>connector-typesense</module>
         <module>connector-dolphindb-wt</module>
         <module>connector-dws-gaussdb-wt</module>
+        <module>connector-jdbc-inceptor</module>
+        <module>connector-jdbc-phoenix</module>
     </modules>
 
     <dependencyManagement>
