@@ -204,6 +204,11 @@ public class InceptorCatalog extends AbstractJdbcCatalog {
         }
     }
 
+    @Override
+    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+        return new InceptorCreateTableSqlBuilder(tablePath.getTableName(), table).build();
+    }
+
     protected Connection getConnection(TablePath tablePath) {
         String dbUrl;
         if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
