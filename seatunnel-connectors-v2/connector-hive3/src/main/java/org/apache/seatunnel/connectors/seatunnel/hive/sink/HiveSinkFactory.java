@@ -52,6 +52,8 @@ public class HiveSinkFactory
                 .optional(HiveConfig.HADOOP_CONF)
                 .optional(HiveConfig.HADOOP_CONF_PATH)
                 .optional(BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96)
+                .optional(BaseSinkConfig.HAVE_PARTITION)
+                .conditional(BaseSinkConfig.HAVE_PARTITION, true, BaseSinkConfig.PARTITION_BY)
                 .build();
     }
 
