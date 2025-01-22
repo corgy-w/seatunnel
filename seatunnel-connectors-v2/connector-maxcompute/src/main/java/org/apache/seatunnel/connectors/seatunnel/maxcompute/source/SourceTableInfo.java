@@ -17,29 +17,21 @@
 
 package org.apache.seatunnel.connectors.seatunnel.maxcompute.source;
 
-import org.apache.seatunnel.api.source.SourceSplit;
-import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
+import java.io.Serializable;
+
 @Getter
-@EqualsAndHashCode
-public class MaxcomputeSourceSplit implements SourceSplit {
-    private final int splitId;
-    private final long rowStart;
-    private final long rowNum;
-    private final TablePath tablePath;
+public class SourceTableInfo implements Serializable {
+    private final CatalogTable catalogTable;
+    private final String partitionSpec;
+    private final Integer splitRow;
 
-    public MaxcomputeSourceSplit(int splitId, long rowStart, long rowNum, TablePath tablePath) {
-        this.splitId = splitId;
-        this.rowStart = rowStart;
-        this.rowNum = rowNum;
-        this.tablePath = tablePath;
-    }
-
-    @Override
-    public String splitId() {
-        return String.valueOf(this.splitId);
+    public SourceTableInfo(CatalogTable catalogTable, String partitionSpec, Integer splitRow) {
+        this.catalogTable = catalogTable;
+        this.partitionSpec = partitionSpec;
+        this.splitRow = splitRow;
     }
 }
