@@ -18,24 +18,13 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.seatunnel</groupId>
-        <artifactId>seatunnel</artifactId>
+        <artifactId>seatunnel-formats</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>seatunnel-formats</artifactId>
-    <packaging>pom</packaging>
-    <name>SeaTunnel : Formats :</name>
+    <artifactId>seatunnel-format-dbf</artifactId>
+    <name>SeaTunnel : Formats : Dbf</name>
 
-    <modules>
-        <module>seatunnel-format-json</module>
-        <module>seatunnel-format-text</module>
-        <module>seatunnel-format-compatible-debezium-json</module>
-        <module>seatunnel-format-compatible-connect-json</module>
-        <module>seatunnel-format-avro</module>
-        <module>seatunnel-format-protobuf</module>
-        <module>seatunnel-format-cdc-custom-json</module>
-        <module>seatunnel-format-csv</module>
-        <module>seatunnel-format-dbf</module>
-    </modules>
+    <dependencies />
 
 </project>
