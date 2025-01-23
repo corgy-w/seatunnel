@@ -305,4 +305,10 @@ public class BaseSinkConfig {
                     .defaultValue(128 * 1024 * 1024L)
                     .withDescription(
                             "When the data in the buff reaches a certain value, it will be written");
+
+    public static final Option<DbfVersion> DBF_VERSION =
+            Options.key("dbf_version")
+                    .enumType(DbfVersion.class)
+                    .defaultValue(DbfVersion.DEFAULT)
+                    .withDescription("Dbf version");
 }

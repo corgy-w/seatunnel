@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 
 import com.linuxense.javadbf.DBFDataType;
 import com.linuxense.javadbf.DBFField;
+import com.linuxense.javadbf.DBFFileFormat;
 import com.linuxense.javadbf.DBFWriter;
 import lombok.NonNull;
 
@@ -53,7 +54,9 @@ public class DbfWriteStrategy extends AbstractWriteStrategy<DBFWriter> {
     public void setSeaTunnelRowTypeInfo(SeaTunnelRowType seaTunnelRowType) {
         super.setSeaTunnelRowTypeInfo(seaTunnelRowType);
         this.dbfSerializer =
-                new DbfSerializer(buildSchemaWithRowType(seaTunnelRowType, sinkColumnsIndexInRow));
+                new DbfSerializer(
+                        buildSchemaWithRowType(seaTunnelRowType, sinkColumnsIndexInRow),
+                        fileSinkConfig);
     }
 
     @Override
@@ -81,8 +84,21 @@ public class DbfWriteStrategy extends AbstractWriteStrategy<DBFWriter> {
             return dbfWriter;
         }
         try {
+
             FSDataOutputStream outputStream = hadoopFileSystemProxy.getOutputStream(filePath);
-            DBFWriter newWriter = new DBFWriter(outputStream, StandardCharsets.UTF_8);
+            DBFWriter newWriter = null;
+            switch (fileSinkConfig.getDbfVersion()) {
+                case DEFAULT:
+                    newWriter =
+                            new DBFWriter(
+                                    outputStream, StandardCharsets.UTF_8, DBFFileFormat.COMPATIBLE);
+                    break;
+                case DB7:
+                    newWriter =
+                            new DBFWriter(
+                                    outputStream, StandardCharsets.UTF_8, DBFFileFormat.ADVANCED);
+                    break;
+            }
             newWriter.setFields(dbfSerializer.getDbfFields());
             beingWrittenWriter.put(filePath, newWriter);
             return newWriter;
@@ -96,7 +112,7 @@ public class DbfWriteStrategy extends AbstractWriteStrategy<DBFWriter> {
         private final DBFField[] dbfFields;
         private final SeaTunnelRowType seaTunnelRowType;
 
-        public DbfSerializer(SeaTunnelRowType seaTunnelRowType) {
+        public DbfSerializer(SeaTunnelRowType seaTunnelRowType, FileSinkConfig fileSinkConfig) {
             this.seaTunnelRowType = seaTunnelRowType;
             this.dbfFields = new DBFField[seaTunnelRowType.getTotalFields()];
 
@@ -108,7 +124,14 @@ public class DbfWriteStrategy extends AbstractWriteStrategy<DBFWriter> {
                 // TODO: Configure according to user configuration
                 switch (dbfFields[i].getType()) {
                     case CHARACTER:
-                        dbfFields[i].setLength(DBFDataType.CHARACTER.getMaxSize());
+                        switch (fileSinkConfig.getDbfVersion()) {
+                            case DEFAULT:
+                                dbfFields[i].setLength(255);
+                                break;
+                            case DB7:
+                                dbfFields[i].setLength(DBFDataType.CHARACTER.getMaxSize());
+                                break;
+                        }
                         break;
                     case NUMERIC:
                         dbfFields[i].setLength(DBFDataType.NUMERIC.getMaxSize());

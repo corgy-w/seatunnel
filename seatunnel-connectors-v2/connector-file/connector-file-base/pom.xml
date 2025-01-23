@@ -36,7 +36,6 @@
         <parquet-avro.version>1.12.3</parquet-avro.version>
         <poi.version>4.1.2</poi.version>
         <poi-ooxml.version>4.1.2</poi-ooxml.version>
-        <dbf.version>1.13.1</dbf.version>
         <hadoop-minikdc.version>3.1.4</hadoop-minikdc.version>
         <dom4j.version>2.1.4</dom4j.version>
         <jaxen.version>2.0.0</jaxen.version>
@@ -160,9 +159,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.albfernandez</groupId>
-            <artifactId>javadbf</artifactId>
-            <version>${dbf.version}</version>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>seatunnel-format-dbf</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <dependency>

@@ -23,6 +23,7 @@ import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseFileSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
+import org.apache.seatunnel.connectors.seatunnel.file.config.DbfVersion;
 import org.apache.seatunnel.connectors.seatunnel.file.config.FileFormat;
 import org.apache.seatunnel.connectors.seatunnel.file.config.PartitionConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.exception.FileConnectorException;
@@ -86,6 +87,8 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
             BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.defaultValue();
 
     private long fileBlockSize = 128 * 1024 * 1024L;
+
+    private DbfVersion dbfVersion = DbfVersion.DEFAULT;
 
     public FileSinkConfig(@NonNull Config config, @NonNull SeaTunnelRowType seaTunnelRowTypeInfo) {
         super(config);
@@ -248,6 +251,15 @@ public class FileSinkConfig extends BaseFileSinkConfig implements PartitionConfi
                 this.parquetAvroWriteFixedAsInt96 =
                         config.getStringList(
                                 BaseSinkConfig.PARQUET_AVRO_WRITE_FIXED_AS_INT96.key());
+            }
+        }
+
+        if (FileFormat.DBF
+                .name()
+                .equalsIgnoreCase(config.getString(BaseSinkConfig.FILE_FORMAT_TYPE.key()))) {
+            if (config.hasPath(BaseSinkConfig.DBF_VERSION.key())) {
+                this.dbfVersion =
+                        config.getEnum(DbfVersion.class, BaseSinkConfig.DBF_VERSION.key());
             }
         }
 
