@@ -110,7 +110,9 @@ public class StarRocksSaveModeUtil {
                         SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields)
                 .replaceAll(
                         SaveModePlaceHolder.COMMENT.getReplacePlaceHolder(),
-                        Objects.isNull(comment) ? "" : comment);
+                        Objects.isNull(comment)
+                                ? ""
+                                : comment.replace("'", "''").replace("\\", "\\\\"));
     }
 
     public static String columnToStarrocksType(Column column) {
@@ -124,7 +126,9 @@ public class StarRocksSaveModeUtil {
                 column.isNullable() ? "NULL" : "NOT NULL",
                 StringUtils.isEmpty(column.getComment())
                         ? ""
-                        : "COMMENT '" + column.getComment() + "'");
+                        : "COMMENT '"
+                                + column.getComment().replace("'", "''").replace("\\", "\\\\")
+                                + "'");
     }
 
     private static String mergeColumnInTemplate(
