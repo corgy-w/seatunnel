@@ -224,12 +224,12 @@ public class OracleAgentDmlEntryFactory {
         }
 
         try {
-            if (column.typeName().equals("DATE")) {
+            if ("DATE".equals(column.typeName())) {
                 oracleValue = LocalDate.from(DATE_FORMATTER.parse(value));
             }
         } catch (Exception ex) {
             // this is a tmp solution
-            oracleValue = LocalDate.from(TIMESTAMP_FORMATTER.parse(value));
+            oracleValue = LocalDateTime.from(TIMESTAMP_FORMATTER.parse(value));
         }
 
         if (column.typeName().startsWith("TIMESTAMP")) {
