@@ -38,8 +38,6 @@ public class CustomOracleAgentValueConverter extends OracleValueConverters {
     public ValueConverter converter(Column column, Field fieldDefn) {
         switch (column.jdbcType()) {
             case Types.BLOB:
-                return data ->
-                        ((ByteBuffer) convertBinary(column, fieldDefn, data, binaryMode)).array();
             case Types.LONGVARBINARY:
                 return (data) -> {
                     if (data instanceof String) {
