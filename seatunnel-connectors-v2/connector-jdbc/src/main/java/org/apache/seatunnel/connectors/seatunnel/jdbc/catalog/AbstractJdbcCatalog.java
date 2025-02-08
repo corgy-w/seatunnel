@@ -57,7 +57,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,9 +72,6 @@ import static org.apache.seatunnel.common.exception.CommonErrorCode.UNSUPPORTED_
 @Slf4j
 public abstract class AbstractJdbcCatalog implements Catalog {
     private static final Logger LOG = LoggerFactory.getLogger(AbstractJdbcCatalog.class);
-
-    protected static final Set<String> SYS_DATABASES = new HashSet<>();
-    protected static final Set<String> EXCLUDED_SCHEMAS = new HashSet<>();
 
     protected final String catalogName;
     protected final String defaultDatabase;
@@ -408,13 +404,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
     @Override
     public List<String> listDatabases() throws CatalogException {
         try {
-            return queryString(
-                    defaultUrl,
-                    getListDatabaseSql(),
-                    rs -> {
-                        String s = rs.getString(1).trim();
-                        return SYS_DATABASES.contains(s) ? null : s;
-                    });
+            return queryString(defaultUrl, getListDatabaseSql(), rs -> rs.getString(1).trim());
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed listing database in catalog %s", this.catalogName), e);
@@ -426,9 +416,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
         if (StringUtils.isBlank(databaseName)) {
             return false;
         }
-        if (SYS_DATABASES.contains(databaseName)) {
-            return false;
-        }
+
         try {
             return querySQLResultExists(defaultUrl, getDatabaseWithConditionSql(databaseName));
         } catch (SeaTunnelRuntimeException e) {
@@ -459,7 +447,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
     protected String getTableName(ResultSet rs) throws SQLException {
         String schemaName = rs.getString(1);
         String tableName = rs.getString(2);
-        if (StringUtils.isNotBlank(schemaName) && !SYS_DATABASES.contains(schemaName)) {
+        if (StringUtils.isNotBlank(schemaName)) {
             return schemaName.trim() + "." + tableName.trim();
         }
         return null;
@@ -502,9 +490,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
     @Override
     public boolean tableExists(TablePath tablePath) throws CatalogException {
         String databaseName = tablePath.getDatabaseName();
-        if (EXCLUDED_SCHEMAS.contains(tablePath.getSchemaName())) {
-            return false;
-        }
+
         try {
             return querySQLResultExists(
                     this.getUrlFromDatabaseName(databaseName), getTableWithConditionSql(tablePath));

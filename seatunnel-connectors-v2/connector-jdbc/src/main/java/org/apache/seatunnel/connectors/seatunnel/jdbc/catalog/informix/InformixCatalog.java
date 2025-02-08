@@ -52,14 +52,6 @@ import java.util.Optional;
 @Slf4j
 public class InformixCatalog extends AbstractJdbcCatalog {
 
-    static {
-        SYS_DATABASES.add("sysmaster");
-        SYS_DATABASES.add("sysutils");
-        SYS_DATABASES.add("sysuser");
-        SYS_DATABASES.add("sysadmin");
-        SYS_DATABASES.add("syscdcv1");
-    }
-
     public InformixCatalog(
             String catalogName,
             String username,
@@ -102,8 +94,7 @@ public class InformixCatalog extends AbstractJdbcCatalog {
             while (rs.next()) {
                 String schemaName = rs.getString("owner").trim();
                 String tableName = rs.getString("tabname").trim();
-                if (org.apache.commons.lang3.StringUtils.isNotBlank(schemaName)
-                        && !SYS_DATABASES.contains(schemaName)) {
+                if (org.apache.commons.lang3.StringUtils.isNotBlank(schemaName)) {
                     tables.add(schemaName + "." + tableName);
                 }
             }
