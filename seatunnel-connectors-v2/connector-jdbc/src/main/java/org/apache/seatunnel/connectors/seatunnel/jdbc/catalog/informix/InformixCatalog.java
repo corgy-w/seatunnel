@@ -41,16 +41,13 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class InformixCatalog extends AbstractJdbcCatalog {
@@ -63,8 +60,6 @@ public class InformixCatalog extends AbstractJdbcCatalog {
         SYS_DATABASES.add("syscdcv1");
     }
 
-    protected final Map<String, Connection> connectionMap;
-
     public InformixCatalog(
             String catalogName,
             String username,
@@ -72,33 +67,6 @@ public class InformixCatalog extends AbstractJdbcCatalog {
             JdbcUrlUtil.UrlInfo urlInfo,
             String defaultSchema) {
         super(catalogName, username, pwd, urlInfo, defaultSchema);
-        this.connectionMap = new ConcurrentHashMap<>();
-    }
-
-    public Connection getConnection(String url) {
-        if (connectionMap.containsKey(url)) {
-            return connectionMap.get(url);
-        }
-        try {
-            Connection connection = DriverManager.getConnection(url, username, pwd);
-            connectionMap.put(url, connection);
-            return connection;
-        } catch (SQLException e) {
-            throw new CatalogException(String.format("Failed connecting to %s via JDBC.", url), e);
-        }
-    }
-
-    @Override
-    public void close() throws CatalogException {
-        for (Map.Entry<String, Connection> entry : connectionMap.entrySet()) {
-            try {
-                entry.getValue().close();
-            } catch (SQLException e) {
-                throw new CatalogException(
-                        String.format("Failed to close %s via JDBC.", entry.getKey()), e);
-            }
-        }
-        super.close();
     }
 
     @Override
