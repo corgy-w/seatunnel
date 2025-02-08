@@ -141,8 +141,8 @@ public class CoordinatorServiceTest {
                 new JobImmutableInformation(
                         jobId,
                         "Test",
-                        coordinatorServiceTest.getSerializationService().toData(testLogicalDag),
-                        testLogicalDag.getJobConfig(),
+                        coordinatorServiceTest.getSerializationService(),
+                        testLogicalDag,
                         Collections.emptyList(),
                         Collections.emptyList());
 
@@ -203,8 +203,8 @@ public class CoordinatorServiceTest {
                 new JobImmutableInformation(
                         jobId,
                         "Test",
-                        instance1.getSerializationService().toData(testLogicalDag),
-                        testLogicalDag.getJobConfig(),
+                        instance1.getSerializationService(),
+                        testLogicalDag,
                         Collections.emptyList(),
                         Collections.emptyList());
 
