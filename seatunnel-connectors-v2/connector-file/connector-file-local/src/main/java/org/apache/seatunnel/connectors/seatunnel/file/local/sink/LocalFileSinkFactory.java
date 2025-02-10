@@ -87,6 +87,8 @@ public class LocalFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.XML,
                         BaseSinkConfig.XML_USE_ATTR_FORMAT)
+                .conditional(
+                        BaseSinkConfig.FILE_FORMAT_TYPE, FileFormat.DBF, BaseSinkConfig.DBF_VERSION)
                 .optional(BaseSinkConfig.CUSTOM_FILENAME)
                 .conditional(
                         BaseSinkConfig.CUSTOM_FILENAME,
@@ -100,8 +102,6 @@ public class LocalFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                         BaseSinkConfig.PARTITION_BY,
                         BaseSinkConfig.PARTITION_DIR_EXPRESSION,
                         BaseSinkConfig.IS_PARTITION_FIELD_WRITE_IN_FILE)
-                .conditional(
-                        BaseSinkConfig.FILE_FORMAT_TYPE, FileFormat.DBF, BaseSinkConfig.DBF_VERSION)
                 .optional(BaseSinkConfig.SINK_COLUMNS)
                 .optional(BaseSinkConfig.IS_ENABLE_TRANSACTION)
                 .optional(BaseSinkConfig.DATE_FORMAT)
