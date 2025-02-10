@@ -54,5 +54,4 @@ public class SeaTunnelConnectorI18n {
             log.warn("Failed to load i18n config file", e);
         }
     }
-
 }
