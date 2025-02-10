@@ -94,6 +94,8 @@ public class S3FileSinkFactory extends BaseMultipleTableFinkSinkFactory {
                         BaseSinkConfig.FILE_FORMAT_TYPE,
                         FileFormat.XML,
                         BaseSinkConfig.XML_USE_ATTR_FORMAT)
+                .conditional(
+                        BaseSinkConfig.FILE_FORMAT_TYPE, FileFormat.DBF, BaseSinkConfig.DBF_VERSION)
                 .optional(BaseSinkConfig.CUSTOM_FILENAME)
                 .conditional(
                         BaseSinkConfig.CUSTOM_FILENAME,
