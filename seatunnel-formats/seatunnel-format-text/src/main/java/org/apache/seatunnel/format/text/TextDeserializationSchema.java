@@ -192,9 +192,6 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
         Object[] objects = new Object[seaTunnelRowType.getTotalFields()];
         for (int i = 0; i < objects.length; i++) {
             String fieldValue = splitsMap.get(i);
-            if (StringUtils.isBlank(fieldValue)) {
-                continue;
-            }
             if (StringUtils.equals(fieldValue, nullFormat)) {
                 continue;
             }
@@ -240,7 +237,7 @@ public class TextDeserializationSchema implements DeserializationSchema<SeaTunne
 
     private Object convert(
             String field, SeaTunnelDataType<?> fieldType, int level, String fieldName) {
-        if (StringUtils.isBlank(field)) {
+        if (StringUtils.isEmpty(field)) {
             return null;
         }
         switch (fieldType.getSqlType()) {
