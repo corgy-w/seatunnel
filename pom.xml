@@ -85,7 +85,7 @@
         <hadoop.binary.version>2.7</hadoop.binary.version>
         <jackson.version>2.13.3</jackson.version>
         <lombok.version>1.18.24</lombok.version>
-        <commons-compress.version>1.20</commons-compress.version>
+        <commons-compress.version>1.26.0</commons-compress.version>
         <skip.pmd.check>false</skip.pmd.check>
         <maven.deploy.skip>false</maven.deploy.skip>
         <maven.javadoc.skip>false</maven.javadoc.skip>
@@ -105,7 +105,6 @@
         <commons-collections4.version>4.4</commons-collections4.version>
         <commons-csv.version>1.10.0</commons-csv.version>
         <maven-assembly-plugin.version>3.3.0</maven-assembly-plugin.version>
-        <commons-compress.version>1.20</commons-compress.version>
         <protostuff.version>1.8.0</protostuff.version>
         <spark.scope>provided</spark.scope>
         <flink.scope>provided</flink.scope>
