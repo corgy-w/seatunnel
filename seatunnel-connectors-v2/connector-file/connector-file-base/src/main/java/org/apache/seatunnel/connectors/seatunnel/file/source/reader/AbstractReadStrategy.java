@@ -80,6 +80,7 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
     protected List<String> readPartitions = new ArrayList<>();
     protected List<String> readColumns = new ArrayList<>();
     protected boolean isMergePartition = true;
+    protected String filenameExtension;
     protected long skipHeaderNumber = BaseSourceConfigOptions.SKIP_HEADER_ROW_NUMBER.defaultValue();
     protected HadoopFileSystemProxy hadoopFileSystemProxy;
     protected ArchiveCompressFormat archiveCompressFormat =
@@ -133,7 +134,10 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
                 }
             }
         }
-
+        if (StringUtils.isNotEmpty(filenameExtension)) {
+            this.fileNames.removeIf(fileName -> !fileName.endsWith(filenameExtension));
+            fileNames.removeIf(fileName -> !fileName.endsWith(filenameExtension));
+        }
         return fileNames;
     }
 
@@ -158,6 +162,10 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
                                 BaseSourceConfigOptions.SKIP_HEADER_ROW_NUMBER.key()))) {
             skipHeaderNumber =
                     pluginConfig.getLong(BaseSourceConfigOptions.SKIP_HEADER_ROW_NUMBER.key());
+        }
+        if (pluginConfig.hasPath(BaseSourceConfigOptions.FILENAME_EXTENSION.key())) {
+            filenameExtension =
+                    pluginConfig.getString(BaseSourceConfigOptions.FILENAME_EXTENSION.key());
         }
         if (pluginConfig.hasPath(BaseSourceConfigOptions.READ_PARTITIONS.key())) {
             List<String> partitionsList = new ArrayList<>();
