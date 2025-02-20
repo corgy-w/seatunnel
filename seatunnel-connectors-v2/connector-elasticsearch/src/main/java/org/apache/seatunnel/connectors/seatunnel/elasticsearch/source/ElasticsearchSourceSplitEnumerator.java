@@ -145,6 +145,7 @@ public class ElasticsearchSourceSplitEnumerator
     private List<ElasticsearchSourceSplit> getElasticsearchSplit() {
         List<ElasticsearchSourceSplit> splits = new ArrayList<>();
         for (SourceConfig sourceConfig : sourceConfigs) {
+
             String index = sourceConfig.getIndex();
             List<IndexDocsCount> indexDocsCounts = esRestClient.getIndexDocsCount(index);
             indexDocsCounts =
