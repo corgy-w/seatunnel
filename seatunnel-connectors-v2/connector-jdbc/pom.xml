@@ -219,6 +219,11 @@
                 <version>${dws.jdbc.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.tikv</groupId>
+                <artifactId>tikv-client-java</artifactId>
+                <version>${tikv.version}</version>
+            </dependency>
             <!-- dependency by phoenix -->
             <dependency>
                 <groupId>org.apache.seatunnel</groupId>
@@ -359,6 +364,10 @@
             <groupId>org.apache.seatunnel</groupId>
             <artifactId>seatunnel-phoenix-5.1.3-hadoop3.3.6-uber</artifactId>
             <classifier>optional</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.tikv</groupId>
+            <artifactId>tikv-client-java</artifactId>
         </dependency>
         <!-- dependency by phoenix end -->
         <dependency>

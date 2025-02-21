@@ -83,6 +83,7 @@
         <!--        <module>connector-cdc-opengauss-e2e</module>-->
         <!--        <module>connector-cdc-tidb-e2e</module>-->
         <module>connector-cdc-oracle-e2e</module>
+        <module>connector-cdc-tidb-e2e</module>
     </modules>
 
     <dependencies>

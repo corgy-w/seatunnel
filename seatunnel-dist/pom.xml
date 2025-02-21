@@ -124,6 +124,7 @@
 
                 <dolphindb-javaapi.version>1.30.22.1</dolphindb-javaapi.version>
                 <dolphindb-jdbc.version>1.30.22.1</dolphindb-jdbc.version>
+                <tidb.version>3.3.5</tidb.version>
             </properties>
             <dependencies>
                 <!-- starters -->
@@ -415,6 +416,13 @@
 
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-cdc-tidb</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-dolphindb-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
@@ -591,6 +599,14 @@
                     <version>${snowflake.version}</version>
                     <scope>provided</scope>
                 </dependency>
+
+                <dependency>
+                    <groupId>org.tikv</groupId>
+                    <artifactId>tikv-client-java</artifactId>
+                    <version>${tidb.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+
                 <dependency>
                     <groupId>com.ibm.informix</groupId>
                     <artifactId>ifx-changestream-client</artifactId>
