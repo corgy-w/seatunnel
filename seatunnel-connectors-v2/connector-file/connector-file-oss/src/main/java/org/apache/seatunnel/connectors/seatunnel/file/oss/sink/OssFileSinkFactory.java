@@ -117,6 +117,7 @@ public class OssFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(
                         SinkCommonOptions.MULTI_TABLE_SINK_REPLICA,
                         SinkCommonOptions.MULTI_TABLE_SINK_TTL_SEC)
+                .optional(BaseSinkConfig.FILENAME_EXTENSION)
                 .build();
     }
 }
