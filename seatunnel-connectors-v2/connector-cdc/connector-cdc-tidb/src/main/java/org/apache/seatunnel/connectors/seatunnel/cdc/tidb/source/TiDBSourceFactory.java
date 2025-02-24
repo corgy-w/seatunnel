@@ -86,6 +86,11 @@ public class TiDBSourceFactory implements TableSourceFactory {
     @Override
     public <T, SplitT extends SourceSplit, StateT extends Serializable>
             TableSource<T, SplitT, StateT> createSource(TableSourceFactoryContext context) {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("TiKV JDBC driver not found", e);
+        }
         return () -> {
             ReadonlyConfig config = context.getOptions();
             TiDBCatalogFactory catalogFactory = new TiDBCatalogFactory();
