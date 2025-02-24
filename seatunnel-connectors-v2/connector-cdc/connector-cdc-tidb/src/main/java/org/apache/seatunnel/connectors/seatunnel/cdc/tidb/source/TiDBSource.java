@@ -33,6 +33,7 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.tidb.source.enumerator.TiDB
 import org.apache.seatunnel.connectors.seatunnel.cdc.tidb.source.reader.TiDBSourceReader;
 import org.apache.seatunnel.connectors.seatunnel.cdc.tidb.source.split.TiDBSourceSplit;
 
+import java.sql.DriverManager;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,6 +41,10 @@ public class TiDBSource
         implements SeaTunnelSource<SeaTunnelRow, TiDBSourceSplit, TiDBSourceCheckpointState>,
                 SupportParallelism,
                 SupportColumnProjection {
+
+    static {
+        DriverManager.getDrivers();
+    }
 
     static final String IDENTIFIER = "TiDB-CDC";
 
@@ -91,6 +96,7 @@ public class TiDBSource
     @Override
     public SourceReader<SeaTunnelRow, TiDBSourceSplit> createReader(SourceReader.Context context)
             throws Exception {
+        Class.forName("com.mysql.cj.jdbc.Driver");
         return new TiDBSourceReader(context, config, catalogTable);
     }
 
@@ -105,6 +111,7 @@ public class TiDBSource
     @Override
     public SourceSplitEnumerator<TiDBSourceSplit, TiDBSourceCheckpointState> createEnumerator(
             SourceSplitEnumerator.Context<TiDBSourceSplit> context) throws Exception {
+        Class.forName("com.mysql.cj.jdbc.Driver");
         return new TiDBSourceSplitEnumerator(context, config);
     }
 
@@ -122,6 +129,7 @@ public class TiDBSource
             SourceSplitEnumerator.Context<TiDBSourceSplit> context,
             TiDBSourceCheckpointState checkpointState)
             throws Exception {
+        Class.forName("com.mysql.cj.jdbc.Driver");
         return new TiDBSourceSplitEnumerator(context, config, checkpointState);
     }
 
