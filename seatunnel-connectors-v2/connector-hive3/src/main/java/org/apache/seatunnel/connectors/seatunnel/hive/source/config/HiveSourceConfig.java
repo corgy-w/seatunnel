@@ -274,7 +274,8 @@ public class HiveSourceConfig implements Serializable {
         CatalogTable catalogTable = buildEmptyCatalogTable(readonlyConfig, table);
         try {
             SeaTunnelRowType seaTunnelRowTypeInfo =
-                    readStrategy.getSeaTunnelRowTypeInfo(filePaths.get(0));
+                    readStrategy.getSeaTunnelRowTypeInfo(
+                            catalogTable.getTablePath(), filePaths.get(0));
             return CatalogTableUtil.newCatalogTable(catalogTable, seaTunnelRowTypeInfo);
         } catch (FileConnectorException e) {
             String errorMsg =

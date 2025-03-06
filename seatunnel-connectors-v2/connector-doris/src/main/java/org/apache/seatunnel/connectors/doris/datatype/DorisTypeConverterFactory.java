@@ -35,6 +35,9 @@ public class DorisTypeConverterFactory {
                 || dorisVersion.toLowerCase(Locale.ROOT).startsWith("selectdb-doris-2.")) {
             return DorisTypeConverterV2.INSTANCE;
         } else {
+            log.info(
+                    "Can not find DorisTypeConverter for Doris version: {}, use version 2.",
+                    dorisVersion);
             return DorisTypeConverterV2.INSTANCE;
         }
     }

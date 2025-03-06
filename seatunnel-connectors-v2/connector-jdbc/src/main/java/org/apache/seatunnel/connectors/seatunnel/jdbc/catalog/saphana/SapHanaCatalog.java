@@ -33,7 +33,6 @@ import org.apache.seatunnel.common.exception.CommonErrorCode;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
-import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.saphana.SapHanaTypeConverter;
@@ -69,7 +68,7 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     + "    C.COMMENTS,\n"
                     + "    E.DATA_TYPE_NAME AS ELEMENT_TYPE_NAME\n"
                     + "FROM\n"
-                    + "    (SELECT * FROM SYS.TABLE_COLUMNS  UNION ALL SELECT * FROM SYS.VIEW_COLUMNS) C\n"
+                    + "    (SELECT * FROM SYS.TABLE_COLUMNS UNION ALL SELECT * FROM SYS.VIEW_COLUMNS) C\n"
                     + "        LEFT JOIN\n"
                     + "    SYS.ELEMENT_TYPES E\n"
                     + "    ON\n"
@@ -200,7 +199,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
         } catch (DatabaseNotExistException e) {
             return false;
         } catch (SQLException e) {
-            throw new SeaTunnelException("Failed to querySQLResult", e);
+            throw new CatalogException(
+                    String.format("Failed to check table %s exists", tablePath.getFullName()), e);
         }
     }
 
@@ -285,8 +285,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                     String.format(
                             "SELECT SYNONYM_NAME, SCHEMA_NAME, OBJECT_NAME, OBJECT_SCHEMA  FROM SYNONYMS  WHERE SCHEMA_NAME = '%s' AND SYNONYM_NAME = '%s' ",
                             tablePath.getDatabaseName(), tablePath.getTableName());
-            try (PreparedStatement statement = conn.prepareStatement(sql)) {
-                final ResultSet resultSet = statement.executeQuery();
+            try (PreparedStatement statement = conn.prepareStatement(sql);
+                    final ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     final String refDatabaseName = resultSet.getString("OBJECT_SCHEMA");
                     final String refTableName = resultSet.getString("OBJECT_NAME");
@@ -396,8 +396,8 @@ public class SapHanaCatalog extends AbstractJdbcCatalog {
                         "SELECT COLUMN_NAME,CONSTRAINT_NAME FROM SYS.CONSTRAINTS WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s' AND IS_PRIMARY_KEY = 'TRUE' ",
                         database, table);
         try (final PreparedStatement preparedStatement =
-                metaData.getConnection().prepareStatement(sql)) {
-            final ResultSet resultSet = preparedStatement.executeQuery();
+                        metaData.getConnection().prepareStatement(sql);
+                final ResultSet resultSet = preparedStatement.executeQuery()) {
             while (resultSet.next()) {
                 primaryKeyList.add(resultSet.getString("COLUMN_NAME"));
                 pkName = resultSet.getString("CONSTRAINT_NAME");

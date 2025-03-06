@@ -34,8 +34,7 @@ public class HiveDialectFactory implements JdbcDialectFactory {
 
     @Override
     public JdbcDialect create() {
-        throw new UnsupportedOperationException(
-                "Can't create JdbcDialect without compatible mode for Hive");
+        return new HiveDialect();
     }
 
     @Override

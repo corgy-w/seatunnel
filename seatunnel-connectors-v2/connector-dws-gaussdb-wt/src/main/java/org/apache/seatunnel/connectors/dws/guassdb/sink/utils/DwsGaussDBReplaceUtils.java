@@ -30,6 +30,9 @@ public class DwsGaussDBReplaceUtils {
             if (field instanceof String) {
                 String writeField =
                         ((String) field)
+                                .replace("\n", "")
+                                .replace("\r", "")
+                                .replace("\t", "")
                                 .replace("\\.", "")
                                 .replace("\\n", "")
                                 .replace("\\r", "")

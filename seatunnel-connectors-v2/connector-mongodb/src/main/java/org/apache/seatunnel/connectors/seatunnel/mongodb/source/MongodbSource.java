@@ -97,7 +97,10 @@ public class MongodbSource
             ArrayList<MongoSplit> checkpointState) {
         MongodbClientProvider clientProvider = crateClientProvider(options);
         return new MongodbSplitEnumerator(
-                enumeratorContext, clientProvider, createSplitStrategy(options, clientProvider));
+                enumeratorContext,
+                clientProvider,
+                createSplitStrategy(options, clientProvider),
+                checkpointState);
     }
 
     private MongodbClientProvider crateClientProvider(ReadonlyConfig config) {

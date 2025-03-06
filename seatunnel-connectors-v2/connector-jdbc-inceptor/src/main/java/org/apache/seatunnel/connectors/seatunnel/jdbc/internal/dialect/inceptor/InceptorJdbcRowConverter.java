@@ -29,8 +29,6 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorExc
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.hive.HiveJdbcRowConverter;
 
-import org.apache.commons.lang3.StringUtils;
-
 import javax.annotation.Nullable;
 
 import java.math.BigDecimal;
@@ -59,7 +57,11 @@ public class InceptorJdbcRowConverter extends HiveJdbcRowConverter {
                 int statementIndex = fieldIndex + 1;
                 Object fieldValue = row.getField(fieldIndex);
                 if (fieldValue == null) {
-                    statement.setObject(statementIndex, StringUtils.EMPTY);
+                    try {
+                        statement.setObject(statementIndex, null);
+                    } catch (Exception e) {
+                        statement.setNull(statementIndex, 1);
+                    }
                     continue;
                 }
 

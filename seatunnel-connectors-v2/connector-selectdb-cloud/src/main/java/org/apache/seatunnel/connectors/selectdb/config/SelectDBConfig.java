@@ -130,14 +130,23 @@ public class SelectDBConfig implements Serializable {
             Options.key("save_mode_create_template")
                     .stringType()
                     .defaultValue(
-                            "CREATE TABLE IF NOT EXISTS `${database}`.`${table}` (\n"
-                                    + "${rowtype_fields}\n"
+                            "CREATE TABLE IF NOT EXISTS `"
+                                    + SaveModePlaceHolder.DATABASE.getPlaceHolder()
+                                    + "`.`"
+                                    + SaveModePlaceHolder.TABLE.getPlaceHolder()
+                                    + "` (\n"
+                                    + SaveModePlaceHolder.ROWTYPE_FIELDS.getPlaceHolder()
+                                    + "\n"
                                     + ") ENGINE=OLAP\n"
-                                    + " UNIQUE KEY (${rowtype_primary_key})\n"
+                                    + " UNIQUE KEY ("
+                                    + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                    + ")\n"
                                     + "COMMENT '"
                                     + SaveModePlaceHolder.COMMENT.getPlaceHolder()
                                     + "'\n"
-                                    + "DISTRIBUTED BY HASH (${rowtype_primary_key})")
+                                    + "DISTRIBUTED BY HASH ("
+                                    + SaveModePlaceHolder.ROWTYPE_PRIMARY_KEY.getPlaceHolder()
+                                    + ")")
                     .withDescription(
                             "Create table statement template, used to create StarRocks table");
 

@@ -261,4 +261,16 @@ public interface JdbcOptions {
                     .mapType()
                     .noDefaultValue()
                     .withDescription("additional connection configuration parameters");
+
+    Option<String> DATE_FORMAT =
+            Options.key("date_format")
+                    .stringType()
+                    .defaultValue("YYYY-MM-DD HH24:MI:SS")
+                    .withDescription("date format to date");
+
+    Option<Boolean> ENABLE_TO_DATE =
+            Options.key("enable_to_date")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription("enable to date");
 }

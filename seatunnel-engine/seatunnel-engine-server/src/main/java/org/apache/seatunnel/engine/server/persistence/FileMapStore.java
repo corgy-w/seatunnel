@@ -17,9 +17,15 @@
 
 package org.apache.seatunnel.engine.server.persistence;
 
+import org.apache.seatunnel.common.config.Common;
+import org.apache.seatunnel.common.utils.ExceptionUtils;
+import org.apache.seatunnel.common.utils.FileUtils;
 import org.apache.seatunnel.engine.common.utils.FactoryUtil;
 import org.apache.seatunnel.engine.imap.storage.api.IMapStorage;
 import org.apache.seatunnel.engine.imap.storage.api.IMapStorageFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 import com.hazelcast.core.HazelcastInstance;
@@ -27,13 +33,31 @@ import com.hazelcast.map.MapLoaderLifecycleSupport;
 import com.hazelcast.map.MapStore;
 import lombok.SneakyThrows;
 
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 public class FileMapStore implements MapStore<Object, Object>, MapLoaderLifecycleSupport {
+    public static final Logger logger = LoggerFactory.getLogger(FileMapStore.class);
+    public static ClassLoader zetaClassLoader;
+
+    static {
+        List<URL> jars;
+        try {
+            jars = FileUtils.searchJarFiles(Common.appStarterDir().resolve("zeta"));
+        } catch (IOException e) {
+            logger.error(ExceptionUtils.getMessage(e));
+            throw new RuntimeException(e);
+        }
+        logger.info("init imap file storage factory with jars: {}", jars);
+        zetaClassLoader = new URLClassLoader(jars.toArray(new URL[0]));
+    }
 
     private IMapStorage mapStorage;
 
@@ -41,12 +65,15 @@ public class FileMapStore implements MapStore<Object, Object>, MapLoaderLifecycl
     public void init(HazelcastInstance hazelcastInstance, Properties properties, String mapName) {
 
         Map<String, Object> initMap = new HashMap<>(Maps.fromProperties(properties));
+        ClassLoader appClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(zetaClassLoader);
         this.mapStorage =
                 FactoryUtil.discoverFactory(
-                                Thread.currentThread().getContextClassLoader(),
+                                zetaClassLoader,
                                 IMapStorageFactory.class,
                                 (String) initMap.get("type"))
                         .create(initMap);
+        Thread.currentThread().setContextClassLoader(appClassLoader);
     }
 
     @Override

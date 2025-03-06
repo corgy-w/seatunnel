@@ -203,8 +203,9 @@ public class SqlServerCreateTableSqlBuilder {
     private String buildColumnIdentifySql(
             Column column, String catalogName, Map<String, String> columnComments) {
         final List<String> columnSqls = new ArrayList<>();
-        columnSqls.add("[" + column.getName() + "]");
-        if (StringUtils.equals(catalogName, DatabaseIdentifier.SQLSERVER)) {
+        columnSqls.add("[" + CatalogUtils.getFieldIde(column.getName(), fieldIde) + "]");
+        if (StringUtils.equals(catalogName, DatabaseIdentifier.SQLSERVER)
+                && StringUtils.isNotBlank(column.getSourceType())) {
             columnSqls.add(column.getSourceType());
         } else {
             columnSqls.add(SqlServerTypeConverter.INSTANCE.reconvert(column).getColumnType());

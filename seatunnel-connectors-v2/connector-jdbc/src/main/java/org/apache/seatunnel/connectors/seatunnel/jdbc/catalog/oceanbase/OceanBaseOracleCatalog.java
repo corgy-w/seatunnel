@@ -124,7 +124,7 @@ public class OceanBaseOracleCatalog extends OracleCatalog {
             String sql = "SELECT t.* FROM (" + sqlQuery + ") t WHERE rownum < 1";
             Connection defaultConnection = getConnection(defaultUrl);
             try (PreparedStatement ps = defaultConnection.prepareStatement(sql);
-                    ResultSet resultSet = ps.executeQuery(); ) {
+                    ResultSet resultSet = ps.executeQuery()) {
                 ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                 return CatalogUtils.getCatalogTable(
                         resultSetMetaData, new OracleTypeMapper(), sqlQuery);

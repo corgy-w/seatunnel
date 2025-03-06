@@ -20,6 +20,7 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.internal;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSinkConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
@@ -227,13 +228,18 @@ public class JdbcOutputFormatBuilder {
                     dialect, database, table, tableSchema, databaseTableSchema);
         }
         if (enableUpsert) {
+            List<? extends SeaTunnelDataType<?>> fieldTypes =
+                    tableSchema.getColumns().stream()
+                            .map(Column::getDataType)
+                            .collect(Collectors.toList());
             Optional<String> upsertSQL =
                     dialect.getUpsertStatement(
                             database,
                             table,
                             tableSchema.getFieldNames(),
                             pkNames,
-                            isPrimaryKeyUpdated);
+                            isPrimaryKeyUpdated,
+                            fieldTypes);
             if (upsertSQL.isPresent()) {
                 return createSimpleExecutor(
                         upsertSQL.get(),
@@ -268,12 +274,16 @@ public class JdbcOutputFormatBuilder {
             String table,
             TableSchema tableSchema,
             TableSchema databaseTableSchema) {
+        List<? extends SeaTunnelDataType<?>> fieldTypes =
+                tableSchema.getColumns().stream()
+                        .map(Column::getDataType)
+                        .collect(Collectors.toList());
         return new SimpleBatchStatementExecutor(
                 connection ->
                         FieldNamedPreparedStatement.prepareStatement(
                                 connection,
                                 dialect.getInsertIntoStatement(
-                                        database, table, tableSchema.getFieldNames()),
+                                        database, table, tableSchema.getFieldNames(), fieldTypes),
                                 tableSchema.getFieldNames()),
                 tableSchema,
                 databaseTableSchema,

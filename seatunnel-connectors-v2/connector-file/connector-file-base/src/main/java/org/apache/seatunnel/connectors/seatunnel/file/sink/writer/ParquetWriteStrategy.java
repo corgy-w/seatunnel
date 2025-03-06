@@ -210,7 +210,6 @@ public class ParquetWriteStrategy extends AbstractWriteStrategy<ParquetWriter<Ge
                             ParquetWriter<GenericRecord> newWriter =
                                     AvroParquetWriter.<GenericRecord>builder(outputFile)
                                             .withWriteMode(ParquetFileWriter.Mode.OVERWRITE)
-                                            .withConf(configuration)
                                             .withDataModel(dataModel)
                                             .withConf(configuration)
                                             // use parquet v1 to improve compatibility

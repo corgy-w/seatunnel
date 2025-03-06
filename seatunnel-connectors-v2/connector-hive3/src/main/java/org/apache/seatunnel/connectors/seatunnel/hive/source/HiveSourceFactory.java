@@ -52,6 +52,7 @@ public class HiveSourceFactory implements TableSourceFactory {
         return OptionRule.builder()
                 .optional(HiveConfig.TABLE_NAME)
                 .optional(HiveConfig.METASTORE_URI)
+                .optional(HiveSourceOptions.HIVE_SITE_PATH)
                 .optional(HiveSourceOptions.TABLE_CONFIGS)
                 .optional(BaseSourceConfigOptions.READ_PARTITIONS)
                 .optional(BaseSourceConfigOptions.READ_COLUMNS)

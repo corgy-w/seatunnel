@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectFactory;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
@@ -38,7 +39,8 @@ public class DmdbDialectFactory implements JdbcDialectFactory {
     }
 
     @Override
-    public JdbcDialect create(String compatibleMode, String fieldIde) {
-        return new DmdbDialect(fieldIde);
+    public JdbcDialect create(
+            String compatibleMode, String fieldIde, ReadonlyConfig readonlyConfig) {
+        return new DmdbDialect(fieldIde, readonlyConfig);
     }
 }

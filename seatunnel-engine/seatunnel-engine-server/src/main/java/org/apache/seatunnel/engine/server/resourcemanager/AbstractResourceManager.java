@@ -76,7 +76,6 @@ public abstract class AbstractResourceManager implements ResourceManager {
         log.info("initWorker... ");
         List<Address> aliveNode =
                 nodeEngine.getClusterService().getMembers().stream()
-                        .filter(Member::isLiteMember)
                         .map(Member::getAddress)
                         .collect(Collectors.toList());
         log.info("init live nodes: {}", aliveNode);

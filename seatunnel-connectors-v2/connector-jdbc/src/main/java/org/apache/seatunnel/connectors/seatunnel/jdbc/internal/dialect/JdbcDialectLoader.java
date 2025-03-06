@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 
@@ -37,11 +38,11 @@ public final class JdbcDialectLoader {
     private JdbcDialectLoader() {}
 
     public static JdbcDialect load(String url) {
-        return load(url, "", "");
+        return load(url, "", "", null);
     }
 
     public static JdbcDialect load(String url, String compatibleMode) {
-        return load(url, compatibleMode, "");
+        return load(url, compatibleMode, "", null);
     }
 
     /**
@@ -53,7 +54,8 @@ public final class JdbcDialectLoader {
      * @throws IllegalStateException if the loader cannot find exactly one dialect that can
      *     unambiguously process the given database URL.
      */
-    public static JdbcDialect load(String url, String compatibleMode, String fieldIde) {
+    public static JdbcDialect load(
+            String url, String compatibleMode, String fieldIde, ReadonlyConfig readonlyConfig) {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         List<JdbcDialectFactory> foundFactories = discoverFactories(cl);
 
@@ -98,7 +100,7 @@ public final class JdbcDialectLoader {
                                     .collect(Collectors.joining("\n"))));
         }
 
-        return matchingFactories.get(0).create(compatibleMode, fieldIde);
+        return matchingFactories.get(0).create(compatibleMode, fieldIde, readonlyConfig);
     }
 
     private static List<JdbcDialectFactory> discoverFactories(ClassLoader classLoader) {

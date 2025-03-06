@@ -31,10 +31,10 @@ import org.apache.seatunnel.api.table.schema.event.AlterTableNameEvent;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class AlterTableSchemaEventHandler implements TableSchemaChangeEventHandler {
     private TableSchema schema;
@@ -118,14 +118,10 @@ public class AlterTableSchemaEventHandler implements TableSchemaChangeEventHandl
 
     private TableSchema applyDropColumn(
             TableSchema schema, AlterTableDropColumnEvent dropColumnEvent) {
-        String[] fieldNames = schema.getFieldNames();
-
-        List<Column> newColumns = new ArrayList<>(schema.getColumns());
-        for (int i = 0; i < fieldNames.length; i++) {
-            if (fieldNames[i].equals(dropColumnEvent.getColumn())) {
-                newColumns.remove(i);
-            }
-        }
+        List<Column> newColumns =
+                schema.getColumns().stream()
+                        .filter(c -> !c.getName().equals(dropColumnEvent.getColumn()))
+                        .collect(Collectors.toList());
         return TableSchema.builder()
                 .columns(newColumns)
                 .primaryKey(schema.getPrimaryKey())

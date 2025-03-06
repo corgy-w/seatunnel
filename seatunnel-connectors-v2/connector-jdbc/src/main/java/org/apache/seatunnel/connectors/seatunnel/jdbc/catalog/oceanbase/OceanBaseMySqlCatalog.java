@@ -30,16 +30,17 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oceanbase.OceanBaseMySqlTypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oceanbase.OceanBaseMySqlTypeMapper;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oceanbase.OceanBaseMysqlType;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oracle.OracleTypeMapper;
 
 import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -197,12 +198,22 @@ public class OceanBaseMySqlCatalog extends AbstractJdbcCatalog {
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
-        Connection defaultConnection = getConnection(defaultUrl);
-        try (Statement statement = defaultConnection.createStatement();
-                ResultSet resultSet = statement.executeQuery(sqlQuery)) {
-            ResultSetMetaData metaData = resultSet.getMetaData();
+        try {
+            Connection defaultConnection = getConnection(defaultUrl);
             return CatalogUtils.getCatalogTable(
-                    metaData, new OceanBaseMySqlTypeMapper(typeConverter), sqlQuery);
+                    defaultConnection, sqlQuery, new OceanBaseMySqlTypeMapper(typeConverter));
+        } catch (Throwable e) {
+            log.warn(
+                    "Failed to get table from preparedStatement MetaData, try to get table from resultSet MetaData",
+                    e);
+            String sql = "SELECT t.* FROM (" + sqlQuery + ") t LIMIT 1";
+            Connection defaultConnection = getConnection(defaultUrl);
+            try (PreparedStatement ps = defaultConnection.prepareStatement(sql);
+                    ResultSet resultSet = ps.executeQuery()) {
+                ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                return CatalogUtils.getCatalogTable(
+                        resultSetMetaData, new OracleTypeMapper(), sqlQuery);
+            }
         }
     }
 

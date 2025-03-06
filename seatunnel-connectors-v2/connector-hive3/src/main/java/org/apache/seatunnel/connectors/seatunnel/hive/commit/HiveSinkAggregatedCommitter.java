@@ -21,10 +21,13 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.connectors.seatunnel.file.config.HadoopConf;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileSinkAggregatedCommitter;
+import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorErrorCode;
+import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.hive.sink.HiveSinkOptions;
 import org.apache.seatunnel.connectors.seatunnel.hive.utils.AbstractHiveMetaStoreProxy;
 import org.apache.seatunnel.connectors.seatunnel.hive.utils.HiveMetaStoreProxy;
 
+import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.thrift.TException;
 
 import lombok.extern.slf4j.Slf4j;
@@ -71,9 +74,15 @@ public class HiveSinkAggregatedCommitter extends FileSinkAggregatedCommitter {
                     try {
                         hiveMetaStore.addPartitions(dbName, tableName, partitions);
                         log.info("Add these partitions {}", partitions);
+                    } catch (AlreadyExistsException e) {
+                        log.warn("These partitions {} are already exists", partitions);
+                        throw new HiveConnectorException(
+                                HiveConnectorErrorCode.AGGREGATE_COMMIT_ERROR, e);
                     } catch (TException e) {
                         log.error("Failed to add these partitions {}", partitions, e);
                         errorCommitInfos.add(aggregatedCommitInfo);
+                        throw new HiveConnectorException(
+                                HiveConnectorErrorCode.AGGREGATE_COMMIT_ERROR, e);
                     }
                 }
             } finally {
