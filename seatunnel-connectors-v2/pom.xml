@@ -86,6 +86,7 @@
         <module>connector-dws-gaussdb-wt</module>
         <module>connector-jdbc-phoenix</module>
         <module>connector-jdbc-inceptor</module>
+        <module>connector-jdbc-starrocks</module>
     </modules>
 
     <dependencyManagement>
