@@ -46,7 +46,7 @@ jobs:
   sanity-check:
     if: github.repository == 'WhaleOps/whaletunnel'
     name: Sanity check results
-    needs: [ code-style, license-header ]
+    needs: [ code-style ]
     runs-on:
       labels: wtci
     timeout-minutes: 30
