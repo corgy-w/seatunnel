@@ -29,6 +29,7 @@ import org.apache.seatunnel.api.configuration.ConfigAdapter;
 import org.apache.seatunnel.api.sink.TablePlaceholder;
 import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.common.utils.ParserException;
+import org.apache.seatunnel.core.starter.enums.CryptoMode;
 import org.apache.seatunnel.core.starter.exception.ConfigCheckException;
 
 import lombok.NonNull;
@@ -63,21 +64,26 @@ public class ConfigBuilder {
         // utility class and cannot be instantiated
     }
 
-    private static Config ofInner(@NonNull Path filePath, List<String> variables) {
+    private static Config ofInner(
+            @NonNull Path filePath, List<String> variables, CryptoMode cryptoMode) {
         Config config =
                 ConfigFactory.parseFile(filePath.toFile())
                         .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true));
-        return ConfigShadeUtils.decryptConfig(backfillUserVariables(config, variables));
+        return ConfigShadeUtils.decryptConfig(backfillUserVariables(config, variables), cryptoMode);
     }
 
     public static Config of(@NonNull String filePath) {
-        Path path = Paths.get(filePath);
-        return of(path);
+        return of(filePath, null);
     }
 
     public static Config of(@NonNull String filePath, List<String> variables) {
+        return of(filePath, variables, CryptoMode.DEFAULT);
+    }
+
+    public static Config of(
+            @NonNull String filePath, List<String> variables, CryptoMode cryptoMode) {
         Path path = Paths.get(filePath);
-        return of(path, variables);
+        return of(path, variables, cryptoMode);
     }
 
     public static Config of(@NonNull Path filePath) {
@@ -85,12 +91,16 @@ public class ConfigBuilder {
     }
 
     public static Config of(@NonNull Path filePath, List<String> variables) {
+        return of(filePath, variables, CryptoMode.DEFAULT);
+    }
+
+    public static Config of(@NonNull Path filePath, List<String> variables, CryptoMode cryptoMode) {
         log.info("Loading config file from path: {}", filePath);
         Optional<ConfigAdapter> adapterSupplier = ConfigAdapterUtils.selectAdapter(filePath);
         Config config =
                 adapterSupplier
-                        .map(adapter -> of(adapter, filePath, variables))
-                        .orElseGet(() -> ofInner(filePath, variables));
+                        .map(adapter -> of(adapter, filePath, variables, cryptoMode))
+                        .orElseGet(() -> ofInner(filePath, variables, cryptoMode));
         return config;
     }
 
@@ -100,6 +110,14 @@ public class ConfigBuilder {
 
     public static Config of(
             @NonNull Map<String, Object> objectMap, boolean isEncrypt, boolean isJson) {
+        return of(objectMap, isEncrypt, isJson, CryptoMode.DEFAULT);
+    }
+
+    public static Config of(
+            @NonNull Map<String, Object> objectMap,
+            boolean isEncrypt,
+            boolean isJson,
+            CryptoMode cryptoMode) {
         log.info("Loading config file from objectMap");
         Config config =
                 ConfigFactory.parseMap(objectMap)
@@ -108,7 +126,7 @@ public class ConfigBuilder {
                                 ConfigFactory.systemProperties(),
                                 ConfigResolveOptions.defaults().setAllowUnresolved(true));
         if (!isEncrypt) {
-            config = ConfigShadeUtils.decryptConfig(config);
+            config = ConfigShadeUtils.decryptConfig(config, cryptoMode);
         }
         return config;
     }
@@ -152,18 +170,27 @@ public class ConfigBuilder {
 
     public static Config of(
             @NonNull ConfigAdapter configAdapter, @NonNull Path filePath, List<String> variables) {
+        return of(configAdapter, filePath, variables, CryptoMode.DEFAULT);
+    }
+
+    public static Config of(
+            @NonNull ConfigAdapter configAdapter,
+            @NonNull Path filePath,
+            List<String> variables,
+            CryptoMode cryptoMode) {
         log.info("With config adapter spi {}", configAdapter.getClass().getName());
         try {
             Map<String, Object> flattenedMap = configAdapter.loadConfig(filePath);
             Config config = ConfigFactory.parseMap(flattenedMap);
-            return ConfigShadeUtils.decryptConfig(backfillUserVariables(config, variables));
+            return ConfigShadeUtils.decryptConfig(
+                    backfillUserVariables(config, variables), cryptoMode);
         } catch (ParserException | IllegalArgumentException e) {
             throw e;
         } catch (Exception warn) {
             log.warn(
                     "Loading config failed with spi {}, fallback to HOCON loader.",
                     configAdapter.getClass().getName());
-            return ofInner(filePath, variables);
+            return ofInner(filePath, variables, cryptoMode);
         }
     }
 
