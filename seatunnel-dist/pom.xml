@@ -213,6 +213,12 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-hw-mrs-hive3</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-file-hadoop</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
@@ -742,6 +748,19 @@
                     <version>${project.version}</version>
                     <classifier>optional</classifier>
                     <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>seatunnel-hive-exec-mrs-3.1.0-h0.cbu.mrs.320.r33-uber</artifactId>
+                    <version>${project.version}</version>
+                    <classifier>optional</classifier>
+                    <scope>provided</scope>
+                    <exclusions>
+                        <exclusion>
+                            <groupId>org.slf4j</groupId>
+                            <artifactId>slf4j-reload4j</artifactId>
+                        </exclusion>
+                    </exclusions>
                 </dependency>
                 <!-- hive jdbc jar -->
                 <dependency>

@@ -852,6 +852,7 @@
                                     <mkdir dir="src/main/resources/connector-hbase" />
                                     <mkdir dir="src/main/resources/connector-hive2" />
                                     <mkdir dir="src/main/resources/connector-hive3" />
+                                    <mkdir dir="src/main/resources/connector-hw-mrs-hive3" />
                                     <mkdir dir="src/main/resources/connector-http-base" />
                                     <mkdir dir="src/main/resources/connector-http-feishu" />
                                     <mkdir dir="src/main/resources/connector-http-github" />
