@@ -18,45 +18,22 @@
 package org.apache.seatunnel.connectors.seatunnel.hive.sink;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableSink;
 import org.apache.seatunnel.api.table.factory.Factory;
-import org.apache.seatunnel.api.table.factory.TableSinkFactory;
 import org.apache.seatunnel.api.table.factory.TableSinkFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.connectors.seatunnel.file.config.BaseSinkConfig;
-import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOptions;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileAggregatedCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.commit.FileCommitInfo;
 import org.apache.seatunnel.connectors.seatunnel.file.sink.state.FileSinkState;
-import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConfig;
-import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(Factory.class)
-public class HiveSinkFactory
-        implements TableSinkFactory<
-                SeaTunnelRow, FileSinkState, FileCommitInfo, FileAggregatedCommitInfo> {
-
+public class Hive3MRSSinkFactory extends HiveSinkFactory {
     @Override
-    public OptionRule optionRule() {
-        return OptionRule.builder()
-                .required(HiveConfig.TABLE_NAME)
-                .required(HiveConfig.METASTORE_URI)
-                .optional(HiveConfig.ABORT_DROP_PARTITION_METADATA)
-                .optional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
-                .optional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
-                .optional(HdfsConfigOptions.REMOTE_USER)
-                .optional(HiveConfig.HADOOP_CONF)
-                .optional(HiveConfig.HADOOP_CONF_PATH)
-                .optional(HiveSinkOptions.HIVE_SITE_PATH)
-                .optional(HiveSinkOptions.ABORT_DROP_PARTITION_METADATA)
-                .optional(BaseSinkConfig.PARQUET_AVRO_WRITE_TIMESTAMP_AS_INT96)
-                .optional(BaseSinkConfig.HAVE_PARTITION)
-                .conditional(BaseSinkConfig.HAVE_PARTITION, true, BaseSinkConfig.PARTITION_BY)
-                .build();
+    public String factoryIdentifier() {
+        return "MRS-Hive3";
     }
 
     @Override
@@ -64,11 +41,6 @@ public class HiveSinkFactory
             createSink(TableSinkFactoryContext context) {
         ReadonlyConfig readonlyConfig = context.getOptions();
         CatalogTable catalogTable = context.getCatalogTable();
-        return () -> new HiveSink(readonlyConfig, catalogTable);
-    }
-
-    @Override
-    public String factoryIdentifier() {
-        return HiveConstants.CONNECTOR_NAME;
+        return () -> new Hive3MRSSink(readonlyConfig, catalogTable);
     }
 }

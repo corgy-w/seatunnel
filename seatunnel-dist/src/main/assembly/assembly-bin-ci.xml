@@ -348,6 +348,18 @@
             <scope>provided</scope>
         </dependencySet>
 
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>org.apache.seatunnel:seatunnel-hive-exec-mrs-3.1.0-h0.cbu.mrs.320.r33-uber:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-hw-mrs-hive3</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
         <!-- =================== Hive2 Connector Dependency ===================  -->
         <dependencySet>
             <useProjectArtifact>false</useProjectArtifact>

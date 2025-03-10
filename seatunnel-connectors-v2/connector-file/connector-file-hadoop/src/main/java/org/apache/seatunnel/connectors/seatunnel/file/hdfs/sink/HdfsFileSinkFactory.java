@@ -105,6 +105,7 @@ public class HdfsFileSinkFactory extends BaseMultipleTableFileSinkFactory {
                 .optional(BaseSinkConfig.DATETIME_FORMAT)
                 .optional(BaseSinkConfig.TIME_FORMAT)
                 .optional(HdfsConfigOptions.HDFS_SITE_PATH)
+                .optional(HdfsConfigOptions.HADOOP_CONF_PATH)
                 .optional(HdfsConfigOptions.KERBEROS_PRINCIPAL)
                 .optional(HdfsConfigOptions.KERBEROS_KEYTAB_PATH)
                 .optional(HdfsConfigOptions.KRB5_PATH)
