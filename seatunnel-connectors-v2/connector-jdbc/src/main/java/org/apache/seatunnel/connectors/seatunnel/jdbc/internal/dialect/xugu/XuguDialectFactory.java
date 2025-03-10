@@ -29,6 +29,11 @@ import javax.annotation.Nonnull;
 public class XuguDialectFactory implements JdbcDialectFactory {
 
     @Override
+    public String dialectFactoryName() {
+        return "";
+    }
+
+    @Override
     public boolean acceptsURL(String url) {
         return url.startsWith("jdbc:xugu:");
     }

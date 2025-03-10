@@ -20,11 +20,12 @@ package org.apache.seatunnel.connectors.seatunnel.starrocks.datatype;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.api.table.converter.TypeConverter;
 
+import com.mysql.cj.MysqlType;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class StartRocksConverterFactory {
-    public static TypeConverter<BasicTypeDefine> getTypeConverter() {
+    public static TypeConverter<BasicTypeDefine<MysqlType>> getTypeConverter() {
         return StarRocksTypeConverter.INSTANCE;
     }
 }

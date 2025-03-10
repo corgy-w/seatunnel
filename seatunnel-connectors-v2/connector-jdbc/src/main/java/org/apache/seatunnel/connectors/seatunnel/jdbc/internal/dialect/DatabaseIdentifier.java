@@ -25,6 +25,7 @@ public class DatabaseIdentifier {
     public static final String MRS_HIVE = "MRSHIVE";
     public static final String INFORMIX = "Informix";
     public static final String KINGBASE = "KingBase";
+    public static final String KINGBASE8 = "KingBase8";
     public static final String MYSQL = "MySQL";
     public static final String STARROCKS = "StarRocks";
     public static final String ORACLE = "Oracle";
@@ -46,4 +47,6 @@ public class DatabaseIdentifier {
     public static final String INCEPTOR = "Inceptor";
     public static final String OPENGAUSS = "OpenGauss";
     public static final String DWS = "DWS";
+    public static final String DMDB = "DMDB";
+    public static final String GREENPLUM = "Greenplum";
 }

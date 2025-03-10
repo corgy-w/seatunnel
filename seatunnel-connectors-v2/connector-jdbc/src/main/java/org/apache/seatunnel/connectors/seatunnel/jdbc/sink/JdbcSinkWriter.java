@@ -106,7 +106,7 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
                 MapUtils.toProperties(jdbcSinkConfig.getJdbcConnectionConfig().getProperties()));
         if (jdbcSinkConfig
                 .getJdbcConnectionConfig()
-                .driverName
+                .getDriverName()
                 .equals("io.transwarp.jdbc.InceptorDriver")) {
             ds.setDriverClassName("io.transwarp.jdbc.InceptorDriver");
         }
