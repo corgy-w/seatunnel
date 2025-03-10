@@ -21,7 +21,7 @@ import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.pipeline.ErrorHandler;
 
 public class InformixErrorHandler extends ErrorHandler {
-    public InformixErrorHandler(String logicalName, ChangeEventQueue<?> queue) {
-        super(InformixConnector.class, logicalName, queue);
+    public InformixErrorHandler(InformixConnectorConfig config, ChangeEventQueue<?> queue) {
+        super(InformixConnector.class, config, queue);
     }
 }

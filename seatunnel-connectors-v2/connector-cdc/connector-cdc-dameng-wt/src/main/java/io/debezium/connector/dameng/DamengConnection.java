@@ -20,6 +20,7 @@ package io.debezium.connector.dameng;
 import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.config.Field;
+import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
 import io.debezium.relational.RelationalTableFilters;
@@ -55,24 +56,15 @@ public class DamengConnection extends JdbcConnection {
     }
 
     private static final Field URL = Field.create("url", "Raw JDBC url");
+    private static final String QUOTED_CHARACTER = "\"";
 
-    public DamengConnection(Configuration config) {
-        this(config, resolveConnectionFactory(config));
-    }
-
-    public DamengConnection(Configuration config, ConnectionFactory connectionFactory) {
-        super(config, connectionFactory);
-    }
-
-    public DamengConnection(Configuration config, Supplier<ClassLoader> classLoaderSupplier) {
-        super(config, resolveConnectionFactory(config), classLoaderSupplier);
-    }
-
-    public DamengConnection(
-            Configuration config,
-            ConnectionFactory connectionFactory,
-            Supplier<ClassLoader> classLoaderSupplier) {
-        super(config, connectionFactory, classLoaderSupplier);
+    public DamengConnection(JdbcConfiguration config, Supplier<ClassLoader> classLoaderSupplier) {
+        super(
+                config,
+                resolveConnectionFactory(config),
+                classLoaderSupplier,
+                QUOTED_CHARACTER,
+                QUOTED_CHARACTER);
     }
 
     @Override

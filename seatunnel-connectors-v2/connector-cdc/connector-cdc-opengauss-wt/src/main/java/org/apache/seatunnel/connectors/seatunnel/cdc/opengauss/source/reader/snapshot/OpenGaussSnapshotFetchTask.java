@@ -63,7 +63,9 @@ public class OpenGaussSnapshotFetchTask implements FetchTask<SourceSplitBase> {
                 new SnapshotSplitChangeEventSourceContext();
         SnapshotResult snapshotResult =
                 snapshotSplitReadTask.execute(
-                        changeEventSourceContext, sourceFetchContext.getOffsetContext());
+                        changeEventSourceContext,
+                        sourceFetchContext.getPartition(),
+                        sourceFetchContext.getOffsetContext());
         if (!snapshotResult.isCompletedOrSkipped()) {
             taskRunning = false;
             throw new IllegalStateException(
@@ -88,7 +90,7 @@ public class OpenGaussSnapshotFetchTask implements FetchTask<SourceSplitBase> {
         if (true) {
             dispatchBinlogEndEvent(
                     backfillSplit,
-                    ((OpenGaussSourceFetchTaskContext) context).getOffsetContext().getPartition(),
+                    sourceFetchContext.getPartition().getSourcePartition(),
                     ((OpenGaussSourceFetchTaskContext) context).getDispatcher());
             taskRunning = false;
             return;

@@ -36,7 +36,7 @@ import io.debezium.util.SchemaNameAdjuster;
  * @author Lairen Hightower
  */
 public class OpengaussEventDispatcher<T extends DataCollectionId>
-        extends JdbcSourceEventDispatcher {
+        extends JdbcSourceEventDispatcher<OpengaussPartition> {
     private static final Logger LOGGER = LoggerFactory.getLogger(OpengaussEventDispatcher.class);
     private final ChangeEventQueue<DataChangeEvent> queue;
     private final LogicalDecodingMessageMonitor logicalDecodingMessageMonitor;
@@ -96,7 +96,7 @@ public class OpengaussEventDispatcher<T extends DataCollectionId>
             ChangeEventQueue<DataChangeEvent> queue,
             DataCollectionFilters.DataCollectionFilter<TableId> filter,
             ChangeEventCreator changeEventCreator,
-            InconsistentSchemaHandler<T> inconsistentSchemaHandler,
+            InconsistentSchemaHandler<OpengaussPartition, T> inconsistentSchemaHandler,
             EventMetadataProvider metadataProvider,
             Heartbeat customHeartbeat,
             SchemaNameAdjuster schemaNameAdjuster,

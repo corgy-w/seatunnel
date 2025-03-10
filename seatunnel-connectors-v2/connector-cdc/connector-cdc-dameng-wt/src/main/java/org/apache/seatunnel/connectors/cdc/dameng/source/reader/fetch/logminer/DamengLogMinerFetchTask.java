@@ -53,7 +53,9 @@ public class DamengLogMinerFetchTask implements FetchTask<SourceSplitBase> {
         DamengLogMinerChangeEventSourceContext changeEventSourceContext =
                 new DamengLogMinerChangeEventSourceContext();
         streamingChangeEventSource.execute(
-                changeEventSourceContext, sourceFetchContext.getOffsetContext());
+                changeEventSourceContext,
+                sourceFetchContext.getPartition(),
+                sourceFetchContext.getOffsetContext());
     }
 
     @Override

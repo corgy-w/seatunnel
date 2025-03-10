@@ -26,6 +26,7 @@ import io.debezium.connector.dameng.DamengConnection;
 import io.debezium.connector.dameng.DamengConnectorConfig;
 import io.debezium.connector.dameng.DamengDatabaseSchema;
 import io.debezium.connector.dameng.DamengOffsetContext;
+import io.debezium.connector.dameng.DamengPartition;
 import io.debezium.connector.dameng.DamengStreamingChangeEventSource;
 import io.debezium.connector.dameng.DamengStreamingChangeEventSourceMetrics;
 import io.debezium.connector.dameng.Scn;
@@ -69,7 +70,7 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
     private final JdbcConfiguration jdbcConfiguration;
     private final String database;
     private final DamengConnection jdbcConnection;
-    private final EventDispatcher<TableId> eventDispatcher;
+    private final EventDispatcher<DamengPartition, TableId> eventDispatcher;
     private final ErrorHandler errorHandler;
     private final Clock clock;
     private final DamengDatabaseSchema databaseSchema;
@@ -85,7 +86,7 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
     public LogMinerStreamingChangeEventSource(
             DamengSourceConfig sourceConfig,
             DamengConnection connection,
-            EventDispatcher<TableId> eventDispatcher,
+            EventDispatcher<DamengPartition, TableId> eventDispatcher,
             ErrorHandler errorHandler,
             Clock clock,
             DamengDatabaseSchema databaseSchema,
@@ -108,11 +109,18 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
 
     @Override
     public void execute(
-            final ChangeEventSourceContext context, final DamengOffsetContext offsetContext)
+            final ChangeEventSourceContext context,
+            DamengPartition partition,
+            final DamengOffsetContext offsetContext)
             throws InterruptedException {
         try (TransactionalBuffer transactionalBuffer =
                 new TransactionalBuffer(
-                        connectorConfig, databaseSchema, clock, errorHandler, streamingMetrics)) {
+                        connectorConfig,
+                        databaseSchema,
+                        clock,
+                        errorHandler,
+                        streamingMetrics,
+                        partition)) {
             try {
                 startScn = offsetContext.getScn();
                 Scn firstOnlineLogScn;
@@ -146,6 +154,7 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
 
                     LogMinerQueryResultProcessor processor =
                             new LogMinerQueryResultProcessor(
+                                    partition,
                                     context,
                                     connectorConfig,
                                     streamingMetrics,
@@ -186,7 +195,7 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
                                             connectorConfig.isLobEnabled());
                             if (archiveLogOnlyMode && startScn.equals(endScn)) {
                                 pauseBetweenMiningSessions();
-                                eventDispatcher.dispatchHeartbeatEvent(offsetContext);
+                                eventDispatcher.dispatchHeartbeatEvent(partition, offsetContext);
                                 continue;
                             }
 
@@ -228,7 +237,7 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
                                 if (connectorConfig.isLobEnabled()) {
                                     startScn =
                                             transactionalBuffer.updateOffsetContext(
-                                                    offsetContext, eventDispatcher);
+                                                    partition, offsetContext, eventDispatcher);
                                 } else {
                                     final Scn lastProcessedScn = processor.getLastProcessedScn();
                                     if (!lastProcessedScn.isNull()
@@ -245,14 +254,15 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
                                         if (!minStartScn.isNull()) {
                                             offsetContext.setScn(
                                                     minStartScn.subtract(Scn.valueOf(1)));
-                                            eventDispatcher.dispatchHeartbeatEvent(offsetContext);
+                                            eventDispatcher.dispatchHeartbeatEvent(
+                                                    partition, offsetContext);
                                         }
                                     }
                                     startScn = endScn;
                                 }
                             }
 
-                            afterHandleScn(offsetContext);
+                            afterHandleScn(partition, offsetContext);
                             streamingMetrics.setCurrentBatchProcessingTime(
                                     Duration.between(start, Instant.now()));
                             pauseBetweenMiningSessions();
@@ -359,5 +369,5 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
         setLogFilesForMining(connection, startScn, archiveLogRetention, archiveLogOnlyMode);
     }
 
-    protected void afterHandleScn(DamengOffsetContext offsetContext) {}
+    protected void afterHandleScn(DamengPartition partition, DamengOffsetContext offsetContext) {}
 }

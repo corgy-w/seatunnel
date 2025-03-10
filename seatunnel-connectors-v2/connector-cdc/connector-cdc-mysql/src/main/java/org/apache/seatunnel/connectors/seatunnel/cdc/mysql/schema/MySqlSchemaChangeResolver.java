@@ -30,6 +30,7 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import io.debezium.connector.mysql.MySqlValueConverters;
+import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.TableEditor;
 import io.debezium.relational.history.HistoryRecord;
 import io.debezium.relational.history.TableChanges;
@@ -45,8 +46,11 @@ public class MySqlSchemaChangeResolver implements SchemaChangeResolver {
 
     private MySqlAntlrDdlParser ddlParser;
 
-    public MySqlSchemaChangeResolver(MySqlValueConverters converters, String catalogName) {
-        this.ddlParser = new MySqlAntlrDdlParser(";", false, catalogName, null);
+    public MySqlSchemaChangeResolver(
+            MySqlValueConverters converters,
+            String catalogName,
+            RelationalDatabaseConnectorConfig dbzConnectorConfig) {
+        this.ddlParser = new MySqlAntlrDdlParser(";", false, catalogName, null, dbzConnectorConfig);
     }
 
     @Override

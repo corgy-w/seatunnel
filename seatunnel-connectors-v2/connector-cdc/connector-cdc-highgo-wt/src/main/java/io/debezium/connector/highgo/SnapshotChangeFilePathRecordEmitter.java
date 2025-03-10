@@ -17,7 +17,8 @@ import io.debezium.util.Clock;
  * @author czy
  * @date 2023/06/02
  */
-public class SnapshotChangeFilePathRecordEmitter extends RelationalChangeRecordEmitter {
+public class SnapshotChangeFilePathRecordEmitter
+        extends RelationalChangeRecordEmitter<HighGoPartition> {
     // Contains two elements, the first is file location information, and the second is table column
     // information
     private final Object[] row;
@@ -30,13 +31,13 @@ public class SnapshotChangeFilePathRecordEmitter extends RelationalChangeRecordE
      * @param row data
      */
     public SnapshotChangeFilePathRecordEmitter(
-            OffsetContext offsetContext, Clock clock, Object[] row) {
-        super(offsetContext, clock);
+            HighGoPartition partition, OffsetContext offsetContext, Clock clock, Object[] row) {
+        super(partition, offsetContext, clock);
         this.row = row;
     }
 
     @Override
-    protected Envelope.Operation getOperation() {
+    public Envelope.Operation getOperation() {
         return Envelope.Operation.READ;
     }
 

@@ -38,6 +38,7 @@ import io.debezium.connector.highgo.HighGoErrorHandler;
 import io.debezium.connector.highgo.HighGoEventDispatcher;
 import io.debezium.connector.highgo.HighGoEventMetadataProvider;
 import io.debezium.connector.highgo.HighGoOffsetContext;
+import io.debezium.connector.highgo.HighGoPartition;
 import io.debezium.connector.highgo.HighGoSchema;
 import io.debezium.connector.highgo.HighGoTaskContext;
 import io.debezium.connector.highgo.HighGoTopicSelector;
@@ -64,6 +65,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Objects;
 
 import static org.apache.seatunnel.connectors.seatunnel.cdc.highgo.utils.HighGoConnectionUtils.newHighGoValueConverterBuilder;
 
@@ -81,15 +83,16 @@ public class HighGoSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     @Getter private Snapshotter snapshotter;
     private HighGoSchema databaseSchema;
     private HighGoOffsetContext offsetContext;
+    private HighGoPartition partition;
     private TopicSelector<TableId> topicSelector;
-    private JdbcSourceEventDispatcher dispatcher;
-    private HighGoEventDispatcher highGoEventDispatcher;
+    private JdbcSourceEventDispatcher<HighGoPartition> dispatcher;
+    private HighGoEventDispatcher<TableId> highGoEventDispatcher;
     private ChangeEventQueue<DataChangeEvent> queue;
     private HighGoErrorHandler errorHandler;
 
     @Getter private HighGoTaskContext taskContext;
 
-    private SnapshotChangeEventSourceMetrics snapshotChangeEventSourceMetrics;
+    private SnapshotChangeEventSourceMetrics<HighGoPartition> snapshotChangeEventSourceMetrics;
 
     private HighGoConnection.HighGoValueConverterBuilder highGoValueConverterBuilder;
 
@@ -134,6 +137,7 @@ public class HighGoSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.offsetContext =
                 loadStartingOffsetState(
                         new HighGoOffsetContext.Loader(connectorConfig), sourceSplitBase);
+        this.partition = new HighGoPartition(connectorConfig.getLogicalName());
 
         final int queueSize =
                 sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
@@ -214,7 +218,7 @@ public class HighGoSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                             .build();
 
             this.dispatcher =
-                    new JdbcSourceEventDispatcher(
+                    new JdbcSourceEventDispatcher<>(
                             connectorConfig,
                             topicSelector,
                             databaseSchema,
@@ -236,10 +240,10 @@ public class HighGoSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                             schemaNameAdjuster);
 
             this.snapshotChangeEventSourceMetrics =
-                    new DefaultChangeEventSourceMetricsFactory()
+                    new DefaultChangeEventSourceMetricsFactory<HighGoPartition>()
                             .getSnapshotMetrics(taskContext, queue, metadataProvider);
 
-            this.errorHandler = new HighGoErrorHandler(connectorConfig.getLogicalName(), queue);
+            this.errorHandler = new HighGoErrorHandler(connectorConfig, queue);
         } finally {
             previousContext.restore();
         }
@@ -254,7 +258,7 @@ public class HighGoSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         return dataConnection;
     }
 
-    public SnapshotChangeEventSourceMetrics getSnapshotChangeEventSourceMetrics() {
+    public SnapshotChangeEventSourceMetrics<HighGoPartition> getSnapshotChangeEventSourceMetrics() {
         return snapshotChangeEventSourceMetrics;
     }
 
@@ -266,6 +270,11 @@ public class HighGoSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     @Override
     public HighGoOffsetContext getOffsetContext() {
         return offsetContext;
+    }
+
+    @Override
+    public HighGoPartition getPartition() {
+        return partition;
     }
 
     @Override
@@ -284,7 +293,7 @@ public class HighGoSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     }
 
     @Override
-    public JdbcSourceEventDispatcher getDispatcher() {
+    public JdbcSourceEventDispatcher<HighGoPartition> getDispatcher() {
         return dispatcher;
     }
 
@@ -310,8 +319,10 @@ public class HighGoSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     @Override
     public void close() {
         try {
-            this.dataConnection.close();
-            if (this.replicationConnection != null) {
+            if (Objects.nonNull(dataConnection)) {
+                this.dataConnection.close();
+            }
+            if (Objects.nonNull(replicationConnection)) {
                 this.replicationConnection.close();
             }
         } catch (Exception e) {

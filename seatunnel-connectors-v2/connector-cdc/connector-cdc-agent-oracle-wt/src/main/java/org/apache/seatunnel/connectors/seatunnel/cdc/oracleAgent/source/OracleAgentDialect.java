@@ -81,7 +81,8 @@ public class OracleAgentDialect implements JdbcDataSourceDialect {
 
     @Override
     public JdbcConnection openJdbcConnection(JdbcSourceConfig sourceConfig) {
-        return OracleConnectionUtils.createOracleConnection(sourceConfig.getDbzConfiguration());
+        return OracleConnectionUtils.createOracleConnection(
+                sourceConfig.getDbzConnectorConfig().getJdbcConfig());
     }
 
     @Override

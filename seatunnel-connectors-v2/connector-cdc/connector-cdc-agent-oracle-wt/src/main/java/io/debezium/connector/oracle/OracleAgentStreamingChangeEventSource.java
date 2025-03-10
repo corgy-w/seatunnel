@@ -17,7 +17,6 @@
 
 package io.debezium.connector.oracle;
 
-import org.apache.seatunnel.connectors.cdc.base.relational.JdbcSourceEventDispatcher;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.config.OracleAgentSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.DateUtils;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.utils.OracleAgentClientUtils;
@@ -34,6 +33,7 @@ import org.whaleops.whaletunnel.oracleagent.sdk.model.OracleTransactionFileNumbe
 import io.debezium.connector.oracle.oracleAgent.OracleAgentDmlEntry;
 import io.debezium.connector.oracle.oracleAgent.OracleAgentDmlEntryFactory;
 import io.debezium.pipeline.ErrorHandler;
+import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.spi.StreamingChangeEventSource;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
@@ -49,14 +49,14 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class OracleAgentStreamingChangeEventSource
-        implements StreamingChangeEventSource<OracleAgentOffsetContext> {
+        implements StreamingChangeEventSource<OraclePartition, OracleAgentOffsetContext> {
 
     private static final Long NO_DATA_AVAILABLE_SLEEP_MS = 5_000L;
 
     private final OracleAgentConnectorConfig oracle9BridgeConnectorConfig;
     private final CustomOracleAgentValueConverter customOracleAgentValueConverter;
     private final OracleAgentSourceConfig sourceConfig;
-    private final JdbcSourceEventDispatcher eventDispatcher;
+    private final EventDispatcher<OraclePartition, TableId> eventDispatcher;
     private ChangeEventSourceContext context;
     private final OracleDatabaseSchema oracleDatabaseSchema;
     private final ErrorHandler errorHandler;
@@ -75,7 +75,7 @@ public class OracleAgentStreamingChangeEventSource
             OracleConnection oracleConnection,
             List<TableId> tableIds,
             OracleAgentSourceConfig sourceConfig,
-            JdbcSourceEventDispatcher eventDispatcher,
+            EventDispatcher<OraclePartition, TableId> eventDispatcher,
             ErrorHandler errorHandler,
             OracleDatabaseSchema oracleDatabaseSchema,
             String serverTimeZone) {
@@ -95,7 +95,10 @@ public class OracleAgentStreamingChangeEventSource
     }
 
     @Override
-    public void execute(ChangeEventSourceContext context, OracleAgentOffsetContext offsetContext) {
+    public void execute(
+            ChangeEventSourceContext context,
+            OraclePartition partition,
+            OracleAgentOffsetContext offsetContext) {
         this.context = context;
         try {
             log.info(
@@ -142,16 +145,16 @@ public class OracleAgentStreamingChangeEventSource
                                 currentFzsFileNumber);
                         Thread.sleep(NO_DATA_AVAILABLE_SLEEP_MS);
                     }
-                    eventDispatcher.dispatchHeartbeatEvent(offsetContext);
+                    eventDispatcher.dispatchHeartbeatEvent(partition, offsetContext);
                     continue;
                 }
                 for (OracleTransactionData data : oracleTransactionData) {
                     // todo: filter the already processed scn in snapshot stage
-                    handleEvent(offsetContext, currentFzsFileNumber, data.getOp());
+                    handleEvent(partition, offsetContext, currentFzsFileNumber, data.getOp());
                 }
                 Scn preScn = offsetContext.getScn();
                 if (offsetContext.getScn().compareTo(preScn) != 1) {
-                    eventDispatcher.dispatchHeartbeatEvent(offsetContext);
+                    eventDispatcher.dispatchHeartbeatEvent(partition, offsetContext);
                 } else {
                     log.info("[{}] The scn is invalided, will skip the event: {}", tables, preScn);
                 }
@@ -171,6 +174,7 @@ public class OracleAgentStreamingChangeEventSource
     }
 
     protected void handleEvent(
+            OraclePartition partition,
             OracleAgentOffsetContext offsetContext,
             Integer fzsFileNumber,
             List<OracleOperation> oracleOperations) {
@@ -204,8 +208,10 @@ public class OracleAgentStreamingChangeEventSource
                 offsetContext.setFzsFileNumber(fzsFileNumber);
                 try {
                     eventDispatcher.dispatchDataChangeEvent(
+                            partition,
                             tableId,
-                            new OracleDataChangeRecordEmitter(offsetContext, clock, dmlEntry));
+                            new OracleDataChangeRecordEmitter(
+                                    partition, offsetContext, clock, dmlEntry));
                 } catch (InterruptedException e) {
                     throw new RuntimeException("Dispatch DataChange Event Error", e);
                 }

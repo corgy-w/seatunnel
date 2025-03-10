@@ -17,7 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.cdc.oracle.utils;
 
-import io.debezium.config.Configuration;
+import io.debezium.jdbc.JdbcConfiguration;
 
 import java.sql.DriverManager;
 import java.util.function.Supplier;
@@ -35,7 +35,7 @@ public class OracleConnection extends io.debezium.connector.oracle.OracleConnect
         DriverManager.getDrivers();
     }
 
-    public OracleConnection(Configuration config, Supplier<ClassLoader> classLoaderSupplier) {
+    public OracleConnection(JdbcConfiguration config, Supplier<ClassLoader> classLoaderSupplier) {
         super(config, classLoaderSupplier);
     }
 }

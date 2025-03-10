@@ -32,6 +32,7 @@ public class TruncateRecordEmitter extends HighGoChangeRecordEmitter {
      * @param message ReplicationMessage
      */
     public TruncateRecordEmitter(
+            HighGoPartition partition,
             OffsetContext offset,
             Clock clock,
             HighGoConnectorConfig connectorConfig,
@@ -39,6 +40,6 @@ public class TruncateRecordEmitter extends HighGoChangeRecordEmitter {
             HighGoConnection connection,
             TableId tableId,
             ReplicationMessage message) {
-        super(offset, clock, connectorConfig, schema, connection, tableId, message);
+        super(partition, offset, clock, connectorConfig, schema, connection, tableId, message);
     }
 }

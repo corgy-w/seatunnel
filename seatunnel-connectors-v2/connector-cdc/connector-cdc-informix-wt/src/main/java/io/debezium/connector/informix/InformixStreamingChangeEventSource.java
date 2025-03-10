@@ -47,11 +47,11 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class InformixStreamingChangeEventSource
-        implements StreamingChangeEventSource<InformixOffsetContext> {
+        implements StreamingChangeEventSource<InformixPartition, InformixOffsetContext> {
     private final InformixSourceConfig sourceConfig;
     private final InformixCDCEngine cdcEngine;
     private final List<TableId> tableIds;
-    private final EventDispatcher<TableId> eventDispatcher;
+    private final EventDispatcher<InformixPartition, TableId> eventDispatcher;
     private final ErrorHandler errorHandler;
     private final Clock clock;
     private final InformixDatabaseSchema databaseSchema;
@@ -60,7 +60,7 @@ public class InformixStreamingChangeEventSource
             InformixSourceConfig sourceConfig,
             InformixCDCEngine cdcEngine,
             List<TableId> tableIds,
-            EventDispatcher<TableId> eventDispatcher,
+            EventDispatcher<InformixPartition, TableId> eventDispatcher,
             ErrorHandler errorHandler,
             Clock clock,
             InformixDatabaseSchema databaseSchema) {
@@ -74,7 +74,10 @@ public class InformixStreamingChangeEventSource
     }
 
     @Override
-    public void execute(ChangeEventSourceContext context, InformixOffsetContext offsetContext)
+    public void execute(
+            ChangeEventSourceContext context,
+            InformixPartition partition,
+            InformixOffsetContext offsetContext)
             throws InterruptedException {
         InformixTransactionCache transCache = offsetContext.getInformixTransactionCache();
 
@@ -85,7 +88,7 @@ public class InformixStreamingChangeEventSource
 
         // restore
         while (context.isRunning()) {
-            eventDispatcher.dispatchHeartbeatEvent(offsetContext);
+            eventDispatcher.dispatchHeartbeatEvent(partition, offsetContext);
 
             if (lastPosition.getChangeLsn() <= lastPosition.getCommitLsn()) {
                 log.info(
@@ -115,6 +118,7 @@ public class InformixStreamingChangeEventSource
                         break;
                     case AFTER_UPDATE:
                         handleAfterUpdate(
+                                partition,
                                 cdcEngine,
                                 offsetContext,
                                 (IfxCDCOperationRecord) record,
@@ -130,6 +134,7 @@ public class InformixStreamingChangeEventSource
                         break;
                     case INSERT:
                         handleInsert(
+                                partition,
                                 cdcEngine,
                                 offsetContext,
                                 (IfxCDCOperationRecord) record,
@@ -138,6 +143,7 @@ public class InformixStreamingChangeEventSource
                         break;
                     case COMMIT:
                         handleCommit(
+                                partition,
                                 offsetContext,
                                 (IfxCDCCommitTransactionRecord) record,
                                 transCache,
@@ -184,6 +190,7 @@ public class InformixStreamingChangeEventSource
                                     break;
                                 case AFTER_UPDATE:
                                     handleAfterUpdate(
+                                            partition,
                                             cdcEngine,
                                             offsetContext,
                                             (IfxCDCOperationRecord) record,
@@ -199,6 +206,7 @@ public class InformixStreamingChangeEventSource
                                     break;
                                 case INSERT:
                                     handleInsert(
+                                            partition,
                                             cdcEngine,
                                             offsetContext,
                                             (IfxCDCOperationRecord) record,
@@ -207,6 +215,7 @@ public class InformixStreamingChangeEventSource
                                     break;
                                 case COMMIT:
                                     handleCommit(
+                                            partition,
                                             offsetContext,
                                             (IfxCDCCommitTransactionRecord) record,
                                             transCache,
@@ -221,6 +230,7 @@ public class InformixStreamingChangeEventSource
                                     break;
                                 case DELETE:
                                     handleDelete(
+                                            partition,
                                             cdcEngine,
                                             offsetContext,
                                             (IfxCDCOperationRecord) record,
@@ -261,6 +271,7 @@ public class InformixStreamingChangeEventSource
     }
 
     public void handleDelete(
+            InformixPartition partition,
             InformixCDCEngine cdcEngine,
             InformixOffsetContext offsetContext,
             IfxCDCOperationRecord record,
@@ -274,6 +285,7 @@ public class InformixStreamingChangeEventSource
         Map<Integer, TableId> label2TableId = cdcEngine.convertLabel2TableId();
         TableId tid = label2TableId.get(Integer.parseInt(record.getLabel()));
         handleEvent(
+                partition,
                 tid,
                 offsetContext,
                 record,
@@ -348,6 +360,7 @@ public class InformixStreamingChangeEventSource
     }
 
     public void handleAfterUpdate(
+            InformixPartition partition,
             InformixCDCEngine cdcEngine,
             InformixOffsetContext offsetContext,
             IfxCDCOperationRecord record,
@@ -362,6 +375,7 @@ public class InformixStreamingChangeEventSource
         Map<Integer, TableId> label2TableId = cdcEngine.convertLabel2TableId();
         TableId tid = label2TableId.get(Integer.parseInt(record.getLabel()));
         handleEvent(
+                partition,
                 tid,
                 offsetContext,
                 record,
@@ -430,6 +444,7 @@ public class InformixStreamingChangeEventSource
     }
 
     public void handleCommit(
+            InformixPartition partition,
             InformixOffsetContext offsetContext,
             IfxCDCCommitTransactionRecord record,
             InformixTransactionCache transactionCache,
@@ -462,7 +477,7 @@ public class InformixStreamingChangeEventSource
                 for (InformixTransactionCache.TransactionCacheRecord r :
                         transactionCacheBuffer.get().getTransactionCacheRecords()) {
                     eventDispatcher.dispatchDataChangeEvent(
-                            r.getTableId(), r.getInformixChangeRecordEmitter());
+                            partition, r.getTableId(), r.getInformixChangeRecordEmitter());
                 }
                 log.info(
                         "Handle Commit {} Events, transElapsedTime={}",
@@ -482,6 +497,7 @@ public class InformixStreamingChangeEventSource
     }
 
     public void handleInsert(
+            InformixPartition partition,
             InformixCDCEngine cdcEngine,
             InformixOffsetContext offsetContext,
             IfxCDCOperationRecord record,
@@ -502,6 +518,7 @@ public class InformixStreamingChangeEventSource
         Map<Integer, TableId> label2TableId = cdcEngine.convertLabel2TableId();
         TableId tid = label2TableId.get(Integer.parseInt(record.getLabel()));
         handleEvent(
+                partition,
                 tid,
                 offsetContext,
                 record,
@@ -573,6 +590,7 @@ public class InformixStreamingChangeEventSource
     }
 
     public void handleEvent(
+            InformixPartition partition,
             TableId tableId,
             InformixOffsetContext offsetContext,
             IfxCDCOperationRecord record,
@@ -594,6 +612,7 @@ public class InformixStreamingChangeEventSource
 
         InformixChangeRecordEmitter informixChangeRecordEmitter =
                 new InformixChangeRecordEmitter(
+                        partition,
                         offsetContext,
                         operation,
                         InformixChangeRecordEmitter.convertIfxData2Array(data, fields),

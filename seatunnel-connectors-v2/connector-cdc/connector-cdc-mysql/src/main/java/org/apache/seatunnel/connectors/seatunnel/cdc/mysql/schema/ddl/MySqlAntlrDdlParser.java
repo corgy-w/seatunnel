@@ -29,6 +29,7 @@ import io.debezium.antlr.DataTypeResolver;
 import io.debezium.connector.mysql.MySqlValueConverters;
 import io.debezium.ddl.parser.mysql.generated.MySqlLexer;
 import io.debezium.ddl.parser.mysql.generated.MySqlParser;
+import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import lombok.Getter;
 
 import java.sql.Types;
@@ -36,14 +37,17 @@ import java.util.Arrays;
 
 public class MySqlAntlrDdlParser extends AntlrDdlParser<MySqlLexer, MySqlParser> {
     @Getter private MySqlValueConverters converters;
+    @Getter private RelationalDatabaseConnectorConfig dbzConnectorConfig;
 
     public MySqlAntlrDdlParser(
             String terminator,
             boolean throwErrorsFromTreeWalk,
             String catalogName,
-            MySqlValueConverters converters) {
+            MySqlValueConverters converters,
+            RelationalDatabaseConnectorConfig dbzConnectorConfig) {
         super(terminator, throwErrorsFromTreeWalk, catalogName);
         this.converters = converters;
+        this.dbzConnectorConfig = dbzConnectorConfig;
     }
 
     @Override

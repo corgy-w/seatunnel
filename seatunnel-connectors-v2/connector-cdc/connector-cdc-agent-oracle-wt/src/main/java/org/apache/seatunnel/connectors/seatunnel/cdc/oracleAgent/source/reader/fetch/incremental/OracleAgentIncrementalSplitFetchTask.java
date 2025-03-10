@@ -32,6 +32,7 @@ import io.debezium.connector.oracle.OracleAgentOffsetContext;
 import io.debezium.connector.oracle.OracleAgentStreamingChangeEventSource;
 import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleDatabaseSchema;
+import io.debezium.connector.oracle.OraclePartition;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.relational.TableId;
 import lombok.extern.slf4j.Slf4j;
@@ -47,7 +48,7 @@ import static org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source.o
 public class OracleAgentIncrementalSplitFetchTask extends OracleAgentStreamingChangeEventSource {
 
     private final IncrementalSplit split;
-    private final JdbcSourceEventDispatcher eventDispatcher;
+    private final JdbcSourceEventDispatcher<OraclePartition> eventDispatcher;
     private final ErrorHandler errorHandler;
     private final List<String> tables;
     private ChangeEventSourceContext context;
@@ -57,7 +58,7 @@ public class OracleAgentIncrementalSplitFetchTask extends OracleAgentStreamingCh
             OracleAgentConnectorConfig connectorConfig,
             OracleConnection oracleConnection,
             OracleAgentSourceConfig sourceConfig,
-            JdbcSourceEventDispatcher eventDispatcher,
+            JdbcSourceEventDispatcher<OraclePartition> eventDispatcher,
             ErrorHandler errorHandler,
             OracleDatabaseSchema oracleDatabaseSchema,
             IncrementalSplit incrementalSplit) {
@@ -78,19 +79,23 @@ public class OracleAgentIncrementalSplitFetchTask extends OracleAgentStreamingCh
     }
 
     @Override
-    public void execute(ChangeEventSourceContext context, OracleAgentOffsetContext offsetContext) {
+    public void execute(
+            ChangeEventSourceContext context,
+            OraclePartition partition,
+            OracleAgentOffsetContext offsetContext) {
         this.context = context;
-        super.execute(context, offsetContext);
+        super.execute(context, partition, offsetContext);
     }
 
     // todo: deal with recovery with entry index.
     @Override
     protected void handleEvent(
+            OraclePartition partition,
             OracleAgentOffsetContext offsetContext,
             Integer fzsFileNumber,
             List<OracleOperation> oracleOperations) {
 
-        super.handleEvent(offsetContext, fzsFileNumber, oracleOperations);
+        super.handleEvent(partition, offsetContext, fzsFileNumber, oracleOperations);
 
         // check do we need to stop for fetch incremental log for snapshot split.
         if (isBoundedRead()) {
@@ -101,7 +106,10 @@ public class OracleAgentIncrementalSplitFetchTask extends OracleAgentStreamingCh
                 try {
                     log.info("Current offset is after split stopOffset: {}", split.getStopOffset());
                     eventDispatcher.dispatchWatermarkEvent(
-                            offsetContext.getPartition(), split, currentOffset, WatermarkKind.END);
+                            partition.getSourcePartition(),
+                            split,
+                            currentOffset,
+                            WatermarkKind.END);
                 } catch (InterruptedException e) {
                     log.error("Send signal event error.", e);
                     errorHandler.setProducerThrowable(

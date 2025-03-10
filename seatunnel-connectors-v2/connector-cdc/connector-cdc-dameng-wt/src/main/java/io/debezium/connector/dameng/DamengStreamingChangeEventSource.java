@@ -22,6 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public abstract class DamengStreamingChangeEventSource
-        implements StreamingChangeEventSource<DamengOffsetContext> {
+        implements StreamingChangeEventSource<DamengPartition, DamengOffsetContext> {
     protected void afterHandleScn(DamengOffsetContext offsetContext) {}
 }

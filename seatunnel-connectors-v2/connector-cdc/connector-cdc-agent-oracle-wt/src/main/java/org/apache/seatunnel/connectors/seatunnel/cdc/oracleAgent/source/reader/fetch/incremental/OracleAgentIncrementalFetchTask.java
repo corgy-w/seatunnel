@@ -61,7 +61,9 @@ public class OracleAgentIncrementalFetchTask implements FetchTask<SourceSplitBas
         Oracle9BridgeIncrementalChangeEventSourceContext changeEventSourceContext =
                 new Oracle9BridgeIncrementalChangeEventSourceContext();
         oracleAgentStreamingChangeEventSource.execute(
-                changeEventSourceContext, sourceFetchContext.getOffsetContext());
+                changeEventSourceContext,
+                sourceFetchContext.getPartition(),
+                sourceFetchContext.getOffsetContext());
     }
 
     @Override

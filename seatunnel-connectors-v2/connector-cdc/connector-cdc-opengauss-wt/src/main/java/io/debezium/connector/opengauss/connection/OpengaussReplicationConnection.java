@@ -129,7 +129,12 @@ public class OpengaussReplicationConnection extends JdbcConnection
             TypeRegistry typeRegistry,
             Properties streamParams,
             OpengaussSchema schema) {
-        super(config.getJdbcConfig(), OpengaussConnection.FACTORY);
+        super(
+                config.getJdbcConfig(),
+                OpengaussConnection.FACTORY,
+                OpengaussReplicationConnection.class::getClassLoader,
+                "",
+                "");
 
         this.originalConfig = config;
         this.slotName = slotName;

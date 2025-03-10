@@ -8,9 +8,9 @@ package io.debezium.connector.opengauss.utils;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
-import io.debezium.converters.CloudEventsMaker;
-import io.debezium.converters.RecordParser;
-import io.debezium.converters.SerializerType;
+import io.debezium.converters.spi.CloudEventsMaker;
+import io.debezium.converters.spi.RecordParser;
+import io.debezium.converters.spi.SerializerType;
 
 /**
  * A {@link java.util.ServiceLoader} interface that connectors should implement if they wish to

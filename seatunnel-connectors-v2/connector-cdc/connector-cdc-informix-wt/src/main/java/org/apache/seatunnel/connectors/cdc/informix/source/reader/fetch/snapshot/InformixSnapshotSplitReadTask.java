@@ -31,13 +31,13 @@ import io.debezium.connector.informix.InformixConnection;
 import io.debezium.connector.informix.InformixConnectorConfig;
 import io.debezium.connector.informix.InformixDatabaseSchema;
 import io.debezium.connector.informix.InformixOffsetContext;
+import io.debezium.connector.informix.InformixPartition;
 import io.debezium.connector.informix.Lsn;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.AbstractSnapshotChangeEventSource;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.spi.ChangeRecordEmitter;
-import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.spi.SnapshotResult;
 import io.debezium.relational.RelationalSnapshotChangeEventSource;
 import io.debezium.relational.SnapshotChangeRecordEmitter;
@@ -51,20 +51,19 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.Duration;
 
 @Slf4j
-public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSource {
+public class InformixSnapshotSplitReadTask
+        extends AbstractSnapshotChangeEventSource<InformixPartition, InformixOffsetContext> {
     private static final Duration LOG_INTERVAL = Duration.ofMillis(10_000);
     private final InformixConnectorConfig connectorConfig;
     private final InformixOffsetContext offsetContext;
-    private final SnapshotProgressListener snapshotProgressListener;
+    private final SnapshotProgressListener<InformixPartition> snapshotProgressListener;
     private final InformixDatabaseSchema databaseSchema;
     private final InformixConnection jdbcConnection;
-    private final JdbcSourceEventDispatcher eventDispatcher;
+    private final JdbcSourceEventDispatcher<InformixPartition> eventDispatcher;
     private final SnapshotSplit snapshotSplit;
     private final Clock clock;
     private final InformixDialect dialect;
@@ -72,10 +71,10 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
     public InformixSnapshotSplitReadTask(
             InformixConnectorConfig connectorConfig,
             InformixOffsetContext previousOffset,
-            SnapshotProgressListener snapshotProgressListener,
+            SnapshotProgressListener<InformixPartition> snapshotProgressListener,
             InformixDatabaseSchema databaseSchema,
             InformixConnection jdbcConnection,
-            JdbcSourceEventDispatcher eventDispatcher,
+            JdbcSourceEventDispatcher<InformixPartition> eventDispatcher,
             SnapshotSplit snapshotSplit,
             InformixDialect dialect) {
         super(connectorConfig, snapshotProgressListener);
@@ -91,13 +90,15 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
     }
 
     @Override
-    public SnapshotResult execute(
-            ChangeEventSource.ChangeEventSourceContext context, OffsetContext previousOffset)
+    public SnapshotResult<InformixOffsetContext> execute(
+            ChangeEventSource.ChangeEventSourceContext context,
+            InformixPartition partition,
+            InformixOffsetContext previousOffset)
             throws InterruptedException {
-        SnapshottingTask snapshottingTask = getSnapshottingTask(previousOffset);
-        final SnapshotContext ctx;
+        SnapshottingTask snapshottingTask = getSnapshottingTask(partition, previousOffset);
+        final SnapshotContext<InformixPartition, InformixOffsetContext> ctx;
         try {
-            ctx = prepare(context);
+            ctx = prepare(partition);
         } catch (Exception e) {
             log.error("Failed to initialize snapshot context.", e);
             throw new RuntimeException(e);
@@ -113,14 +114,13 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
     }
 
     @Override
-    protected SnapshotResult doExecute(
+    protected SnapshotResult<InformixOffsetContext> doExecute(
             ChangeEventSourceContext context,
-            OffsetContext previousOffset,
+            InformixOffsetContext previousOffset,
             SnapshotContext snapshotContext,
             SnapshottingTask snapshottingTask)
             throws Exception {
-        RelationalSnapshotChangeEventSource.RelationalSnapshotContext ctx =
-                (RelationalSnapshotChangeEventSource.RelationalSnapshotContext) snapshotContext;
+        InformixSnapshotContext ctx = (InformixSnapshotContext) snapshotContext;
         ctx.offset = offsetContext;
 
         Lsn lsn = dialect.getGlobalLsn(jdbcConnection, databaseSchema);
@@ -131,7 +131,7 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
                 snapshotSplit);
         ((InformixSnapshotSplitChangeEventSourceContext) context).setLowWatermark(lowWatermark);
         eventDispatcher.dispatchWatermarkEvent(
-                offsetContext.getPartition(), snapshotSplit, lowWatermark, WatermarkKind.LOW);
+                ctx.partition.getSourcePartition(), snapshotSplit, lowWatermark, WatermarkKind.LOW);
 
         log.info("Snapshot step 2 - Snapshotting data");
         createDataEvents(ctx, snapshotSplit.getTableId());
@@ -144,26 +144,32 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
                 snapshotSplit);
         ((InformixSnapshotSplitChangeEventSourceContext) context).setHighWatermark(highWatermark);
         eventDispatcher.dispatchWatermarkEvent(
-                offsetContext.getPartition(), snapshotSplit, highWatermark, WatermarkKind.HIGH);
+                ctx.partition.getSourcePartition(),
+                snapshotSplit,
+                highWatermark,
+                WatermarkKind.HIGH);
         return SnapshotResult.completed(ctx.offset);
     }
 
     @Override
-    protected SnapshottingTask getSnapshottingTask(OffsetContext previousOffset) {
+    protected SnapshottingTask getSnapshottingTask(
+            InformixPartition partition, InformixOffsetContext previousOffset) {
         return new SnapshottingTask(false, true);
     }
 
     @Override
-    protected SnapshotContext prepare(ChangeEventSourceContext changeEventSourceContext)
-            throws Exception {
-        return new InformixSnapshotContext();
+    protected SnapshotContext<InformixPartition, InformixOffsetContext> prepare(
+            InformixPartition partition) throws Exception {
+        return new InformixSnapshotContext(partition);
     }
 
     private void createDataEvents(
-            RelationalSnapshotChangeEventSource.RelationalSnapshotContext snapshotContext,
+            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                            InformixPartition, InformixOffsetContext>
+                    snapshotContext,
             TableId tableId)
             throws Exception {
-        EventDispatcher.SnapshotReceiver snapshotReceiver =
+        EventDispatcher.SnapshotReceiver<InformixPartition> snapshotReceiver =
                 eventDispatcher.getSnapshotChangeEventReceiver();
         log.debug("Snapshotting table {}", tableId);
         createDataEventsForTable(
@@ -172,8 +178,10 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
     }
 
     private void createDataEventsForTable(
-            RelationalSnapshotChangeEventSource.RelationalSnapshotContext snapshotContext,
-            EventDispatcher.SnapshotReceiver snapshotReceiver,
+            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                            InformixPartition, InformixOffsetContext>
+                    snapshotContext,
+            EventDispatcher.SnapshotReceiver<InformixPartition> snapshotReceiver,
             Table table)
             throws InterruptedException {
         long exportStart = clock.currentTimeInMillis();
@@ -212,10 +220,7 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
             long rows = 0;
             while (rs.next()) {
                 rows++;
-                Object[] row = new Object[columnArray.getGreatestColumnPosition()];
-                for (int i = 0; i < columnArray.getColumns().length; i++) {
-                    row[columnArray.getColumns()[i].position() - 1] = readField(rs, i + 1);
-                }
+                Object[] row = jdbcConnection.rowToArray(table, databaseSchema, rs, columnArray);
 
                 if (logTimer.expired()) {
                     log.info(
@@ -223,10 +228,12 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
                             rows,
                             snapshotSplit.splitId(),
                             Strings.duration(clock.currentTimeInMillis() - exportStart));
-                    snapshotProgressListener.rowsScanned(table.id(), rows);
+                    snapshotProgressListener.rowsScanned(
+                            snapshotContext.partition, table.id(), rows);
                     logTimer = getTableScanLogTimer();
                 }
                 eventDispatcher.dispatchSnapshotEvent(
+                        snapshotContext.partition,
                         table.id(),
                         getChangeRecordEmitter(snapshotContext, table.id(), row),
                         snapshotReceiver);
@@ -245,29 +252,22 @@ public class InformixSnapshotSplitReadTask extends AbstractSnapshotChangeEventSo
         return Threads.timer(clock, LOG_INTERVAL);
     }
 
-    private Object readField(ResultSet rs, int columnIndex) throws SQLException {
-        ResultSetMetaData metaData = rs.getMetaData();
-        int columnType = metaData.getColumnType(columnIndex);
-
-        if (columnType == Types.TIME) {
-            return rs.getTimestamp(columnIndex);
-        } else {
-            return rs.getObject(columnIndex);
-        }
-    }
-
-    protected ChangeRecordEmitter getChangeRecordEmitter(
-            AbstractSnapshotChangeEventSource.SnapshotContext snapshotContext,
+    protected ChangeRecordEmitter<InformixPartition> getChangeRecordEmitter(
+            AbstractSnapshotChangeEventSource.SnapshotContext<
+                            InformixPartition, InformixOffsetContext>
+                    snapshotContext,
             TableId tableId,
             Object[] row) {
         snapshotContext.offset.event(tableId, clock.currentTime());
-        return new SnapshotChangeRecordEmitter(snapshotContext.offset, row, clock);
+        return new SnapshotChangeRecordEmitter<>(
+                snapshotContext.partition, snapshotContext.offset, row, clock);
     }
 
     private static class InformixSnapshotContext
-            extends RelationalSnapshotChangeEventSource.RelationalSnapshotContext {
-        public InformixSnapshotContext() throws SQLException {
-            super("");
+            extends RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                    InformixPartition, InformixOffsetContext> {
+        public InformixSnapshotContext(InformixPartition partition) throws SQLException {
+            super(partition, "");
         }
     }
 }

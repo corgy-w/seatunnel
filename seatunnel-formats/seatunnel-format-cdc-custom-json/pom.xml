@@ -26,7 +26,7 @@
     <name>SeaTunnel : Formats : CDC Custom Json</name>
 
     <properties>
-        <debezium.version>1.6.4.Final</debezium.version>
+        <debezium.version>1.9.8.Final</debezium.version>
         <kafka-connect.version>2.7.0</kafka-connect.version>
     </properties>
 

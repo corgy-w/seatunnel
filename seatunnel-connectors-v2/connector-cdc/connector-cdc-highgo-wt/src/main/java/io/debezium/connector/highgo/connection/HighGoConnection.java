@@ -111,8 +111,8 @@ public class HighGoConnection extends JdbcConnection {
      *     {@link TypeRegistry}
      */
     public HighGoConnection(
-            Configuration config, HighGoValueConverterBuilder valueConverterBuilder) {
-        super(config, FACTORY);
+            JdbcConfiguration config, HighGoValueConverterBuilder valueConverterBuilder) {
+        super(config, FACTORY, HighGoConnection.class::getClassLoader, "", "");
         if (Objects.isNull(valueConverterBuilder)) {
             this.typeRegistry = null;
             this.defaultValueConverter = null;
@@ -133,7 +133,7 @@ public class HighGoConnection extends JdbcConnection {
      * @param typeRegistry an existing/already-primed {@link TypeRegistry} instance
      */
     public HighGoConnection(HighGoConnectorConfig config, TypeRegistry typeRegistry) {
-        super(config.getJdbcConfig(), FACTORY);
+        super(config.getJdbcConfig(), FACTORY, HighGoConnection.class::getClassLoader, "", "");
         if (Objects.isNull(typeRegistry)) {
             this.typeRegistry = null;
             this.defaultValueConverter = null;
@@ -152,7 +152,7 @@ public class HighGoConnection extends JdbcConnection {
      *
      * @param config {@link Configuration} instance, may not be null.
      */
-    public HighGoConnection(Configuration config) {
+    public HighGoConnection(JdbcConfiguration config) {
         this(config, null);
     }
 

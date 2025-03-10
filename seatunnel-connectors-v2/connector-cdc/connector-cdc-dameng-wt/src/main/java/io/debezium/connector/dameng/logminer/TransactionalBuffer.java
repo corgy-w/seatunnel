@@ -27,6 +27,7 @@ import io.debezium.annotation.NotThreadSafe;
 import io.debezium.connector.dameng.DamengConnectorConfig;
 import io.debezium.connector.dameng.DamengDatabaseSchema;
 import io.debezium.connector.dameng.DamengOffsetContext;
+import io.debezium.connector.dameng.DamengPartition;
 import io.debezium.connector.dameng.DamengStreamingChangeEventSourceMetrics;
 import io.debezium.connector.dameng.Scn;
 import io.debezium.connector.dameng.logminer.parser.LogMinerDmlEntry;
@@ -66,6 +67,7 @@ public final class TransactionalBuffer implements AutoCloseable {
     private final Set<RecentlyCommittedTransaction> recentlyCommittedTransactionIds;
     private final Set<Scn> recentlyEmittedDdls;
     private final DamengStreamingChangeEventSourceMetrics streamingMetrics;
+    private final DamengPartition partition;
 
     private Scn lastCommittedScn;
     private Scn maxCommittedScn;
@@ -75,7 +77,8 @@ public final class TransactionalBuffer implements AutoCloseable {
             DamengDatabaseSchema schema,
             Clock clock,
             ErrorHandler errorHandler,
-            DamengStreamingChangeEventSourceMetrics streamingMetrics) {
+            DamengStreamingChangeEventSourceMetrics streamingMetrics,
+            DamengPartition partition) {
         this.transactions = new HashMap<>();
         this.connectorConfig = connectorConfig;
         this.schema = schema;
@@ -88,6 +91,7 @@ public final class TransactionalBuffer implements AutoCloseable {
         this.recentlyCommittedTransactionIds = new HashSet<>();
         this.recentlyEmittedDdls = new HashSet<>();
         this.streamingMetrics = streamingMetrics;
+        this.partition = partition;
     }
 
     /** @return rolled back transactions */
@@ -329,7 +333,7 @@ public final class TransactionalBuffer implements AutoCloseable {
             Timestamp timestamp,
             ChangeEventSource.ChangeEventSourceContext context,
             String debugMessage,
-            EventDispatcher<TableId> dispatcher) {
+            EventDispatcher<DamengPartition, TableId> dispatcher) {
 
         Instant start = Instant.now();
         Transaction transaction = transactions.remove(transactionId);
@@ -387,8 +391,10 @@ public final class TransactionalBuffer implements AutoCloseable {
 
                 LOGGER.trace("Processing event {}", event);
                 dispatcher.dispatchDataChangeEvent(
+                        partition,
                         event.getTableId(),
                         new LogMinerDataChangeEventEmitter(
+                                partition,
                                 offsetContext,
                                 event.getOperation(),
                                 event.getEntry().getOldValues(),
@@ -399,9 +405,9 @@ public final class TransactionalBuffer implements AutoCloseable {
 
             lastCommittedScn = Scn.valueOf(scn.longValue());
             if (!transaction.events.isEmpty()) {
-                dispatcher.dispatchTransactionCommittedEvent(offsetContext);
+                dispatcher.dispatchTransactionCommittedEvent(partition, offsetContext);
             } else {
-                dispatcher.dispatchHeartbeatEvent(offsetContext);
+                dispatcher.dispatchHeartbeatEvent(partition, offsetContext);
             }
 
             streamingMetrics.calculateLagMetrics(timestamp.toInstant());
@@ -441,7 +447,10 @@ public final class TransactionalBuffer implements AutoCloseable {
      * @return offset context SCN, never {@code null}
      * @throws InterruptedException thrown if dispatch of heartbeat event fails
      */
-    Scn updateOffsetContext(DamengOffsetContext offsetContext, EventDispatcher<TableId> dispatcher)
+    Scn updateOffsetContext(
+            DamengPartition partition,
+            DamengOffsetContext offsetContext,
+            EventDispatcher<DamengPartition, TableId> dispatcher)
             throws InterruptedException {
         if (transactions.isEmpty()) {
             if (!maxCommittedScn.isNull()) {
@@ -449,7 +458,7 @@ public final class TransactionalBuffer implements AutoCloseable {
                         "Transaction buffer is empty, updating offset SCN to '{}'",
                         maxCommittedScn);
                 offsetContext.setScn(maxCommittedScn);
-                dispatcher.dispatchHeartbeatEvent(offsetContext);
+                dispatcher.dispatchHeartbeatEvent(partition, offsetContext);
             } else {
                 LOGGER.trace(
                         "No max committed SCN detected, offset SCN still '{}'",
@@ -464,7 +473,7 @@ public final class TransactionalBuffer implements AutoCloseable {
                 LOGGER.trace("Removing all tracked DDL operations up to SCN '{}'", minStartScn);
                 recentlyEmittedDdls.removeIf(scn -> scn.compareTo(minStartScn) < 0);
                 offsetContext.setScn(minStartScn.subtract(Scn.valueOf(1)));
-                dispatcher.dispatchHeartbeatEvent(offsetContext);
+                dispatcher.dispatchHeartbeatEvent(partition, offsetContext);
             } else {
                 LOGGER.trace("Minimum SCN in transaction buffer is still SCN '{}'", minStartScn);
             }

@@ -22,7 +22,7 @@ import io.debezium.pipeline.ErrorHandler;
 
 public class OracleErrorHandler extends ErrorHandler {
 
-    public OracleErrorHandler(String logicalName, ChangeEventQueue<?> queue) {
-        super(OracleAgentConnector.class, logicalName, queue);
+    public OracleErrorHandler(OracleAgentConnectorConfig config, ChangeEventQueue<?> queue) {
+        super(OracleAgentConnector.class, config, queue);
     }
 }

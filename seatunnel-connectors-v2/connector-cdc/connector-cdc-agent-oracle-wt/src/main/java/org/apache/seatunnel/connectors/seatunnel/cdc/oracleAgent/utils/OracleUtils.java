@@ -32,6 +32,7 @@ import io.debezium.connector.oracle.CustomOracleAgentValueConverter;
 import io.debezium.connector.oracle.OracleAgentConnectorConfig;
 import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleDatabaseSchema;
+import io.debezium.connector.oracle.OracleDefaultValueConverter;
 import io.debezium.connector.oracle.OracleTopicSelector;
 import io.debezium.connector.oracle.StreamingAdapter;
 import io.debezium.jdbc.JdbcConnection;
@@ -363,12 +364,15 @@ public class OracleUtils {
         SchemaNameAdjuster schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         CustomOracleAgentValueConverter customOracleAgentValueConverter =
                 new CustomOracleAgentValueConverter(dbzOracleConfig, connection);
+        OracleDefaultValueConverter defaultValueConverter =
+                new OracleDefaultValueConverter(customOracleAgentValueConverter, connection);
         StreamingAdapter.TableNameCaseSensitivity tableNameCaseSensitivity =
                 dbzOracleConfig.getAdapter().getTableNameCaseSensitivity(connection);
 
         return new OracleDatabaseSchema(
                 dbzOracleConfig,
                 customOracleAgentValueConverter,
+                defaultValueConverter,
                 schemaNameAdjuster,
                 topicSelector,
                 tableNameCaseSensitivity);
@@ -383,6 +387,8 @@ public class OracleUtils {
         SchemaNameAdjuster schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         CustomOracleAgentValueConverter customOracleAgentValueConverter =
                 new CustomOracleAgentValueConverter(dbzOracleConfig, connection);
+        OracleDefaultValueConverter defaultValueConverter =
+                new OracleDefaultValueConverter(customOracleAgentValueConverter, connection);
         StreamingAdapter.TableNameCaseSensitivity tableNameCaseSensitivity =
                 tableIdCaseInsensitive
                         ? StreamingAdapter.TableNameCaseSensitivity.SENSITIVE
@@ -390,6 +396,7 @@ public class OracleUtils {
         return new OracleDatabaseSchema(
                 dbzOracleConfig,
                 customOracleAgentValueConverter,
+                defaultValueConverter,
                 schemaNameAdjuster,
                 topicSelector,
                 tableNameCaseSensitivity);

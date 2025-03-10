@@ -87,7 +87,8 @@ public class HighGoSchema extends RelationalDatabaseSchema {
                 DebeziumSchemaNameAdjuster.create(),
                 config.customConverterRegistry(),
                 config.getSourceInfoStructMaker().schema(),
-                config.getSanitizeFieldNames());
+                config.getSanitizeFieldNames(),
+                false);
     }
 
     /**

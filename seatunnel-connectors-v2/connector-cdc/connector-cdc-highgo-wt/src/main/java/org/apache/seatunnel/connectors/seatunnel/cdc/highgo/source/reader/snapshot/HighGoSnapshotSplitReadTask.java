@@ -28,13 +28,13 @@ import org.apache.kafka.connect.errors.ConnectException;
 import io.debezium.DebeziumException;
 import io.debezium.connector.highgo.HighGoConnectorConfig;
 import io.debezium.connector.highgo.HighGoOffsetContext;
+import io.debezium.connector.highgo.HighGoPartition;
 import io.debezium.connector.highgo.HighGoSchema;
 import io.debezium.connector.highgo.connection.HighGoConnection;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.AbstractSnapshotChangeEventSource;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.spi.ChangeRecordEmitter;
-import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.spi.SnapshotResult;
 import io.debezium.relational.Column;
 import io.debezium.relational.RelationalSnapshotChangeEventSource;
@@ -55,7 +55,8 @@ import java.sql.Types;
 import java.time.Duration;
 
 @Slf4j
-public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSource {
+public class HighGoSnapshotSplitReadTask
+        extends AbstractSnapshotChangeEventSource<HighGoPartition, HighGoOffsetContext> {
 
     /** Interval for showing a log statement with the progress while scanning a single table. */
     private static final Duration LOG_INTERVAL = Duration.ofMillis(10_000);
@@ -63,19 +64,19 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
     private final HighGoConnectorConfig connectorConfig;
     private final HighGoSchema databaseSchema;
     private final HighGoConnection jdbcConnection;
-    private final JdbcSourceEventDispatcher dispatcher;
+    private final JdbcSourceEventDispatcher<HighGoPartition> dispatcher;
     private final Clock clock;
     private final SnapshotSplit snapshotSplit;
     private final HighGoOffsetContext offsetContext;
-    private final SnapshotProgressListener snapshotProgressListener;
+    private final SnapshotProgressListener<HighGoPartition> snapshotProgressListener;
 
     public HighGoSnapshotSplitReadTask(
             HighGoConnectorConfig connectorConfig,
             HighGoOffsetContext previousOffset,
-            SnapshotProgressListener snapshotProgressListener,
+            SnapshotProgressListener<HighGoPartition> snapshotProgressListener,
             HighGoSchema databaseSchema,
             HighGoConnection jdbcConnection,
-            JdbcSourceEventDispatcher dispatcher,
+            JdbcSourceEventDispatcher<HighGoPartition> dispatcher,
             SnapshotSplit snapshotSplit) {
         super(connectorConfig, snapshotProgressListener);
         this.offsetContext = previousOffset;
@@ -89,12 +90,15 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
     }
 
     @Override
-    public SnapshotResult execute(ChangeEventSourceContext context, OffsetContext previousOffset)
+    public SnapshotResult<HighGoOffsetContext> execute(
+            ChangeEventSourceContext context,
+            HighGoPartition partition,
+            HighGoOffsetContext previousOffset)
             throws InterruptedException {
-        SnapshottingTask snapshottingTask = getSnapshottingTask(previousOffset);
+        SnapshottingTask snapshottingTask = getSnapshottingTask(partition, previousOffset);
         final SnapshotContext ctx;
         try {
-            ctx = prepare(context);
+            ctx = prepare(partition);
         } catch (Exception e) {
             log.error("Failed to initialize snapshot context.", e);
             throw new RuntimeException(e);
@@ -110,13 +114,13 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
     }
 
     @Override
-    protected SnapshotResult doExecute(
+    protected SnapshotResult<HighGoOffsetContext> doExecute(
             ChangeEventSourceContext context,
-            OffsetContext previousOffset,
+            HighGoOffsetContext previousOffset,
             SnapshotContext snapshotContext,
             SnapshottingTask snapshottingTask)
             throws Exception {
-        final SqlSeverSnapshotContext ctx = (SqlSeverSnapshotContext) snapshotContext;
+        final HighGoSnapshotContext ctx = (HighGoSnapshotContext) snapshotContext;
         ctx.offset = offsetContext;
 
         final LsnOffset lowWatermark = HighGoUtils.currentLsn(jdbcConnection);
@@ -126,7 +130,7 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
                 snapshotSplit);
         ((SnapshotSplitChangeEventSourceContext) context).setLowWatermark(lowWatermark);
         dispatcher.dispatchWatermarkEvent(
-                offsetContext.getPartition(), snapshotSplit, lowWatermark, WatermarkKind.LOW);
+                ctx.partition.getSourcePartition(), snapshotSplit, lowWatermark, WatermarkKind.LOW);
 
         log.info("Snapshot step 2 - Snapshotting data");
         createDataEvents(ctx, snapshotSplit.getTableId());
@@ -138,22 +142,26 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
                 snapshotSplit);
         ((SnapshotSplitChangeEventSourceContext) context).setHighWatermark(highWatermark);
         dispatcher.dispatchWatermarkEvent(
-                offsetContext.getPartition(), snapshotSplit, highWatermark, WatermarkKind.HIGH);
+                ctx.partition.getSourcePartition(),
+                snapshotSplit,
+                highWatermark,
+                WatermarkKind.HIGH);
         return SnapshotResult.completed(ctx.offset);
     }
 
     @Override
-    protected SnapshottingTask getSnapshottingTask(OffsetContext previousOffset) {
+    protected SnapshottingTask getSnapshottingTask(
+            HighGoPartition partition, HighGoOffsetContext previousOffset) {
         return new SnapshottingTask(false, true);
     }
 
     @Override
-    protected SnapshotContext prepare(ChangeEventSourceContext changeEventSourceContext)
-            throws Exception {
-        return new SqlSeverSnapshotContext();
+    protected SnapshotContext<HighGoPartition, HighGoOffsetContext> prepare(
+            HighGoPartition partition) throws Exception {
+        return new HighGoSnapshotContext(partition);
     }
 
-    private void createDataEvents(SqlSeverSnapshotContext snapshotContext, TableId tableId)
+    private void createDataEvents(HighGoSnapshotContext snapshotContext, TableId tableId)
             throws Exception {
         EventDispatcher.SnapshotReceiver snapshotReceiver =
                 dispatcher.getSnapshotChangeEventReceiver();
@@ -167,7 +175,7 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
 
     /** Dispatches the data change events for the records of a single table. */
     private void createDataEventsForTable(
-            SqlSeverSnapshotContext snapshotContext,
+            HighGoSnapshotContext snapshotContext,
             EventDispatcher.SnapshotReceiver snapshotReceiver,
             Table table)
             throws InterruptedException {
@@ -220,10 +228,12 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
                             rows,
                             snapshotSplit.splitId(),
                             Strings.duration(stop - exportStart));
-                    snapshotProgressListener.rowsScanned(table.id(), rows);
+                    snapshotProgressListener.rowsScanned(
+                            snapshotContext.partition, table.id(), rows);
                     logTimer = getTableScanLogTimer();
                 }
                 dispatcher.dispatchSnapshotEvent(
+                        snapshotContext.partition,
                         table.id(),
                         getChangeRecordEmitter(snapshotContext, table.id(), row),
                         snapshotReceiver);
@@ -239,9 +249,10 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
     }
 
     protected ChangeRecordEmitter getChangeRecordEmitter(
-            SqlSeverSnapshotContext snapshotContext, TableId tableId, Object[] row) {
+            HighGoSnapshotContext snapshotContext, TableId tableId, Object[] row) {
         snapshotContext.offset.event(tableId, clock.currentTime());
-        return new SnapshotChangeRecordEmitter(snapshotContext.offset, row, clock);
+        return new SnapshotChangeRecordEmitter(
+                snapshotContext.partition, snapshotContext.offset, row, clock);
     }
 
     private Threads.Timer getTableScanLogTimer() {
@@ -259,11 +270,12 @@ public class HighGoSnapshotSplitReadTask extends AbstractSnapshotChangeEventSour
         }
     }
 
-    private static class SqlSeverSnapshotContext
-            extends RelationalSnapshotChangeEventSource.RelationalSnapshotContext {
+    private static class HighGoSnapshotContext
+            extends RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                    HighGoPartition, HighGoOffsetContext> {
 
-        public SqlSeverSnapshotContext() throws SQLException {
-            super("");
+        public HighGoSnapshotContext(HighGoPartition partition) throws SQLException {
+            super(partition, "");
         }
     }
 }

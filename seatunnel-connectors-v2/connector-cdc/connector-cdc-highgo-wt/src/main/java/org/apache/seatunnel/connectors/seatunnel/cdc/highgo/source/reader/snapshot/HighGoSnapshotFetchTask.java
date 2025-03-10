@@ -62,7 +62,9 @@ public class HighGoSnapshotFetchTask implements FetchTask<SourceSplitBase> {
                 new SnapshotSplitChangeEventSourceContext();
         SnapshotResult snapshotResult =
                 snapshotSplitReadTask.execute(
-                        changeEventSourceContext, sourceFetchContext.getOffsetContext());
+                        changeEventSourceContext,
+                        sourceFetchContext.getPartition(),
+                        sourceFetchContext.getOffsetContext());
         if (!snapshotResult.isCompletedOrSkipped()) {
             taskRunning = false;
             throw new IllegalStateException(
@@ -87,7 +89,7 @@ public class HighGoSnapshotFetchTask implements FetchTask<SourceSplitBase> {
         if (true) {
             dispatchBinlogEndEvent(
                     backfillSplit,
-                    ((HighGoSourceFetchTaskContext) context).getOffsetContext().getPartition(),
+                    sourceFetchContext.getPartition().getSourcePartition(),
                     ((HighGoSourceFetchTaskContext) context).getDispatcher());
             taskRunning = false;
             return;

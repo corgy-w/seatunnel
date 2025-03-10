@@ -17,12 +17,10 @@
 
 package io.debezium.connector.dameng;
 
-import io.debezium.connector.dameng.logminer.HistoryRecorder;
 import io.debezium.pipeline.metrics.StreamingChangeEventSourceMetricsMXBean;
 
 import java.util.Set;
 
-/** The JMX exposed interface for Oracle streaming metrics. */
 public interface DamengStreamingChangeEventSourceMetricsMXBean
         extends StreamingChangeEventSourceMetricsMXBean {
 
@@ -123,9 +121,6 @@ public interface DamengStreamingChangeEventSourceMetricsMXBean
     void changeSleepingTime(boolean increment);
 
     void changeBatchSize(boolean increment, boolean lobEnabled);
-
-    /** this flag indicates whether log mining is being recorded by {@link HistoryRecorder} */
-    boolean getRecordMiningHistory();
 
     /**
      * This represents the maximum number of entries processed per second from LogMiner sessions.
@@ -258,6 +253,18 @@ public interface DamengStreamingChangeEventSourceMetricsMXBean
 
     /** @return the number of unparsable ddl statements */
     int getUnparsableDdlCount();
+
+    /** @return the current mining session's UGA memory usage in bytes. */
+    long getMiningSessionUserGlobalAreaMemoryInBytes();
+
+    /** @return the current mining session's UGA maximum memory usage in bytes. */
+    long getMiningSessionUserGlobalAreaMaxMemoryInBytes();
+
+    /** @return the current mining session's PGA memory usage in bytes. */
+    long getMiningSessionProcessGlobalAreaMemoryInBytes();
+
+    /** @return the current mining session's PGA maximum memory usage in bytes. */
+    long getMiningSessionProcessGlobalAreaMaxMemoryInBytes();
 
     /** Resets metrics. */
     void reset();

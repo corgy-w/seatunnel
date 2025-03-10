@@ -28,13 +28,13 @@ import org.apache.kafka.connect.errors.ConnectException;
 import io.debezium.DebeziumException;
 import io.debezium.connector.opengauss.OpengaussConnectorConfig;
 import io.debezium.connector.opengauss.OpengaussOffsetContext;
+import io.debezium.connector.opengauss.OpengaussPartition;
 import io.debezium.connector.opengauss.OpengaussSchema;
 import io.debezium.connector.opengauss.connection.OpengaussConnection;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.AbstractSnapshotChangeEventSource;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.spi.ChangeRecordEmitter;
-import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.spi.SnapshotResult;
 import io.debezium.relational.Column;
 import io.debezium.relational.RelationalSnapshotChangeEventSource;
@@ -55,7 +55,8 @@ import java.sql.Types;
 import java.time.Duration;
 
 @Slf4j
-public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventSource {
+public class OpenGaussSnapshotSplitReadTask
+        extends AbstractSnapshotChangeEventSource<OpengaussPartition, OpengaussOffsetContext> {
 
     /** Interval for showing a log statement with the progress while scanning a single table. */
     private static final Duration LOG_INTERVAL = Duration.ofMillis(10_000);
@@ -63,19 +64,19 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
     private final OpengaussConnectorConfig connectorConfig;
     private final OpengaussSchema databaseSchema;
     private final OpengaussConnection jdbcConnection;
-    private final JdbcSourceEventDispatcher dispatcher;
+    private final JdbcSourceEventDispatcher<OpengaussPartition> dispatcher;
     private final Clock clock;
     private final SnapshotSplit snapshotSplit;
     private final OpengaussOffsetContext offsetContext;
-    private final SnapshotProgressListener snapshotProgressListener;
+    private final SnapshotProgressListener<OpengaussPartition> snapshotProgressListener;
 
     public OpenGaussSnapshotSplitReadTask(
             OpengaussConnectorConfig connectorConfig,
             OpengaussOffsetContext previousOffset,
-            SnapshotProgressListener snapshotProgressListener,
+            SnapshotProgressListener<OpengaussPartition> snapshotProgressListener,
             OpengaussSchema databaseSchema,
             OpengaussConnection jdbcConnection,
-            JdbcSourceEventDispatcher dispatcher,
+            JdbcSourceEventDispatcher<OpengaussPartition> dispatcher,
             SnapshotSplit snapshotSplit) {
         super(connectorConfig, snapshotProgressListener);
         this.offsetContext = previousOffset;
@@ -89,12 +90,15 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
     }
 
     @Override
-    public SnapshotResult execute(ChangeEventSourceContext context, OffsetContext previousOffset)
+    public SnapshotResult<OpengaussOffsetContext> execute(
+            ChangeEventSourceContext context,
+            OpengaussPartition partition,
+            OpengaussOffsetContext previousOffset)
             throws InterruptedException {
-        SnapshottingTask snapshottingTask = getSnapshottingTask(previousOffset);
-        final SnapshotContext ctx;
+        SnapshottingTask snapshottingTask = getSnapshottingTask(partition, previousOffset);
+        final SnapshotContext<OpengaussPartition, OpengaussOffsetContext> ctx;
         try {
-            ctx = prepare(context);
+            ctx = prepare(partition);
         } catch (Exception e) {
             log.error("Failed to initialize snapshot context.", e);
             throw new RuntimeException(e);
@@ -110,13 +114,13 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
     }
 
     @Override
-    protected SnapshotResult doExecute(
+    protected SnapshotResult<OpengaussOffsetContext> doExecute(
             ChangeEventSourceContext context,
-            OffsetContext previousOffset,
+            OpengaussOffsetContext previousOffset,
             SnapshotContext snapshotContext,
             SnapshottingTask snapshottingTask)
             throws Exception {
-        final SqlSeverSnapshotContext ctx = (SqlSeverSnapshotContext) snapshotContext;
+        final OpengaussSnapshotContext ctx = (OpengaussSnapshotContext) snapshotContext;
         ctx.offset = offsetContext;
 
         final LsnOffset lowWatermark = OpenGaussUtils.currentLsn(jdbcConnection);
@@ -126,7 +130,7 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
                 snapshotSplit);
         ((SnapshotSplitChangeEventSourceContext) context).setLowWatermark(lowWatermark);
         dispatcher.dispatchWatermarkEvent(
-                offsetContext.getPartition(), snapshotSplit, lowWatermark, WatermarkKind.LOW);
+                ctx.partition.getSourcePartition(), snapshotSplit, lowWatermark, WatermarkKind.LOW);
 
         log.info("Snapshot step 2 - Snapshotting data");
         createDataEvents(ctx, snapshotSplit.getTableId());
@@ -138,24 +142,28 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
                 snapshotSplit);
         ((SnapshotSplitChangeEventSourceContext) context).setHighWatermark(highWatermark);
         dispatcher.dispatchWatermarkEvent(
-                offsetContext.getPartition(), snapshotSplit, highWatermark, WatermarkKind.HIGH);
+                ctx.partition.getSourcePartition(),
+                snapshotSplit,
+                highWatermark,
+                WatermarkKind.HIGH);
         return SnapshotResult.completed(ctx.offset);
     }
 
     @Override
-    protected SnapshottingTask getSnapshottingTask(OffsetContext previousOffset) {
+    protected SnapshottingTask getSnapshottingTask(
+            OpengaussPartition partition, OpengaussOffsetContext previousOffset) {
         return new SnapshottingTask(false, true);
     }
 
     @Override
-    protected SnapshotContext prepare(ChangeEventSourceContext changeEventSourceContext)
-            throws Exception {
-        return new SqlSeverSnapshotContext();
+    protected SnapshotContext<OpengaussPartition, OpengaussOffsetContext> prepare(
+            OpengaussPartition partition) throws Exception {
+        return new OpengaussSnapshotContext(partition);
     }
 
-    private void createDataEvents(SqlSeverSnapshotContext snapshotContext, TableId tableId)
+    private void createDataEvents(OpengaussSnapshotContext snapshotContext, TableId tableId)
             throws Exception {
-        EventDispatcher.SnapshotReceiver snapshotReceiver =
+        EventDispatcher.SnapshotReceiver<OpengaussPartition> snapshotReceiver =
                 dispatcher.getSnapshotChangeEventReceiver();
         log.debug("Snapshotting table {}", tableId);
         // todo pg 的 schema 不包含database
@@ -167,8 +175,8 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
 
     /** Dispatches the data change events for the records of a single table. */
     private void createDataEventsForTable(
-            SqlSeverSnapshotContext snapshotContext,
-            EventDispatcher.SnapshotReceiver snapshotReceiver,
+            OpengaussSnapshotContext snapshotContext,
+            EventDispatcher.SnapshotReceiver<OpengaussPartition> snapshotReceiver,
             Table table)
             throws InterruptedException {
 
@@ -220,10 +228,12 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
                             rows,
                             snapshotSplit.splitId(),
                             Strings.duration(stop - exportStart));
-                    snapshotProgressListener.rowsScanned(table.id(), rows);
+                    snapshotProgressListener.rowsScanned(
+                            snapshotContext.partition, table.id(), rows);
                     logTimer = getTableScanLogTimer();
                 }
                 dispatcher.dispatchSnapshotEvent(
+                        snapshotContext.partition,
                         table.id(),
                         getChangeRecordEmitter(snapshotContext, table.id(), row),
                         snapshotReceiver);
@@ -238,10 +248,11 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
         }
     }
 
-    protected ChangeRecordEmitter getChangeRecordEmitter(
-            SqlSeverSnapshotContext snapshotContext, TableId tableId, Object[] row) {
+    protected ChangeRecordEmitter<OpengaussPartition> getChangeRecordEmitter(
+            OpengaussSnapshotContext snapshotContext, TableId tableId, Object[] row) {
         snapshotContext.offset.event(tableId, clock.currentTime());
-        return new SnapshotChangeRecordEmitter(snapshotContext.offset, row, clock);
+        return new SnapshotChangeRecordEmitter<>(
+                snapshotContext.partition, snapshotContext.offset, row, clock);
     }
 
     private Threads.Timer getTableScanLogTimer() {
@@ -259,11 +270,12 @@ public class OpenGaussSnapshotSplitReadTask extends AbstractSnapshotChangeEventS
         }
     }
 
-    private static class SqlSeverSnapshotContext
-            extends RelationalSnapshotChangeEventSource.RelationalSnapshotContext {
+    private static class OpengaussSnapshotContext
+            extends RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                    OpengaussPartition, OpengaussOffsetContext> {
 
-        public SqlSeverSnapshotContext() throws SQLException {
-            super("");
+        public OpengaussSnapshotContext(OpengaussPartition partition) throws SQLException {
+            super(partition, "");
         }
     }
 }

@@ -21,8 +21,10 @@ import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.relational.RelationalChangeRecordEmitter;
 import io.debezium.util.Clock;
 
-public abstract class DamengDataChangeEventEmitter extends RelationalChangeRecordEmitter {
-    public DamengDataChangeEventEmitter(final OffsetContext offsetContext, final Clock clock) {
-        super(offsetContext, clock);
+public abstract class DamengDataChangeEventEmitter
+        extends RelationalChangeRecordEmitter<DamengPartition> {
+    public DamengDataChangeEventEmitter(
+            DamengPartition partition, final OffsetContext offsetContext, final Clock clock) {
+        super(partition, offsetContext, clock);
     }
 }

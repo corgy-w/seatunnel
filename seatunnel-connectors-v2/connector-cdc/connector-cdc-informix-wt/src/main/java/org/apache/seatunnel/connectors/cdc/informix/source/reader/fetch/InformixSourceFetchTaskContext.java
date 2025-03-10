@@ -38,6 +38,7 @@ import io.debezium.connector.informix.InformixDatabaseSchema;
 import io.debezium.connector.informix.InformixErrorHandler;
 import io.debezium.connector.informix.InformixEventMetadataProvider;
 import io.debezium.connector.informix.InformixOffsetContext;
+import io.debezium.connector.informix.InformixPartition;
 import io.debezium.connector.informix.InformixTaskContext;
 import io.debezium.connector.informix.InformixTopicSelector;
 import io.debezium.connector.informix.InformixValueConverters;
@@ -45,6 +46,7 @@ import io.debezium.pipeline.DataChangeEvent;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.metrics.DefaultChangeEventSourceMetricsFactory;
 import io.debezium.pipeline.metrics.SnapshotChangeEventSourceMetrics;
+import io.debezium.pipeline.spi.Offsets;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
@@ -64,8 +66,12 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     private InformixOffsetContext offsetContext;
     private InformixTaskContext taskContext;
     private ChangeEventQueue<DataChangeEvent> queue;
-    private JdbcSourceEventDispatcher dispatcher;
-    @Getter private SnapshotChangeEventSourceMetrics snapshotChangeEventSourceMetrics;
+    private JdbcSourceEventDispatcher<InformixPartition> dispatcher;
+    private InformixPartition informixPartition;
+
+    @Getter
+    private SnapshotChangeEventSourceMetrics<InformixPartition> snapshotChangeEventSourceMetrics;
+
     private InformixErrorHandler errorHandler;
 
     public InformixSourceFetchTaskContext(
@@ -91,6 +97,7 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.offsetContext =
                 loadStartingOffsetState(
                         new InformixOffsetContext.Loader(connectorConfig), sourceSplitBase);
+        this.informixPartition = new InformixPartition(connectorConfig.getLogicalName());
         validateAndLoadDatabaseHistory(offsetContext, databaseSchema);
 
         this.taskContext = new InformixTaskContext(connectorConfig, databaseSchema);
@@ -113,7 +120,7 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                         // .buffering()
                         .build();
         this.dispatcher =
-                new JdbcSourceEventDispatcher(
+                new JdbcSourceEventDispatcher<>(
                         connectorConfig,
                         topicSelector,
                         databaseSchema,
@@ -123,13 +130,13 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                         metadataProvider,
                         schemaNameAdjuster);
 
-        DefaultChangeEventSourceMetricsFactory changeEventSourceMetricsFactory =
-                new DefaultChangeEventSourceMetricsFactory();
+        DefaultChangeEventSourceMetricsFactory<InformixPartition> changeEventSourceMetricsFactory =
+                new DefaultChangeEventSourceMetricsFactory<>();
         this.snapshotChangeEventSourceMetrics =
                 changeEventSourceMetricsFactory.getSnapshotMetrics(
                         taskContext, queue, metadataProvider);
 
-        this.errorHandler = new InformixErrorHandler(connectorConfig.getLogicalName(), queue);
+        this.errorHandler = new InformixErrorHandler(connectorConfig, queue);
     }
 
     @Override
@@ -186,13 +193,18 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     }
 
     @Override
-    public JdbcSourceEventDispatcher getDispatcher() {
+    public JdbcSourceEventDispatcher<InformixPartition> getDispatcher() {
         return dispatcher;
     }
 
     @Override
     public InformixOffsetContext getOffsetContext() {
         return offsetContext;
+    }
+
+    @Override
+    public InformixPartition getPartition() {
+        return informixPartition;
     }
 
     @Override
@@ -217,6 +229,6 @@ public class InformixSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     private void validateAndLoadDatabaseHistory(
             InformixOffsetContext offsetContext, InformixDatabaseSchema databaseSchema) {
         databaseSchema.initializeStorage();
-        databaseSchema.recover(offsetContext);
+        databaseSchema.recover(Offsets.of(informixPartition, offsetContext));
     }
 }

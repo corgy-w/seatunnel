@@ -27,7 +27,6 @@ import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.relational.TableSchema;
 import io.debezium.schema.SchemaChangeEvent;
-import io.debezium.schema.SchemaChangeEvent.SchemaChangeEventType;
 import io.debezium.util.Clock;
 import io.debezium.util.ColumnUtils;
 
@@ -46,7 +45,6 @@ import java.sql.Types;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -63,7 +61,7 @@ import java.util.stream.Collectors;
  * @since 2023-06-07
  */
 public class OpengaussSnapshotChangeEventSource
-        extends RelationalSnapshotChangeEventSource<OpengaussOffsetContext> {
+        extends RelationalSnapshotChangeEventSource<OpengaussPartition, OpengaussOffsetContext> {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(OpengaussSnapshotChangeEventSource.class);
     private static final String DELIMITER = " | ";
@@ -103,12 +101,12 @@ public class OpengaussSnapshotChangeEventSource
             Snapshotter snapshotter,
             OpengaussConnection jdbcConnection,
             OpengaussSchema schema,
-            EventDispatcher<TableId> dispatcher,
+            EventDispatcher<OpengaussPartition, TableId> dispatcher,
             Clock clock,
-            SnapshotProgressListener snapshotProgressListener,
+            SnapshotProgressListener<OpengaussPartition> snapshotProgressListener,
             SlotCreationResult slotCreatedInfo,
             SlotState startingSlotInfo) {
-        super(connectorConfig, jdbcConnection, dispatcher, clock, snapshotProgressListener);
+        super(connectorConfig, jdbcConnection, schema, dispatcher, clock, snapshotProgressListener);
         this.connectorConfig = connectorConfig;
         this.jdbcConnection = jdbcConnection;
         this.schema = schema;
@@ -119,7 +117,8 @@ public class OpengaussSnapshotChangeEventSource
     }
 
     @Override
-    protected SnapshottingTask getSnapshottingTask(OpengaussOffsetContext previousOffset) {
+    protected SnapshottingTask getSnapshottingTask(
+            OpengaussPartition partition, OpengaussOffsetContext previousOffset) {
         boolean snapshotSchema = true;
         boolean snapshotData = true;
 
@@ -135,14 +134,15 @@ public class OpengaussSnapshotChangeEventSource
     }
 
     @Override
-    protected SnapshotContext<OpengaussOffsetContext> prepare(
-            ChangeEventSourceContext changeEventSourceContext) throws Exception {
-        return new PostgresSnapshotContext(connectorConfig.databaseName());
+    protected SnapshotContext<OpengaussPartition, OpengaussOffsetContext> prepare(
+            OpengaussPartition partition) throws Exception {
+        return new PostgresSnapshotContext(partition, connectorConfig.databaseName());
     }
 
     @Override
     protected void connectionCreated(
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext) throws Exception {
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext)
+            throws Exception {
         // If using catch up streaming, the connector opens the transaction that the snapshot will
         // eventually use
         // before the catch up streaming starts. By looking at the current wal location, the
@@ -161,7 +161,8 @@ public class OpengaussSnapshotChangeEventSource
     }
 
     @Override
-    protected Set<TableId> getAllTableIds(RelationalSnapshotContext<OpengaussOffsetContext> ctx)
+    protected Set<TableId> getAllTableIds(
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> ctx)
             throws Exception {
         return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"});
     }
@@ -169,7 +170,7 @@ public class OpengaussSnapshotChangeEventSource
     @Override
     protected void lockTablesForSchemaSnapshot(
             ChangeEventSourceContext sourceContext,
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext)
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext)
             throws SQLException, InterruptedException {
         final Duration lockTimeout = connectorConfig.snapshotLockTimeout();
         final Optional<String> lockStatement =
@@ -188,18 +189,19 @@ public class OpengaussSnapshotChangeEventSource
 
     @Override
     protected void releaseSchemaSnapshotLocks(
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext)
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext)
             throws SQLException {}
 
     @Override
     protected void releaseDataSnapshotLocks(
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext) throws Exception {
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext)
+            throws Exception {
         jdbcConnection.executeWithoutCommitting("COMMIT;");
     }
 
     @Override
     protected void determineSnapshotOffset(
-            RelationalSnapshotContext<OpengaussOffsetContext> ctx,
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> ctx,
             OpengaussOffsetContext previousOffset)
             throws Exception {
         OpengaussOffsetContext offset = ctx.offset;
@@ -278,7 +280,7 @@ public class OpengaussSnapshotChangeEventSource
     @Override
     protected void readTableStructure(
             ChangeEventSourceContext sourceContext,
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext,
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext,
             OpengaussOffsetContext offsetContext)
             throws SQLException, InterruptedException {
         Set<String> schemas =
@@ -310,22 +312,19 @@ public class OpengaussSnapshotChangeEventSource
 
     @Override
     protected SchemaChangeEvent getCreateTableEvent(
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext, Table table)
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext,
+            Table table)
             throws SQLException {
-        return new SchemaChangeEvent(
-                new HashMap<>(),
-                snapshotContext.offset.getOffset(),
-                snapshotContext.offset.getSourceInfo(),
+        return SchemaChangeEvent.ofSnapshotCreate(
+                snapshotContext.partition,
+                snapshotContext.offset,
                 snapshotContext.catalogName,
-                table.id().schema(),
-                null,
-                table,
-                SchemaChangeEventType.CREATE,
-                true);
+                table);
     }
 
     @Override
-    protected void complete(SnapshotContext<OpengaussOffsetContext> snapshotContext) {
+    protected void complete(
+            SnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext) {
         snapshotter.snapshotCompleted();
     }
 
@@ -337,8 +336,10 @@ public class OpengaussSnapshotChangeEventSource
      */
     @Override
     protected Optional<String> getSnapshotSelect(
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext, TableId tableId) {
-        return snapshotter.buildSnapshotQuery(tableId, null);
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext,
+            TableId tableId,
+            List<String> columns) {
+        return snapshotter.buildSnapshotQuery(tableId, columns);
     }
 
     protected void setSnapshotTransactionIsolationLevel() throws SQLException {
@@ -351,10 +352,11 @@ public class OpengaussSnapshotChangeEventSource
 
     /** Mutable context which is populated in the course of snapshotting. */
     private static class PostgresSnapshotContext
-            extends RelationalSnapshotContext<OpengaussOffsetContext> {
+            extends RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> {
 
-        public PostgresSnapshotContext(String catalogName) throws SQLException {
-            super(catalogName);
+        public PostgresSnapshotContext(OpengaussPartition partition, String catalogName)
+                throws SQLException {
+            super(partition, catalogName);
         }
     }
 
@@ -366,8 +368,8 @@ public class OpengaussSnapshotChangeEventSource
      * @throws InterruptedException Link break
      */
     private void pushTruncateMessageForTable(
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext,
-            EventDispatcher.SnapshotReceiver receiver,
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext,
+            EventDispatcher.SnapshotReceiver<OpengaussPartition> receiver,
             List<String> schemaList)
             throws InterruptedException {
         for (Iterator<TableId> iterator = snapshotContext.capturedTables.iterator();
@@ -377,9 +379,10 @@ public class OpengaussSnapshotChangeEventSource
             if (!schemaList.contains(tableId.schema())) {
                 continue;
             }
-            ChangeRecordEmitter truncateRecordEmitter =
+            ChangeRecordEmitter<OpengaussPartition> truncateRecordEmitter =
                     getTruncateRecordEmitter(snapshotContext, tableId);
-            dispatcher.dispatchSnapshotEvent(tableId, truncateRecordEmitter, receiver);
+            dispatcher.dispatchSnapshotEvent(
+                    snapshotContext.partition, tableId, truncateRecordEmitter, receiver);
         }
     }
 
@@ -472,7 +475,8 @@ public class OpengaussSnapshotChangeEventSource
     }
 
     private ChangeRecordEmitter getTruncateRecordEmitter(
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext, TableId tableId) {
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext,
+            TableId tableId) {
         ReplicationMessage message =
                 new ReplicationMessage() {
                     @Override
@@ -517,6 +521,7 @@ public class OpengaussSnapshotChangeEventSource
                 };
         snapshotContext.offset.event(tableId, getClock().currentTime());
         return new TruncateRecordEmitter(
+                snapshotContext.partition,
                 snapshotContext.offset,
                 getClock(),
                 connectorConfig,
@@ -533,16 +538,21 @@ public class OpengaussSnapshotChangeEventSource
             String columnString)
             throws IOException, InterruptedException {
         Table table = dataEventsParam.getTable();
-        RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext =
+        RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext =
                 dataEventsParam.getSnapshotContext();
-        EventDispatcher.SnapshotReceiver snapshotReceiver = dataEventsParam.getSnapshotReceiver();
+        EventDispatcher.SnapshotReceiver<OpengaussPartition> snapshotReceiver =
+                dataEventsParam.getSnapshotReceiver();
         String path = generateFileName(table.id().schema(), table.id().table(), subscript);
         if (wirteCsv(columnStringArr, path)) {
             synchronized (messLock) {
-                ChangeRecordEmitter changeRecordEmitter =
+                ChangeRecordEmitter<OpengaussPartition> changeRecordEmitter =
                         getFilePathRecordEmitter(
                                 snapshotContext, table.id(), new String[] {path, columnString});
-                dispatcher.dispatchSnapshotEvent(table.id(), changeRecordEmitter, snapshotReceiver);
+                dispatcher.dispatchSnapshotEvent(
+                        snapshotContext.partition,
+                        table.id(),
+                        changeRecordEmitter,
+                        snapshotReceiver);
             }
         }
     }
@@ -553,12 +563,13 @@ public class OpengaussSnapshotChangeEventSource
                 + String.format(Locale.ROOT, "%s_%s_%d.csv", schema, table, subscript);
     }
 
-    private ChangeRecordEmitter getFilePathRecordEmitter(
-            RelationalSnapshotContext<OpengaussOffsetContext> snapshotContext,
+    private ChangeRecordEmitter<OpengaussPartition> getFilePathRecordEmitter(
+            RelationalSnapshotContext<OpengaussPartition, OpengaussOffsetContext> snapshotContext,
             TableId tableId,
             String[] row) {
         snapshotContext.offset.event(tableId, getClock().currentTime());
-        return new SnapshotChangeFilePathRecordEmitter(snapshotContext.offset, getClock(), row);
+        return new SnapshotChangeFilePathRecordEmitter(
+                snapshotContext.partition, snapshotContext.offset, getClock(), row);
     }
 
     private String columnToString(ResultSet rs, ColumnUtils.ColumnArray columnArray, Table table)

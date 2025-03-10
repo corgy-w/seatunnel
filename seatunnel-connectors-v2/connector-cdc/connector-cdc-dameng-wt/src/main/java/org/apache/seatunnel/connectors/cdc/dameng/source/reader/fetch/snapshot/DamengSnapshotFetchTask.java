@@ -27,6 +27,7 @@ import org.apache.seatunnel.connectors.cdc.dameng.source.reader.fetch.DamengSour
 import org.apache.seatunnel.connectors.cdc.dameng.source.reader.fetch.logminer.DamengLogMinerSplitReadTask;
 
 import io.debezium.connector.dameng.DamengOffsetContext;
+import io.debezium.connector.dameng.DamengPartition;
 import io.debezium.connector.dameng.logminer.LogMinerOracleOffsetContextLoader;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.pipeline.spi.SnapshotResult;
@@ -62,7 +63,9 @@ public class DamengSnapshotFetchTask implements FetchTask<SourceSplitBase> {
                 new DamengSnapshotSplitChangeEventSourceContext();
         SnapshotResult snapshotResult =
                 snapshotSplitReadTask.execute(
-                        changeEventSourceContext, sourceFetchContext.getOffsetContext());
+                        changeEventSourceContext,
+                        sourceFetchContext.getPartition(),
+                        sourceFetchContext.getOffsetContext());
         if (!snapshotResult.isCompletedOrSkipped()) {
             taskRunning = false;
             throw new IllegalStateException(
@@ -87,7 +90,7 @@ public class DamengSnapshotFetchTask implements FetchTask<SourceSplitBase> {
         if (!changed) {
             dispatchLogMinerEndEvent(
                     backfillLogMinerSplit,
-                    ((DamengSourceFetchTaskContext) context).getOffsetContext().getPartition(),
+                    sourceFetchContext.getPartition().getSourcePartition(),
                     ((DamengSourceFetchTaskContext) context).getDispatcher());
             taskRunning = false;
             return;
@@ -106,7 +109,9 @@ public class DamengSnapshotFetchTask implements FetchTask<SourceSplitBase> {
                 backfillLogMinerSplit.getStartupOffset(),
                 backfillLogMinerSplit.getStopOffset());
         backfillLogMinerReadTask.execute(
-                new SnapshotScnSplitChangeEventSourceContext(), damengOffsetContext);
+                new SnapshotScnSplitChangeEventSourceContext(),
+                sourceFetchContext.getPartition(),
+                damengOffsetContext);
         log.info("backfillReadTask execute end");
     }
 
@@ -151,7 +156,7 @@ public class DamengSnapshotFetchTask implements FetchTask<SourceSplitBase> {
     private void dispatchLogMinerEndEvent(
             IncrementalSplit backFillLogMinerSplit,
             Map<String, ?> sourcePartition,
-            JdbcSourceEventDispatcher eventDispatcher)
+            JdbcSourceEventDispatcher<DamengPartition> eventDispatcher)
             throws InterruptedException {
         eventDispatcher.dispatchWatermarkEvent(
                 sourcePartition,

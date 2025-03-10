@@ -41,6 +41,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Getter
 @SuppressWarnings("MagicNumber")
@@ -363,10 +364,11 @@ public class DamengConnectorConfig extends HistorizedRelationalDatabaseConnector
                 DamengConnector.class,
                 config,
                 config.getString(SERVER_NAME),
-                new SystemTablesPredicate(),
+                new SystemTablesPredicate(config),
                 x -> x.schema() + "." + x.table(),
                 true,
-                ColumnFilterMode.SCHEMA);
+                ColumnFilterMode.SCHEMA,
+                false);
 
         this.databaseName = toUpperCase(config.getString(DATABASE_NAME));
         this.snapshotMode = SnapshotMode.parse(config.getString(SNAPSHOT_MODE));
@@ -453,9 +455,33 @@ public class DamengConnectorConfig extends HistorizedRelationalDatabaseConnector
 
     private static class SystemTablesPredicate implements Tables.TableFilter {
 
+        /**
+         * Pattern that matches temporary analysis tables created by the Compression Advisor
+         * subsystem. These tables will be ignored by the connector.
+         */
+        private final Pattern COMPRESSION_ADVISOR = Pattern.compile("^CMP[3|4]\\$[0-9]+$");
+
+        private final Configuration config;
+
+        SystemTablesPredicate(Configuration config) {
+            this.config = config;
+        }
+
         @Override
         public boolean isIncluded(TableId t) {
-            return !EXCLUDED_SCHEMAS.contains(t.schema().toLowerCase());
+            return !isExcludedSchema(t) && !isFlushTable(t) && !isCompressionAdvisorTable(t);
+        }
+
+        private boolean isExcludedSchema(TableId id) {
+            return EXCLUDED_SCHEMAS.contains(id.schema().toLowerCase());
+        }
+
+        private boolean isFlushTable(TableId id) {
+            return false;
+        }
+
+        private boolean isCompressionAdvisorTable(TableId id) {
+            return COMPRESSION_ADVISOR.matcher(id.table()).matches();
         }
     }
 

@@ -24,13 +24,19 @@ import com.informix.stream.api.IfmxStreamRecord;
 import io.debezium.config.Configuration;
 import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
+import io.debezium.relational.Column;
 import io.debezium.relational.RelationalTableFilters;
+import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
+import io.debezium.schema.DatabaseSchema;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -63,6 +69,7 @@ public class InformixConnection extends JdbcConnection {
                     + "}";
 
     protected static final Set<String> SYS_DATABASES = new HashSet<>(9);
+    private static final String QUOTED_CHARACTER = "\"";
 
     static {
         SYS_DATABASES.add("sysmaster");
@@ -86,6 +93,11 @@ public class InformixConnection extends JdbcConnection {
                         JdbcConfiguration.DATABASE));
     }
 
+    public InformixConnection(Configuration config, ConnectionFactory connectionFactory) {
+        super(redefineConfig(config), connectionFactory, QUOTED_CHARACTER, QUOTED_CHARACTER);
+        this.config = redefineConfig(config);
+    }
+
     private static String getURLSuffix(String url) {
         int i = url.lastIndexOf("/");
         if (!url.substring(i + 1).contains(":")) {
@@ -93,11 +105,6 @@ public class InformixConnection extends JdbcConnection {
         }
         int j = url.indexOf(":", i + 1);
         return url.substring(j);
-    }
-
-    public InformixConnection(Configuration config, ConnectionFactory connectionFactory) {
-        super(redefineConfig(config), connectionFactory);
-        this.config = redefineConfig(config);
     }
 
     @Override
@@ -262,7 +269,21 @@ public class InformixConnection extends JdbcConnection {
         return InformixCDCEngine.build(config);
     }
 
-    private static Configuration redefineConfig(Configuration config) {
-        return config.subset("database.", true).edit().build();
+    private static JdbcConfiguration redefineConfig(Configuration config) {
+        return JdbcConfiguration.adapt(config.subset("database.", true).edit().build());
+    }
+
+    @Override
+    public <T extends DatabaseSchema<TableId>> Object getColumnValue(
+            ResultSet rs, int columnIndex, Column column, Table table, T schema)
+            throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnType = metaData.getColumnType(columnIndex);
+
+        if (columnType == Types.TIME) {
+            return rs.getTimestamp(columnIndex);
+        } else {
+            return rs.getObject(columnIndex);
+        }
     }
 }

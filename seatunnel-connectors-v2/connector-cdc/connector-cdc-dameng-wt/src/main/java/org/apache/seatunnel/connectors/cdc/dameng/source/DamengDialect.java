@@ -70,7 +70,8 @@ public class DamengDialect implements JdbcDataSourceDialect {
 
     @Override
     public DamengConnection openJdbcConnection(JdbcSourceConfig sourceConfig) {
-        return DamengConncetionUtils.createDamengConnection(sourceConfig.getDbzConfiguration());
+        return DamengConncetionUtils.createDamengConnection(
+                sourceConfig.getDbzConnectorConfig().getJdbcConfig());
     }
 
     @Override

@@ -38,6 +38,7 @@ import io.debezium.connector.opengauss.OpengaussErrorHandler;
 import io.debezium.connector.opengauss.OpengaussEventDispatcher;
 import io.debezium.connector.opengauss.OpengaussEventMetadataProvider;
 import io.debezium.connector.opengauss.OpengaussOffsetContext;
+import io.debezium.connector.opengauss.OpengaussPartition;
 import io.debezium.connector.opengauss.OpengaussSchema;
 import io.debezium.connector.opengauss.OpengaussTaskContext;
 import io.debezium.connector.opengauss.OpengaussTopicSelector;
@@ -81,15 +82,16 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
     @Getter private Snapshotter snapshotter;
     private OpengaussSchema databaseSchema;
     private OpengaussOffsetContext offsetContext;
+    private OpengaussPartition partition;
     private TopicSelector<TableId> topicSelector;
-    private JdbcSourceEventDispatcher dispatcher;
-    private OpengaussEventDispatcher opengaussEventDispatcher;
+    private JdbcSourceEventDispatcher<OpengaussPartition> dispatcher;
+    private OpengaussEventDispatcher<TableId> opengaussEventDispatcher;
     private ChangeEventQueue<DataChangeEvent> queue;
     private OpengaussErrorHandler errorHandler;
 
     @Getter private OpengaussTaskContext taskContext;
 
-    private SnapshotChangeEventSourceMetrics snapshotChangeEventSourceMetrics;
+    private SnapshotChangeEventSourceMetrics<OpengaussPartition> snapshotChangeEventSourceMetrics;
 
     private OpengaussConnection.OpenGaussValueConverterBuilder openGaussValueConverterBuilder;
 
@@ -135,6 +137,7 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
         this.offsetContext =
                 loadStartingOffsetState(
                         new OpengaussOffsetContext.Loader(connectorConfig), sourceSplitBase);
+        this.partition = new OpengaussPartition(connectorConfig.getLogicalName());
 
         final int queueSize =
                 sourceSplitBase.isSnapshotSplit() && isExactlyOnce()
@@ -215,7 +218,7 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
                             .build();
 
             this.dispatcher =
-                    new JdbcSourceEventDispatcher(
+                    new JdbcSourceEventDispatcher<>(
                             connectorConfig,
                             topicSelector,
                             databaseSchema,
@@ -237,10 +240,10 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
                             schemaNameAdjuster);
 
             this.snapshotChangeEventSourceMetrics =
-                    new DefaultChangeEventSourceMetricsFactory()
+                    new DefaultChangeEventSourceMetricsFactory<OpengaussPartition>()
                             .getSnapshotMetrics(taskContext, queue, metadataProvider);
 
-            this.errorHandler = new OpengaussErrorHandler(connectorConfig.getLogicalName(), queue);
+            this.errorHandler = new OpengaussErrorHandler(connectorConfig, queue);
         } finally {
             previousContext.restore();
         }
@@ -255,7 +258,8 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
         return dataConnection;
     }
 
-    public SnapshotChangeEventSourceMetrics getSnapshotChangeEventSourceMetrics() {
+    public SnapshotChangeEventSourceMetrics<OpengaussPartition>
+            getSnapshotChangeEventSourceMetrics() {
         return snapshotChangeEventSourceMetrics;
     }
 
@@ -267,6 +271,11 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
     @Override
     public OpengaussOffsetContext getOffsetContext() {
         return offsetContext;
+    }
+
+    @Override
+    public OpengaussPartition getPartition() {
+        return partition;
     }
 
     @Override
@@ -285,7 +294,7 @@ public class OpenGaussSourceFetchTaskContext extends JdbcSourceFetchTaskContext 
     }
 
     @Override
-    public JdbcSourceEventDispatcher getDispatcher() {
+    public JdbcSourceEventDispatcher<OpengaussPartition> getDispatcher() {
         return dispatcher;
     }
 

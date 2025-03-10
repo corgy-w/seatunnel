@@ -28,7 +28,6 @@ import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
-import org.apache.seatunnel.connectors.cdc.base.dialect.JdbcDataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
 import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
@@ -49,6 +48,7 @@ import org.apache.kafka.connect.data.Struct;
 
 import io.debezium.connector.mysql.MySqlConnectorConfig;
 import io.debezium.jdbc.JdbcConnection;
+import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.TableChanges;
 
@@ -114,6 +114,8 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
         }
 
         String zoneId = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);
+        RelationalDatabaseConnectorConfig dbzConnectorConfig =
+                configFactory.create(0).getDbzConnectorConfig();
         return (DebeziumDeserializationSchema<T>)
                 SeaTunnelRowDebeziumDeserializeSchema.builder()
                         .setTables(catalogTables)
@@ -122,11 +124,9 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
                         .setSchemaChangeResolver(
                                 new MySqlSchemaChangeResolver(
                                         MySqlConnectionUtils.getValueConverters(
-                                                (MySqlConnectorConfig)
-                                                        configFactory
-                                                                .create(0)
-                                                                .getDbzConnectorConfig()),
-                                        dataSourceDialect.getName()))
+                                                (MySqlConnectorConfig) dbzConnectorConfig),
+                                        dataSourceDialect.getName(),
+                                        dbzConnectorConfig))
                         .build();
     }
 
@@ -138,8 +138,7 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
     @Override
     public OffsetFactory createOffsetFactory(ReadonlyConfig config) {
         return new BinlogOffsetFactory(
-                (MySqlSourceConfigFactory) configFactory,
-                (JdbcDataSourceDialect) dataSourceDialect);
+                (MySqlSourceConfigFactory) configFactory, (MySqlDialect) dataSourceDialect);
     }
 
     private Map<TableId, Struct> tableChanges() {

@@ -28,6 +28,7 @@ import org.apache.seatunnel.connectors.cdc.informix.source.reader.fetch.Informix
 import org.apache.seatunnel.connectors.cdc.informix.source.reader.fetch.cdc.InformixCDCLogSplitReadTask;
 
 import io.debezium.connector.informix.InformixOffsetContext;
+import io.debezium.connector.informix.InformixPartition;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.pipeline.spi.SnapshotResult;
 import lombok.RequiredArgsConstructor;
@@ -63,9 +64,11 @@ public class InformixSnapshotFetchTask implements FetchTask<SourceSplitBase> {
                         dialect);
         InformixSnapshotSplitChangeEventSourceContext changeEventSourceContext =
                 new InformixSnapshotSplitChangeEventSourceContext();
-        SnapshotResult snapshotResult =
+        SnapshotResult<InformixOffsetContext> snapshotResult =
                 snapshotSplitReadTask.execute(
-                        changeEventSourceContext, sourceFetchContext.getOffsetContext());
+                        changeEventSourceContext,
+                        sourceFetchContext.getPartition(),
+                        sourceFetchContext.getOffsetContext());
         if (!snapshotResult.isCompletedOrSkipped()) {
             taskRunning = false;
             throw new IllegalStateException(
@@ -90,7 +93,7 @@ public class InformixSnapshotFetchTask implements FetchTask<SourceSplitBase> {
         if (!changed) {
             dispatchCDCEndEvent(
                     backfillLogMinerSplit,
-                    ((InformixSourceFetchTaskContext) context).getOffsetContext().getPartition(),
+                    sourceFetchContext.getPartition().getSourcePartition(),
                     ((InformixSourceFetchTaskContext) context).getDispatcher());
             taskRunning = false;
             return;
@@ -105,6 +108,7 @@ public class InformixSnapshotFetchTask implements FetchTask<SourceSplitBase> {
                 backfillLogMinerSplit.getStopOffset());
         backfillCDCReadTask.execute(
                 new SnapshotScnSplitChangeEventSourceContext(),
+                sourceFetchContext.getPartition(),
                 sourceFetchContext.getOffsetContext());
         log.info("backfillReadTask execute end");
     }
@@ -153,7 +157,7 @@ public class InformixSnapshotFetchTask implements FetchTask<SourceSplitBase> {
     private void dispatchCDCEndEvent(
             IncrementalSplit backFillLogMinerSplit,
             Map<String, ?> sourcePartition,
-            JdbcSourceEventDispatcher eventDispatcher)
+            JdbcSourceEventDispatcher<InformixPartition> eventDispatcher)
             throws InterruptedException {
         eventDispatcher.dispatchWatermarkEvent(
                 sourcePartition,

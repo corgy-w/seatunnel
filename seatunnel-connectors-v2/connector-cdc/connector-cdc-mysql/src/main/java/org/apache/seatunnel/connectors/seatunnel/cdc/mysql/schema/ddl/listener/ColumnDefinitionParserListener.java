@@ -78,9 +78,7 @@ public class ColumnDefinitionParserListener extends MySqlParserBaseListener {
         uniqueColumn = false;
         optionalColumn = new AtomicReference<>();
         resolveColumnDataType(ctx.dataType());
-        defaultValueListener =
-                new DefaultValueParserListener(
-                        columnEditor, parser.getConverters(), optionalColumn, convertDefault);
+        defaultValueListener = new CustomDefaultValueParserListener(columnEditor, optionalColumn);
         listeners.add(defaultValueListener);
         super.enterColumnDefinition(ctx);
     }
@@ -90,7 +88,7 @@ public class ColumnDefinitionParserListener extends MySqlParserBaseListener {
         if (optionalColumn.get() != null) {
             columnEditor.optional(optionalColumn.get().booleanValue());
         }
-        defaultValueListener.convertDefaultValue(false);
+        defaultValueListener.exitDefaultValue(false);
         listeners.remove(defaultValueListener);
         super.exitColumnDefinition(ctx);
     }

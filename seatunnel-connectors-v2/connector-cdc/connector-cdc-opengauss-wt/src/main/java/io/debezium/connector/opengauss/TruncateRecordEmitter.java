@@ -32,6 +32,7 @@ public class TruncateRecordEmitter extends OpengaussChangeRecordEmitter {
      * @param message ReplicationMessage
      */
     public TruncateRecordEmitter(
+            OpengaussPartition partition,
             OffsetContext offset,
             Clock clock,
             OpengaussConnectorConfig connectorConfig,
@@ -39,6 +40,6 @@ public class TruncateRecordEmitter extends OpengaussChangeRecordEmitter {
             OpengaussConnection connection,
             TableId tableId,
             ReplicationMessage message) {
-        super(offset, clock, connectorConfig, schema, connection, tableId, message);
+        super(partition, offset, clock, connectorConfig, schema, connection, tableId, message);
     }
 }

@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class InformixChangeRecordEmitter extends RelationalChangeRecordEmitter {
+public class InformixChangeRecordEmitter extends RelationalChangeRecordEmitter<InformixPartition> {
     public static final int OP_DELETE = 1;
     public static final int OP_INSERT = 2;
     public static final int OP_UPDATE = 3;
@@ -40,8 +40,13 @@ public class InformixChangeRecordEmitter extends RelationalChangeRecordEmitter {
     private final Object[] dataNext;
 
     public InformixChangeRecordEmitter(
-            OffsetContext offset, int operation, Object[] data, Object[] dataNext, Clock clock) {
-        super(offset, clock);
+            InformixPartition partition,
+            OffsetContext offset,
+            int operation,
+            Object[] data,
+            Object[] dataNext,
+            Clock clock) {
+        super(partition, offset, clock);
 
         this.operation = operation;
         this.data = data;
@@ -49,7 +54,7 @@ public class InformixChangeRecordEmitter extends RelationalChangeRecordEmitter {
     }
 
     @Override
-    protected Operation getOperation() {
+    public Operation getOperation() {
         if (operation == OP_DELETE) {
             return Operation.DELETE;
         } else if (operation == OP_INSERT) {

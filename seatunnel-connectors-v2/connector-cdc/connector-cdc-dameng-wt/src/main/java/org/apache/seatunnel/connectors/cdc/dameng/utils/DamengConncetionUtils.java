@@ -23,6 +23,7 @@ import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
 
 import io.debezium.config.Configuration;
 import io.debezium.connector.dameng.DamengConnection;
+import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
 import io.debezium.relational.TableId;
@@ -46,11 +47,11 @@ import static io.debezium.config.CommonConnectorConfig.DATABASE_CONFIG_PREFIX;
 @Slf4j
 public class DamengConncetionUtils {
 
-    public static DamengConnection createDamengConnection(Configuration dbzConfiguration) {
+    public static DamengConnection createDamengConnection(JdbcConfiguration dbzConfiguration) {
         Configuration configuration = dbzConfiguration.subset(DATABASE_CONFIG_PREFIX, true);
 
         return new DamengConnection(
-                configuration.isEmpty() ? dbzConfiguration : configuration,
+                configuration.isEmpty() ? dbzConfiguration : JdbcConfiguration.adapt(configuration),
                 DamengConncetionUtils.class::getClassLoader);
     }
 

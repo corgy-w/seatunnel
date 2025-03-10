@@ -23,7 +23,8 @@ import io.debezium.pipeline.metrics.DefaultChangeEventSourceMetricsFactory;
 import io.debezium.pipeline.metrics.StreamingChangeEventSourceMetrics;
 import io.debezium.pipeline.source.spi.EventMetadataProvider;
 
-public class DamengChangeEventSourceMetricsFactory extends DefaultChangeEventSourceMetricsFactory {
+public class DamengChangeEventSourceMetricsFactory
+        extends DefaultChangeEventSourceMetricsFactory<DamengPartition> {
 
     private final DamengStreamingChangeEventSourceMetrics streamingMetrics;
 
@@ -33,10 +34,11 @@ public class DamengChangeEventSourceMetricsFactory extends DefaultChangeEventSou
     }
 
     @Override
-    public <T extends CdcSourceTaskContext> StreamingChangeEventSourceMetrics getStreamingMetrics(
-            T taskContext,
-            ChangeEventQueueMetrics changeEventQueueMetrics,
-            EventMetadataProvider eventMetadataProvider) {
+    public <T extends CdcSourceTaskContext>
+            StreamingChangeEventSourceMetrics<DamengPartition> getStreamingMetrics(
+                    T taskContext,
+                    ChangeEventQueueMetrics changeEventQueueMetrics,
+                    EventMetadataProvider eventMetadataProvider) {
         return streamingMetrics;
     }
 }

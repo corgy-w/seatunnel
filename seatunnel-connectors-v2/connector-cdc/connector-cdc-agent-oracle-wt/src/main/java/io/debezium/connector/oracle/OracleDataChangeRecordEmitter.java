@@ -25,19 +25,22 @@ import io.debezium.util.Clock;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class OracleDataChangeRecordEmitter extends RelationalChangeRecordEmitter {
+public class OracleDataChangeRecordEmitter extends RelationalChangeRecordEmitter<OraclePartition> {
 
     private final OracleAgentDmlEntry oracleAgentDmlEntry;
 
     public OracleDataChangeRecordEmitter(
-            OffsetContext offsetContext, Clock clock, OracleAgentDmlEntry oracleAgentDmlEntry) {
-        super(offsetContext, clock);
+            OraclePartition partition,
+            OffsetContext offsetContext,
+            Clock clock,
+            OracleAgentDmlEntry oracleAgentDmlEntry) {
+        super(partition, offsetContext, clock);
         this.oracleAgentDmlEntry =
                 checkNotNull(oracleAgentDmlEntry, "oracleAgentDmlEntry must not be null");
     }
 
     @Override
-    protected Envelope.Operation getOperation() {
+    public Envelope.Operation getOperation() {
         switch (oracleAgentDmlEntry.getOperation()) {
             case INSERT:
                 return Envelope.Operation.CREATE;

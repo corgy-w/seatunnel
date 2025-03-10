@@ -22,6 +22,7 @@ import org.apache.kafka.connect.data.Struct;
 
 import io.debezium.connector.SnapshotRecord;
 import io.debezium.pipeline.source.snapshot.incremental.IncrementalSnapshotContext;
+import io.debezium.pipeline.source.snapshot.incremental.SignalBasedIncrementalSnapshotContext;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
 import io.debezium.relational.TableId;
@@ -30,15 +31,12 @@ import io.debezium.util.Collect;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.Map;
 
 public class OracleAgentOffsetContext implements OffsetContext {
-    public static final String SERVER_PARTITION_KEY = "server";
     private static final String SNAPSHOT_COMPLETED_KEY = "snapshot_completed";
     private final Schema sourceInfoSchema;
     private final SourceInfo sourceInfo;
-    private final Map<String, String> partition;
     private final TransactionContext transactionContext;
     private final IncrementalSnapshotContext<TableId> incrementalSnapshotContext;
     private boolean snapshotCompleted;
@@ -57,7 +55,7 @@ public class OracleAgentOffsetContext implements OffsetContext {
                 snapshot,
                 snapshotCompleted,
                 transactionContext,
-                new IncrementalSnapshotContext());
+                new SignalBasedIncrementalSnapshotContext());
     }
 
     public OracleAgentOffsetContext(
@@ -68,8 +66,6 @@ public class OracleAgentOffsetContext implements OffsetContext {
             boolean snapshotCompleted,
             TransactionContext transactionContext,
             IncrementalSnapshotContext incrementalSnapshotContext) {
-        partition =
-                Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
         sourceInfo = new SourceInfo(connectorConfig);
         sourceInfo.setScn(scn);
         sourceInfo.setFzsFileNumber(fzsFileNumber);
@@ -83,11 +79,6 @@ public class OracleAgentOffsetContext implements OffsetContext {
         }
         this.transactionContext = transactionContext;
         this.incrementalSnapshotContext = incrementalSnapshotContext;
-    }
-
-    @Override
-    public Map<String, ?> getPartition() {
-        return partition;
     }
 
     @Override
@@ -190,13 +181,6 @@ public class OracleAgentOffsetContext implements OffsetContext {
     @RequiredArgsConstructor
     public static class Loader implements OffsetContext.Loader<OracleAgentOffsetContext> {
         private final OracleAgentConnectorConfig connectorConfig;
-
-        @Override
-        public Map<String, ?> getPartition() {
-            return Collections.singletonMap(
-                    OracleAgentOffsetContext.SERVER_PARTITION_KEY,
-                    connectorConfig.getLogicalName());
-        }
 
         @Override
         public OracleAgentOffsetContext load(Map<String, ?> offset) {

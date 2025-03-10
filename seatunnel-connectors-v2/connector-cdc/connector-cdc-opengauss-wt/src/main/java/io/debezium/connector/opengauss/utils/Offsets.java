@@ -7,6 +7,7 @@ package io.debezium.connector.opengauss.utils;
 
 import io.debezium.DebeziumException;
 import io.debezium.pipeline.spi.OffsetContext;
+import io.debezium.pipeline.spi.Partition;
 
 import java.util.HashMap;
 import java.util.Iterator;

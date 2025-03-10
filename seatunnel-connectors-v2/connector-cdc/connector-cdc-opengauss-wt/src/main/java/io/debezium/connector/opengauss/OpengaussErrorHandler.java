@@ -24,8 +24,8 @@ public class OpengaussErrorHandler extends ErrorHandler {
 
     @Immutable private static final Set<String> RETRIABLE_EXCEPTION_MESSSAGES;
 
-    public OpengaussErrorHandler(String logicalName, ChangeEventQueue<?> queue) {
-        super(OpengaussConnector.class, logicalName, queue);
+    public OpengaussErrorHandler(OpengaussConnectorConfig config, ChangeEventQueue<?> queue) {
+        super(OpengaussConnector.class, config, queue);
     }
 
     static {

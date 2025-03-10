@@ -18,9 +18,10 @@ import io.debezium.relational.Table;
  */
 public class HighGoDataEventsParam {
     private final ChangeEventSource.ChangeEventSourceContext sourceContext;
-    private final RelationalSnapshotChangeEventSource.RelationalSnapshotContext<HighGoOffsetContext>
+    private final RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                    HighGoPartition, HighGoOffsetContext>
             snapshotContext;
-    private final EventDispatcher.SnapshotReceiver snapshotReceiver;
+    private final EventDispatcher.SnapshotReceiver<HighGoPartition> snapshotReceiver;
     private final Table table;
     private final boolean isLastTable;
 
@@ -37,9 +38,10 @@ public class HighGoDataEventsParam {
      */
     public HighGoDataEventsParam(
             ChangeEventSource.ChangeEventSourceContext sourceContext,
-            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<HighGoOffsetContext>
+            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                            HighGoPartition, HighGoOffsetContext>
                     snapshotContext,
-            EventDispatcher.SnapshotReceiver snapshotReceiver,
+            EventDispatcher.SnapshotReceiver<HighGoPartition> snapshotReceiver,
             Table table,
             boolean isLastTable) {
         this.sourceContext = sourceContext;
@@ -63,7 +65,8 @@ public class HighGoDataEventsParam {
      *
      * @return snapshotContext RelationalSnapshotChangeEventSource.RelationalSnapshotContext
      */
-    public RelationalSnapshotChangeEventSource.RelationalSnapshotContext<HighGoOffsetContext>
+    public RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                    HighGoPartition, HighGoOffsetContext>
             getSnapshotContext() {
         return snapshotContext;
     }
@@ -73,7 +76,7 @@ public class HighGoDataEventsParam {
      *
      * @return snapshotReceiver
      */
-    public EventDispatcher.SnapshotReceiver getSnapshotReceiver() {
+    public EventDispatcher.SnapshotReceiver<HighGoPartition> getSnapshotReceiver() {
         return snapshotReceiver;
     }
 

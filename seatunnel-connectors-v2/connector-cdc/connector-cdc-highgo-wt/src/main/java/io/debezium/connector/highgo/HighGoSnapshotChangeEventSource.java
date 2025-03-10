@@ -27,7 +27,6 @@ import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.relational.TableSchema;
 import io.debezium.schema.SchemaChangeEvent;
-import io.debezium.schema.SchemaChangeEvent.SchemaChangeEventType;
 import io.debezium.util.Clock;
 import io.debezium.util.ColumnUtils;
 
@@ -46,7 +45,6 @@ import java.sql.Types;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -63,7 +61,7 @@ import java.util.stream.Collectors;
  * @since 2023-06-07
  */
 public class HighGoSnapshotChangeEventSource
-        extends RelationalSnapshotChangeEventSource<HighGoOffsetContext> {
+        extends RelationalSnapshotChangeEventSource<HighGoPartition, HighGoOffsetContext> {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HighGoSnapshotChangeEventSource.class);
     private static final String DELIMITER = " | ";
@@ -103,12 +101,12 @@ public class HighGoSnapshotChangeEventSource
             Snapshotter snapshotter,
             HighGoConnection jdbcConnection,
             HighGoSchema schema,
-            EventDispatcher<TableId> dispatcher,
+            EventDispatcher<HighGoPartition, TableId> dispatcher,
             Clock clock,
-            SnapshotProgressListener snapshotProgressListener,
+            SnapshotProgressListener<HighGoPartition> snapshotProgressListener,
             SlotCreationResult slotCreatedInfo,
             SlotState startingSlotInfo) {
-        super(connectorConfig, jdbcConnection, dispatcher, clock, snapshotProgressListener);
+        super(connectorConfig, jdbcConnection, schema, dispatcher, clock, snapshotProgressListener);
         this.connectorConfig = connectorConfig;
         this.jdbcConnection = jdbcConnection;
         this.schema = schema;
@@ -119,7 +117,8 @@ public class HighGoSnapshotChangeEventSource
     }
 
     @Override
-    protected SnapshottingTask getSnapshottingTask(HighGoOffsetContext previousOffset) {
+    protected SnapshottingTask getSnapshottingTask(
+            HighGoPartition partition, HighGoOffsetContext previousOffset) {
         boolean snapshotSchema = true;
         boolean snapshotData = true;
 
@@ -135,13 +134,14 @@ public class HighGoSnapshotChangeEventSource
     }
 
     @Override
-    protected SnapshotContext<HighGoOffsetContext> prepare(
-            ChangeEventSourceContext changeEventSourceContext) throws Exception {
-        return new PostgresSnapshotContext(connectorConfig.databaseName());
+    protected SnapshotContext<HighGoPartition, HighGoOffsetContext> prepare(
+            HighGoPartition partition) throws Exception {
+        return new PostgresSnapshotContext(partition, connectorConfig.databaseName());
     }
 
     @Override
-    protected void connectionCreated(RelationalSnapshotContext<HighGoOffsetContext> snapshotContext)
+    protected void connectionCreated(
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext)
             throws Exception {
         // If using catch up streaming, the connector opens the transaction that the snapshot will
         // eventually use
@@ -161,15 +161,15 @@ public class HighGoSnapshotChangeEventSource
     }
 
     @Override
-    protected Set<TableId> getAllTableIds(RelationalSnapshotContext<HighGoOffsetContext> ctx)
-            throws Exception {
+    protected Set<TableId> getAllTableIds(
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> ctx) throws Exception {
         return jdbcConnection.readTableNames(ctx.catalogName, null, null, new String[] {"TABLE"});
     }
 
     @Override
     protected void lockTablesForSchemaSnapshot(
             ChangeEventSourceContext sourceContext,
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext)
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext)
             throws SQLException, InterruptedException {
         final Duration lockTimeout = connectorConfig.snapshotLockTimeout();
         final Optional<String> lockStatement =
@@ -188,17 +188,20 @@ public class HighGoSnapshotChangeEventSource
 
     @Override
     protected void releaseSchemaSnapshotLocks(
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext) throws SQLException {}
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext)
+            throws SQLException {}
 
     @Override
     protected void releaseDataSnapshotLocks(
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext) throws Exception {
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext)
+            throws Exception {
         jdbcConnection.executeWithoutCommitting("COMMIT;");
     }
 
     @Override
     protected void determineSnapshotOffset(
-            RelationalSnapshotContext<HighGoOffsetContext> ctx, HighGoOffsetContext previousOffset)
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> ctx,
+            HighGoOffsetContext previousOffset)
             throws Exception {
         HighGoOffsetContext offset = ctx.offset;
         if (offset == null) {
@@ -276,7 +279,7 @@ public class HighGoSnapshotChangeEventSource
     @Override
     protected void readTableStructure(
             ChangeEventSourceContext sourceContext,
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext,
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext,
             HighGoOffsetContext offsetContext)
             throws SQLException, InterruptedException {
         Set<String> schemas =
@@ -308,22 +311,18 @@ public class HighGoSnapshotChangeEventSource
 
     @Override
     protected SchemaChangeEvent getCreateTableEvent(
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext, Table table)
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext,
+            Table table)
             throws SQLException {
-        return new SchemaChangeEvent(
-                new HashMap<>(),
-                snapshotContext.offset.getOffset(),
-                snapshotContext.offset.getSourceInfo(),
+        return SchemaChangeEvent.ofSnapshotCreate(
+                snapshotContext.partition,
+                snapshotContext.offset,
                 snapshotContext.catalogName,
-                table.id().schema(),
-                null,
-                table,
-                SchemaChangeEventType.CREATE,
-                true);
+                table);
     }
 
     @Override
-    protected void complete(SnapshotContext<HighGoOffsetContext> snapshotContext) {
+    protected void complete(SnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext) {
         snapshotter.snapshotCompleted();
     }
 
@@ -335,8 +334,10 @@ public class HighGoSnapshotChangeEventSource
      */
     @Override
     protected Optional<String> getSnapshotSelect(
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext, TableId tableId) {
-        return snapshotter.buildSnapshotQuery(tableId, null);
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext,
+            TableId tableId,
+            List<String> columns) {
+        return snapshotter.buildSnapshotQuery(tableId, columns);
     }
 
     protected void setSnapshotTransactionIsolationLevel() throws SQLException {
@@ -349,10 +350,11 @@ public class HighGoSnapshotChangeEventSource
 
     /** Mutable context which is populated in the course of snapshotting. */
     private static class PostgresSnapshotContext
-            extends RelationalSnapshotContext<HighGoOffsetContext> {
+            extends RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> {
 
-        public PostgresSnapshotContext(String catalogName) throws SQLException {
-            super(catalogName);
+        public PostgresSnapshotContext(HighGoPartition partition, String catalogName)
+                throws SQLException {
+            super(partition, catalogName);
         }
     }
 
@@ -364,8 +366,8 @@ public class HighGoSnapshotChangeEventSource
      * @throws InterruptedException Link break
      */
     private void pushTruncateMessageForTable(
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext,
-            EventDispatcher.SnapshotReceiver receiver,
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext,
+            EventDispatcher.SnapshotReceiver<HighGoPartition> receiver,
             List<String> schemaList)
             throws InterruptedException {
         for (Iterator<TableId> iterator = snapshotContext.capturedTables.iterator();
@@ -375,9 +377,10 @@ public class HighGoSnapshotChangeEventSource
             if (!schemaList.contains(tableId.schema())) {
                 continue;
             }
-            ChangeRecordEmitter truncateRecordEmitter =
+            ChangeRecordEmitter<HighGoPartition> truncateRecordEmitter =
                     getTruncateRecordEmitter(snapshotContext, tableId);
-            dispatcher.dispatchSnapshotEvent(tableId, truncateRecordEmitter, receiver);
+            dispatcher.dispatchSnapshotEvent(
+                    snapshotContext.partition, tableId, truncateRecordEmitter, receiver);
         }
     }
 
@@ -470,7 +473,8 @@ public class HighGoSnapshotChangeEventSource
     }
 
     private ChangeRecordEmitter getTruncateRecordEmitter(
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext, TableId tableId) {
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext,
+            TableId tableId) {
         ReplicationMessage message =
                 new ReplicationMessage() {
                     @Override
@@ -515,6 +519,7 @@ public class HighGoSnapshotChangeEventSource
                 };
         snapshotContext.offset.event(tableId, getClock().currentTime());
         return new TruncateRecordEmitter(
+                snapshotContext.partition,
                 snapshotContext.offset,
                 getClock(),
                 connectorConfig,
@@ -531,16 +536,21 @@ public class HighGoSnapshotChangeEventSource
             String columnString)
             throws IOException, InterruptedException {
         Table table = dataEventsParam.getTable();
-        RelationalSnapshotContext<HighGoOffsetContext> snapshotContext =
+        RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext =
                 dataEventsParam.getSnapshotContext();
-        EventDispatcher.SnapshotReceiver snapshotReceiver = dataEventsParam.getSnapshotReceiver();
+        EventDispatcher.SnapshotReceiver<HighGoPartition> snapshotReceiver =
+                dataEventsParam.getSnapshotReceiver();
         String path = generateFileName(table.id().schema(), table.id().table(), subscript);
         if (wirteCsv(columnStringArr, path)) {
             synchronized (messLock) {
-                ChangeRecordEmitter changeRecordEmitter =
+                ChangeRecordEmitter<HighGoPartition> changeRecordEmitter =
                         getFilePathRecordEmitter(
                                 snapshotContext, table.id(), new String[] {path, columnString});
-                dispatcher.dispatchSnapshotEvent(table.id(), changeRecordEmitter, snapshotReceiver);
+                dispatcher.dispatchSnapshotEvent(
+                        snapshotContext.partition,
+                        table.id(),
+                        changeRecordEmitter,
+                        snapshotReceiver);
             }
         }
     }
@@ -551,12 +561,13 @@ public class HighGoSnapshotChangeEventSource
                 + String.format(Locale.ROOT, "%s_%s_%d.csv", schema, table, subscript);
     }
 
-    private ChangeRecordEmitter getFilePathRecordEmitter(
-            RelationalSnapshotContext<HighGoOffsetContext> snapshotContext,
+    private ChangeRecordEmitter<HighGoPartition> getFilePathRecordEmitter(
+            RelationalSnapshotContext<HighGoPartition, HighGoOffsetContext> snapshotContext,
             TableId tableId,
             String[] row) {
         snapshotContext.offset.event(tableId, getClock().currentTime());
-        return new SnapshotChangeFilePathRecordEmitter(snapshotContext.offset, getClock(), row);
+        return new SnapshotChangeFilePathRecordEmitter(
+                snapshotContext.partition, snapshotContext.offset, getClock(), row);
     }
 
     private String columnToString(ResultSet rs, ColumnUtils.ColumnArray columnArray, Table table)

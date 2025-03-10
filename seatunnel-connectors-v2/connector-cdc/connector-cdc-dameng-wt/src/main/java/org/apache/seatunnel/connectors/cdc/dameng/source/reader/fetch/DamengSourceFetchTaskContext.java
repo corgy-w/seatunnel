@@ -38,6 +38,7 @@ import io.debezium.connector.dameng.DamengDatabaseSchema;
 import io.debezium.connector.dameng.DamengErrorHandler;
 import io.debezium.connector.dameng.DamengEventMetadataProvider;
 import io.debezium.connector.dameng.DamengOffsetContext;
+import io.debezium.connector.dameng.DamengPartition;
 import io.debezium.connector.dameng.DamengStreamingChangeEventSourceMetrics;
 import io.debezium.connector.dameng.DamengTaskContext;
 import io.debezium.connector.dameng.DamengTopicSelector;
@@ -45,6 +46,7 @@ import io.debezium.connector.dameng.logminer.LogMinerOracleOffsetContextLoader;
 import io.debezium.pipeline.DataChangeEvent;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.metrics.SnapshotChangeEventSourceMetrics;
+import io.debezium.pipeline.spi.Offsets;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
@@ -64,16 +66,21 @@ public class DamengSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     private DamengDatabaseSchema databaseSchema;
     private DamengOffsetContext offsetContext;
     private DamengTaskContext taskContext;
+    private DamengPartition damengPartition;
     private ChangeEventQueue<DataChangeEvent> queue;
-    private JdbcSourceEventDispatcher dispatcher;
-    @Getter private SnapshotChangeEventSourceMetrics snapshotChangeEventSourceMetrics;
+    private JdbcSourceEventDispatcher<DamengPartition> dispatcher;
+
+    @Getter
+    private SnapshotChangeEventSourceMetrics<DamengPartition> snapshotChangeEventSourceMetrics;
+
     @Getter private DamengStreamingChangeEventSourceMetrics streamingChangeEventSourceMetrics;
     private DamengErrorHandler errorHandler;
 
     public DamengSourceFetchTaskContext(
             JdbcSourceConfig sourceConfig, JdbcDataSourceDialect dataSourceDialect) {
         super(sourceConfig, dataSourceDialect);
-        this.connection = createDamengConnection(sourceConfig.getDbzConfiguration());
+        this.connection =
+                createDamengConnection(sourceConfig.getDbzConnectorConfig().getJdbcConfig());
         this.metadataProvider = new DamengEventMetadataProvider();
     }
 
@@ -88,6 +95,7 @@ public class DamengSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
         this.offsetContext =
                 loadStartingOffsetState(
                         new LogMinerOracleOffsetContextLoader(connectorConfig), sourceSplitBase);
+        this.damengPartition = new DamengPartition(connectorConfig.getLogicalName());
         validateAndLoadDatabaseHistory(offsetContext, databaseSchema);
 
         this.taskContext = new DamengTaskContext(connectorConfig, databaseSchema);
@@ -110,7 +118,7 @@ public class DamengSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                         // .buffering()
                         .build();
         this.dispatcher =
-                new JdbcSourceEventDispatcher(
+                new JdbcSourceEventDispatcher<>(
                         connectorConfig,
                         topicSelector,
                         databaseSchema,
@@ -132,7 +140,7 @@ public class DamengSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
                         changeEventSourceMetricsFactory.getStreamingMetrics(
                                 taskContext, queue, metadataProvider);
 
-        this.errorHandler = new DamengErrorHandler(connectorConfig.getLogicalName(), queue);
+        this.errorHandler = new DamengErrorHandler(connectorConfig, queue);
     }
 
     @Override
@@ -175,13 +183,18 @@ public class DamengSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     }
 
     @Override
-    public JdbcSourceEventDispatcher getDispatcher() {
+    public JdbcSourceEventDispatcher<DamengPartition> getDispatcher() {
         return dispatcher;
     }
 
     @Override
     public DamengOffsetContext getOffsetContext() {
         return offsetContext;
+    }
+
+    @Override
+    public DamengPartition getPartition() {
+        return damengPartition;
     }
 
     @Override
@@ -206,6 +219,6 @@ public class DamengSourceFetchTaskContext extends JdbcSourceFetchTaskContext {
     private void validateAndLoadDatabaseHistory(
             DamengOffsetContext offsetContext, DamengDatabaseSchema databaseSchema) {
         databaseSchema.initializeStorage();
-        databaseSchema.recover(offsetContext);
+        databaseSchema.recover(Offsets.of(damengPartition, offsetContext));
     }
 }

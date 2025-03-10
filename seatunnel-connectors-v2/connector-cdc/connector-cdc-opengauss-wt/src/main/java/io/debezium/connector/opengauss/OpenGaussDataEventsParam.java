@@ -19,9 +19,9 @@ import io.debezium.relational.Table;
 public class OpenGaussDataEventsParam {
     private final ChangeEventSource.ChangeEventSourceContext sourceContext;
     private final RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
-                    OpengaussOffsetContext>
+                    OpengaussPartition, OpengaussOffsetContext>
             snapshotContext;
-    private final EventDispatcher.SnapshotReceiver snapshotReceiver;
+    private final EventDispatcher.SnapshotReceiver<OpengaussPartition> snapshotReceiver;
     private final Table table;
     private final boolean isLastTable;
 
@@ -38,9 +38,10 @@ public class OpenGaussDataEventsParam {
      */
     public OpenGaussDataEventsParam(
             ChangeEventSource.ChangeEventSourceContext sourceContext,
-            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussOffsetContext>
+            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                            OpengaussPartition, OpengaussOffsetContext>
                     snapshotContext,
-            EventDispatcher.SnapshotReceiver snapshotReceiver,
+            EventDispatcher.SnapshotReceiver<OpengaussPartition> snapshotReceiver,
             Table table,
             boolean isLastTable) {
         this.sourceContext = sourceContext;
@@ -64,7 +65,8 @@ public class OpenGaussDataEventsParam {
      *
      * @return snapshotContext RelationalSnapshotChangeEventSource.RelationalSnapshotContext
      */
-    public RelationalSnapshotChangeEventSource.RelationalSnapshotContext<OpengaussOffsetContext>
+    public RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                    OpengaussPartition, OpengaussOffsetContext>
             getSnapshotContext() {
         return snapshotContext;
     }
@@ -74,7 +76,7 @@ public class OpenGaussDataEventsParam {
      *
      * @return snapshotReceiver
      */
-    public EventDispatcher.SnapshotReceiver getSnapshotReceiver() {
+    public EventDispatcher.SnapshotReceiver<OpengaussPartition> getSnapshotReceiver() {
         return snapshotReceiver;
     }
 

@@ -46,7 +46,8 @@ import java.util.stream.Collectors;
  *
  * @author Horia Chiorean (hchiorea@redhat.com), Jiri Pechanec
  */
-public class OpengaussChangeRecordEmitter extends RelationalChangeRecordEmitter {
+public class OpengaussChangeRecordEmitter
+        extends RelationalChangeRecordEmitter<OpengaussPartition> {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(OpengaussChangeRecordEmitter.class);
@@ -61,6 +62,7 @@ public class OpengaussChangeRecordEmitter extends RelationalChangeRecordEmitter 
     private final Map<String, Object> cachedOldToastedValues = new HashMap<>();
 
     public OpengaussChangeRecordEmitter(
+            OpengaussPartition partition,
             OffsetContext offset,
             Clock clock,
             OpengaussConnectorConfig connectorConfig,
@@ -68,7 +70,7 @@ public class OpengaussChangeRecordEmitter extends RelationalChangeRecordEmitter 
             OpengaussConnection connection,
             TableId tableId,
             ReplicationMessage message) {
-        super(offset, clock);
+        super(partition, offset, clock);
 
         this.schema = schema;
         this.message = message;
@@ -84,7 +86,7 @@ public class OpengaussChangeRecordEmitter extends RelationalChangeRecordEmitter 
     }
 
     @Override
-    protected Operation getOperation() {
+    public Operation getOperation() {
         switch (message.getOperation()) {
             case INSERT:
                 return Operation.CREATE;
@@ -115,7 +117,8 @@ public class OpengaussChangeRecordEmitter extends RelationalChangeRecordEmitter 
                 tableSchema
                         .getEnvelopeSchema()
                         .truncate(getOffset().getSourceInfo(), getClock().currentTimeAsInstant());
-        receiver.changeRecord(tableSchema, Operation.TRUNCATE, key, envelope, getOffset(), null);
+        receiver.changeRecord(
+                getPartition(), tableSchema, Operation.TRUNCATE, key, envelope, getOffset(), null);
     }
 
     @Override

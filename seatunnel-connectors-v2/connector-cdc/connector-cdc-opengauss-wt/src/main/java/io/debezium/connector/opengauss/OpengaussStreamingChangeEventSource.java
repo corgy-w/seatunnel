@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** @author Horia Chiorean (hchiorea@redhat.com), Jiri Pechanec */
 public class OpengaussStreamingChangeEventSource
-        implements StreamingChangeEventSource<OpengaussOffsetContext> {
+        implements StreamingChangeEventSource<OpengaussPartition, OpengaussOffsetContext> {
 
     private static final String KEEP_ALIVE_THREAD_NAME = "keep-alive";
 
@@ -116,7 +116,10 @@ public class OpengaussStreamingChangeEventSource
     }
 
     @Override
-    public void execute(ChangeEventSourceContext context, OpengaussOffsetContext offsetContext)
+    public void execute(
+            ChangeEventSourceContext context,
+            OpengaussPartition partition,
+            OpengaussOffsetContext offsetContext)
             throws InterruptedException {
         if (!snapshotter.shouldStream()) {
             LOGGER.info("Streaming is not enabled in correct configuration");
@@ -202,7 +205,7 @@ public class OpengaussStreamingChangeEventSource
                                 connectorConfig.getLogicalName(),
                                 KEEP_ALIVE_THREAD_NAME));
             }
-            processMessages(context, offsetContext, stream);
+            processMessages(partition, context, offsetContext, stream);
         } catch (Throwable e) {
             errorHandler.setProducerThrowable(e);
         } finally {
@@ -233,6 +236,7 @@ public class OpengaussStreamingChangeEventSource
     }
 
     private void processMessages(
+            OpengaussPartition partition,
             ChangeEventSourceContext context,
             OpengaussOffsetContext offsetContext,
             final ReplicationStream stream)
@@ -261,7 +265,7 @@ public class OpengaussStreamingChangeEventSource
                                         // whole transaction
                                         // too early
                                         if (message.getOperation() == Operation.COMMIT) {
-                                            commitMessage(offsetContext, lsn);
+                                            commitMessage(partition, offsetContext, lsn);
                                         }
                                         return;
                                     }
@@ -275,11 +279,13 @@ public class OpengaussStreamingChangeEventSource
                                             null);
                                     if (message.getOperation() == Operation.BEGIN) {
                                         dispatcher.dispatchTransactionStartedEvent(
+                                                partition,
                                                 toString(message.getTransactionId()),
                                                 offsetContext);
                                     } else if (message.getOperation() == Operation.COMMIT) {
-                                        commitMessage(offsetContext, lsn);
-                                        dispatcher.dispatchTransactionCommittedEvent(offsetContext);
+                                        commitMessage(partition, offsetContext, lsn);
+                                        dispatcher.dispatchTransactionCommittedEvent(
+                                                partition, offsetContext);
                                     }
                                     maybeWarnAboutGrowingWalBacklog(true);
                                 } else if (message.getOperation() == Operation.MESSAGE) {
@@ -293,7 +299,7 @@ public class OpengaussStreamingChangeEventSource
                                     // non-transactional message that will not be followed by a
                                     // COMMIT message
                                     if (message.isLastEventForLsn()) {
-                                        commitMessage(offsetContext, lsn);
+                                        commitMessage(partition, offsetContext, lsn);
                                     }
 
                                     dispatcher.dispatchLogicalDecodingMessage(
@@ -322,8 +328,10 @@ public class OpengaussStreamingChangeEventSource
                                     boolean dispatched =
                                             message.getOperation() != Operation.NOOP
                                                     && dispatcher.dispatchDataChangeEvent(
+                                                            partition,
                                                             tableId,
                                                             new OpengaussChangeRecordEmitter(
+                                                                    partition,
                                                                     offsetContext,
                                                                     clock,
                                                                     connectorConfig,
@@ -342,7 +350,7 @@ public class OpengaussStreamingChangeEventSource
                 noMessageIterations = 0;
             } else {
                 if (offsetContext.hasCompletelyProcessedPosition()) {
-                    dispatcher.dispatchHeartbeatEvent(offsetContext);
+                    dispatcher.dispatchHeartbeatEvent(partition, offsetContext);
                 }
                 noMessageIterations++;
                 if (noMessageIterations >= THROTTLE_NO_MESSAGE_BEFORE_PAUSE) {
@@ -403,12 +411,13 @@ public class OpengaussStreamingChangeEventSource
         }
     }
 
-    private void commitMessage(OpengaussOffsetContext offsetContext, final Lsn lsn)
+    private void commitMessage(
+            OpengaussPartition partition, OpengaussOffsetContext offsetContext, final Lsn lsn)
             throws SQLException, InterruptedException {
         lastCompletelyProcessedLsn = lsn;
         offsetContext.updateCommitPosition(lsn, lastCompletelyProcessedLsn);
         maybeWarnAboutGrowingWalBacklog(false);
-        dispatcher.dispatchHeartbeatEvent(offsetContext);
+        dispatcher.dispatchHeartbeatEvent(partition, offsetContext);
     }
 
     /**

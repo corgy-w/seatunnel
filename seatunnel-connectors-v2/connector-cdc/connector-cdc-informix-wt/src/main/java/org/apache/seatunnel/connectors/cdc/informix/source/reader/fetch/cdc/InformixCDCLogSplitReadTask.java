@@ -30,6 +30,7 @@ import io.debezium.DebeziumException;
 import io.debezium.connector.informix.InformixCDCEngine;
 import io.debezium.connector.informix.InformixDatabaseSchema;
 import io.debezium.connector.informix.InformixOffsetContext;
+import io.debezium.connector.informix.InformixPartition;
 import io.debezium.connector.informix.InformixStreamingChangeEventSource;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.relational.TableId;
@@ -47,7 +48,7 @@ public class InformixCDCLogSplitReadTask extends InformixStreamingChangeEventSou
 
     private final IncrementalSplit split;
     private final InformixOffsetContext offsetContext;
-    private final JdbcSourceEventDispatcher eventDispatcher;
+    private final JdbcSourceEventDispatcher<InformixPartition> eventDispatcher;
     private final ErrorHandler errorHandler;
     private ChangeEventSourceContext context;
 
@@ -55,7 +56,7 @@ public class InformixCDCLogSplitReadTask extends InformixStreamingChangeEventSou
             InformixOffsetContext offsetContext,
             InformixSourceConfig sourceConfig,
             InformixCDCEngine cdcEngine,
-            JdbcSourceEventDispatcher eventDispatcher,
+            JdbcSourceEventDispatcher<InformixPartition> eventDispatcher,
             ErrorHandler errorHandler,
             InformixDatabaseSchema databaseSchema,
             IncrementalSplit split) {
@@ -74,14 +75,18 @@ public class InformixCDCLogSplitReadTask extends InformixStreamingChangeEventSou
     }
 
     @Override
-    public void execute(ChangeEventSourceContext context, InformixOffsetContext offsetContext)
+    public void execute(
+            ChangeEventSourceContext context,
+            InformixPartition partition,
+            InformixOffsetContext offsetContext)
             throws InterruptedException {
         this.context = context;
-        super.execute(context, this.offsetContext);
+        super.execute(context, partition, this.offsetContext);
     }
 
     @Override
     public void handleEvent(
+            InformixPartition partition,
             TableId tableId,
             InformixOffsetContext offsetContext,
             IfxCDCOperationRecord record,
@@ -90,7 +95,8 @@ public class InformixCDCLogSplitReadTask extends InformixStreamingChangeEventSou
             Map<String, IfmxReadableType> dataNext,
             Clock clock)
             throws SQLException {
-        super.handleEvent(tableId, offsetContext, record, operation, data, dataNext, clock);
+        super.handleEvent(
+                partition, tableId, offsetContext, record, operation, data, dataNext, clock);
         // check do we need to stop for fetch cdc for snapshot split.
         if (isBoundedRead()) {
             InformixOffset currentInformixOffset = getLogMinerPosition(offsetContext.getOffset());
@@ -99,7 +105,7 @@ public class InformixCDCLogSplitReadTask extends InformixStreamingChangeEventSou
                 // send cdc end event
                 try {
                     eventDispatcher.dispatchWatermarkEvent(
-                            offsetContext.getPartition(),
+                            partition.getSourcePartition(),
                             split,
                             currentInformixOffset,
                             WatermarkKind.END);

@@ -31,6 +31,7 @@ import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
 import org.apache.seatunnel.connectors.cdc.base.source.IncrementalSource;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.OffsetFactory;
 import org.apache.seatunnel.connectors.cdc.debezium.DebeziumDeserializationSchema;
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
 import org.apache.seatunnel.connectors.cdc.debezium.DeserializeFormat;
 import org.apache.seatunnel.connectors.cdc.debezium.row.DebeziumJsonDeserializeSchema;
 import org.apache.seatunnel.connectors.cdc.debezium.row.SeaTunnelRowDebeziumDeserializeSchema;
@@ -45,6 +46,7 @@ import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.TableId;
 import io.debezium.relational.history.ConnectTableChangeSerializer;
 import io.debezium.relational.history.TableChanges;
+import io.debezium.util.SchemaNameAdjuster;
 import lombok.NoArgsConstructor;
 
 import java.time.ZoneId;
@@ -131,8 +133,9 @@ public class OracleIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
         OracleDialect dialect =
                 new OracleDialect((OracleSourceConfigFactory) configFactory, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
+        SchemaNameAdjuster schemaNameAdjuster = DebeziumSchemaNameAdjuster.create();
         ConnectTableChangeSerializer connectTableChangeSerializer =
-                new ConnectTableChangeSerializer();
+                new ConnectTableChangeSerializer(schemaNameAdjuster);
         try (JdbcConnection jdbcConnection = dialect.openJdbcConnection(jdbcSourceConfig)) {
             return discoverTables.stream()
                     .collect(

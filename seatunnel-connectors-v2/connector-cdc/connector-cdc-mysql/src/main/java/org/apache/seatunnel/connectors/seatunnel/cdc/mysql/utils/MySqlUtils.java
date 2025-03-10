@@ -28,6 +28,7 @@ import org.apache.kafka.connect.source.SourceRecord;
 
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
+import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import lombok.extern.slf4j.Slf4j;
@@ -91,7 +92,9 @@ public class MySqlUtils {
         // accurate than COUNT(*), but is more efficient for large table.
         final String useDatabaseStatement = String.format("USE %s;", quote(tableId.catalog()));
         final String rowCountQuery = String.format("SHOW TABLE STATUS LIKE '%s';", tableId.table());
-        jdbc.executeWithoutCommitting(useDatabaseStatement);
+        // Otherwise will case this error: Cannot execute without committing because auto-commit is
+        // enabled
+        jdbc.execute(useDatabaseStatement);
         return jdbc.queryAndMap(
                 rowCountQuery,
                 rs -> {
@@ -362,7 +365,8 @@ public class MySqlUtils {
         }
     }
 
-    public static SeaTunnelRowType getSplitType(Table table) {
+    public static SeaTunnelRowType getSplitType(
+            Table table, RelationalDatabaseConnectorConfig dbzConnectorConfig) {
         List<Column> primaryKeys = table.primaryKeyColumns();
         if (primaryKeys.isEmpty()) {
             throw new SeaTunnelException(
@@ -373,7 +377,7 @@ public class MySqlUtils {
         }
 
         // use first field in primary key as the split key
-        return getSplitType(primaryKeys.get(0));
+        return getSplitType(primaryKeys.get(0), dbzConnectorConfig);
     }
 
     public static BinlogOffset getBinlogPosition(SourceRecord dataRecord) {
@@ -389,10 +393,13 @@ public class MySqlUtils {
         return new BinlogOffset(offsetStrMap);
     }
 
-    public static SeaTunnelRowType getSplitType(Column splitColumn) {
+    public static SeaTunnelRowType getSplitType(
+            Column splitColumn, RelationalDatabaseConnectorConfig dbzConnectorConfig) {
         return new SeaTunnelRowType(
                 new String[] {splitColumn.name()},
-                new SeaTunnelDataType<?>[] {MySqlTypeUtils.convertFromColumn(splitColumn)});
+                new SeaTunnelDataType<?>[] {
+                    MySqlTypeUtils.convertFromColumn(splitColumn, dbzConnectorConfig)
+                });
     }
 
     public static Column getSplitColumn(Table table) {

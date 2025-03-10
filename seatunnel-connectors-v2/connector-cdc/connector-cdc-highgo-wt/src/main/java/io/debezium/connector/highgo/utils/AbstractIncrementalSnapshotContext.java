@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
  * @author Jiri Pechanec
  */
 @NotThreadSafe
-public class AbstractIncrementalSnapshotContext<T> extends IncrementalSnapshotContext<T> {
+public class AbstractIncrementalSnapshotContext<T> implements IncrementalSnapshotContext<T> {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(AbstractIncrementalSnapshotContext.class);
@@ -259,6 +259,30 @@ public class AbstractIncrementalSnapshotContext<T> extends IncrementalSnapshotCo
 
     public Optional<Object[]> maximumKey() {
         return Optional.ofNullable(maximumKey);
+    }
+
+    @Override
+    public Table getSchema() {
+        return schema;
+    }
+
+    @Override
+    public void setSchema(Table schema) {
+        this.schema = schema;
+    }
+
+    @Override
+    public boolean isSchemaVerificationPassed() {
+        return schemaVerificationPassed;
+    }
+
+    @Override
+    public void setSchemaVerificationPassed(boolean schemaVerificationPassed) {
+        this.schemaVerificationPassed = schemaVerificationPassed;
+        LOGGER.info(
+                "Incremental snapshot's schema verification passed = {}, schema = {}",
+                schemaVerificationPassed,
+                schema);
     }
 
     @Override

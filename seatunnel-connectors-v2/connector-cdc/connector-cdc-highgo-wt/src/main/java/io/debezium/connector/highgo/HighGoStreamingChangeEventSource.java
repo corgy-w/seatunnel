@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** @author Horia Chiorean (hchiorea@redhat.com), Jiri Pechanec */
 public class HighGoStreamingChangeEventSource
-        implements StreamingChangeEventSource<HighGoOffsetContext> {
+        implements StreamingChangeEventSource<HighGoPartition, HighGoOffsetContext> {
 
     private static final String KEEP_ALIVE_THREAD_NAME = "keep-alive";
 
@@ -116,7 +116,10 @@ public class HighGoStreamingChangeEventSource
     }
 
     @Override
-    public void execute(ChangeEventSourceContext context, HighGoOffsetContext offsetContext)
+    public void execute(
+            ChangeEventSourceContext context,
+            HighGoPartition partition,
+            HighGoOffsetContext offsetContext)
             throws InterruptedException {
         if (!snapshotter.shouldStream()) {
             LOGGER.info("Streaming is not enabled in correct configuration");
@@ -201,7 +204,7 @@ public class HighGoStreamingChangeEventSource
                                 connectorConfig.getLogicalName(),
                                 KEEP_ALIVE_THREAD_NAME));
             }
-            processMessages(context, offsetContext, stream);
+            processMessages(partition, context, offsetContext, stream);
         } catch (Throwable e) {
             errorHandler.setProducerThrowable(e);
         } finally {
@@ -232,6 +235,7 @@ public class HighGoStreamingChangeEventSource
     }
 
     private void processMessages(
+            HighGoPartition partition,
             ChangeEventSourceContext context,
             HighGoOffsetContext offsetContext,
             final ReplicationStream stream)
@@ -260,7 +264,7 @@ public class HighGoStreamingChangeEventSource
                                         // whole transaction
                                         // too early
                                         if (message.getOperation() == Operation.COMMIT) {
-                                            commitMessage(offsetContext, lsn);
+                                            commitMessage(partition, offsetContext, lsn);
                                         }
                                         return;
                                     }
@@ -274,11 +278,13 @@ public class HighGoStreamingChangeEventSource
                                             null);
                                     if (message.getOperation() == Operation.BEGIN) {
                                         dispatcher.dispatchTransactionStartedEvent(
+                                                partition,
                                                 toString(message.getTransactionId()),
                                                 offsetContext);
                                     } else if (message.getOperation() == Operation.COMMIT) {
-                                        commitMessage(offsetContext, lsn);
-                                        dispatcher.dispatchTransactionCommittedEvent(offsetContext);
+                                        commitMessage(partition, offsetContext, lsn);
+                                        dispatcher.dispatchTransactionCommittedEvent(
+                                                partition, offsetContext);
                                     }
                                     maybeWarnAboutGrowingWalBacklog(true);
                                 } else if (message.getOperation() == Operation.MESSAGE) {
@@ -292,7 +298,7 @@ public class HighGoStreamingChangeEventSource
                                     // non-transactional message that will not be followed by a
                                     // COMMIT message
                                     if (message.isLastEventForLsn()) {
-                                        commitMessage(offsetContext, lsn);
+                                        commitMessage(partition, offsetContext, lsn);
                                     }
 
                                     dispatcher.dispatchLogicalDecodingMessage(
@@ -321,8 +327,10 @@ public class HighGoStreamingChangeEventSource
                                     boolean dispatched =
                                             message.getOperation() != Operation.NOOP
                                                     && dispatcher.dispatchDataChangeEvent(
+                                                            partition,
                                                             tableId,
                                                             new HighGoChangeRecordEmitter(
+                                                                    partition,
                                                                     offsetContext,
                                                                     clock,
                                                                     connectorConfig,
@@ -341,7 +349,7 @@ public class HighGoStreamingChangeEventSource
                 noMessageIterations = 0;
             } else {
                 if (offsetContext.hasCompletelyProcessedPosition()) {
-                    dispatcher.dispatchHeartbeatEvent(offsetContext);
+                    dispatcher.dispatchHeartbeatEvent(partition, offsetContext);
                 }
                 noMessageIterations++;
                 if (noMessageIterations >= THROTTLE_NO_MESSAGE_BEFORE_PAUSE) {
@@ -402,12 +410,13 @@ public class HighGoStreamingChangeEventSource
         }
     }
 
-    private void commitMessage(HighGoOffsetContext offsetContext, final Lsn lsn)
+    private void commitMessage(
+            HighGoPartition partition, HighGoOffsetContext offsetContext, final Lsn lsn)
             throws SQLException, InterruptedException {
         lastCompletelyProcessedLsn = lsn;
         offsetContext.updateCommitPosition(lsn, lastCompletelyProcessedLsn);
         maybeWarnAboutGrowingWalBacklog(false);
-        dispatcher.dispatchHeartbeatEvent(offsetContext);
+        dispatcher.dispatchHeartbeatEvent(partition, offsetContext);
     }
 
     /**

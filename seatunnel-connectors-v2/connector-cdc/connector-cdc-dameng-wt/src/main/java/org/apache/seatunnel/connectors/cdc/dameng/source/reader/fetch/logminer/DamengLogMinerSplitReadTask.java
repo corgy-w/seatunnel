@@ -28,6 +28,7 @@ import io.debezium.DebeziumException;
 import io.debezium.connector.dameng.DamengConnection;
 import io.debezium.connector.dameng.DamengDatabaseSchema;
 import io.debezium.connector.dameng.DamengOffsetContext;
+import io.debezium.connector.dameng.DamengPartition;
 import io.debezium.connector.dameng.DamengStreamingChangeEventSourceMetrics;
 import io.debezium.connector.dameng.logminer.LogMinerStreamingChangeEventSource;
 import io.debezium.pipeline.ErrorHandler;
@@ -43,14 +44,14 @@ import static org.apache.seatunnel.connectors.cdc.dameng.source.offset.LogMinerO
 public class DamengLogMinerSplitReadTask extends LogMinerStreamingChangeEventSource {
 
     private final IncrementalSplit split;
-    private final JdbcSourceEventDispatcher eventDispatcher;
+    private final JdbcSourceEventDispatcher<DamengPartition> eventDispatcher;
     private final ErrorHandler errorHandler;
     private ChangeEventSourceContext context;
 
     public DamengLogMinerSplitReadTask(
             DamengSourceConfig sourceConfig,
             DamengConnection connection,
-            JdbcSourceEventDispatcher eventDispatcher,
+            JdbcSourceEventDispatcher<DamengPartition> eventDispatcher,
             ErrorHandler errorHandler,
             DamengDatabaseSchema databaseSchema,
             DamengStreamingChangeEventSourceMetrics streamingMetrics,
@@ -69,14 +70,17 @@ public class DamengLogMinerSplitReadTask extends LogMinerStreamingChangeEventSou
     }
 
     @Override
-    public void execute(ChangeEventSourceContext context, DamengOffsetContext offsetContext)
+    public void execute(
+            ChangeEventSourceContext context,
+            DamengPartition partition,
+            DamengOffsetContext offsetContext)
             throws InterruptedException {
         this.context = context;
-        super.execute(context, offsetContext);
+        super.execute(context, partition, offsetContext);
     }
 
     @Override
-    protected void afterHandleScn(DamengOffsetContext offsetContext) {
+    protected void afterHandleScn(DamengPartition partition, DamengOffsetContext offsetContext) {
         super.afterHandleScn(offsetContext);
         // check do we need to stop for fetch logminer for snapshot split.
         if (isBoundedRead()) {
@@ -86,7 +90,7 @@ public class DamengLogMinerSplitReadTask extends LogMinerStreamingChangeEventSou
                 // send logminer end event
                 try {
                     eventDispatcher.dispatchWatermarkEvent(
-                            offsetContext.getPartition(),
+                            partition.getSourcePartition(),
                             split,
                             currentLogMinerOffset,
                             WatermarkKind.END);

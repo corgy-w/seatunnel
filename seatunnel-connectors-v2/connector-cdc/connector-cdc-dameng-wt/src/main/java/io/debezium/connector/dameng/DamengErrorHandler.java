@@ -21,7 +21,7 @@ import io.debezium.connector.base.ChangeEventQueue;
 import io.debezium.pipeline.ErrorHandler;
 
 public class DamengErrorHandler extends ErrorHandler {
-    public DamengErrorHandler(String logicalName, ChangeEventQueue<?> queue) {
-        super(DamengConnector.class, logicalName, queue);
+    public DamengErrorHandler(DamengConnectorConfig connectorConfig, ChangeEventQueue<?> queue) {
+        super(DamengConnector.class, connectorConfig, queue);
     }
 }

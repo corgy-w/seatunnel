@@ -21,28 +21,23 @@ import org.apache.seatunnel.connectors.cdc.base.relational.JdbcSourceEventDispat
 import org.apache.seatunnel.connectors.cdc.base.source.reader.external.FetchTask;
 import org.apache.seatunnel.connectors.cdc.base.source.split.IncrementalSplit;
 import org.apache.seatunnel.connectors.cdc.base.source.split.SourceSplitBase;
-import org.apache.seatunnel.connectors.cdc.base.source.split.wartermark.WatermarkKind;
-import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.offset.RedoLogOffset;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.reader.fetch.OracleSourceFetchTaskContext;
-import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.reader.fetch.scan.OracleSnapshotFetchTask;
-import org.apache.seatunnel.connectors.seatunnel.cdc.oracle.utils.OracleUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.debezium.DebeziumException;
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleConnectorConfig;
 import io.debezium.connector.oracle.OracleDatabaseSchema;
 import io.debezium.connector.oracle.OracleOffsetContext;
+import io.debezium.connector.oracle.OraclePartition;
 import io.debezium.connector.oracle.OracleStreamingChangeEventSourceMetrics;
 import io.debezium.connector.oracle.logminer.LogMinerStreamingChangeEventSource;
+import io.debezium.connector.oracle.logminer.processor.LogMinerEventProcessor;
 import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.util.Clock;
-
-import static org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source.offset.RedoLogOffset.NO_STOPPING_OFFSET;
 
 /** The task to work for fetching data of Oracle table stream split. */
 public class OracleStreamFetchTask implements FetchTask<SourceSplitBase> {
@@ -71,7 +66,9 @@ public class OracleStreamFetchTask implements FetchTask<SourceSplitBase> {
         RedoLogSplitChangeEventSourceContext changeEventSourceContext =
                 new RedoLogSplitChangeEventSourceContext();
         redoLogSplitReadTask.execute(
-                changeEventSourceContext, sourceFetchContext.getOffsetContext());
+                changeEventSourceContext,
+                sourceFetchContext.getPartition(),
+                sourceFetchContext.getOffsetContext());
     }
 
     @Override
@@ -97,16 +94,19 @@ public class OracleStreamFetchTask implements FetchTask<SourceSplitBase> {
 
         private static final Logger LOG = LoggerFactory.getLogger(RedoLogSplitReadTask.class);
         private final IncrementalSplit redoLogSplit;
-        private final JdbcSourceEventDispatcher dispatcher;
+        private final JdbcSourceEventDispatcher<OraclePartition> dispatcher;
         private final ErrorHandler errorHandler;
+        private ChangeEventSourceContext context;
+
         private final OracleConnectorConfig connectorConfig;
         private final OracleConnection connection;
-        private ChangeEventSourceContext context;
+        private final OracleDatabaseSchema schema;
+        private final OracleStreamingChangeEventSourceMetrics metrics;
 
         public RedoLogSplitReadTask(
                 OracleConnectorConfig connectorConfig,
                 OracleConnection connection,
-                JdbcSourceEventDispatcher dispatcher,
+                JdbcSourceEventDispatcher<OraclePartition> dispatcher,
                 ErrorHandler errorHandler,
                 OracleDatabaseSchema schema,
                 Configuration jdbcConfig,
@@ -126,47 +126,38 @@ public class OracleStreamFetchTask implements FetchTask<SourceSplitBase> {
             this.errorHandler = errorHandler;
             this.connection = connection;
             this.connectorConfig = connectorConfig;
+            this.metrics = metrics;
+            this.schema = schema;
         }
 
         @Override
-        public void execute(ChangeEventSourceContext context, OracleOffsetContext offsetContext) {
+        public void execute(
+                ChangeEventSourceContext context,
+                OraclePartition oraclePartition,
+                OracleOffsetContext offsetContext) {
             this.context = context;
             if (connectorConfig.getPdbName() != null) {
                 connection.resetSessionToCdb();
             }
-            super.execute(context, offsetContext);
+            super.execute(context, oraclePartition, offsetContext);
         }
 
         @Override
-        public void afterHandleScn(OracleOffsetContext offsetContext) {
-            super.afterHandleScn(offsetContext);
-            // check do we need to stop for fetch binlog for snapshot split.
-            if (isBoundedRead()) {
-                final RedoLogOffset currentRedoLogOffset =
-                        OracleUtils.getRedoLogPosition(offsetContext.getOffset());
-                // reach the high watermark, the binlog fetcher should be finished
-                if (currentRedoLogOffset.isAtOrAfter(redoLogSplit.getStopOffset())) {
-                    // send binlog end event
-                    try {
-                        dispatcher.dispatchWatermarkEvent(
-                                offsetContext.getPartition(),
-                                redoLogSplit,
-                                currentRedoLogOffset,
-                                WatermarkKind.END);
-                    } catch (InterruptedException e) {
-                        LOG.error("Send signal event error.", e);
-                        errorHandler.setProducerThrowable(
-                                new DebeziumException("Error processing binlog signal event", e));
-                    }
-                    // tell fetcher the binlog task finished
-                    ((OracleSnapshotFetchTask.SnapshotBinlogSplitChangeEventSourceContext) context)
-                            .finished();
-                }
-            }
-        }
-
-        private boolean isBoundedRead() {
-            return !NO_STOPPING_OFFSET.equals(redoLogSplit.getStopOffset());
+        protected LogMinerEventProcessor createProcessor(
+                ChangeEventSourceContext context,
+                OraclePartition partition,
+                OracleOffsetContext offsetContext) {
+            return EventProcessorFactory.createProcessor(
+                    context,
+                    connectorConfig,
+                    connection,
+                    dispatcher,
+                    partition,
+                    offsetContext,
+                    schema,
+                    metrics,
+                    errorHandler,
+                    redoLogSplit);
         }
     }
 

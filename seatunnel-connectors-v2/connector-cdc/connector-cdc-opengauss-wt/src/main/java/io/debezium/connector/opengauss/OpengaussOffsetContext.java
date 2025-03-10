@@ -27,7 +27,6 @@ import io.debezium.util.Clock;
 
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -75,11 +74,6 @@ public class OpengaussOffsetContext implements OffsetContext {
         }
         this.transactionContext = transactionContext;
         this.incrementalSnapshotContext = incrementalSnapshotContext;
-    }
-
-    @Override
-    public Map<String, ?> getPartition() {
-        return null;
     }
 
     @Override
@@ -217,11 +211,6 @@ public class OpengaussOffsetContext implements OffsetContext {
         private Long readOptionalLong(Map<String, ?> offset, String key) {
             final Object obj = offset.get(key);
             return (obj == null) ? null : Long.parseLong((String) obj);
-        }
-
-        @Override
-        public Map<String, ?> getPartition() {
-            return Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
         }
 
         @SuppressWarnings("unchecked")

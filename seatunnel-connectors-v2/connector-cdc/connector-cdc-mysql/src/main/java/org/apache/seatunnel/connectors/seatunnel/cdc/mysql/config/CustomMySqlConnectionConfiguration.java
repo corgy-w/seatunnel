@@ -32,7 +32,7 @@ public class CustomMySqlConnectionConfiguration
         extends MySqlConnection.MySqlConnectionConfiguration {
 
     protected static final String URL_PATTERN =
-            "jdbc:mysql://${hostname}:${port}/?useInformationSchema=true&nullCatalogMeansCurrent=false&useSSL=${useSSL}&zeroDateTimeBehavior=CONVERT_TO_NULL&connectTimeout=${connectTimeout}";
+            "jdbc:mysql://${hostname}:${port}/?useInformationSchema=true&nullCatalogMeansCurrent=false&zeroDateTimeBehavior=CONVERT_TO_NULL&connectTimeout=${connectTimeout}";
 
     private final JdbcConnection.ConnectionFactory connectionFactory;
 

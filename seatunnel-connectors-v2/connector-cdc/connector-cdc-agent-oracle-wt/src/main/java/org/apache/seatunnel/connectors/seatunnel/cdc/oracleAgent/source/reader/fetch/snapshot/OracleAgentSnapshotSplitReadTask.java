@@ -32,13 +32,12 @@ import io.debezium.connector.oracle.OracleAgentConnectorConfig;
 import io.debezium.connector.oracle.OracleAgentOffsetContext;
 import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleDatabaseSchema;
+import io.debezium.connector.oracle.OraclePartition;
 import io.debezium.pipeline.EventDispatcher;
 import io.debezium.pipeline.source.AbstractSnapshotChangeEventSource;
 import io.debezium.pipeline.source.spi.SnapshotProgressListener;
 import io.debezium.pipeline.spi.ChangeRecordEmitter;
-import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.spi.SnapshotResult;
-import io.debezium.relational.Column;
 import io.debezium.relational.RelationalSnapshotChangeEventSource;
 import io.debezium.relational.SnapshotChangeRecordEmitter;
 import io.debezium.relational.Table;
@@ -55,7 +54,8 @@ import java.sql.SQLException;
 import java.time.Duration;
 
 @Slf4j
-public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEventSource {
+public class OracleAgentSnapshotSplitReadTask
+        extends AbstractSnapshotChangeEventSource<OraclePartition, OracleAgentOffsetContext> {
 
     /** Interval for showing a log statement with the progress while scanning a single table. */
     private static final Duration LOG_INTERVAL = Duration.ofMillis(10_000);
@@ -64,19 +64,19 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
     private final OracleDatabaseSchema databaseSchema;
     private final OracleConnection jdbcConnection;
     private final OracleAgentClient oracle9BridgeClient;
-    private final JdbcSourceEventDispatcher dispatcher;
+    private final JdbcSourceEventDispatcher<OraclePartition> dispatcher;
     private final Clock clock;
     private final SnapshotSplit snapshotSplit;
     private final OracleAgentOffsetContext offsetContext;
-    private final SnapshotProgressListener snapshotProgressListener;
+    private final SnapshotProgressListener<OraclePartition> snapshotProgressListener;
 
     public OracleAgentSnapshotSplitReadTask(
             OracleAgentConnectorConfig connectorConfig,
             OracleAgentOffsetContext previousOffset,
-            SnapshotProgressListener snapshotProgressListener,
+            SnapshotProgressListener<OraclePartition> snapshotProgressListener,
             OracleDatabaseSchema databaseSchema,
             OracleConnection jdbcConnection,
-            JdbcSourceEventDispatcher dispatcher,
+            JdbcSourceEventDispatcher<OraclePartition> dispatcher,
             SnapshotSplit snapshotSplit,
             OracleAgentClient oracle9BridgeClient) {
         super(connectorConfig, snapshotProgressListener);
@@ -92,17 +92,16 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
     }
 
     @Override
-    protected SnapshotResult doExecute(
+    protected SnapshotResult<OracleAgentOffsetContext> doExecute(
             ChangeEventSourceContext changeEventSourceContext,
-            OffsetContext previousOffset,
+            OracleAgentOffsetContext previousOffset,
             SnapshotContext snapshotContext,
             SnapshottingTask snapshottingTask)
             throws Exception {
         log.info(
                 "Begin to execute OracleAgentSnapshotSplitReadTask for split: {}",
                 snapshotSplit.splitId());
-        final RelationalSnapshotChangeEventSource.RelationalSnapshotContext ctx =
-                (RelationalSnapshotChangeEventSource.RelationalSnapshotContext) snapshotContext;
+        final Oracle9BridgeSnapshotContext ctx = (Oracle9BridgeSnapshotContext) snapshotContext;
         ctx.offset = offsetContext;
 
         String table = snapshotSplit.getTableId().table();
@@ -123,7 +122,7 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
         ((OracleAgentSnapshotSplitChangeEventSourceContext) changeEventSourceContext)
                 .setLowWatermark(lowWatermark);
         dispatcher.dispatchWatermarkEvent(
-                offsetContext.getPartition(), snapshotSplit, lowWatermark, WatermarkKind.LOW);
+                ctx.partition.getSourcePartition(), snapshotSplit, lowWatermark, WatermarkKind.LOW);
 
         log.info("Snapshot step 2 - Snapshotting data");
         createDataEvents(ctx, snapshotSplit.getTableId());
@@ -142,26 +141,32 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
         ((OracleAgentSnapshotSplitChangeEventSourceContext) changeEventSourceContext)
                 .setHighWatermark(highWatermark);
         dispatcher.dispatchWatermarkEvent(
-                offsetContext.getPartition(), snapshotSplit, highWatermark, WatermarkKind.HIGH);
+                ctx.partition.getSourcePartition(),
+                snapshotSplit,
+                highWatermark,
+                WatermarkKind.HIGH);
         return SnapshotResult.completed(ctx.offset);
     }
 
     @Override
-    protected SnapshottingTask getSnapshottingTask(OffsetContext previousOffset) {
+    protected SnapshottingTask getSnapshottingTask(
+            OraclePartition partition, OracleAgentOffsetContext previousOffset) {
         return new SnapshottingTask(false, true);
     }
 
     @Override
-    protected SnapshotContext prepare(ChangeEventSourceContext changeEventSourceContext)
-            throws Exception {
-        return new Oracle9BridgeSnapshotContext();
+    protected SnapshotContext<OraclePartition, OracleAgentOffsetContext> prepare(
+            OraclePartition partition) throws Exception {
+        return new Oracle9BridgeSnapshotContext(partition);
     }
 
     private void createDataEvents(
-            RelationalSnapshotChangeEventSource.RelationalSnapshotContext snapshotContext,
+            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                            OraclePartition, OracleAgentOffsetContext>
+                    snapshotContext,
             TableId tableId)
             throws Exception {
-        EventDispatcher.SnapshotReceiver snapshotReceiver =
+        EventDispatcher.SnapshotReceiver<OraclePartition> snapshotReceiver =
                 dispatcher.getSnapshotChangeEventReceiver();
         log.debug("Snapshotting table {}", tableId);
         Table table = databaseSchema.tableFor(tableId);
@@ -178,8 +183,10 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
 
     /** Dispatches the data change events for the records of a single table. */
     private void createDataEventsForTable(
-            RelationalSnapshotChangeEventSource.RelationalSnapshotContext snapshotContext,
-            EventDispatcher.SnapshotReceiver snapshotReceiver,
+            RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                            OraclePartition, OracleAgentOffsetContext>
+                    snapshotContext,
+            EventDispatcher.SnapshotReceiver<OraclePartition> snapshotReceiver,
             Table table)
             throws InterruptedException {
 
@@ -219,12 +226,8 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
 
             while (rs.next()) {
                 rows++;
-                final Object[] row = new Object[columnArray.getGreatestColumnPosition()];
-                for (int i = 0; i < columnArray.getColumns().length; i++) {
-                    Column actualColumn = table.columns().get(i);
-                    row[columnArray.getColumns()[i].position() - 1] =
-                            readField(rs, i + 1, actualColumn, table);
-                }
+                final Object[] row =
+                        jdbcConnection.rowToArray(table, databaseSchema, rs, columnArray);
                 if (logTimer.expired()) {
                     long stop = clock.currentTimeInMillis();
                     log.info(
@@ -232,10 +235,12 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
                             rows,
                             snapshotSplit.splitId(),
                             Strings.duration(stop - exportStart));
-                    snapshotProgressListener.rowsScanned(table.id(), rows);
+                    snapshotProgressListener.rowsScanned(
+                            snapshotContext.partition, table.id(), rows);
                     logTimer = getTableScanLogTimer();
                 }
                 dispatcher.dispatchSnapshotEvent(
+                        snapshotContext.partition,
                         table.id(),
                         getChangeRecordEmitter(snapshotContext, table.id(), row),
                         snapshotReceiver);
@@ -250,18 +255,13 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
         }
     }
 
-    /**
-     * copied from io.debezium.connector.oracle.antlr.listener.ParserUtils#convertValueToSchemaType.
-     */
-    private Object readField(ResultSet rs, int fieldNo, Column actualColumn, Table actualTable)
-            throws SQLException {
-        return rs.getObject(fieldNo);
-    }
-
-    protected ChangeRecordEmitter getChangeRecordEmitter(
-            SnapshotContext snapshotContext, TableId tableId, Object[] row) {
+    protected ChangeRecordEmitter<OraclePartition> getChangeRecordEmitter(
+            SnapshotContext<OraclePartition, OracleAgentOffsetContext> snapshotContext,
+            TableId tableId,
+            Object[] row) {
         snapshotContext.offset.event(tableId, clock.currentTime());
-        return new SnapshotChangeRecordEmitter(snapshotContext.offset, row, clock);
+        return new SnapshotChangeRecordEmitter<>(
+                snapshotContext.partition, snapshotContext.offset, row, clock);
     }
 
     private Threads.Timer getTableScanLogTimer() {
@@ -269,10 +269,11 @@ public class OracleAgentSnapshotSplitReadTask extends AbstractSnapshotChangeEven
     }
 
     private static class Oracle9BridgeSnapshotContext
-            extends RelationalSnapshotChangeEventSource.RelationalSnapshotContext {
+            extends RelationalSnapshotChangeEventSource.RelationalSnapshotContext<
+                    OraclePartition, OracleAgentOffsetContext> {
 
-        public Oracle9BridgeSnapshotContext() throws SQLException {
-            super("");
+        public Oracle9BridgeSnapshotContext(OraclePartition partition) throws SQLException {
+            super(partition, "");
         }
     }
 }

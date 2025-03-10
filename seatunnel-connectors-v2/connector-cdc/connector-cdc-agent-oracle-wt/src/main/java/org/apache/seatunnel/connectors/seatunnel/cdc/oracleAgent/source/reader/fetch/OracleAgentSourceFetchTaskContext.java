@@ -39,6 +39,7 @@ import io.debezium.connector.oracle.OracleChangeEventSourceMetricsFactory;
 import io.debezium.connector.oracle.OracleConnection;
 import io.debezium.connector.oracle.OracleDatabaseSchema;
 import io.debezium.connector.oracle.OracleErrorHandler;
+import io.debezium.connector.oracle.OraclePartition;
 import io.debezium.connector.oracle.OracleStreamingChangeEventSourceMetrics;
 import io.debezium.connector.oracle.OracleTaskContext;
 import io.debezium.connector.oracle.OracleTopicSelector;
@@ -49,6 +50,7 @@ import io.debezium.pipeline.ErrorHandler;
 import io.debezium.pipeline.metrics.SnapshotChangeEventSourceMetrics;
 import io.debezium.pipeline.source.spi.EventMetadataProvider;
 import io.debezium.pipeline.spi.OffsetContext;
+import io.debezium.pipeline.spi.Offsets;
 import io.debezium.relational.Table;
 import io.debezium.relational.TableId;
 import io.debezium.relational.Tables;
@@ -74,9 +76,10 @@ public class OracleAgentSourceFetchTaskContext extends JdbcSourceFetchTaskContex
     private OracleDatabaseSchema databaseSchema;
     private OracleAgentOffsetContext offsetContext;
     private OracleTaskContext taskContext;
+    private OraclePartition oraclePartition;
     private ChangeEventQueue<DataChangeEvent> queue;
-    private JdbcSourceEventDispatcher dispatcher;
-    private SnapshotChangeEventSourceMetrics snapshotChangeEventSourceMetrics;
+    private JdbcSourceEventDispatcher<OraclePartition> dispatcher;
+    private SnapshotChangeEventSourceMetrics<OraclePartition> snapshotChangeEventSourceMetrics;
     private OracleStreamingChangeEventSourceMetrics streamingChangeEventSourceMetrics;
 
     private OracleErrorHandler errorHandler;
@@ -87,7 +90,8 @@ public class OracleAgentSourceFetchTaskContext extends JdbcSourceFetchTaskContex
             Collection<TableChanges.TableChange> engineHistory) {
         super(sourceConfig, dataSourceDialect);
         this.connection =
-                OracleConnectionUtils.createOracleConnection(sourceConfig.getDbzConfiguration());
+                OracleConnectionUtils.createOracleConnection(
+                        sourceConfig.getDbzConnectorConfig().getJdbcConfig());
         this.engineHistory = engineHistory;
         this.metadataProvider = new OracleEventMetadataProvider();
     }
@@ -105,6 +109,7 @@ public class OracleAgentSourceFetchTaskContext extends JdbcSourceFetchTaskContex
         this.offsetContext =
                 loadStartingOffsetState(
                         new OracleAgentOffsetContext.Loader(connectorConfig), sourceSplitBase);
+        this.oraclePartition = new OraclePartition(connectorConfig.getLogicalName());
         validateAndLoadDatabaseHistory(offsetContext, databaseSchema);
 
         this.taskContext = new OracleTaskContext(connectorConfig, databaseSchema);
@@ -127,7 +132,7 @@ public class OracleAgentSourceFetchTaskContext extends JdbcSourceFetchTaskContex
                         // .buffering()
                         .build();
         this.dispatcher =
-                new JdbcSourceEventDispatcher(
+                new JdbcSourceEventDispatcher<>(
                         connectorConfig,
                         topicSelector,
                         databaseSchema,
@@ -149,7 +154,7 @@ public class OracleAgentSourceFetchTaskContext extends JdbcSourceFetchTaskContex
                 (OracleStreamingChangeEventSourceMetrics)
                         changeEventSourceMetricsFactory.getStreamingMetrics(
                                 taskContext, queue, metadataProvider);
-        this.errorHandler = new OracleErrorHandler(connectorConfig.getLogicalName(), queue);
+        this.errorHandler = new OracleErrorHandler(connectorConfig, queue);
     }
 
     @Override
@@ -180,7 +185,12 @@ public class OracleAgentSourceFetchTaskContext extends JdbcSourceFetchTaskContex
         return offsetContext;
     }
 
-    public SnapshotChangeEventSourceMetrics getSnapshotChangeEventSourceMetrics() {
+    @Override
+    public OraclePartition getPartition() {
+        return oraclePartition;
+    }
+
+    public SnapshotChangeEventSourceMetrics<OraclePartition> getSnapshotChangeEventSourceMetrics() {
         return snapshotChangeEventSourceMetrics;
     }
 
@@ -204,7 +214,7 @@ public class OracleAgentSourceFetchTaskContext extends JdbcSourceFetchTaskContex
     }
 
     @Override
-    public JdbcSourceEventDispatcher getDispatcher() {
+    public JdbcSourceEventDispatcher<OraclePartition> getDispatcher() {
         return dispatcher;
     }
 
@@ -238,7 +248,7 @@ public class OracleAgentSourceFetchTaskContext extends JdbcSourceFetchTaskContex
     private void validateAndLoadDatabaseHistory(
             OracleAgentOffsetContext offset, OracleDatabaseSchema schema) {
         schema.initializeStorage();
-        schema.recover(offset);
+        schema.recover(Offsets.of(oraclePartition, offset));
     }
 
     /** Copied from debezium for accessing here. */

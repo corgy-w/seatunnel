@@ -30,6 +30,7 @@ import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.source.reader.f
 import org.whaleops.whaletunnel.oracleagent.sdk.OracleAgentClientFactory;
 
 import io.debezium.connector.oracle.OracleAgentOffsetContext;
+import io.debezium.connector.oracle.OraclePartition;
 import io.debezium.pipeline.source.spi.ChangeEventSource;
 import io.debezium.pipeline.spi.SnapshotResult;
 import lombok.extern.slf4j.Slf4j;
@@ -71,9 +72,11 @@ public class OracleAgentSnapshotFetchTask implements FetchTask<SourceSplitBase> 
 
         OracleAgentSnapshotSplitChangeEventSourceContext changeEventSourceContext =
                 new OracleAgentSnapshotSplitChangeEventSourceContext();
-        SnapshotResult snapshotResult =
+        SnapshotResult<OracleAgentOffsetContext> snapshotResult =
                 snapshotSplitReadTask.execute(
-                        changeEventSourceContext, sourceFetchTaskContext.getOffsetContext());
+                        changeEventSourceContext,
+                        sourceFetchTaskContext.getPartition(),
+                        sourceFetchTaskContext.getOffsetContext());
         if (!snapshotResult.isCompletedOrSkipped()) {
             taskRunning = false;
             throw new IllegalStateException(
@@ -102,7 +105,7 @@ public class OracleAgentSnapshotFetchTask implements FetchTask<SourceSplitBase> 
                     split);
             dispatchBinlogEndEvent(
                     backfillSplit,
-                    sourceFetchTaskContext.getOffsetContext().getPartition(),
+                    sourceFetchTaskContext.getPartition().getSourcePartition(),
                     sourceFetchTaskContext.getDispatcher());
             taskRunning = false;
             return;
@@ -124,7 +127,9 @@ public class OracleAgentSnapshotFetchTask implements FetchTask<SourceSplitBase> 
                 loader.load(backfillSplit.getStartupOffset().getOffset());
 
         incrementalSplitFetchTask.execute(
-                new SnapshotScnSplitChangeEventSourceContext(), incrementalSplitFetchTaskContext);
+                new SnapshotScnSplitChangeEventSourceContext(),
+                sourceFetchTaskContext.getPartition(),
+                incrementalSplitFetchTaskContext);
         log.info(
                 "End execute OracleAgentIncrementalSplitFetchTask cost: {}/ms",
                 System.currentTimeMillis() - startTime);
@@ -165,7 +170,7 @@ public class OracleAgentSnapshotFetchTask implements FetchTask<SourceSplitBase> 
     private void dispatchBinlogEndEvent(
             IncrementalSplit backFillBinlogSplit,
             Map<String, ?> sourcePartition,
-            JdbcSourceEventDispatcher eventDispatcher)
+            JdbcSourceEventDispatcher<OraclePartition> eventDispatcher)
             throws InterruptedException {
         eventDispatcher.dispatchWatermarkEvent(
                 sourcePartition,

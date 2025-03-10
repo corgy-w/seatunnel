@@ -36,6 +36,7 @@ import java.util.stream.StreamSupport;
 import static io.debezium.relational.history.ConnectTableChangeSerializer.AUTO_INCREMENTED_KEY;
 import static io.debezium.relational.history.ConnectTableChangeSerializer.CHARSET_NAME_KEY;
 import static io.debezium.relational.history.ConnectTableChangeSerializer.COLUMNS_KEY;
+import static io.debezium.relational.history.ConnectTableChangeSerializer.COMMENT_KEY;
 import static io.debezium.relational.history.ConnectTableChangeSerializer.DEFAULT_CHARSET_NAME_KEY;
 import static io.debezium.relational.history.ConnectTableChangeSerializer.GENERATED_KEY;
 import static io.debezium.relational.history.ConnectTableChangeSerializer.ID_KEY;
@@ -78,6 +79,7 @@ public class ConnectTableChangeSerializer
                     .field(OPTIONAL_KEY, Schema.OPTIONAL_BOOLEAN_SCHEMA)
                     .field(AUTO_INCREMENTED_KEY, Schema.OPTIONAL_BOOLEAN_SCHEMA)
                     .field(GENERATED_KEY, Schema.OPTIONAL_BOOLEAN_SCHEMA)
+                    .field(COMMENT_KEY, Schema.OPTIONAL_STRING_SCHEMA)
                     .field(
                             ENUM_VALUES_KEY,
                             SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
@@ -91,6 +93,7 @@ public class ConnectTableChangeSerializer
                             PRIMARY_KEY_COLUMN_NAMES_KEY,
                             SchemaBuilder.array(Schema.STRING_SCHEMA).optional().build())
                     .field(COLUMNS_KEY, SchemaBuilder.array(COLUMN_SCHEMA).build())
+                    .field(COMMENT_KEY, Schema.OPTIONAL_STRING_SCHEMA)
                     .build();
 
     public static final Schema CHANGE_SCHEMA =
@@ -168,6 +171,9 @@ public class ConnectTableChangeSerializer
         if (struct.get(SCALE_KEY) != null) {
             editor.scale(struct.getInt32(SCALE_KEY));
         }
+        if (struct.get(COMMENT_KEY) != null) {
+            editor.comment(struct.getString(COMMENT_KEY));
+        }
         if (struct.schema().field(ENUM_VALUES_KEY) != null) {
             editor.enumValues(struct.getArray(ENUM_VALUES_KEY));
         }
@@ -220,6 +226,7 @@ public class ConnectTableChangeSerializer
         struct.put(OPTIONAL_KEY, column.isOptional());
         struct.put(AUTO_INCREMENTED_KEY, column.isAutoIncremented());
         struct.put(GENERATED_KEY, column.isGenerated());
+        struct.put(COMMENT_KEY, column.comment());
         struct.put(ENUM_VALUES_KEY, column.enumValues());
 
         return struct;

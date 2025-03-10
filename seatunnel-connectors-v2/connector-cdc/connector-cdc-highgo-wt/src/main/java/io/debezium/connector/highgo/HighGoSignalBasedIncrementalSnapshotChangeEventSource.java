@@ -27,7 +27,7 @@ import io.debezium.util.Clock;
  * @author Chris Cranford
  */
 public class HighGoSignalBasedIncrementalSnapshotChangeEventSource
-        extends SignalBasedIncrementalSnapshotChangeEventSource<TableId> {
+        extends SignalBasedIncrementalSnapshotChangeEventSource<HighGoPartition, TableId> {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(HighGoSignalBasedIncrementalSnapshotChangeEventSource.class);
@@ -38,14 +38,15 @@ public class HighGoSignalBasedIncrementalSnapshotChangeEventSource
     public HighGoSignalBasedIncrementalSnapshotChangeEventSource(
             RelationalDatabaseConnectorConfig config,
             JdbcConnection jdbcConnection,
-            EventDispatcher<TableId> dispatcher,
+            EventDispatcher<HighGoPartition, TableId> dispatcher,
             DatabaseSchema<?> databaseSchema,
             Clock clock,
-            SnapshotProgressListener progressListener,
-            DataChangeEventListener dataChangeEventListener) {
+            SnapshotProgressListener<HighGoPartition> progressListener,
+            DataChangeEventListener<HighGoPartition> dataChangeEventListener) {
         super(
                 config,
                 jdbcConnection,
+                dispatcher,
                 databaseSchema,
                 clock,
                 progressListener,

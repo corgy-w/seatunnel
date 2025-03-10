@@ -25,6 +25,7 @@ import io.debezium.connector.dameng.DamengConnection;
 import io.debezium.connector.dameng.DamengConnectorConfig;
 import io.debezium.connector.dameng.DamengDatabaseSchema;
 import io.debezium.connector.dameng.DamengOffsetContext;
+import io.debezium.connector.dameng.DamengPartition;
 import io.debezium.connector.dameng.DamengSchemaChangeEventEmitter;
 import io.debezium.connector.dameng.DamengStreamingChangeEventSourceMetrics;
 import io.debezium.connector.dameng.Scn;
@@ -48,13 +49,14 @@ class LogMinerQueryResultProcessor {
     private static final Logger LOGGER =
             LoggerFactory.getLogger(LogMinerQueryResultProcessor.class);
 
+    private final DamengPartition partition;
     private final ChangeEventSourceContext context;
     private final DamengStreamingChangeEventSourceMetrics streamingMetrics;
     private final TransactionalBuffer transactionalBuffer;
     private final DmlParser dmlParser;
     private final DamengOffsetContext offsetContext;
     private final DamengDatabaseSchema schema;
-    private final EventDispatcher<TableId> dispatcher;
+    private final EventDispatcher<DamengPartition, TableId> dispatcher;
     private final DamengConnectorConfig connectorConfig;
     private final HistoryRecorder historyRecorder;
     private final SelectLobParser selectLobParser;
@@ -65,14 +67,16 @@ class LogMinerQueryResultProcessor {
     private long stuckScnCounter = 0;
 
     LogMinerQueryResultProcessor(
+            DamengPartition partition,
             ChangeEventSourceContext context,
             DamengConnectorConfig connectorConfig,
             DamengStreamingChangeEventSourceMetrics streamingMetrics,
             TransactionalBuffer transactionalBuffer,
             DamengOffsetContext offsetContext,
             DamengDatabaseSchema schema,
-            EventDispatcher<TableId> dispatcher,
+            EventDispatcher<DamengPartition, TableId> dispatcher,
             HistoryRecorder historyRecorder) {
+        this.partition = partition;
         this.context = context;
         this.streamingMetrics = streamingMetrics;
         this.transactionalBuffer = transactionalBuffer;
@@ -234,6 +238,7 @@ class LogMinerQueryResultProcessor {
                                                 connectorConfig.getCatalogName(), resultSet);
                                 transactionalBuffer.registerDdlOperation(scn);
                                 dispatcher.dispatchSchemaChangeEvent(
+                                        partition,
                                         tableId,
                                         new DamengSchemaChangeEventEmitter(
                                                 connectorConfig,
@@ -475,6 +480,7 @@ class LogMinerQueryResultProcessor {
             LOGGER.info("Table {} is new and will be captured.", tableId);
             offsetContext.event(tableId, Instant.now());
             dispatcher.dispatchSchemaChangeEvent(
+                    partition,
                     tableId,
                     new DamengSchemaChangeEventEmitter(
                             connectorConfig,

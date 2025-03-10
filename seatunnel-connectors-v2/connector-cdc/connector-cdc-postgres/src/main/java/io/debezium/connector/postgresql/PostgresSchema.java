@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 
 import io.debezium.annotation.NotThreadSafe;
 import io.debezium.connector.postgresql.connection.PostgresConnection;
+import io.debezium.connector.postgresql.connection.PostgresDefaultValueConverter;
 import io.debezium.connector.postgresql.connection.ServerInfo;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.RelationalDatabaseSchema;
@@ -48,6 +49,8 @@ import java.util.Map;
  * information contains the {@link Tables table definitions} and the Kafka Connect {@link
  * #schemaFor(TableId) Schema}s for each table, where the {@link Schema} excludes any columns that
  * have been {@link PostgresConnectorConfig#COLUMN_EXCLUDE_LIST specified} in the configuration.
+ *
+ * @author Horia Chiorean
  */
 @NotThreadSafe
 public class PostgresSchema extends RelationalDatabaseSchema {
@@ -67,17 +70,18 @@ public class PostgresSchema extends RelationalDatabaseSchema {
      *
      * @param config the connector configuration, which is presumed to be valid
      */
-    public PostgresSchema(
+    protected PostgresSchema(
             PostgresConnectorConfig config,
             TypeRegistry typeRegistry,
+            PostgresDefaultValueConverter defaultValueConverter,
             TopicSelector<TableId> topicSelector,
             PostgresValueConverter valueConverter) {
         super(
                 config,
                 topicSelector,
-                new Filters(config).tableFilter(),
+                config.getTableFilters().dataCollectionFilter(),
                 config.getColumnFilter(),
-                getTableSchemaBuilder(config, valueConverter),
+                getTableSchemaBuilder(config, valueConverter, defaultValueConverter),
                 false,
                 config.getKeyMapper());
 
@@ -88,13 +92,17 @@ public class PostgresSchema extends RelationalDatabaseSchema {
     }
 
     private static TableSchemaBuilder getTableSchemaBuilder(
-            PostgresConnectorConfig config, PostgresValueConverter valueConverter) {
+            PostgresConnectorConfig config,
+            PostgresValueConverter valueConverter,
+            PostgresDefaultValueConverter defaultValueConverter) {
         return new TableSchemaBuilder(
                 valueConverter,
+                defaultValueConverter,
                 DebeziumSchemaNameAdjuster.create(),
                 config.customConverterRegistry(),
                 config.getSourceInfoStructMaker().schema(),
-                config.getSanitizeFieldNames());
+                config.getSanitizeFieldNames(),
+                false);
     }
 
     /**

@@ -23,8 +23,8 @@ public class HighGoErrorHandler extends ErrorHandler {
 
     @Immutable private static final Set<String> RETRIABLE_EXCEPTION_MESSSAGES;
 
-    public HighGoErrorHandler(String logicalName, ChangeEventQueue<?> queue) {
-        super(HighGoConnector.class, logicalName, queue);
+    public HighGoErrorHandler(HighGoConnectorConfig config, ChangeEventQueue<?> queue) {
+        super(HighGoConnector.class, config, queue);
     }
 
     static {

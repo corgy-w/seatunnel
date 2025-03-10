@@ -71,7 +71,8 @@ public class HighGoWalFetchTask implements FetchTask<SourceSplitBase> {
                 "Start streaming change event source for HighGo wal split: {}",
                 split.getStartupOffset().toString());
 
-        streamingChangeEventSource.execute(changeEventSourceContext, offsetContext);
+        streamingChangeEventSource.execute(
+                changeEventSourceContext, sourceFetchContext.getPartition(), offsetContext);
     }
 
     public void commitCurrentOffset(LsnOffset offset) {

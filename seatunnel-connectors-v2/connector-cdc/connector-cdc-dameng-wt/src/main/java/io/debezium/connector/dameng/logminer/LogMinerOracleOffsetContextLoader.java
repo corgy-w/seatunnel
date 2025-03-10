@@ -24,7 +24,6 @@ import io.debezium.connector.dameng.SourceInfo;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
 
-import java.util.Collections;
 import java.util.Map;
 
 /** @author Chris Cranford */
@@ -35,12 +34,6 @@ public class LogMinerOracleOffsetContextLoader
 
     public LogMinerOracleOffsetContextLoader(DamengConnectorConfig connectorConfig) {
         this.connectorConfig = connectorConfig;
-    }
-
-    @Override
-    public Map<String, ?> getPartition() {
-        return Collections.singletonMap(
-                DamengOffsetContext.SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
     }
 
     @Override

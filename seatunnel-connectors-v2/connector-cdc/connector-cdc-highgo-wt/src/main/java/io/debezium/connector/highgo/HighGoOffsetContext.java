@@ -27,13 +27,11 @@ import io.debezium.util.Clock;
 
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 public class HighGoOffsetContext implements OffsetContext {
-    private static final Logger LOGGER =
-            LoggerFactory.getLogger(HighGoSnapshotChangeEventSource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(HighGoOffsetContext.class);
 
     public static final String LAST_COMPLETELY_PROCESSED_LSN_KEY = "lsn_proc";
     public static final String LAST_COMMIT_LSN_KEY = "lsn_commit";
@@ -75,11 +73,6 @@ public class HighGoOffsetContext implements OffsetContext {
         }
         this.transactionContext = transactionContext;
         this.incrementalSnapshotContext = incrementalSnapshotContext;
-    }
-
-    @Override
-    public Map<String, ?> getPartition() {
-        return null;
     }
 
     @Override
@@ -217,11 +210,6 @@ public class HighGoOffsetContext implements OffsetContext {
         private Long readOptionalLong(Map<String, ?> offset, String key) {
             final Object obj = offset.get(key);
             return (obj == null) ? null : Long.parseLong((String) obj);
-        }
-
-        @Override
-        public Map<String, ?> getPartition() {
-            return Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
         }
 
         @SuppressWarnings("unchecked")

@@ -48,7 +48,8 @@ public class InformixDatabaseSchema extends HistorizedRelationalDatabaseSchema {
                         schemaNameAdjuster,
                         connectorConfig.customConverterRegistry(),
                         connectorConfig.getSourceInfoStructMaker().schema(),
-                        connectorConfig.getSanitizeFieldNames()),
+                        connectorConfig.getSanitizeFieldNames(),
+                        false),
                 tableIdCaseInsensitive,
                 connectorConfig.getKeyMapper());
         this.valueConverter = valueConverter;

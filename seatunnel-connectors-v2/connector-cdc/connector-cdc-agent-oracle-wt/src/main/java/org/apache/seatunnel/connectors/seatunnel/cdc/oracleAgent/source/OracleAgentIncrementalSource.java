@@ -31,6 +31,7 @@ import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
 import org.apache.seatunnel.connectors.cdc.base.source.IncrementalSource;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.OffsetFactory;
 import org.apache.seatunnel.connectors.cdc.debezium.DebeziumDeserializationSchema;
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
 import org.apache.seatunnel.connectors.cdc.debezium.row.DebeziumJsonDeserializeSchema;
 import org.apache.seatunnel.connectors.cdc.debezium.row.SeaTunnelRowDebeziumDeserializeSchema;
 import org.apache.seatunnel.connectors.seatunnel.cdc.oracleAgent.config.OracleAgentSourceConfig;
@@ -148,7 +149,7 @@ public class OracleAgentIncrementalSource<T> extends IncrementalSource<T, JdbcSo
         OracleAgentDialect dialect = new OracleAgentDialect(jdbcSourceConfig, catalogTables);
         List<TableId> discoverTables = dialect.discoverDataCollections(jdbcSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
-                new ConnectTableChangeSerializer();
+                new ConnectTableChangeSerializer(DebeziumSchemaNameAdjuster.create());
         try (JdbcConnection jdbcConnection = dialect.openJdbcConnection(jdbcSourceConfig)) {
             return discoverTables.stream()
                     .collect(

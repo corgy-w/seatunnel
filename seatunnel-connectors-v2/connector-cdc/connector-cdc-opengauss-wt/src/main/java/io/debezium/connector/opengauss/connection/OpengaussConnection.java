@@ -111,8 +111,8 @@ public class OpengaussConnection extends JdbcConnection {
      *     given {@link TypeRegistry}
      */
     public OpengaussConnection(
-            Configuration config, OpenGaussValueConverterBuilder valueConverterBuilder) {
-        super(config, FACTORY);
+            JdbcConfiguration config, OpenGaussValueConverterBuilder valueConverterBuilder) {
+        super(config, FACTORY, JdbcConfiguration.class::getClassLoader, "", "");
         if (Objects.isNull(valueConverterBuilder)) {
             this.typeRegistry = null;
             this.defaultValueConverter = null;
@@ -133,7 +133,7 @@ public class OpengaussConnection extends JdbcConnection {
      * @param typeRegistry an existing/already-primed {@link TypeRegistry} instance
      */
     public OpengaussConnection(OpengaussConnectorConfig config, TypeRegistry typeRegistry) {
-        super(config.getJdbcConfig(), FACTORY);
+        super(config.getJdbcConfig(), FACTORY, JdbcConfiguration.class::getClassLoader, "", "");
         if (Objects.isNull(typeRegistry)) {
             this.typeRegistry = null;
             this.defaultValueConverter = null;
@@ -152,7 +152,7 @@ public class OpengaussConnection extends JdbcConnection {
      *
      * @param config {@link Configuration} instance, may not be null.
      */
-    public OpengaussConnection(Configuration config) {
+    public OpengaussConnection(JdbcConfiguration config) {
         this(config, null);
     }
 

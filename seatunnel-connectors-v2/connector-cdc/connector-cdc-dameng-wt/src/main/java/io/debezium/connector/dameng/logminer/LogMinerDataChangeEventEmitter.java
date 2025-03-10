@@ -19,6 +19,7 @@ package io.debezium.connector.dameng.logminer;
 
 import io.debezium.DebeziumException;
 import io.debezium.connector.dameng.DamengDataChangeEventEmitter;
+import io.debezium.connector.dameng.DamengPartition;
 import io.debezium.connector.dameng.logminer.parser.LogMinerDmlEntry;
 import io.debezium.data.Envelope.Operation;
 import io.debezium.pipeline.spi.OffsetContext;
@@ -33,20 +34,21 @@ public class LogMinerDataChangeEventEmitter extends DamengDataChangeEventEmitter
     private final Object[] newValues;
 
     public LogMinerDataChangeEventEmitter(
+            DamengPartition partition,
             OffsetContext offset,
             int operation,
             Object[] oldValues,
             Object[] newValues,
             Table table,
             Clock clock) {
-        super(offset, clock);
+        super(partition, offset, clock);
         this.operation = operation;
         this.oldValues = oldValues;
         this.newValues = newValues;
     }
 
     @Override
-    protected Operation getOperation() {
+    public Operation getOperation() {
         switch (operation) {
             case RowMapper.INSERT:
                 return Operation.CREATE;

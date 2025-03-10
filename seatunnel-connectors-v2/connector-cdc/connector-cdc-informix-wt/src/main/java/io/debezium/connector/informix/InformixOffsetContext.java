@@ -22,6 +22,7 @@ import org.apache.kafka.connect.data.Struct;
 
 import io.debezium.connector.SnapshotRecord;
 import io.debezium.pipeline.source.snapshot.incremental.IncrementalSnapshotContext;
+import io.debezium.pipeline.source.snapshot.incremental.SignalBasedIncrementalSnapshotContext;
 import io.debezium.pipeline.spi.OffsetContext;
 import io.debezium.pipeline.txmetadata.TransactionContext;
 import io.debezium.relational.TableId;
@@ -87,12 +88,7 @@ public class InformixOffsetContext implements OffsetContext {
                 snapshot,
                 snapshotCompleted,
                 new TransactionContext(),
-                new IncrementalSnapshotContext<>(false));
-    }
-
-    @Override
-    public Map<String, ?> getPartition() {
-        return partition;
+                new SignalBasedIncrementalSnapshotContext<>());
     }
 
     @Override
@@ -184,11 +180,6 @@ public class InformixOffsetContext implements OffsetContext {
         }
 
         @Override
-        public Map<String, ?> getPartition() {
-            return Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
-        }
-
-        @Override
         public InformixOffsetContext load(Map<String, ?> offset) {
             // TODO: Is this a special case for Informix?
             Map<String, String> offset_map = (Map<String, String>) offset;
@@ -206,7 +197,7 @@ public class InformixOffsetContext implements OffsetContext {
                     snapshot,
                     snapshotCompleted,
                     TransactionContext.load(offset),
-                    IncrementalSnapshotContext.load(offset, false, TableId.class));
+                    SignalBasedIncrementalSnapshotContext.load(offset, false));
         }
     }
 

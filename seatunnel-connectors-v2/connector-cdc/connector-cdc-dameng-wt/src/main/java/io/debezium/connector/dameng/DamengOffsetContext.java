@@ -27,7 +27,6 @@ import io.debezium.relational.TableId;
 import io.debezium.schema.DataCollectionId;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +36,6 @@ public class DamengOffsetContext implements OffsetContext {
     public static final String SNAPSHOT_COMPLETED_KEY = "snapshot_completed";
     private final Schema sourceInfoSchema;
     private final SourceInfo sourceInfo;
-    private final Map<String, String> partition;
     private final TransactionContext transactionContext;
     private boolean snapshotCompleted;
 
@@ -60,9 +58,6 @@ public class DamengOffsetContext implements OffsetContext {
             boolean snapshot,
             boolean snapshotCompleted,
             TransactionContext transactionContext) {
-        partition =
-                Collections.singletonMap(SERVER_PARTITION_KEY, connectorConfig.getLogicalName());
-
         sourceInfo = new SourceInfo(connectorConfig);
         sourceInfo.setScn(scn);
         sourceInfo.setLcrPosition(lcrPosition);
@@ -131,11 +126,6 @@ public class DamengOffsetContext implements OffsetContext {
 
     public static DamengOffsetContext.Builder create() {
         return new DamengOffsetContext.Builder();
-    }
-
-    @Override
-    public Map<String, ?> getPartition() {
-        return partition;
     }
 
     @Override

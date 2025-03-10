@@ -10,9 +10,9 @@ import org.apache.kafka.connect.data.Struct;
 
 import io.debezium.connector.opengauss.Module;
 import io.debezium.connector.opengauss.utils.CloudEventsProvider;
-import io.debezium.converters.CloudEventsMaker;
-import io.debezium.converters.RecordParser;
-import io.debezium.converters.SerializerType;
+import io.debezium.converters.spi.CloudEventsMaker;
+import io.debezium.converters.spi.RecordParser;
+import io.debezium.converters.spi.SerializerType;
 
 /**
  * An implementation of {@link CloudEventsProvider} for OpenGauss.

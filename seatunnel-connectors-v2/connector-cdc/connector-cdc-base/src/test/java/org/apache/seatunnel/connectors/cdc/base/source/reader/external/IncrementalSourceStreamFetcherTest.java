@@ -42,17 +42,25 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
+import io.debezium.config.CommonConnectorConfig;
+import io.debezium.config.Configuration;
+import io.debezium.connector.SourceInfoStructMaker;
 import io.debezium.data.Envelope;
 import io.debezium.heartbeat.Heartbeat;
+import io.debezium.heartbeat.HeartbeatFactory;
+import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.pipeline.DataChangeEvent;
+import io.debezium.relational.TableId;
+import io.debezium.schema.TopicSelector;
+import io.debezium.util.SchemaNameAdjuster;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.debezium.config.CommonConnectorConfig.TRANSACTION_TOPIC;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -60,6 +68,12 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 public class IncrementalSourceStreamFetcherTest {
+    private static final Configuration dezConf =
+            JdbcConfiguration.create()
+                    .with(Heartbeat.HEARTBEAT_INTERVAL, 1)
+                    .with(TRANSACTION_TOPIC, "test")
+                    .build();
+
     private static final String UNKNOWN_SCHEMA_KEY = "UNKNOWN";
 
     @Test
@@ -468,7 +482,14 @@ public class IncrementalSourceStreamFetcherTest {
     }
 
     static SourceRecord createHeartbeatEvent() throws InterruptedException {
-        Heartbeat heartbeat = Heartbeat.create(Duration.ofNanos(1), "test", "test");
+        TestConnectorConfig testConnectorConfig = new TestConnectorConfig(dezConf, "test", 1000);
+        HeartbeatFactory<TableId> heartbeatFactory =
+                new HeartbeatFactory<>(
+                        testConnectorConfig,
+                        TopicSelector.defaultSelector(
+                                testConnectorConfig, (id, prefix, delimiter) -> "test"),
+                        SchemaNameAdjuster.create());
+        Heartbeat heartbeat = heartbeatFactory.createHeartbeat();
         AtomicReference<SourceRecord> eventRef = new AtomicReference<>();
         heartbeat.forcedBeat(
                 Collections.singletonMap("heartbeat", "heartbeat"),
@@ -524,5 +545,29 @@ public class IncrementalSourceStreamFetcherTest {
         IncrementalSourceStreamFetcher spy = spy(fetcher);
         doReturn(true).when(spy).shouldEmit(any());
         return spy;
+    }
+
+    public static class TestConnectorConfig extends CommonConnectorConfig {
+
+        protected TestConnectorConfig(
+                Configuration config, String logicalName, int defaultSnapshotFetchSize) {
+            super(config, logicalName, defaultSnapshotFetchSize);
+        }
+
+        @Override
+        public String getContextName() {
+            return null;
+        }
+
+        @Override
+        public String getConnectorName() {
+            return null;
+        }
+
+        @Override
+        protected SourceInfoStructMaker<?> getSourceInfoStructMaker(
+                CommonConnectorConfig.Version version) {
+            return null;
+        }
     }
 }

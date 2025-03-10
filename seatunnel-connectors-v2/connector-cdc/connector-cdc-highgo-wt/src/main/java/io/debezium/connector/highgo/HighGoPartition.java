@@ -5,7 +5,7 @@
  */
 package io.debezium.connector.highgo;
 
-import io.debezium.connector.highgo.utils.Partition;
+import io.debezium.pipeline.spi.Partition;
 import io.debezium.util.Collect;
 
 import java.util.Collections;

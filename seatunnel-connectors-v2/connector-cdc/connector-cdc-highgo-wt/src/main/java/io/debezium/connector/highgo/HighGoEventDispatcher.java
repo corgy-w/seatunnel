@@ -35,7 +35,8 @@ import io.debezium.util.SchemaNameAdjuster;
  *
  * @author Lairen Hightower
  */
-public class HighGoEventDispatcher<T extends DataCollectionId> extends JdbcSourceEventDispatcher {
+public class HighGoEventDispatcher<T extends DataCollectionId>
+        extends JdbcSourceEventDispatcher<HighGoPartition> {
     private static final Logger LOGGER = LoggerFactory.getLogger(HighGoConnectorConfig.class);
     private final ChangeEventQueue<DataChangeEvent> queue;
     private final LogicalDecodingMessageMonitor logicalDecodingMessageMonitor;
@@ -95,7 +96,7 @@ public class HighGoEventDispatcher<T extends DataCollectionId> extends JdbcSourc
             ChangeEventQueue<DataChangeEvent> queue,
             DataCollectionFilters.DataCollectionFilter<TableId> filter,
             ChangeEventCreator changeEventCreator,
-            InconsistentSchemaHandler<T> inconsistentSchemaHandler,
+            InconsistentSchemaHandler<HighGoPartition, T> inconsistentSchemaHandler,
             EventMetadataProvider metadataProvider,
             Heartbeat customHeartbeat,
             SchemaNameAdjuster schemaNameAdjuster,

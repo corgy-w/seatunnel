@@ -27,7 +27,7 @@ import io.debezium.util.Clock;
  * @author Chris Cranford
  */
 public class OpengaussSignalBasedIncrementalSnapshotChangeEventSource
-        extends SignalBasedIncrementalSnapshotChangeEventSource<TableId> {
+        extends SignalBasedIncrementalSnapshotChangeEventSource<OpengaussPartition, TableId> {
 
     private static final Logger LOGGER =
             LoggerFactory.getLogger(OpengaussSignalBasedIncrementalSnapshotChangeEventSource.class);
@@ -38,14 +38,15 @@ public class OpengaussSignalBasedIncrementalSnapshotChangeEventSource
     public OpengaussSignalBasedIncrementalSnapshotChangeEventSource(
             RelationalDatabaseConnectorConfig config,
             JdbcConnection jdbcConnection,
-            EventDispatcher<TableId> dispatcher,
+            EventDispatcher<OpengaussPartition, TableId> dispatcher,
             DatabaseSchema<?> databaseSchema,
             Clock clock,
-            SnapshotProgressListener progressListener,
-            DataChangeEventListener dataChangeEventListener) {
+            SnapshotProgressListener<OpengaussPartition> progressListener,
+            DataChangeEventListener<OpengaussPartition> dataChangeEventListener) {
         super(
                 config,
                 jdbcConnection,
+                dispatcher,
                 databaseSchema,
                 clock,
                 progressListener,

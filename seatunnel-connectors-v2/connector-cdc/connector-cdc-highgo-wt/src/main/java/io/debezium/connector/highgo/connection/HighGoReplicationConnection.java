@@ -128,7 +128,12 @@ public class HighGoReplicationConnection extends JdbcConnection implements Repli
             TypeRegistry typeRegistry,
             Properties streamParams,
             HighGoSchema schema) {
-        super(config.getJdbcConfig(), HighGoConnection.FACTORY);
+        super(
+                config.getJdbcConfig(),
+                HighGoConnection.FACTORY,
+                HighGoReplicationConnection.class::getClassLoader,
+                "",
+                "");
 
         this.originalConfig = config;
         this.slotName = slotName;

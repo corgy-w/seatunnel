@@ -18,7 +18,7 @@ public final class Module {
 
     private static Properties getInfo() {
         final Properties properties = new Properties();
-        properties.setProperty("version", "1.6.4.Final");
+        properties.setProperty("version", "1.9.8.Final");
         return properties;
     }
 

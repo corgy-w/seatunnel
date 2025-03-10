@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.mysql.utils;
 
 import io.debezium.connector.mysql.MySqlConnectorConfig;
 import io.debezium.connector.mysql.MySqlOffsetContext;
+import io.debezium.connector.mysql.MySqlPartition;
 import io.debezium.connector.mysql.MySqlValueConverters;
 import io.debezium.relational.TableId;
 import io.debezium.schema.SchemaChangeEvent;
@@ -50,12 +51,13 @@ public class CustomMySqlDatabaseSchema extends io.debezium.connector.mysql.MySql
 
     @Override
     public List<SchemaChangeEvent> parseStreamingDdl(
+            MySqlPartition partition,
             String ddlStatements,
             String databaseName,
             MySqlOffsetContext offset,
             Instant sourceTime) {
         List<SchemaChangeEvent> events =
-                super.parseStreamingDdl(ddlStatements, databaseName, offset, sourceTime);
+                super.parseStreamingDdl(partition, ddlStatements, databaseName, offset, sourceTime);
         String currentGtidSet = offset.gtidSet();
         if (currentGtidSet == null) {
             return events;
@@ -75,16 +77,7 @@ public class CustomMySqlDatabaseSchema extends io.debezium.connector.mysql.MySql
                                     oldGtidSet,
                                     currentGtidSet);
 
-                            return new SchemaChangeEvent(
-                                    event.getPartition(),
-                                    offsetMap,
-                                    event.getSource(),
-                                    event.getDatabase(),
-                                    event.getSchema(),
-                                    event.getDdl(),
-                                    event.getTables(),
-                                    event.getType(),
-                                    event.isFromSnapshot());
+                            return event;
                         })
                 .collect(Collectors.toList());
     }

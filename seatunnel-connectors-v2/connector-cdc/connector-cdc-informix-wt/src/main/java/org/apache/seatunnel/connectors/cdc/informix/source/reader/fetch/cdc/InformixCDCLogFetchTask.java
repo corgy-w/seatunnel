@@ -57,7 +57,9 @@ public class InformixCDCLogFetchTask implements FetchTask<SourceSplitBase> {
         InformixCDCLogChangeEventSourceContext changeEventSourceContext =
                 new InformixCDCLogChangeEventSourceContext();
         streamingChangeEventSource.execute(
-                changeEventSourceContext, sourceFetchContext.getOffsetContext());
+                changeEventSourceContext,
+                sourceFetchContext.getPartition(),
+                sourceFetchContext.getOffsetContext());
     }
 
     @Override

@@ -110,19 +110,22 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
             addColumn =
                     AlterTableAddColumnEvent.addFirst(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()));
         } else if (ctx.AFTER() != null) {
             String afterColumn = parser.parseName(ctx.uid(1));
             addColumn =
                     AlterTableAddColumnEvent.addAfter(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column),
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()),
                             afterColumn);
         } else {
             addColumn =
                     AlterTableAddColumnEvent.add(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()));
         }
         alterTableColumnsEvent.addEvent(addColumn);
 
@@ -150,7 +153,8 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
             AlterTableAddColumnEvent addColumnEvent =
                     AlterTableAddColumnEvent.add(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()));
             alterTableColumnsEvent.addEvent(addColumnEvent);
         }
 
@@ -168,7 +172,7 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
         }
 
         ColumnEditor columnEditor = existingColumn.edit();
-        columnEditor.unsetDefaultValue();
+        columnEditor.unsetDefaultValueExpression();
 
         columnDefinitionListener =
                 new ColumnDefinitionParserListener(columnEditor, parser, listeners);
@@ -185,19 +189,22 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
             modifyColumnEvent =
                     AlterTableModifyColumnEvent.modifyFirst(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()));
         } else if (ctx.AFTER() != null) {
             String afterColumn = parser.parseName(ctx.uid(1));
             modifyColumnEvent =
                     AlterTableModifyColumnEvent.modifyAfter(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column),
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()),
                             afterColumn);
         } else {
             modifyColumnEvent =
                     AlterTableModifyColumnEvent.modify(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()));
         }
         alterTableColumnsEvent.addEvent(modifyColumnEvent);
 
@@ -216,7 +223,7 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
         }
 
         ColumnEditor columnEditor = newColumn.edit();
-        columnEditor.unsetDefaultValue();
+        columnEditor.unsetDefaultValueExpression();
         columnDefinitionListener =
                 new ColumnDefinitionParserListener(columnEditor, parser, listeners);
         listeners.add(columnDefinitionListener);
@@ -235,21 +242,24 @@ public class AlterTableParserListener extends MySqlParserBaseListener {
                     AlterTableChangeColumnEvent.changeFirst(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
                             oldColumnName,
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()));
         } else if (ctx.AFTER() != null) {
             String afterColumn = parser.parseName(ctx.afterColumn);
             changeColumnEvent =
                     AlterTableChangeColumnEvent.changeAfter(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
                             oldColumnName,
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column),
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()),
                             afterColumn);
         } else {
             changeColumnEvent =
                     AlterTableChangeColumnEvent.change(
                             TableIdentifier.of(parser.getCatalogName(), tablePath),
                             oldColumnName,
-                            MySqlTypeUtils.convertToSeaTunnelColumn(column));
+                            MySqlTypeUtils.convertToSeaTunnelColumn(
+                                    column, parser.getDbzConnectorConfig()));
         }
         alterTableColumnsEvent.addEvent(changeColumnEvent);
 

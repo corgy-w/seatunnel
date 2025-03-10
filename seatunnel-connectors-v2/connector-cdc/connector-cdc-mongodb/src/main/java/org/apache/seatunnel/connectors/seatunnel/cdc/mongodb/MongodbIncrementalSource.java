@@ -30,6 +30,7 @@ import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
 import org.apache.seatunnel.connectors.cdc.base.source.IncrementalSource;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.OffsetFactory;
 import org.apache.seatunnel.connectors.cdc.debezium.DebeziumDeserializationSchema;
+import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
 import org.apache.seatunnel.connectors.cdc.debezium.DeserializeFormat;
 import org.apache.seatunnel.connectors.cdc.debezium.row.DebeziumJsonDeserializeSchema;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.config.MongodbSourceConfig;
@@ -143,7 +144,7 @@ public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSou
         MongodbDialect dialect = new MongodbDialect();
         List<TableId> discoverTables = dialect.discoverDataCollections(mongodbSourceConfig);
         ConnectTableChangeSerializer connectTableChangeSerializer =
-                new ConnectTableChangeSerializer();
+                new ConnectTableChangeSerializer(DebeziumSchemaNameAdjuster.create());
         try {
             return discoverTables.stream()
                     .collect(

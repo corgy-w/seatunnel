@@ -21,6 +21,7 @@ import org.apache.seatunnel.common.utils.SeaTunnelException;
 
 import io.debezium.config.Configuration;
 import io.debezium.connector.oracle.Scn;
+import io.debezium.jdbc.JdbcConfiguration;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.RelationalTableFilters;
 import io.debezium.relational.TableId;
@@ -41,11 +42,12 @@ public class OracleConnectionUtils {
     private static final String SHOW_CURRENT_SCN = "SELECT CURRENT_SCN FROM V$DATABASE";
 
     /** Creates a new {@link CustomOracleConnection}, but not open the connection. */
-    public static CustomOracleConnection createOracleConnection(Configuration dbzConfiguration) {
+    public static CustomOracleConnection createOracleConnection(
+            JdbcConfiguration dbzConfiguration) {
         Configuration configuration = dbzConfiguration.subset(DATABASE_CONFIG_PREFIX, true);
 
         return new CustomOracleConnection(
-                configuration.isEmpty() ? dbzConfiguration : configuration,
+                configuration.isEmpty() ? dbzConfiguration : JdbcConfiguration.adapt(configuration),
                 OracleConnectionUtils.class::getClassLoader);
     }
 
