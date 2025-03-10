@@ -42,7 +42,7 @@ import java.util.Map;
  */
 public class DebeziumJsonWriteStrategy extends AbstractWriteStrategy<FSDataOutputStream> {
     private final byte[] rowDelimiter;
-    protected CompatibleDebeziumJsonSerializationSchema serializationSchema;
+    protected DebeziumJsonSerializationSchema serializationSchema;
     private final LinkedHashMap<String, FSDataOutputStream> beingWrittenOutputStream;
     private final Map<String, Boolean> isFirstWrite;
 
