@@ -38,6 +38,7 @@ import org.apache.seatunnel.connectors.seatunnel.file.hdfs.config.HdfsConfigOpti
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategy;
 import org.apache.seatunnel.connectors.seatunnel.file.source.reader.ReadStrategyFactory;
 import org.apache.seatunnel.connectors.seatunnel.hive.config.BaseHiveOptions;
+import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConfig;
 import org.apache.seatunnel.connectors.seatunnel.hive.config.HiveConstants;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.hive.exception.HiveConnectorException;
@@ -185,7 +186,7 @@ public class HiveSourceConfig implements Serializable {
                 .getOptional(HdfsConfigOptions.HDFS_SITE_PATH)
                 .ifPresent(hadoopConf::setHdfsSitePath);
         readonlyConfig
-                .getOptional(BaseHiveOptions.HADOOP_CONF_PATH)
+                .getOptional(HiveConfig.HADOOP_CONF_PATH)
                 .ifPresent(hadoopConf::setHadoopConfPath);
         readonlyConfig.getOptional(HdfsConfigOptions.KRB5_PATH).ifPresent(hadoopConf::setKrb5Path);
         readonlyConfig
