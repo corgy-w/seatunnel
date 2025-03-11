@@ -60,7 +60,7 @@ public class DebeziumJsonWriteStrategy extends AbstractWriteStrategy<FSDataOutpu
         // todo: config if we need to write key, value or the whole row
         this.serializationSchema =
                 new DebeziumJsonSerializationSchema(
-                        buildSchemaWithRowType(seaTunnelRowType, sinkColumnsIndexInRow), false);
+                        buildSchemaWithRowType(seaTunnelRowType, sinkColumnsIndexInRow));
     }
 
     @Override
