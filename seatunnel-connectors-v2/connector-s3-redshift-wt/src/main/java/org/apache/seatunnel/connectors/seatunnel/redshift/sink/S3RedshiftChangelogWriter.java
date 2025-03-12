@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.redshift.sink;
 
 import org.apache.seatunnel.api.sink.MultiTableResourceManager;
+import org.apache.seatunnel.api.sink.SupportSchemaEvolutionSinkWriter;
 import org.apache.seatunnel.api.table.schema.event.AlterTableAddColumnEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableChangeColumnEvent;
 import org.apache.seatunnel.api.table.schema.event.AlterTableColumnEvent;
@@ -62,7 +63,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
-public class S3RedshiftChangelogWriter extends BaseFileSinkWriter {
+public class S3RedshiftChangelogWriter extends BaseFileSinkWriter
+        implements SupportSchemaEvolutionSinkWriter {
     private final S3RedshiftConf s3RedshiftConf;
     private WriterResource resource;
     private final DataTypeChangeEventDispatcher dataTypeChangeEventDispatcher =

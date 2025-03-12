@@ -21,6 +21,7 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.sink;
 
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.sink.SupportSchemaEvolutionSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
@@ -53,7 +54,8 @@ import java.util.UUID;
 @Slf4j
 public class IcebergSinkWriter
         implements SinkWriter<SeaTunnelRow, IcebergCommitInfo, IcebergSinkState>,
-                SupportMultiTableSinkWriter<Void> {
+                SupportMultiTableSinkWriter<Void>,
+                SupportSchemaEvolutionSinkWriter {
     private TableSchema tableSchema;
     private SeaTunnelRowType rowType;
     private final SinkConfig config;

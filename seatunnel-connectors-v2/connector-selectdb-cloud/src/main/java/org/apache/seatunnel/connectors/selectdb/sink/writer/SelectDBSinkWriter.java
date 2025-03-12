@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.selectdb.sink.writer;
 
 import org.apache.seatunnel.api.sink.SinkWriter;
 import org.apache.seatunnel.api.sink.SupportMultiTableSinkWriter;
+import org.apache.seatunnel.api.sink.SupportSchemaEvolutionSinkWriter;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.schema.handler.DataTypeChangeEventDispatcher;
@@ -45,7 +46,8 @@ import static com.google.common.base.Preconditions.checkState;
 @Slf4j
 public class SelectDBSinkWriter
         implements SinkWriter<SeaTunnelRow, SelectDBCommitInfo, SelectDBSinkState>,
-                SupportMultiTableSinkWriter {
+                SupportMultiTableSinkWriter,
+                SupportSchemaEvolutionSinkWriter {
     private final SelectDBConfig selectdbConfig;
     private final long lastCheckpointId;
     private SelectDBStageLoad selectDBStageLoad;
