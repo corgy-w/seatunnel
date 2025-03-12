@@ -15,15 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event;
+package org.apache.seatunnel.api.table.schema.event;
 
+import org.apache.seatunnel.api.event.Event;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
-import lombok.ToString;
+/** Represents a structural change to a table schema. */
+public interface SchemaChangeEvent extends Event {
 
-@ToString(callSuper = true)
-public abstract class AlterTableEvent extends TableEvent {
-    public AlterTableEvent(TableIdentifier tableIdentifier) {
-        super(tableIdentifier);
+    /**
+     * Path of the change table object
+     *
+     * @return
+     */
+    default TablePath tablePath() {
+        return tableIdentifier().toTablePath();
     }
+
+    /**
+     * Path of the change table object
+     *
+     * @return
+     */
+    TableIdentifier tableIdentifier();
 }

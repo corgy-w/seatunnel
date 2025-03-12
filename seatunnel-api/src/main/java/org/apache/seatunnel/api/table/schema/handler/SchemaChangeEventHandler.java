@@ -15,28 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.cdc.mysql.schema;
+package org.apache.seatunnel.api.table.schema.handler;
 
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 
-import com.google.common.collect.ImmutableList;
-
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 
-public class SchemaChanges implements Serializable {
-    private final List<SchemaChangeEvent> events = new ArrayList<>();
+public interface SchemaChangeEventHandler<T> extends Serializable {
 
-    public void add(SchemaChangeEvent event) {
-        events.add(event);
-    }
-
-    public void reset() {
-        events.clear();
-    }
-
-    public List<SchemaChangeEvent> getEvents() {
-        return ImmutableList.copyOf(events);
-    }
+    T handle(SchemaChangeEvent event);
 }

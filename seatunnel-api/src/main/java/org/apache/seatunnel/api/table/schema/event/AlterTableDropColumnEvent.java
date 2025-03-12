@@ -15,28 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.cdc.mysql.schema;
+package org.apache.seatunnel.api.table.schema.event;
 
-import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.event.EventType;
+import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 
-import com.google.common.collect.ImmutableList;
+import lombok.Getter;
+import lombok.ToString;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+@Getter
+@ToString(callSuper = true)
+public class AlterTableDropColumnEvent extends AlterTableColumnEvent {
+    private final String column;
 
-public class SchemaChanges implements Serializable {
-    private final List<SchemaChangeEvent> events = new ArrayList<>();
-
-    public void add(SchemaChangeEvent event) {
-        events.add(event);
+    public AlterTableDropColumnEvent(TableIdentifier tableIdentifier, String column) {
+        super(tableIdentifier);
+        this.column = column;
     }
 
-    public void reset() {
-        events.clear();
-    }
-
-    public List<SchemaChangeEvent> getEvents() {
-        return ImmutableList.copyOf(events);
+    @Override
+    public EventType getEventType() {
+        return EventType.SCHEMA_CHANGE_DROP_COLUMN;
     }
 }

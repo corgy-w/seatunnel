@@ -15,15 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event;
+package org.apache.seatunnel.api.sink;
 
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 
-import lombok.ToString;
+import java.io.IOException;
 
-@ToString(callSuper = true)
-public abstract class AlterTableColumnEvent extends AlterTableEvent {
-    public AlterTableColumnEvent(TableIdentifier tableIdentifier) {
-        super(tableIdentifier);
-    }
+public interface SupportSchemaEvolutionSinkWriter {
+
+    /**
+     * apply schema change to third party data receiver.
+     *
+     * @param event
+     * @throws IOException
+     */
+    void applySchemaChange(SchemaChangeEvent event) throws IOException;
 }

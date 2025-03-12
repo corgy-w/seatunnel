@@ -15,11 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event.handler;
+package org.apache.seatunnel.api.table.schema.handler;
 
-import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 
+@Deprecated
 public interface DataTypeChangeEventHandler extends SchemaChangeEventHandler<SeaTunnelRowType> {
 
     SeaTunnelRowType get();

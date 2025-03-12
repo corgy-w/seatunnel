@@ -15,28 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event;
+package org.apache.seatunnel.api.sink;
 
-import org.apache.seatunnel.api.event.Event;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
-import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.schema.SchemaChangeType;
 
-/** Represents a structural change to a table schema. */
-public interface SchemaChangeEvent extends Event {
+import java.util.List;
 
-    /**
-     * Path of the change table object
-     *
-     * @return
-     */
-    default TablePath tablePath() {
-        return tableIdentifier().toTablePath();
-    }
+public interface SupportSchemaEvolutionSink {
 
     /**
-     * Path of the change table object
+     * The sink connector supports schema evolution types.
      *
-     * @return
+     * @return the supported schema change types
      */
-    TableIdentifier tableIdentifier();
+    List<SchemaChangeType> supports();
 }

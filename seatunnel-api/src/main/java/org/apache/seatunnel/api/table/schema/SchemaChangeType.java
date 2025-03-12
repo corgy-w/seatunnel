@@ -15,26 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event;
+package org.apache.seatunnel.api.table.schema;
 
-import org.apache.seatunnel.api.event.EventType;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
-
-import lombok.Getter;
-import lombok.ToString;
-
-@Getter
-@ToString(callSuper = true)
-public class AlterTableDropColumnEvent extends AlterTableColumnEvent {
-    private final String column;
-
-    public AlterTableDropColumnEvent(TableIdentifier tableIdentifier, String column) {
-        super(tableIdentifier);
-        this.column = column;
-    }
-
-    @Override
-    public EventType getEventType() {
-        return EventType.SCHEMA_CHANGE_DROP_COLUMN;
-    }
+public enum SchemaChangeType {
+    /** Add column to table. */
+    ADD_COLUMN,
+    /** Drop column from table. */
+    DROP_COLUMN,
+    /** Update column in table. */
+    UPDATE_COLUMN,
+    /** Rename column in table. */
+    RENAME_COLUMN;
 }

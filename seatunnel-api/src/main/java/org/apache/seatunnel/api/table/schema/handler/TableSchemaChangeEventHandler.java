@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.api.table.event.handler;
+package org.apache.seatunnel.api.table.schema.handler;
 
 import org.apache.seatunnel.api.table.catalog.TableSchema;
-import org.apache.seatunnel.api.table.event.SchemaChangeEvent;
+import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 
 public interface TableSchemaChangeEventHandler extends SchemaChangeEventHandler<TableSchema> {
 
