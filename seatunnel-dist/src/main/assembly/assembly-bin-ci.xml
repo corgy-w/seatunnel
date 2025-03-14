@@ -733,7 +733,7 @@
                 <include>com.kingbase8:kingbase8:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/plugins/connector-kafka</outputDirectory>
+            <outputDirectory>/plugins/connector-kafka-wt</outputDirectory>
             <scope>system</scope>
         </dependencySet>
     </dependencySets>

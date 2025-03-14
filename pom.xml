@@ -1006,7 +1006,7 @@
                                     <mkdir dir="src/main/resources/connector-jdbc-hive1" />
                                     <mkdir dir="src/main/resources/connector-jdbc-hive2" />
                                     <mkdir dir="src/main/resources/connector-jdbc-cdh-hive2" />
-                                    <mkdir dir="src/main/resources/connector-kafka" />
+                                    <mkdir dir="src/main/resources/connector-kafka-wt" />
                                     <mkdir dir="src/main/resources/connector-kudu" />
                                     <mkdir dir="src/main/resources/connector-maxcompute" />
                                     <mkdir dir="src/main/resources/connector-mongodb" />
