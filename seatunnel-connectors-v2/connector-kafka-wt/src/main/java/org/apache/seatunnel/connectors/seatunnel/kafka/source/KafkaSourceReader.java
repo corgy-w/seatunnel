@@ -71,6 +71,7 @@ public class KafkaSourceReader implements SourceReader<SeaTunnelRow, KafkaSource
     private final LinkedBlockingQueue<KafkaSourceSplit> pendingPartitionsQueue;
 
     private volatile boolean running = false;
+    private volatile boolean noMoreSplitsAssignment = false;
 
     KafkaSourceReader(
             KafkaSourceConfig kafkaSourceConfig,
@@ -235,7 +236,8 @@ public class KafkaSourceReader implements SourceReader<SeaTunnelRow, KafkaSource
                     split.setStartOffset(split.getEndOffset());
                 }
             }
-            if (sourceSplits.stream().allMatch(KafkaSourceSplit::isFinish)) {
+            if (noMoreSplitsAssignment
+                    && sourceSplits.stream().allMatch(KafkaSourceSplit::isFinish)) {
                 context.signalNoMoreElement();
             }
         }
@@ -270,6 +272,8 @@ public class KafkaSourceReader implements SourceReader<SeaTunnelRow, KafkaSource
     @Override
     public void handleNoMoreSplits() {
         log.info("receive no more splits message, this reader will not add new split.");
+        running = true;
+        noMoreSplitsAssignment = true;
     }
 
     @Override
