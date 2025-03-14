@@ -256,7 +256,7 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
-                    <artifactId>connector-kafka</artifactId>
+                    <artifactId>connector-kafka-wt</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
                 </dependency>

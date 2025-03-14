@@ -41,7 +41,8 @@
         <module>connector-jdbc-hive1</module>
         <module>connector-jdbc-hive2</module>
         <module>connector-jdbc-cdh-hive2</module>
-        <module>connector-kafka</module>
+        <!--        <module>connector-kafka</module>-->
+        <module>connector-kafka-wt</module>
         <module>connector-pulsar</module>
         <module>connector-socket</module>
         <module>connector-hive1</module>
