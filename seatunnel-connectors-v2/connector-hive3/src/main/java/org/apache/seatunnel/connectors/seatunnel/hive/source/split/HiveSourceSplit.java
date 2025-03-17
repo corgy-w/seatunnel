@@ -22,6 +22,8 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import lombok.Getter;
 
+import java.util.Objects;
+
 @Getter
 public class HiveSourceSplit implements SourceSplit {
 
@@ -48,5 +50,21 @@ public class HiveSourceSplit implements SourceSplit {
     @Override
     public TablePath getTablePath() {
         return TablePath.of(tableId);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        HiveSourceSplit that = (HiveSourceSplit) o;
+        return index == that.index
+                && splitCount == that.splitCount
+                && Objects.equals(tableId, that.tableId)
+                && Objects.equals(filePath, that.filePath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(tableId, filePath, index, splitCount);
     }
 }

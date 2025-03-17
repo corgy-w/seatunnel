@@ -76,6 +76,19 @@ public class MultipleTableHiveSourceSplitEnumerator
     }
 
     @Override
+    public void open() {
+        for (Map.Entry<String, List<String>> filePathEntry : filePathMap.entrySet()) {
+            String tableId = filePathEntry.getKey();
+            List<String> filePaths = filePathEntry.getValue();
+            for (int i = 0; i < filePaths.size(); i++) {
+                pendingSplit.add(
+                        new HiveSourceSplit(tableId, filePaths.get(i), i, filePaths.size()));
+            }
+            eventRecorder.addTableSplit(TablePath.of(tableId), filePaths.size());
+        }
+    }
+
+    @Override
     public void addSplitsBack(List<HiveSourceSplit> splits, int subtaskId) {
         if (CollectionUtils.isEmpty(splits)) {
             return;
@@ -93,18 +106,7 @@ public class MultipleTableHiveSourceSplitEnumerator
     public void handleSplitRequest(int subtaskId) {}
 
     @Override
-    public void registerReader(int subtaskId) {
-        for (Map.Entry<String, List<String>> filePathEntry : filePathMap.entrySet()) {
-            String tableId = filePathEntry.getKey();
-            List<String> filePaths = filePathEntry.getValue();
-            for (int i = 0; i < filePaths.size(); i++) {
-                pendingSplit.add(
-                        new HiveSourceSplit(tableId, filePaths.get(i), i, filePaths.size()));
-            }
-            eventRecorder.addTableSplit(TablePath.of(tableId), filePaths.size());
-        }
-        assignSplit(subtaskId);
-    }
+    public void registerReader(int subtaskId) {}
 
     @Override
     public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
@@ -157,13 +159,11 @@ public class MultipleTableHiveSourceSplitEnumerator
     }
 
     @Override
-    public void open() {
-        // do nothing
-    }
-
-    @Override
     public void run() throws Exception {
-        // do nothing
+        for (int i = 0; i < context.currentParallelism(); i++) {
+            log.info("Assigned splits to reader [{}]", i);
+            assignSplit(i);
+        }
     }
 
     @Override
