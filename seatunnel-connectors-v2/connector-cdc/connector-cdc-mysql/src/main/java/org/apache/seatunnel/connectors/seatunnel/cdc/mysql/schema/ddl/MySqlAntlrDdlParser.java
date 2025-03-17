@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.cdc.mysql.schema.ddl;
 
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -37,17 +38,29 @@ import java.util.Arrays;
 
 public class MySqlAntlrDdlParser extends AntlrDdlParser<MySqlLexer, MySqlParser> {
     @Getter private MySqlValueConverters converters;
-    @Getter private RelationalDatabaseConnectorConfig dbzConnectorConfig;
+    @Getter private JdbcSourceConfig config;
+    private transient RelationalDatabaseConnectorConfig dbzConnectorConfig;
 
     public MySqlAntlrDdlParser(
             String terminator,
             boolean throwErrorsFromTreeWalk,
             String catalogName,
             MySqlValueConverters converters,
-            RelationalDatabaseConnectorConfig dbzConnectorConfig) {
+            JdbcSourceConfig config) {
         super(terminator, throwErrorsFromTreeWalk, catalogName);
         this.converters = converters;
-        this.dbzConnectorConfig = dbzConnectorConfig;
+        this.config = config;
+    }
+
+    public RelationalDatabaseConnectorConfig getDbzConnectorConfig() {
+        if (dbzConnectorConfig == null) {
+            synchronized (this) {
+                if (dbzConnectorConfig == null) {
+                    dbzConnectorConfig = config.getDbzConnectorConfig();
+                }
+            }
+        }
+        return dbzConnectorConfig;
     }
 
     @Override

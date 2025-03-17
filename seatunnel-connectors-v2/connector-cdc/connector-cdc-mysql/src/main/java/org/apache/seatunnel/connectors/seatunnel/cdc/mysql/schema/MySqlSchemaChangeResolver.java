@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.schema.event.TableEvent;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
+import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.schema.SchemaChangeResolver;
 import org.apache.seatunnel.connectors.cdc.base.utils.SourceRecordUtils;
 import org.apache.seatunnel.connectors.cdc.debezium.ConnectTableChangeSerializer;
@@ -30,7 +31,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import io.debezium.connector.mysql.MySqlValueConverters;
-import io.debezium.relational.RelationalDatabaseConnectorConfig;
 import io.debezium.relational.TableEditor;
 import io.debezium.relational.history.HistoryRecord;
 import io.debezium.relational.history.TableChanges;
@@ -47,10 +47,8 @@ public class MySqlSchemaChangeResolver implements SchemaChangeResolver {
     private MySqlAntlrDdlParser ddlParser;
 
     public MySqlSchemaChangeResolver(
-            MySqlValueConverters converters,
-            String catalogName,
-            RelationalDatabaseConnectorConfig dbzConnectorConfig) {
-        this.ddlParser = new MySqlAntlrDdlParser(";", false, catalogName, null, dbzConnectorConfig);
+            MySqlValueConverters converters, String catalogName, JdbcSourceConfig config) {
+        this.ddlParser = new MySqlAntlrDdlParser(";", false, catalogName, null, config);
     }
 
     @Override

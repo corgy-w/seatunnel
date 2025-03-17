@@ -114,8 +114,8 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
         }
 
         String zoneId = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);
-        RelationalDatabaseConnectorConfig dbzConnectorConfig =
-                configFactory.create(0).getDbzConnectorConfig();
+        JdbcSourceConfig sourceConfig = configFactory.create(0);
+        RelationalDatabaseConnectorConfig dbzConnectorConfig = sourceConfig.getDbzConnectorConfig();
         return (DebeziumDeserializationSchema<T>)
                 SeaTunnelRowDebeziumDeserializeSchema.builder()
                         .setTables(catalogTables)
@@ -126,7 +126,7 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
                                         MySqlConnectionUtils.getValueConverters(
                                                 (MySqlConnectorConfig) dbzConnectorConfig),
                                         dataSourceDialect.getName(),
-                                        dbzConnectorConfig))
+                                        sourceConfig))
                         .build();
     }
 
