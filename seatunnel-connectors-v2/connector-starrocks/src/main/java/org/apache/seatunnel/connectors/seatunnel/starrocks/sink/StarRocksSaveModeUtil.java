@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -107,7 +108,8 @@ public class StarRocksSaveModeUtil {
         return template.replaceAll(SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(), database)
                 .replaceAll(SaveModePlaceHolder.TABLE.getReplacePlaceHolder(), table)
                 .replaceAll(
-                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields)
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(),
+                        Matcher.quoteReplacement(rowTypeFields))
                 .replaceAll(
                         SaveModePlaceHolder.COMMENT.getReplacePlaceHolder(),
                         Objects.isNull(comment)
@@ -127,7 +129,10 @@ public class StarRocksSaveModeUtil {
                 StringUtils.isEmpty(column.getComment())
                         ? ""
                         : "COMMENT '"
-                                + column.getComment().replace("'", "''").replace("\\", "\\\\")
+                                + column.getComment()
+                                        .replace("'", "''")
+                                        .replace("\\", "\\\\")
+                                        .replace("\"", "\\\"")
                                 + "'");
     }
 
