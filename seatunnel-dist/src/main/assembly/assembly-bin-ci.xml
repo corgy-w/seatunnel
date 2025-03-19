@@ -734,5 +734,18 @@
             <outputDirectory>/plugins/connector-kafka-wt</outputDirectory>
             <scope>system</scope>
         </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>io.transwarp.inceptor:argodb-sink-client:jar</include>
+                <include>io.transwarp.inceptor:inceptor-jdbc-shaded-with-relocation:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-argodb</outputDirectory>
+            <scope>system</scope>
+        </dependencySet>
     </dependencySets>
 </assembly>

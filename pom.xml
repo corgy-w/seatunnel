@@ -892,6 +892,7 @@
                                     <mkdir dir="src/main/resources/connector-starrocks" />
                                     <mkdir dir="src/main/resources/connector-tablestore" />
                                     <mkdir dir="src/main/resources/connector-tdengine" />
+                                    <mkdir dir="src/main/resources/connector-argodb" />
                                 </target>
                             </configuration>
                         </execution>
