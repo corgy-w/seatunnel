@@ -478,6 +478,13 @@
 
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-argodb</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-easysearch</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
@@ -871,6 +878,20 @@
                     <artifactId>connector-sls</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
+                </dependency>
+
+                <!-- argodb jar -->
+                <dependency>
+                    <groupId>io.transwarp.inceptor</groupId>
+                    <artifactId>argodb-sink-client</artifactId>
+                    <version>8.37.3</version>
+                </dependency>
+                <dependency>
+                    <groupId>io.transwarp.inceptor</groupId>
+                    <artifactId>inceptor-jdbc-shaded-with-relocation</artifactId>
+                    <version>8.37.3</version>
+                    <scope>system</scope>
+                    <systemPath>${basedir}/src/main/argodb/inceptor-jdbc-shaded-with-relocation-8.37.3.jar</systemPath>
                 </dependency>
             </dependencies>
             <build>

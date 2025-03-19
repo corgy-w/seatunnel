@@ -1028,6 +1028,7 @@
                                     <mkdir dir="src/main/resources/connector-tdengine" />
                                     <mkdir dir="src/main/resources/connector-web3j" />
                                     <mkdir dir="src/main/resources/connector-easysearch" />
+                                    <mkdir dir="src/main/resources/connector-argodb" />
                                 </target>
                             </configuration>
                         </execution>
