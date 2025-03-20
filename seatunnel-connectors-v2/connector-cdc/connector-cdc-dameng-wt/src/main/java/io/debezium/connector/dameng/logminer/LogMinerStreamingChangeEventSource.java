@@ -122,6 +122,9 @@ public class LogMinerStreamingChangeEventSource extends DamengStreamingChangeEve
                         streamingMetrics,
                         partition)) {
             try {
+                // We explicitly expect auto-commit to be disabled
+                jdbcConnection.setAutoCommit(false);
+
                 startScn = offsetContext.getScn();
                 Scn firstOnlineLogScn;
                 if (!isContinuousMining
