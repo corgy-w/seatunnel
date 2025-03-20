@@ -115,7 +115,7 @@ public class InformixConnectorConfig extends HistorizedRelationalDatabaseConnect
                 config,
                 config.getString(SERVER_NAME),
                 new SystemTablesPredicate(),
-                x -> x.schema() + "." + x.table(),
+                x -> x.catalog() + "." + x.schema() + "." + x.table(),
                 true,
                 ColumnFilterMode.SCHEMA,
                 false);
