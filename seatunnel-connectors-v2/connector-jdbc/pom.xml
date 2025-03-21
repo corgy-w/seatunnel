@@ -213,6 +213,11 @@
                 <scope>provided</scope>
             </dependency>
             <!-- dependency by phoenix end -->
+            <dependency>
+                <groupId>com.yashandb</groupId>
+                <artifactId>yashandb-jdbc</artifactId>
+                <version>1.7.10</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -346,6 +351,10 @@
             <groupId>org.apache.seatunnel</groupId>
             <artifactId>seatunnel-hive-mrs-3.1.1-hw-ei-315008-uber</artifactId>
             <classifier>optional</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.yashandb</groupId>
+            <artifactId>yashandb-jdbc</artifactId>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
