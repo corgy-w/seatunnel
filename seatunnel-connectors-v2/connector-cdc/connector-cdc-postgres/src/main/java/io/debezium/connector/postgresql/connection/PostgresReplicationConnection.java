@@ -48,11 +48,8 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
@@ -263,11 +260,7 @@ public class PostgresReplicationConnection extends JdbcConnection implements Rep
             String tableFilterString, Statement stmt, boolean isUpdate) {
         String createOrUpdatePublicationStmt;
         try {
-            String tableListStr = this.connectorConfig.getConfig().asMap().get(TABLE_INCLUDE_LIST);
-            final List<String> configTableList =
-                    new ArrayList<>(Arrays.asList(tableListStr.split(",")));
-            configTableList.removeAll(this.getPublicationExistedTableList());
-            Set<TableId> tablesToCapture = convert(configTableList);
+            Set<TableId> tablesToCapture = determineCapturedTables();
             tableFilterString =
                     tablesToCapture.stream()
                             .map(TableId::toDoubleQuotedString)
@@ -299,38 +292,6 @@ public class PostgresReplicationConnection extends JdbcConnection implements Rep
                             isUpdate ? "update" : "create", publicationName, tableFilterString),
                     e);
         }
-    }
-
-    private List<String> getPublicationExistedTableList() {
-        List<String> tableList = new ArrayList<>();
-        try {
-            String selectPublication =
-                    String.format(
-                            "SELECT * FROM pg_publication_tables WHERE pubname = '%s'; ",
-                            publicationName);
-            try (Statement stmt = pgConnection().createStatement();
-                    ResultSet rs = stmt.executeQuery(selectPublication)) {
-                while (rs.next()) {
-                    String schemaName = rs.getString("schemaname");
-                    String tableName = rs.getString("tablename");
-                    tableList.add(schemaName + "." + tableName);
-                }
-            }
-        } catch (SQLException e) {
-            throw new JdbcConnectionException(e);
-        }
-        return tableList;
-    }
-
-    private Set<TableId> convert(List<String> tableList) {
-        Set<TableId> tableIdSet = new HashSet<>();
-        tableList.forEach(
-                tableNameStr -> {
-                    String schemaName = tableNameStr.split("\\.")[0];
-                    String tableName = tableNameStr.split("\\.")[1];
-                    tableIdSet.add(new TableId("", schemaName, tableName));
-                });
-        return tableIdSet;
     }
 
     private Set<TableId> determineCapturedTables() throws Exception {
