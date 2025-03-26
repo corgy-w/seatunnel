@@ -39,6 +39,7 @@ public class YashanTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final String YASHAN_NUMBER = "NUMBER";
     public static final String YASHAN_INTEGER = "INTEGER";
     public static final String YASHAN_FLOAT = "FLOAT";
+    public static final String YASHAN_DOUBLE = "DOUBLE";
     public static final String YASHAN_DOUBLE_PRECISION = "DOUBLE PRECISION";
 
     public static final String YASHAN_CHAR = "CHAR";
@@ -101,6 +102,7 @@ public class YashanTypeConverter implements TypeConverter<BasicTypeDefine> {
             case YASHAN_FLOAT:
                 builder.dataType(BasicType.FLOAT_TYPE);
                 break;
+            case YASHAN_DOUBLE:
             case YASHAN_DOUBLE_PRECISION:
                 builder.dataType(BasicType.DOUBLE_TYPE);
                 break;
@@ -245,8 +247,8 @@ public class YashanTypeConverter implements TypeConverter<BasicTypeDefine> {
                 builder.dataType(YASHAN_FLOAT);
                 break;
             case DOUBLE:
-                builder.columnType(YASHAN_DOUBLE_PRECISION);
-                builder.dataType(YASHAN_DOUBLE_PRECISION);
+                builder.columnType(YASHAN_DOUBLE);
+                builder.dataType(YASHAN_DOUBLE);
                 break;
             case DECIMAL:
                 reconvertDecimalType(column, builder);
