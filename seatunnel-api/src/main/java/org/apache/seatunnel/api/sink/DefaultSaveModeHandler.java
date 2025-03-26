@@ -107,7 +107,8 @@ public class DefaultSaveModeHandler implements SaveModeHandler {
     public void handleSchemaSaveModeWithRestore() {
         if (SchemaSaveMode.ERROR_WHEN_SCHEMA_NOT_EXIST == schemaSaveMode) {
             errorWhenSchemaNotExist();
-        } else {
+        } else if (SchemaSaveMode.CREATE_SCHEMA_WHEN_NOT_EXIST == schemaSaveMode
+                || SchemaSaveMode.RECREATE_SCHEMA == schemaSaveMode) {
             createSchemaWhenNotExist();
         }
     }
