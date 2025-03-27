@@ -46,7 +46,6 @@ import java.util.Map;
 public class CsvWriteStrategy extends AbstractWriteStrategy<FSDataOutputStream> {
     private final LinkedHashMap<String, FSDataOutputStream> beingWrittenOutputStream;
     private final Map<String, Boolean> isFirstWrite;
-    private final String fieldDelimiter;
     private final String rowDelimiter;
     private final DateUtils.Formatter dateFormat;
     private final DateTimeUtils.Formatter dateTimeFormat;
@@ -61,7 +60,6 @@ public class CsvWriteStrategy extends AbstractWriteStrategy<FSDataOutputStream> 
         this.fileFormat = fileSinkConfig.getFileFormat();
         this.beingWrittenOutputStream = new LinkedHashMap<>();
         this.isFirstWrite = new HashMap<>();
-        this.fieldDelimiter = fileSinkConfig.getFieldDelimiter();
         this.rowDelimiter = fileSinkConfig.getRowDelimiter();
         this.dateFormat = fileSinkConfig.getDateFormat();
         this.dateTimeFormat = fileSinkConfig.getDatetimeFormat();
@@ -77,7 +75,7 @@ public class CsvWriteStrategy extends AbstractWriteStrategy<FSDataOutputStream> 
                 CsvSerializationSchema.builder()
                         .seaTunnelRowType(
                                 buildSchemaWithRowType(seaTunnelRowType, sinkColumnsIndexInRow))
-                        .delimiter(fieldDelimiter)
+                        .delimiter(",")
                         .dateFormatter(dateFormat)
                         .dateTimeFormatter(dateTimeFormat)
                         .timeFormatter(timeFormat)
