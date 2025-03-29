@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.serialization.DeserializationSchemaWithTopic;
 import org.apache.seatunnel.api.source.Boundedness;
 import org.apache.seatunnel.api.source.Collector;
 import org.apache.seatunnel.api.source.SourceReader;
+import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormatErrorHandleWay;
@@ -235,6 +236,7 @@ public class KafkaSourceReader implements SourceReader<SeaTunnelRow, KafkaSource
                     // log next running read start offset
                     split.setStartOffset(split.getEndOffset());
                 }
+                context.sendSourceEventToEnumerator(new ReaderSplitFinishedEvent(split));
             }
             if (noMoreSplitsAssignment
                     && sourceSplits.stream().allMatch(KafkaSourceSplit::isFinish)) {

@@ -27,6 +27,7 @@ import lombok.Setter;
 
 import java.util.Objects;
 
+@Getter
 public class KafkaSourceSplit implements SourceSplit {
 
     private TablePath tablePath;
@@ -34,18 +35,30 @@ public class KafkaSourceSplit implements SourceSplit {
     private long startOffset = -1L;
     private long endOffset = -1L;
     @Setter @Getter private transient volatile boolean finish = false;
+    private final int index;
+    private final int splitCount;
 
-    public KafkaSourceSplit(TablePath tablePath, TopicPartition topicPartition) {
+    public KafkaSourceSplit(
+            TablePath tablePath, TopicPartition topicPartition, int index, int splitCount) {
         this.tablePath = tablePath;
         this.topicPartition = topicPartition;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
     public KafkaSourceSplit(
-            TablePath tablePath, TopicPartition topicPartition, long startOffset, long endOffset) {
+            TablePath tablePath,
+            TopicPartition topicPartition,
+            long startOffset,
+            long endOffset,
+            int index,
+            int splitCount) {
         this.tablePath = tablePath;
         this.topicPartition = topicPartition;
         this.startOffset = startOffset;
         this.endOffset = endOffset;
+        this.index = index;
+        this.splitCount = splitCount;
     }
 
     public long getStartOffset() {
@@ -104,6 +117,11 @@ public class KafkaSourceSplit implements SourceSplit {
 
     public KafkaSourceSplit copy() {
         return new KafkaSourceSplit(
-                this.tablePath, this.topicPartition, this.getStartOffset(), this.getEndOffset());
+                this.tablePath,
+                this.topicPartition,
+                this.getStartOffset(),
+                this.getEndOffset(),
+                this.getIndex(),
+                this.getSplitCount());
     }
 }
