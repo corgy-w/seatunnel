@@ -166,6 +166,14 @@ public class MaxComputeCatalogUtil {
                 column.isNullable() ? "NULL" : "NOT NULL",
                 StringUtils.isEmpty(column.getComment())
                         ? ""
-                        : "COMMENT '" + column.getComment() + "'");
+                        : "COMMENT '"
+                                + column.getComment()
+                                        .replace("\\", "\\\\")
+                                        .replace("$", "\\$")
+                                        .replace("{", "\\{")
+                                        .replace("}", "\\}")
+                                        .replace("'", "''")
+                                        .replace("\"", "\\\"")
+                                + "'");
     }
 }
