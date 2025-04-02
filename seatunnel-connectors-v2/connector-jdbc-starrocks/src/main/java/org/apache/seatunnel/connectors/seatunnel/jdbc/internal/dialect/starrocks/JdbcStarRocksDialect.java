@@ -81,6 +81,10 @@ public class JdbcStarRocksDialect implements JdbcDialect {
         return new JdbcStarRocksTypeMapper();
     }
 
+    public String hashModForField(String fieldName, int mod) {
+        return "ABS(murmur_hash3_32(" + quoteIdentifier(fieldName) + " ) % " + mod + ")";
+    }
+
     @Override
     public String quoteIdentifier(String identifier) {
         return "`" + getFieldIde(identifier, fieldIde) + "`";
