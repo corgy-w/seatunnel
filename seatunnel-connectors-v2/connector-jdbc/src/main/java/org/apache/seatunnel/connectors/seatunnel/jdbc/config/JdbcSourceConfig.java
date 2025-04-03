@@ -54,7 +54,8 @@ public class JdbcSourceConfig implements Serializable {
 
         boolean isOldVersion =
                 config.getOptional(JdbcOptions.QUERY).isPresent()
-                        && config.getOptional(JdbcOptions.PARTITION_COLUMN).isPresent();
+                        && config.getOptional(JdbcOptions.PARTITION_COLUMN).isPresent()
+                        && config.getOptional(JdbcOptions.PARTITION_NUM).isPresent();
         builder.useDynamicSplitter(!isOldVersion);
 
         builder.splitSize(config.get(JdbcSourceOptions.SPLIT_SIZE));
