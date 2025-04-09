@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.io.InvalidClassException;
 import java.util.Base64;
 
 public class SerializerAdapterTest {
@@ -42,9 +41,9 @@ public class SerializerAdapterTest {
             deserialize(serializer, NEW_STATE);
             Assertions.fail("Should throw exception");
         } catch (SerializationException | IOException e) {
-            Assertions.assertInstanceOf(InvalidClassException.class, e.getCause());
+            Assertions.assertInstanceOf(ClassNotFoundException.class, e.getCause());
             Assertions.assertEquals(
-                    "org.apache.seatunnel.connectors.seatunnel.common.multitablesink.SinkIdentifier; local class incompatible: stream classdesc serialVersionUID = 5824307469604672225, local class serialVersionUID = 8051644822115409639",
+                    "org.apache.seatunnel.connectors.seatunnel.common.multitablesink.MultiTableState",
                     e.getCause().getMessage());
         }
     }

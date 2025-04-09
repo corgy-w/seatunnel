@@ -63,9 +63,15 @@ public class SerializerAdapter<T extends Serializable> extends DefaultSerializer
         protected ObjectStreamClass readClassDescriptor()
                 throws IOException, ClassNotFoundException {
             ObjectStreamClass incoming = super.readClassDescriptor();
-            if (incoming.getName().equals(SinkIdentifier.class.getName())) {
+            if (incoming.getName().endsWith(SinkIdentifier.class.getSimpleName())) {
                 // compatible with old version class
                 ObjectStreamClass local = ObjectStreamClass.lookup(SinkIdentifier.class);
+                if (local != null) {
+                    return local;
+                }
+            } else if (incoming.getName().endsWith(MultiTableState.class.getSimpleName())) {
+                // compatible with old version class
+                ObjectStreamClass local = ObjectStreamClass.lookup(MultiTableState.class);
                 if (local != null) {
                     return local;
                 }
