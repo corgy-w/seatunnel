@@ -152,6 +152,14 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/services/org.apache.hadoop.fs.FileSystem</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
                             <relocations>
                                 <relocation>
                                     <pattern>org.apache.avro</pattern>
