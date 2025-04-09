@@ -30,6 +30,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.oracle.Or
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import lombok.Getter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -46,7 +48,7 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
     private List<ConstraintKey> constraintKeys;
     public Boolean isHaveConstraintKey = false;
 
-    public List<String> createIndexSqls = new ArrayList<>();
+    @Getter public List<String> createIndexSqls = new ArrayList<>();
 
     public OracleCreateTableSqlBuilder(CatalogTable catalogTable, boolean createIndex) {
         this.columns = catalogTable.getTableSchema().getColumns();
@@ -129,15 +131,19 @@ public class OracleCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
         return sqls;
     }
 
-    private String buildColumnSql(Column column) {
+    String buildColumnSql(Column column) {
         StringBuilder columnSql = new StringBuilder();
         columnSql.append("\"").append(column.getName()).append("\" ");
 
-        String columnType =
-                StringUtils.equalsIgnoreCase(DatabaseIdentifier.ORACLE, sourceCatalogName)
-                                && StringUtils.isNotBlank(column.getSourceType())
-                        ? column.getSourceType()
-                        : OracleTypeConverter.INSTANCE.reconvert(column).getColumnType();
+        String columnType;
+        if (column.getSinkType() != null) {
+            columnType = column.getSinkType();
+        } else if (StringUtils.equalsIgnoreCase(DatabaseIdentifier.ORACLE, sourceCatalogName)
+                && StringUtils.isNotBlank(column.getSourceType())) {
+            columnType = column.getSourceType();
+        } else {
+            columnType = OracleTypeConverter.INSTANCE.reconvert(column).getColumnType();
+        }
         columnSql.append(columnType);
 
         if (!column.isNullable()) {

@@ -133,12 +133,15 @@ public class YashanCreateTableSqlBuilder extends AbstractJdbcCreateTableSqlBuild
         StringBuilder columnSql = new StringBuilder();
         columnSql.append("\"").append(column.getName()).append("\" ");
 
-        String columnType =
-                StringUtils.equalsIgnoreCase(DatabaseIdentifier.ORACLE, sourceCatalogName)
-                                && StringUtils.isNotBlank(column.getSourceType())
-                        ? column.getSourceType()
-                        : OracleTypeConverter.INSTANCE.reconvert(column).getColumnType();
-        ;
+        String columnType;
+        if (column.getSinkType() != null) {
+            columnType = column.getSinkType();
+        } else if (StringUtils.equalsIgnoreCase(DatabaseIdentifier.ORACLE, sourceCatalogName)
+                && StringUtils.isNotBlank(column.getSourceType())) {
+            columnType = column.getSourceType();
+        } else {
+            columnType = OracleTypeConverter.INSTANCE.reconvert(column).getColumnType();
+        }
         columnSql.append(columnType);
 
         if (!column.isNullable()) {
