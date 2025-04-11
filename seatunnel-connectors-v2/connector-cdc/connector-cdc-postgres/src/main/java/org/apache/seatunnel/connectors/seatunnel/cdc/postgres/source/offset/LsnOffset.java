@@ -54,6 +54,10 @@ public class LsnOffset extends Offset {
         this.offset = offset;
     }
 
+    public LsnOffset(Long lsn) {
+        this(lsn, null, null);
+    }
+
     public LsnOffset(Long lsn, Long txId, Instant lastCommitTs) {
         Map<String, String> offsetMap = new HashMap<>();
         // keys are from io.debezium.connector.postgresql.PostgresOffsetContext.Loader.load
