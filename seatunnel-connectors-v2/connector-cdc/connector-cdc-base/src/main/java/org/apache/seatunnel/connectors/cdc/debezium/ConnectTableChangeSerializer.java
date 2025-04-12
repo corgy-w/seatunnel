@@ -171,7 +171,7 @@ public class ConnectTableChangeSerializer
         if (struct.get(SCALE_KEY) != null) {
             editor.scale(struct.getInt32(SCALE_KEY));
         }
-        if (struct.get(COMMENT_KEY) != null) {
+        if (struct.schema().field(COMMENT_KEY) != null) {
             editor.comment(struct.getString(COMMENT_KEY));
         }
         if (struct.schema().field(ENUM_VALUES_KEY) != null) {
