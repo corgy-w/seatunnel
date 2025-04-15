@@ -47,21 +47,33 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
     public static final String STARROCKS_NULL = "NULL";
 
     public static final String STARROCKS_BIT = "BIT";
-    public static final String STARROCKS_BIT_UNSIGNED = "BIT UNSIGNED";
     public static final String STARROCKS_BOOLEAN = "BOOLEAN";
+
+    public static final String STARROCKS_LARGEINT = "LARGEINT";
     public static final String STARROCKS_TINYINT = "TINYINT";
     public static final String STARROCKS_SMALLINT = "SMALLINT";
+    public static final String STARROCKS_MEDIUMINT = "MEDIUMINT";
     public static final String STARROCKS_INT = "INT";
+    public static final String STARROCKS_INT_UNSIGNED = "INT UNSIGNED";
+    public static final String STARROCKS_INTEGER = "INTEGER";
     public static final String STARROCKS_BIGINT = "BIGINT";
-    public static final String STARROCKS_LARGEINT = "LARGEINT";
+    public static final String STARROCKS_DECIMAL = "DECIMAL";
     public static final String STARROCKS_FLOAT = "FLOAT";
     public static final String STARROCKS_DOUBLE = "DOUBLE";
-    public static final String STARROCKS_DECIMAL = "DECIMAL";
+
     public static final String STARROCKS_DATE = "DATE";
     public static final String STARROCKS_DATETIME = "DATETIME";
+    public static final String STARROCKS_YEAR = "YEAR";
+
     public static final String STARROCKS_CHAR = "CHAR";
     public static final String STARROCKS_VARCHAR = "VARCHAR";
     public static final String STARROCKS_STRING = "STRING";
+    public static final String STARROCKS_TINYTEXT = "TINYTEXT";
+    public static final String STARROCKS_MEDIUMTEXT = "MEDIUMTEXT";
+    public static final String STARROCKS_TEXT = "TEXT";
+    public static final String STARROCKS_LONGTEXT = "LONGTEXT";
+    public static final String STARROCKS_JSON = "JSON";
+    public static final String STARROCKS_ENUM = "ENUM";
 
     public static final String STARROCKS_BOOLEAN_ARRAY = "ARRAY<boolean>";
     public static final String STARROCKS_TINYINT_ARRAY = "ARRAY<tinyint>";
@@ -87,8 +99,6 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
     public static final String STARROCKS_MAP = "MAP";
     public static final String STARROCKS_MAP_COLUMN_TYPE = "MAP<%s, %s>";
 
-    public static final String STARROCKS_JSON = "JSON";
-
     public static final Long DEFAULT_PRECISION = 9L;
     public static final Long MAX_PRECISION = 38L;
 
@@ -97,12 +107,16 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
 
     public static final Integer MAX_DATETIME_SCALE = 6;
 
+    public static final long POWER_2_8 = (long) Math.pow(2, 8);
+    public static final long POWER_2_16 = (long) Math.pow(2, 16);
+    public static final long POWER_2_24 = (long) Math.pow(2, 24);
+    public static final long POWER_2_32 = (long) Math.pow(2, 32);
+
     // Min value of LARGEINT is -170141183460469231731687303715884105728, it will use 39 bytes in
     // UTF-8.
     // Add a bit to prevent overflow
     public static final long MAX_STARROCKS_LARGEINT_TO_VARCHAR_LENGTH = 39L;
 
-    public static final long POWER_2_8 = (long) Math.pow(2, 8);
     public static final long MAX_VARCHAR_LENGTH = 65533;
     public static final long MAX_STRING_LENGTH = 2147483643;
 
@@ -160,7 +174,6 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
                 builder.dataType(BasicType.BOOLEAN_TYPE);
                 break;
             case STARROCKS_BIT:
-            case STARROCKS_BIT_UNSIGNED:
                 if (typeDefine.getLength() == null || typeDefine.getLength() <= 0) {
                     builder.dataType(BasicType.BOOLEAN_TYPE);
                 } else if (typeDefine.getLength() == 1) {
@@ -183,9 +196,13 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
             case STARROCKS_SMALLINT:
                 builder.dataType(BasicType.SHORT_TYPE);
                 break;
+            case STARROCKS_MEDIUMINT:
             case STARROCKS_INT:
+            case STARROCKS_INTEGER:
+            case STARROCKS_YEAR:
                 builder.dataType(BasicType.INT_TYPE);
                 break;
+            case STARROCKS_INT_UNSIGNED:
             case STARROCKS_BIGINT:
                 builder.dataType(BasicType.LONG_TYPE);
                 break;
@@ -194,6 +211,14 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
                 break;
             case STARROCKS_DOUBLE:
                 builder.dataType(BasicType.DOUBLE_TYPE);
+                break;
+            case STARROCKS_ENUM:
+                builder.dataType(BasicType.STRING_TYPE);
+                if (typeDefine.getLength() == null || typeDefine.getLength() <= 0) {
+                    builder.columnLength(100L);
+                } else {
+                    builder.columnLength(typeDefine.getLength());
+                }
                 break;
             case STARROCKS_CHAR:
             case STARROCKS_VARCHAR:
@@ -213,6 +238,22 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
             case STARROCKS_JSON:
                 builder.dataType(BasicType.STRING_TYPE);
                 builder.columnLength(MAX_STRING_LENGTH);
+                break;
+            case STARROCKS_TINYTEXT:
+                builder.dataType(BasicType.STRING_TYPE);
+                builder.columnLength(POWER_2_8 - 1);
+                break;
+            case STARROCKS_TEXT:
+                builder.dataType(BasicType.STRING_TYPE);
+                builder.columnLength(POWER_2_16 - 1);
+                break;
+            case STARROCKS_MEDIUMTEXT:
+                builder.dataType(BasicType.STRING_TYPE);
+                builder.columnLength(POWER_2_24 - 1);
+                break;
+            case STARROCKS_LONGTEXT:
+                builder.dataType(BasicType.STRING_TYPE);
+                builder.columnLength(POWER_2_32 - 1);
                 break;
             default:
                 throw CommonError.convertToSeaTunnelTypeError(
