@@ -9,6 +9,7 @@
     </parent>
 
     <artifactId>connector-jdbc-starrocks</artifactId>
+    <name>SeaTunnel : Connectors V2 : Jdbc : StarRocks</name>
 
     <properties>
         <mysql.version>8.0.27</mysql.version>
