@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.List;
@@ -66,6 +67,7 @@ public class DefineSinkTypeTransformConfig implements Serializable {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     public static class DefineColumnType implements Serializable {
         private String column;
         private String type;
