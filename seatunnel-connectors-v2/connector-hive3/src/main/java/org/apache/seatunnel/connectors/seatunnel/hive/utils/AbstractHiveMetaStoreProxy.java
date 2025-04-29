@@ -39,6 +39,7 @@ import org.apache.thrift.TException;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -48,9 +49,8 @@ import java.util.List;
 import java.util.Objects;
 
 @Slf4j
-public abstract class AbstractHiveMetaStoreProxy {
+public abstract class AbstractHiveMetaStoreProxy implements Closeable {
     private HiveMetaStoreClient hiveMetaStoreClient;
-    protected static volatile AbstractHiveMetaStoreProxy INSTANCE = null;
     private static final List<String> HADOOP_CONF_FILES =
             ImmutableList.of("hive-site.xml", "hivemetastore-site.xml", "core-site.xml");
 
@@ -165,10 +165,10 @@ public abstract class AbstractHiveMetaStoreProxy {
         }
     }
 
+    @Override
     public synchronized void close() {
         if (Objects.nonNull(hiveMetaStoreClient)) {
             hiveMetaStoreClient.close();
-            AbstractHiveMetaStoreProxy.INSTANCE = null;
         }
     }
 

@@ -42,15 +42,4 @@ public class HiveMetaStoreProxy extends AbstractHiveMetaStoreProxy {
                     HiveConnectorErrorCode.INITIALIZE_HIVE_METASTORE_CLIENT_FAILED, e);
         }
     }
-
-    public static AbstractHiveMetaStoreProxy getInstance(ReadonlyConfig readonlyConfig) {
-        if (INSTANCE == null) {
-            synchronized (AbstractHiveMetaStoreProxy.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = new HiveMetaStoreProxy(readonlyConfig);
-                }
-            }
-        }
-        return INSTANCE;
-    }
 }
