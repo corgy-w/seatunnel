@@ -297,7 +297,8 @@ public class DmdbDialect implements JdbcDialect {
             Connection connection, TablePath tablePath, AlterTableAddColumnEvent event)
             throws SQLException {
 
-        boolean someCatalog = event.tableIdentifier().getCatalogName().equals(dialectName());
+        String sourceDialectName = event.getSourceDialectName();
+        boolean someCatalog = StringUtils.equals(sourceDialectName, dialectName());
         BasicTypeDefine typeDefine = typeConverter().reconvert(event.getColumn());
         String columnType =
                 someCatalog ? event.getColumn().getSourceType() : typeDefine.getColumnType();
@@ -315,7 +316,7 @@ public class DmdbDialect implements JdbcDialect {
                         .append(" ")
                         .append(event.getColumn().isNullable() ? "NULL" : "NOT NULL");
         if (event.getColumn().getDefaultValue() != null) {
-            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine));
+            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine, sourceDialectName));
         }
         String addColumnSQL = sqlBuilder.toString();
         try (Statement statement = connection.createStatement()) {
@@ -356,7 +357,8 @@ public class DmdbDialect implements JdbcDialect {
             Connection connection, TablePath tablePath, AlterTableModifyColumnEvent event)
             throws SQLException {
 
-        boolean someCatalog = event.tableIdentifier().getCatalogName().equals(dialectName());
+        String sourceDialectName = event.getSourceDialectName();
+        boolean someCatalog = StringUtils.equals(sourceDialectName, dialectName());
         BasicTypeDefine typeDefine = typeConverter().reconvert(event.getColumn());
         String columnType =
                 someCatalog ? event.getColumn().getSourceType() : typeDefine.getColumnType();
@@ -374,7 +376,7 @@ public class DmdbDialect implements JdbcDialect {
                         .append(" ")
                         .append(event.getColumn().isNullable() ? "NULL" : "NOT NULL");
         if (event.getColumn().getDefaultValue() != null) {
-            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine));
+            sqlBuilder.append(" ").append(sqlClauseWithDefaultValue(typeDefine, sourceDialectName));
         }
         String modifyColumnSQL = sqlBuilder.toString();
         try (Statement statement = connection.createStatement()) {

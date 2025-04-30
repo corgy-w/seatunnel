@@ -78,7 +78,7 @@ public class MySqlSourceConfigFactory extends JdbcSourceConfigFactory {
         // Note: the includeSchemaChanges parameter is used to control emitting the schema record,
         // only DataStream API program need to emit the schema record, the Table API need not
 
-        props.setProperty(SCHEMA_CHANGE_KEY, SCHEMA_CHANGE_DEFAULT.toString());
+        props.setProperty(SCHEMA_CHANGE_KEY, String.valueOf(schemaChangeEnabled));
         // disable the offset flush totally
         props.setProperty("offset.flush.interval.ms", String.valueOf(Long.MAX_VALUE));
         // tombstones.on.delete is set to false to avoid tombstones being sent to the sink

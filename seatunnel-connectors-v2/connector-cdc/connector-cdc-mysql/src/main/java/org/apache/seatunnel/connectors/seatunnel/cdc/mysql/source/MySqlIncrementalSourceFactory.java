@@ -71,7 +71,8 @@ public class MySqlIncrementalSourceFactory extends BaseChangeStreamTableSourceFa
                         JdbcSourceOptions.SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN,
                         JdbcSourceOptions.SAMPLE_SHARDING_THRESHOLD,
                         JdbcSourceOptions.INVERSE_SAMPLING_RATE,
-                        JdbcSourceOptions.TABLE_NAMES_CONFIG)
+                        JdbcSourceOptions.TABLE_NAMES_CONFIG,
+                        JdbcSourceOptions.SCHEMA_CHANGES_ENABLED)
                 .optional(MySqlSourceOptions.STARTUP_MODE, MySqlSourceOptions.STOP_MODE)
                 .optional(
                         SchemaChangeOptions.DDL_ADD_COLUMN,
@@ -121,10 +122,13 @@ public class MySqlIncrementalSourceFactory extends BaseChangeStreamTableSourceFa
                                     e ->
                                             e.getOrDefault(
                                                     MySqlSourceConfigFactory.SCHEMA_CHANGE_KEY,
-                                                    MySqlSourceConfigFactory.SCHEMA_CHANGE_DEFAULT
+                                                    context.getOptions()
+                                                            .get(
+                                                                    SourceOptions
+                                                                            .SCHEMA_CHANGES_ENABLED)
                                                             .toString()))
                             .map(Boolean::parseBoolean)
-                            .orElse(MySqlSourceConfigFactory.SCHEMA_CHANGE_DEFAULT);
+                            .orElse(context.getOptions().get(SourceOptions.SCHEMA_CHANGES_ENABLED));
             if (!restoreTables.isEmpty() && enableSchemaChange) {
                 catalogTables = mergeTableStruct(catalogTables, restoreTables);
             }

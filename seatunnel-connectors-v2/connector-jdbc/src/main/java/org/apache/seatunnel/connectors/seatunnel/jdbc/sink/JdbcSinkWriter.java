@@ -232,13 +232,11 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
                                     databaseTableSchema)
                             .build();
             // Before OutputFormat opens, you need to update the database first
-            TablePath tablePath =
-                    TablePath.of(jdbcSinkConfig.getDatabase(), jdbcSinkConfig.getTable());
             JdbcConnectionProvider refreshTableSchemaConnectionProvider =
                     dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
             try (Connection connection =
                     refreshTableSchemaConnectionProvider.getOrEstablishConnection()) {
-                dialect.applySchemaChange(connection, tablePath, event);
+                dialect.applySchemaChange(connection, sinkTablePath, event);
             } catch (Exception throwables) {
                 log.error("schema change error :", throwables);
                 throw new JdbcConnectorException(
