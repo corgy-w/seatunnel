@@ -251,8 +251,17 @@ public class MultiTableSinkWriter
             for (Map.Entry<SinkIdentifier, SinkWriter<SeaTunnelRow, ?, ?>> sinkWriterEntry :
                     sinkWritersWithIndex.get(i).entrySet()) {
                 synchronized (runnable.get(i)) {
-                    List<?> states = sinkWriterEntry.getValue().snapshotState(checkpointId);
-                    multiTableState.getStates().put(sinkWriterEntry.getKey(), states);
+                    try {
+                        List<?> states = sinkWriterEntry.getValue().snapshotState(checkpointId);
+                        multiTableState.getStates().put(sinkWriterEntry.getKey(), states);
+                    } catch (Exception e) {
+                        String message =
+                                String.format(
+                                        "table %s snapshotState throw an error",
+                                        sinkWriterEntry.getKey().getTableIdentifier());
+                        log.error(message, e);
+                        throw new RuntimeException(message, e);
+                    }
                 }
             }
         }
@@ -280,7 +289,14 @@ public class MultiTableSinkWriter
                                         try {
                                             commit = sinkWriterEntry.getValue().prepareCommit();
                                         } catch (IOException e) {
-                                            throw new RuntimeException(e);
+                                            String message =
+                                                    String.format(
+                                                            "table %s prepareCommit throw an error",
+                                                            sinkWriterEntry
+                                                                    .getKey()
+                                                                    .getTableIdentifier());
+                                            log.error(message, e);
+                                            throw new RuntimeException(message, e);
                                         }
                                         commit.ifPresent(
                                                 o ->
