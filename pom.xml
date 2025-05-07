@@ -1016,6 +1016,7 @@
                                     <mkdir dir="src/main/resources/connector-pulsar" />
                                     <mkdir dir="src/main/resources/connector-rabbitmq" />
                                     <mkdir dir="src/main/resources/connector-redis" />
+                                    <mkdir dir="src/main/resources/connector-sapbw" />
                                     <mkdir dir="src/main/resources/connector-rocketmq" />
                                     <mkdir dir="src/main/resources/connector-s3-redshift-wt" />
                                     <mkdir dir="src/main/resources/connector-selectdb-cloud" />
