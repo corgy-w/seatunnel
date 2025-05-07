@@ -270,6 +270,12 @@
                 </dependency>
                 <dependency>
                     <groupId>org.apache.seatunnel</groupId>
+                    <artifactId>connector-sapbw</artifactId>
+                    <version>${project.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.seatunnel</groupId>
                     <artifactId>connector-jdbc-hive3</artifactId>
                     <version>${project.version}</version>
                     <scope>provided</scope>
@@ -842,6 +848,13 @@
                     <version>8.37.3</version>
                     <scope>system</scope>
                     <systemPath>${basedir}/src/main/argodb/inceptor-jdbc-shaded-with-relocation-8.37.3.jar</systemPath>
+                </dependency>
+                <dependency>
+                    <groupId>com.sap</groupId>
+                    <artifactId>sapjco3</artifactId>
+                    <version>3.0.10</version>
+                    <scope>system</scope>
+                    <systemPath>${basedir}/src/main/sapbw/sapjco3.jar</systemPath>
                 </dependency>
             </dependencies>
             <repositories>
