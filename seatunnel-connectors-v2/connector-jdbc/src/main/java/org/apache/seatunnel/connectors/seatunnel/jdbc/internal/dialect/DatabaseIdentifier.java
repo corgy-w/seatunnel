@@ -50,4 +50,6 @@ public class DatabaseIdentifier {
     public static final String DMDB = "DMDB";
     public static final String GREENPLUM = "Greenplum";
     public static final String YASHAN = "Yashan";
+    public static final String HOLOGRES = "Hologres";
+    public static final String ANALYTIC_DB_PG = "AnalyticDB-PG";
 }
