@@ -59,7 +59,7 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
         implements SupportSchemaEvolutionSinkWriter {
     private JdbcOutputFormat<SeaTunnelRow, JdbcBatchStatementExecutor<SeaTunnelRow>> outputFormat;
     private final JdbcDialect dialect;
-    protected TablePath sinkTablePath;
+    private final TablePath sinkTablePath;
     private final TableSchema tableSchema;
     private final TableSchema databaseTableSchema;
     private JdbcConnectionProvider connectionProvider;
@@ -75,6 +75,7 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
             TableSchema tableSchema,
             TableSchema databaseTableSchema,
             Integer primaryKeyIndex) {
+        this.sinkTablePath = sinkTablePath;
         this.jdbcSinkConfig = jdbcSinkConfig;
         this.dialect = dialect;
         this.tableSchema = tableSchema;

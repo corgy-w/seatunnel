@@ -288,7 +288,7 @@ public class MultiTableSinkWriter
                                         Optional<?> commit;
                                         try {
                                             commit = sinkWriterEntry.getValue().prepareCommit();
-                                        } catch (IOException e) {
+                                        } catch (Exception e) {
                                             String message =
                                                     String.format(
                                                             "table %s prepareCommit throw an error",
