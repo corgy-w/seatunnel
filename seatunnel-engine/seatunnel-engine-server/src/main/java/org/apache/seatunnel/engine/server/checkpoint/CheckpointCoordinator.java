@@ -451,7 +451,6 @@ public class CheckpointCoordinator {
                 }
             }
             readyToCloseIdleTask.addAll(subTaskList);
-            tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT_TYPE);
         }
     }
 
