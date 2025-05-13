@@ -119,6 +119,7 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                 // convert chunks into splits
                 SeaTunnelRowType splitType = getSplitType(splitColumn);
                 int totalChunks = chunks.size() + 1;
+                boolean includeKeyNullValue = false;
                 for (int i = 0; i < chunks.size(); i++) {
                     ChunkRange chunk = chunks.get(i);
                     SnapshotSplit split =
@@ -132,19 +133,24 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                     i,
                                     totalChunks,
                                     false);
+                    if (split.getSplitStart() == null && split.getSplitEnd() == null) {
+                        includeKeyNullValue = true;
+                    }
                     splits.add(split);
                 }
 
-                splits.add(
-                        new SnapshotSplit(
-                                splitId(tableId, chunks.size()),
-                                tableId,
-                                splitType,
-                                null,
-                                null,
-                                totalChunks - 1,
-                                totalChunks,
-                                true));
+                if (!includeKeyNullValue) {
+                    splits.add(
+                            new SnapshotSplit(
+                                    splitId(tableId, chunks.size()),
+                                    tableId,
+                                    splitType,
+                                    null,
+                                    null,
+                                    totalChunks - 1,
+                                    totalChunks,
+                                    true));
+                }
             }
 
             long end = System.currentTimeMillis();
