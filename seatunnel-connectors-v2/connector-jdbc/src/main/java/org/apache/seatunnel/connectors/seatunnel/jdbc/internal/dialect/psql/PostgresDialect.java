@@ -466,7 +466,9 @@ public class PostgresDialect implements JdbcDialect {
                         .append(quoteIdentifier(column.getName()))
                         .append(" ")
                         .append("TYPE ")
-                        .append(columnType);
+                        .append(columnType)
+                        .append(" ")
+                        .append(buildTypeCastUsing(connection, tablePath, column, columnType));
         ddlSQl.add(sqlBuilder.toString());
         boolean targetColumnNullable = columnIsNullable(connection, tablePath, column.getName());
         if (column.isNullable() != targetColumnNullable) {
@@ -478,6 +480,43 @@ public class PostgresDialect implements JdbcDialect {
                             column.isNullable() ? "DROP" : "SET"));
         }
         return ddlSQl;
+    }
+
+    private String buildTypeCastUsing(
+            Connection connection, TablePath tablePath, Column newColumn, String newType)
+            throws SQLException {
+        try (ResultSet column =
+                connection
+                        .getMetaData()
+                        .getColumns(
+                                null,
+                                tablePath.getSchemaName(),
+                                tablePath.getTableName(),
+                                newColumn.getName())) {
+            if (column.next()) {
+                String typeName = column.getString("TYPE_NAME");
+                switch (newColumn.getDataType().getSqlType()) {
+                    case TINYINT:
+                    case SMALLINT:
+                    case INT:
+                    case BIGINT:
+                    case FLOAT:
+                    case DOUBLE:
+                    case DECIMAL:
+                        if ("text".equalsIgnoreCase(typeName)
+                                || "varchar".equalsIgnoreCase(typeName)
+                                || "char".equalsIgnoreCase(typeName)) {
+                            return " USING CAST("
+                                    + quoteIdentifier(newColumn.getName())
+                                    + " AS "
+                                    + newType
+                                    + ")";
+                        }
+                }
+                return "";
+            }
+            return "";
+        }
     }
 
     private String buildColumnCommentSQL(TablePath tablePath, Column column) {

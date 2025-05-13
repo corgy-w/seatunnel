@@ -81,16 +81,6 @@ public class JdbcSinkWriter extends AbstractJdbcSinkWriter<ConnectionPoolManager
         this.tableSchema = tableSchema;
         this.databaseTableSchema = databaseTableSchema;
         this.primaryKeyIndex = primaryKeyIndex;
-        this.connectionProvider =
-                dialect.getJdbcConnectionProvider(jdbcSinkConfig.getJdbcConnectionConfig());
-        this.outputFormat =
-                new JdbcOutputFormatBuilder(
-                                dialect,
-                                connectionProvider,
-                                jdbcSinkConfig,
-                                tableSchema,
-                                databaseTableSchema)
-                        .build();
         this.rowType = tableSchema.toPhysicalRowDataType();
     }
 
