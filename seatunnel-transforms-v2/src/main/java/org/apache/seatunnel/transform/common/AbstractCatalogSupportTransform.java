@@ -96,12 +96,17 @@ public abstract class AbstractCatalogSupportTransform implements SeaTunnelTransf
     private CatalogTable transformCatalogTable() {
         TableIdentifier tableIdentifier = transformTableIdentifier();
         TableSchema tableSchema = transformTableSchema();
+        String comment = transformComment();
         return CatalogTable.of(
                 tableIdentifier,
                 tableSchema,
                 inputCatalogTable.getOptions(),
                 inputCatalogTable.getPartitionKeys(),
-                inputCatalogTable.getComment());
+                comment);
+    }
+
+    protected String transformComment() {
+        return inputCatalogTable.getComment();
     }
 
     protected abstract TableSchema transformTableSchema();
