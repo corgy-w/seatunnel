@@ -88,6 +88,7 @@ public class FtpFileSourceFactory implements TableSourceFactory {
                 .optional(BaseSourceConfigOptions.ARCHIVE_COMPRESS_CODEC)
                 .optional(BaseSourceConfigOptions.NULL_FORMAT)
                 .optional(BaseSourceConfigOptions.FILENAME_EXTENSION)
+                .optional(FtpConfigOptions.FTP_REMOTE_VERIFICATION_ENABLED)
                 .build();
     }
 
