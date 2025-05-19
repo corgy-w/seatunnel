@@ -248,6 +248,7 @@
 <!--                <include>org.apache.seatunnel:seatunnel-hive-mrs-3.1.1-hw-ei-315008-uber:jar</include>-->
                 <include>com.oceanbase:oceanbase-client:jar</include>
                 <include>com.yashandb:yashandb-jdbc:jar</include>
+                <include>com.gbasedbt:jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-jdbc</outputDirectory>

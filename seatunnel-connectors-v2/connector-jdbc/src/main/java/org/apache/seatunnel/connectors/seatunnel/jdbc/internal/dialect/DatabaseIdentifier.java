@@ -21,6 +21,7 @@ public class DatabaseIdentifier {
     public static final String DB_2 = "DB2";
     public static final String DAMENG = "Dameng";
     public static final String GBASE_8A = "Gbase8a";
+    public static final String GBASE_8S = "Gbase8s";
     public static final String HIVE = "HIVE";
     public static final String MRS_HIVE = "MRSHIVE";
     public static final String INCEPTOR = "INCEPTOR";

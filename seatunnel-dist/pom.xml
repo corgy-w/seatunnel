@@ -124,6 +124,7 @@
                 <dolphindb-javaapi.version>1.30.22.1</dolphindb-javaapi.version>
                 <dolphindb-jdbc.version>1.30.22.1</dolphindb-jdbc.version>
                 <tidb.version>3.3.5</tidb.version>
+                <gbase8s.version>3.6.3.2</gbase8s.version>
             </properties>
             <dependencies>
                 <!-- starters -->
@@ -645,6 +646,12 @@
                     <groupId>com.oceanbase</groupId>
                     <artifactId>oceanbase-client</artifactId>
                     <version>${oceanbase.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.gbasedbt</groupId>
+                    <artifactId>jdbc</artifactId>
+                    <version>${gbase8s.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <!-- jdbc driver end -->
