@@ -249,6 +249,7 @@
                 <include>com.xugudb:xugu-jdbc:jar</include>
                 <include>com.oceanbase:oceanbase-client:jar</include>
                 <include>com.yashandb:yashandb-jdbc:jar</include>
+                <include>com.gbasedbt:jdbc:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-jdbc</outputDirectory>

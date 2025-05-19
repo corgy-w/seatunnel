@@ -142,7 +142,9 @@ public class JdbcSink
                             getDatabaseTableSchema().orElse(null),
                             new ArrayList<>());
         } else {
-            if (catalogTable != null && catalogTable.getTableSchema().getPrimaryKey() != null) {
+            if (catalogTable != null
+                    && catalogTable.getTableSchema().getPrimaryKey() != null
+                    && !catalogTable.getTableSchema().getPrimaryKey().getColumnNames().isEmpty()) {
                 String keyName = tableSchema.getPrimaryKey().getColumnNames().get(0);
                 int index = tableSchema.toPhysicalRowDataType().indexOf(keyName);
                 if (index > -1) {
