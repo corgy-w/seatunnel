@@ -46,12 +46,14 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -68,7 +70,6 @@ public class MapperTransform extends MultipleFieldOutputTransform {
     private final List<Column> inputColumns;
     private final List<ColumnWrapper> outputColumns;
     private final MapperConfig.SpecificModify specificModified;
-    private SeaTunnelRowType deductionOutputRowType;
 
     public MapperTransform(
             @NonNull ReadonlyConfig config, @NonNull CatalogTable inputCatalogTable) {
@@ -96,38 +97,16 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                         .findFirst()
                         .orElse(null);
 
+        this.outputColumns = initColumns();
         // Initialize identifiers and columns based on whether modifications exist
         if (specificModified != null) {
             this.outputTableIdentifier = initTableIdentifier(inputCatalogTable);
-            this.outputColumns = initColumns();
-            initSqlTransform(inputCatalogTable);
         } else {
             // No modifications: passthrough
             this.outputTableIdentifier = inputTableIdentifier;
-            this.outputColumns =
-                    inputColumns.stream()
-                            .map(
-                                    col -> {
-                                        ColumnWrapper cw = new ColumnWrapper();
-                                        MapperConfig.Column def =
-                                                MapperConfig.Column.builder()
-                                                        .inputName(col.getName())
-                                                        .outputName(col.getName())
-                                                        .position(0)
-                                                        .dataType(col.getDataType().getSqlType())
-                                                        .length(col.getColumnLength())
-                                                        .scale(col.getScale())
-                                                        .nullable(col.isNullable())
-                                                        .defaultValue(col.getDefaultValue())
-                                                        .comment(col.getComment())
-                                                        .sinkType(col.getSinkType())
-                                                        .build();
-                                        cw.setColumn(def);
-                                        cw.setDataType(col.getDataType());
-                                        return cw;
-                                    })
-                            .collect(Collectors.toList());
         }
+
+        initSqlTransform(inputCatalogTable);
     }
 
     private TableIdentifier initTableIdentifier(CatalogTable inputCatalogTable) {
@@ -177,82 +156,95 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                                 })
                         .collect(Collectors.toList());
 
-        for (MapperConfig.Column conditionColumn : specificModified.getColumns()) {
-            switch (conditionColumn.getAction()) {
-                case ADD:
-                    collect.add(
-                            ColumnWrapper.of(
-                                    MapperConfig.Column.builder()
-                                            .inputName(conditionColumn.getInputName())
-                                            .outputName(conditionColumn.getOutputName())
-                                            .position(position.getAndIncrement())
-                                            .dataType(conditionColumn.getDataType())
-                                            .dateFormat(conditionColumn.getDateFormat())
-                                            .length(conditionColumn.getLength())
-                                            .scale(conditionColumn.getScale())
-                                            .nullable(conditionColumn.isNullable())
-                                            .defaultValue(conditionColumn.getDefaultValue())
-                                            .comment(conditionColumn.getComment())
-                                            .sinkType(conditionColumn.getSinkType())
-                                            .build()));
-                    break;
+        if (specificModified != null) {
+            for (MapperConfig.Column conditionColumn : specificModified.getColumns()) {
+                switch (conditionColumn.getAction()) {
+                    case ADD:
+                        collect.add(
+                                ColumnWrapper.of(
+                                        MapperConfig.Column.builder()
+                                                .inputName(conditionColumn.getInputName())
+                                                .outputName(conditionColumn.getOutputName())
+                                                .position(position.getAndIncrement())
+                                                .dataType(conditionColumn.getDataType())
+                                                .dateFormat(conditionColumn.getDateFormat())
+                                                .length(conditionColumn.getLength())
+                                                .scale(conditionColumn.getScale())
+                                                .nullable(conditionColumn.isNullable())
+                                                .defaultValue(conditionColumn.getDefaultValue())
+                                                .comment(conditionColumn.getComment())
+                                                .sinkType(conditionColumn.getSinkType())
+                                                .sqlFunction(conditionColumn.getSqlFunction())
+                                                .build()));
+                        break;
 
-                case MODIFY:
-                    collect.stream()
-                            .filter(
-                                    cw ->
-                                            cw.getColumn()
-                                                    .getInputName()
-                                                    .equals(conditionColumn.getInputName()))
-                            .forEach(
-                                    cw -> {
-                                        MapperConfig.Column src = conditionColumn;
-                                        MapperConfig.Column tgt = cw.getColumn();
+                    case MODIFY:
+                        collect.stream()
+                                .filter(
+                                        cw ->
+                                                cw.getColumn()
+                                                        .getInputName()
+                                                        .equals(conditionColumn.getInputName()))
+                                .forEach(
+                                        cw -> {
+                                            MapperConfig.Column tgt = cw.getColumn();
 
-                                        if (isPresent(src.getPosition())) {
-                                            tgt.setPosition(src.getPosition());
-                                        }
-                                        if (StringUtils.isNotBlank(src.getOutputName())) {
-                                            tgt.setOutputName(src.getOutputName());
-                                        }
-                                        if (isPresent(src.getDataType())
-                                                && src.getDataType() != tgt.getDataType()) {
-                                            cw.setTypeChanged(true);
-                                            tgt.setDataType(src.getDataType());
-                                        }
-                                        if (StringUtils.isNotBlank(src.getDateFormat())) {
-                                            tgt.setDateFormat(src.getDateFormat());
-                                        }
-                                        if (isPresent(src.getLength())) {
-                                            tgt.setLength(src.getLength());
-                                        }
-                                        if (isPresent(src.getScale())) {
-                                            tgt.setScale(src.getScale());
-                                        }
-                                        tgt.setNullable(src.isNullable());
-                                        if (src.getDefaultValue() != null) {
-                                            tgt.setDefaultValue(src.getDefaultValue());
-                                        }
-                                        if (StringUtils.isNotBlank(src.getComment())) {
-                                            tgt.setComment(src.getComment());
-                                        }
-                                        if (StringUtils.isNotBlank(src.getSinkType())) {
-                                            tgt.setSinkType(src.getSinkType());
-                                        }
-                                    });
-                    break;
+                                            if (isPresent(conditionColumn.getPosition())) {
+                                                tgt.setPosition(conditionColumn.getPosition());
+                                            }
+                                            if (StringUtils.isNotBlank(
+                                                    conditionColumn.getOutputName())) {
+                                                tgt.setOutputName(conditionColumn.getOutputName());
+                                            }
+                                            if (isPresent(conditionColumn.getDataType())
+                                                    && conditionColumn.getDataType()
+                                                            != tgt.getDataType()) {
+                                                cw.setTypeChanged(true);
+                                                tgt.setDataType(conditionColumn.getDataType());
+                                            }
+                                            if (StringUtils.isNotBlank(
+                                                    conditionColumn.getDateFormat())) {
+                                                tgt.setDateFormat(conditionColumn.getDateFormat());
+                                            }
+                                            if (isPresent(conditionColumn.getLength())) {
+                                                tgt.setLength(conditionColumn.getLength());
+                                            }
+                                            if (isPresent(conditionColumn.getScale())) {
+                                                tgt.setScale(conditionColumn.getScale());
+                                            }
+                                            tgt.setNullable(conditionColumn.isNullable());
+                                            if (conditionColumn.getDefaultValue() != null) {
+                                                tgt.setDefaultValue(
+                                                        conditionColumn.getDefaultValue());
+                                            }
+                                            if (StringUtils.isNotBlank(
+                                                    conditionColumn.getComment())) {
+                                                tgt.setComment(conditionColumn.getComment());
+                                            }
+                                            if (StringUtils.isNotBlank(
+                                                    conditionColumn.getSinkType())) {
+                                                tgt.setSinkType(conditionColumn.getSinkType());
+                                            }
+                                            if (StringUtils.isNotBlank(
+                                                    conditionColumn.getSqlFunction())) {
+                                                tgt.setSqlFunction(
+                                                        conditionColumn.getSqlFunction());
+                                            }
+                                        });
+                        break;
 
-                case DROP:
-                    collect.removeIf(
-                            cw ->
-                                    cw.getColumn()
-                                            .getInputName()
-                                            .equals(conditionColumn.getInputName()));
-                    break;
+                    case DROP:
+                        collect.removeIf(
+                                cw ->
+                                        cw.getColumn()
+                                                .getInputName()
+                                                .equals(conditionColumn.getInputName()));
+                        break;
 
-                default:
-                    throw new IllegalArgumentException(
-                            "Unsupported action: " + conditionColumn.getAction());
+                    default:
+                        throw new IllegalArgumentException(
+                                "Unsupported action: " + conditionColumn.getAction());
+                }
             }
         }
 
@@ -279,7 +271,12 @@ public class MapperTransform extends MultipleFieldOutputTransform {
     }
 
     private void initSqlTransform(CatalogTable inputCatalogTable) {
-        String querySql = createQuerySql(outputColumns, specificModified.getColumns());
+        String querySql =
+                createQuerySql(
+                        outputColumns,
+                        Optional.ofNullable(specificModified)
+                                .orElse(new MapperConfig.SpecificModify())
+                                .getColumns());
         Map<String, Object> cfg = new HashMap<>();
         cfg.put("query", querySql);
         cfg.put("engine", "ZETA");
@@ -290,14 +287,13 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                 new SQLTransform(
                         sqlTransformConfig, ReadonlyConfig.fromMap(tableCfg), inputCatalogTable);
         sqlTransform.tryOpen();
-        this.deductionOutputRowType = sqlTransform.getOutputRowTypeAndColumns(new ArrayList<>());
     }
 
     private String createQuerySql(
             List<ColumnWrapper> outputColumns, List<MapperConfig.Column> columns) {
         StringBuilder querySql = new StringBuilder("SELECT ");
         List<MapperConfig.Column> referenceColumns =
-                columns.stream()
+                Optional.ofNullable(columns).orElse(Collections.emptyList()).stream()
                         .filter(
                                 c ->
                                         c.getAction() == MapperConfig.Action.ADD
@@ -550,7 +546,9 @@ public class MapperTransform extends MultipleFieldOutputTransform {
     }
 
     @Override
-    public List<CatalogTable> getProducedCatalogTables() {
+    public CatalogTable getProducedCatalogTable() {
+        SeaTunnelRowType deductionOutputRowType =
+                sqlTransform.getOutputRowTypeAndColumns(new ArrayList<>());
         Map<String, List<Map<String, String>>> wrongField = new LinkedHashMap<>();
         for (int i = 0; i < outputColumns.size(); i++) {
             SeaTunnelDataType<?> fieldType = deductionOutputRowType.getFieldType(i);
@@ -574,7 +572,7 @@ public class MapperTransform extends MultipleFieldOutputTransform {
         if (!wrongField.isEmpty()) {
             throw MapperError.fieldWithWrongSqlFunction(wrongField);
         }
-        return super.getProducedCatalogTables();
+        return super.getProducedCatalogTable();
     }
 
     @Data
