@@ -69,6 +69,11 @@ public class SAPBWSourceOption {
                     .listType()
                     .noDefaultValue()
                     .withDescription("SAP Business Warehouse dimensions and measures of the query");
+    public static final Option<String> VARIABLES =
+            Options.key("variables")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("SAP Business Warehouse variables of the query");
 
     public static final Option<List<QueryTableConfig>> TABLE_LIST =
             Options.key("table_list")
