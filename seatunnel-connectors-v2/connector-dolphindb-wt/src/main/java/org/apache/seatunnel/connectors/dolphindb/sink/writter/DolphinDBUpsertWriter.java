@@ -79,7 +79,6 @@ public class DolphinDBUpsertWriter implements DolphinDBWriter {
 
     @Override
     public Optional<Void> prepareCommit() throws Exception {
-        multithreadedTableWriter.waitForThreadCompletion();
         MultithreadedTableWriter.Status status = multithreadedTableWriter.getStatus();
         if (StringUtils.isNotEmpty(status.getErrorCode())) {
             log.error("MultithreadedTableWriter write data error: {}", status.getErrorCode());
