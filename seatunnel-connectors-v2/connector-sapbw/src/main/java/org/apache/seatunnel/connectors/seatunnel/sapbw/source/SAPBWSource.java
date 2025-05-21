@@ -52,9 +52,10 @@ public class SAPBWSource
         catalogTables = new HashMap<>();
         try (Catalog catalog = new SAPBWCatalogFactory().createCatalog("SAPBW", readonlyConfig)) {
             catalog.open();
-            for (QueryTableConfig tableConfig : sourceConfig.getQueryTableConfigs()) {
-                TablePath tablePath =
-                        TablePath.of(tableConfig.getCategory(), tableConfig.getQuery());
+            for (Map.Entry<TablePath, QueryTableConfig> entry :
+                    sourceConfig.getQueryTableConfigs().entrySet()) {
+                QueryTableConfig tableConfig = entry.getValue();
+                TablePath tablePath = entry.getKey();
                 catalogTables.put(
                         tablePath,
                         catalog.getTable(tablePath, tableConfig.getDimensionsAndMeasures()));

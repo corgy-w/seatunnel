@@ -50,6 +50,7 @@ public class SAPBWSourceFactory implements TableSourceFactory {
                 .optional(SAPBWSourceOption.CATEGORY)
                 .optional(SAPBWSourceOption.QUERY)
                 .optional(SAPBWSourceOption.DIMENSIONS_AND_MEASURES)
+                .optional(SAPBWSourceOption.VARIABLES)
                 .optional(SAPBWSourceOption.SYSTEM_NUMBER)
                 .optional(SAPBWSourceOption.LANGUAGE)
                 .optional(SAPBWSourceOption.TABLE_LIST)

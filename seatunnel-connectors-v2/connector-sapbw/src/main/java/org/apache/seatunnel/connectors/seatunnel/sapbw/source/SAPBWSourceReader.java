@@ -144,6 +144,15 @@ public class SAPBWSourceReader implements SourceReader<SeaTunnelRow, SAPBWSplit>
         mdxQueryLines.add("SELECT [Measures].Members ON COLUMNS, NON EMPTY {");
         mdxQueryLines.addAll(buildStarJoinWithIsLeaf(hierarchyNames, split.getMemberSplit()));
         mdxQueryLines.add("} ON ROWS FROM [" + catalogTable.getTablePath().getTableName() + "]");
+
+        String variables =
+                sourceConfig.getQueryTableConfigs().get(catalogTable.getTablePath()).getVariables();
+        if (StringUtils.isNotEmpty(variables)) {
+            mdxQueryLines.add("SAP VARIABLES");
+            String[] variableLines = variables.split("\n");
+            mdxQueryLines.addAll(Arrays.asList(variableLines));
+        }
+
         String mdxQuery = String.join("\n", mdxQueryLines);
         log.info("MDX Query: {}", mdxQuery);
 

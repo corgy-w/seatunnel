@@ -21,6 +21,7 @@ import org.apache.seatunnel.shade.com.fasterxml.jackson.annotation.JsonIgnorePro
 import org.apache.seatunnel.shade.com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import lombok.Builder;
 import lombok.Data;
@@ -29,6 +30,7 @@ import lombok.experimental.Tolerate;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -46,10 +48,13 @@ public class QueryTableConfig implements Serializable {
     @JsonProperty("dimensions_and_measures")
     private List<String> dimensionsAndMeasures;
 
+    @JsonProperty("variables")
+    private String variables;
+
     @Tolerate
     public QueryTableConfig() {}
 
-    public static List<QueryTableConfig> of(ReadonlyConfig connectorConfig) {
+    public static Map<TablePath, QueryTableConfig> of(ReadonlyConfig connectorConfig) {
         List<QueryTableConfig> tableList;
         if (connectorConfig.getOptional(SAPBWSourceOption.TABLE_LIST).isPresent()) {
             tableList = connectorConfig.get(SAPBWSourceOption.TABLE_LIST);
@@ -60,6 +65,7 @@ public class QueryTableConfig implements Serializable {
                             .query(connectorConfig.get(SAPBWSourceOption.QUERY))
                             .dimensionsAndMeasures(
                                     connectorConfig.get(SAPBWSourceOption.DIMENSIONS_AND_MEASURES))
+                            .variables(connectorConfig.get(SAPBWSourceOption.VARIABLES))
                             .build();
             tableList = Collections.singletonList(tableProperty);
         }
@@ -73,6 +79,12 @@ public class QueryTableConfig implements Serializable {
                                 + queriesSet);
             }
         }
-        return tableList;
+        return tableList.stream()
+                .collect(
+                        Collectors.toMap(
+                                tableConfig ->
+                                        TablePath.of(
+                                                tableConfig.getCategory(), tableConfig.getQuery()),
+                                tableConfig -> tableConfig));
     }
 }

@@ -18,11 +18,12 @@
 package org.apache.seatunnel.connectors.seatunnel.sapbw.config;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import lombok.Getter;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.Map;
 
 @Getter
 public class SAPBWSourceConfig implements Serializable {
@@ -34,7 +35,7 @@ public class SAPBWSourceConfig implements Serializable {
     private final String user;
     private final String password;
     private final String language;
-    private final List<QueryTableConfig> queryTableConfigs;
+    private final Map<TablePath, QueryTableConfig> queryTableConfigs;
 
     public SAPBWSourceConfig(ReadonlyConfig readonlyConfig) {
         this.applicationServerHost = readonlyConfig.get(SAPBWSourceOption.APPLICATION_SERVER_HOST);

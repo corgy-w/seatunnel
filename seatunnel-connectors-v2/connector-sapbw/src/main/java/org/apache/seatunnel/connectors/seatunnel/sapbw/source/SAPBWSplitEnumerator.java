@@ -122,8 +122,10 @@ public class SAPBWSplitEnumerator implements SourceSplitEnumerator<SAPBWSplit, S
 
     private void discoverySplits() throws JCoException {
         Set<SAPBWSplit> allSplit = new HashSet<>();
-        for (QueryTableConfig tableConfig : sapbwSourceConfig.getQueryTableConfigs()) {
-            TablePath tablePath = TablePath.of(tableConfig.getCategory(), tableConfig.getQuery());
+        for (Map.Entry<TablePath, QueryTableConfig> entry :
+                sapbwSourceConfig.getQueryTableConfigs().entrySet()) {
+            QueryTableConfig tableConfig = entry.getValue();
+            TablePath tablePath = entry.getKey();
             JCoFunction getMembers =
                     client.getDestination()
                             .getRepository()
