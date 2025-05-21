@@ -121,8 +121,8 @@
                 <aliyun.sdk.oss.version>3.13.2</aliyun.sdk.oss.version>
                 <jdom.version>2.0.6</jdom.version>
 
-                <dolphindb-javaapi.version>1.30.22.1</dolphindb-javaapi.version>
-                <dolphindb-jdbc.version>1.30.22.1</dolphindb-jdbc.version>
+                <dolphindb-javaapi.version>3.00.2.6</dolphindb-javaapi.version>
+                <dolphindb-jdbc.version>3.00.2.1</dolphindb-jdbc.version>
                 <tidb.version>3.3.5</tidb.version>
                 <gbase8s.version>3.6.3.2</gbase8s.version>
             </properties>

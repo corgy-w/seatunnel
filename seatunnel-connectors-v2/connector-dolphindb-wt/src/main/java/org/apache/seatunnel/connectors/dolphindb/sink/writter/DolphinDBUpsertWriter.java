@@ -81,10 +81,10 @@ public class DolphinDBUpsertWriter implements DolphinDBWriter {
     public Optional<Void> prepareCommit() throws Exception {
         multithreadedTableWriter.waitForThreadCompletion();
         MultithreadedTableWriter.Status status = multithreadedTableWriter.getStatus();
-        if (StringUtils.isNotEmpty(status.errorInfo)) {
-            log.error("MultithreadedTableWriter write data error: {}", status.errorInfo);
+        if (StringUtils.isNotEmpty(status.getErrorCode())) {
+            log.error("MultithreadedTableWriter write data error: {}", status.getErrorCode());
             throw new DolphinDBConnectorException(
-                    DolphinDBErrorCode.WRITE_DATA_ERROR, status.errorInfo);
+                    DolphinDBErrorCode.WRITE_DATA_ERROR, status.getErrorCode());
         }
         return Optional.empty();
     }
@@ -93,9 +93,9 @@ public class DolphinDBUpsertWriter implements DolphinDBWriter {
     public void close() throws Exception {
         multithreadedTableWriter.waitForThreadCompletion();
         MultithreadedTableWriter.Status status = multithreadedTableWriter.getStatus();
-        if (StringUtils.isNotEmpty(status.errorInfo)) {
-            log.error("MultithreadedTableWriter completion error: {}", status.errorInfo);
-            throw new IOException("Close MultithreadedTableWriter failed" + status.errorInfo);
+        if (StringUtils.isNotEmpty(status.getErrorCode())) {
+            log.error("MultithreadedTableWriter completion error: {}", status.getErrorCode());
+            throw new IOException("Close MultithreadedTableWriter failed" + status.getErrorCode());
         }
     }
 }
