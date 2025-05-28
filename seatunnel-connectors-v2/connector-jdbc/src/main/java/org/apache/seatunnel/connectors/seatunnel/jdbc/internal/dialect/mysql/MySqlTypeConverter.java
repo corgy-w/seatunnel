@@ -164,12 +164,8 @@ public class MySqlTypeConverter implements TypeConverter<BasicTypeDefine<MysqlTy
                 }
                 break;
             case MYSQL_TINYINT:
-                if (typeDefine.getColumnType().equalsIgnoreCase("tinyint(1)")) {
-                    if (intTypeNarrowing) {
-                        builder.dataType(BasicType.BOOLEAN_TYPE);
-                    } else {
-                        builder.dataType(BasicType.SHORT_TYPE);
-                    }
+                if (typeDefine.getColumnType().equalsIgnoreCase("tinyint(1)") && intTypeNarrowing) {
+                    builder.dataType(BasicType.BOOLEAN_TYPE);
                 } else {
                     builder.dataType(BasicType.BYTE_TYPE);
                 }
