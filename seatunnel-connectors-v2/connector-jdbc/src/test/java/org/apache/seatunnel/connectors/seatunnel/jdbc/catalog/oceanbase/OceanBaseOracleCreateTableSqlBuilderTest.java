@@ -45,7 +45,7 @@ public class OceanBaseOracleCreateTableSqlBuilderTest {
                                 new String[] {"field"},
                                 new SeaTunnelDataType[] {BasicType.STRING_TYPE}));
         OceanBaseOracleCreateTableSqlBuilder sqlBuilder =
-                new OceanBaseOracleCreateTableSqlBuilder(catalogTable);
+                new OceanBaseOracleCreateTableSqlBuilder(catalogTable, false);
 
         Column column = mock(Column.class);
         when(column.getSourceType()).thenReturn("LONG");
