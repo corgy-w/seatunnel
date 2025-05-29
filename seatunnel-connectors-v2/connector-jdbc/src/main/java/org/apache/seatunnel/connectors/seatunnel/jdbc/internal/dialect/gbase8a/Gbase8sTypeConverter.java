@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a;
 
 import org.apache.seatunnel.api.table.converter.TypeConverter;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.informix.InformixTypeConverter;
 
 import com.google.auto.service.AutoService;
@@ -27,4 +28,9 @@ import lombok.extern.slf4j.Slf4j;
 @AutoService(TypeConverter.class)
 public class Gbase8sTypeConverter extends InformixTypeConverter {
     public static final Gbase8sTypeConverter INSTANCE = new Gbase8sTypeConverter();
+
+    @Override
+    public String identifier() {
+        return DatabaseIdentifier.GBASE_8S;
+    }
 }

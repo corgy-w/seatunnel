@@ -23,6 +23,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDiale
 
 import com.google.auto.service.AutoService;
 
+import javax.annotation.Nonnull;
+
 @AutoService(JdbcDialectFactory.class)
 public class Gbase8sDialectFactory implements JdbcDialectFactory {
 
@@ -38,6 +40,14 @@ public class Gbase8sDialectFactory implements JdbcDialectFactory {
 
     @Override
     public JdbcDialect create() {
+        return new Gbase8sDialect();
+    }
+
+    @Override
+    public JdbcDialect create(@Nonnull String compatibleMode, String fieldIde) {
+        if ("informix".equalsIgnoreCase(compatibleMode)) {
+            return new Gbase8sInformixModeDialect();
+        }
         return new Gbase8sDialect();
     }
 }

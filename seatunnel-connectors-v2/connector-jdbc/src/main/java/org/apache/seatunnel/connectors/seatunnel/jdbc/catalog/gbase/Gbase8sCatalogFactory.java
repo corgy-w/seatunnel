@@ -54,6 +54,15 @@ public class Gbase8sCatalogFactory implements CatalogFactory {
         if (!defaultDatabase.isPresent()) {
             throw new OptionValidationException(JdbcCatalogOptions.BASE_URL);
         }
+        String compatibleMode = options.get(JdbcCatalogOptions.COMPATIBLE_MODE);
+        if (compatibleMode != null && "informix".equalsIgnoreCase(compatibleMode)) {
+            return new Gbase8sInformixCatalog(
+                    catalogName,
+                    options.get(JdbcCatalogOptions.USERNAME),
+                    options.get(JdbcCatalogOptions.PASSWORD),
+                    urlInfo,
+                    options.get(JdbcCatalogOptions.SCHEMA));
+        }
         return new Gbase8sCatalog(
                 catalogName,
                 options.get(JdbcCatalogOptions.USERNAME),

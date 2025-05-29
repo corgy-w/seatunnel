@@ -50,9 +50,9 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-public class Gbase8sCatalog extends AbstractJdbcCatalog {
+public class Gbase8sInformixCatalog extends AbstractJdbcCatalog {
 
-    public Gbase8sCatalog(
+    public Gbase8sInformixCatalog(
             String catalogName,
             String username,
             String pwd,
@@ -64,13 +64,13 @@ public class Gbase8sCatalog extends AbstractJdbcCatalog {
     @Override
     public String getExistDataSql(TablePath tablePath) {
         return String.format(
-                "select FIRST 1 * from %s.%s",
-                tablePath.getDatabaseName(), tablePath.getTableName().toUpperCase());
+                "select FIRST 1 * from %s:%s",
+                tablePath.getDatabaseName(), tablePath.getTableName());
     }
 
     @Override
     protected String getListDatabaseSql() {
-        return "select name from sysmaster.sysdatabases";
+        return "select name from sysmaster:sysdatabases";
     }
 
     @Override
@@ -84,13 +84,13 @@ public class Gbase8sCatalog extends AbstractJdbcCatalog {
         Connection connection = getConnection(dbUrl);
         try (PreparedStatement ps =
                         connection.prepareStatement(
-                                "SELECT table_name FROM " + databaseName + ".user_tables");
+                                "SELECT tabname FROM " + databaseName + ":systables");
                 ResultSet rs = ps.executeQuery()) {
 
             List<String> tables = new ArrayList<>();
 
             while (rs.next()) {
-                String tableName = rs.getString("table_name").trim();
+                String tableName = rs.getString("tabname").trim();
                 tables.add(tableName);
             }
 
@@ -104,13 +104,7 @@ public class Gbase8sCatalog extends AbstractJdbcCatalog {
     @Override
     public CatalogTable getTable(TablePath tablePath)
             throws CatalogException, TableNotExistException {
-        TablePath gbaseTablePath =
-                TablePath.of(
-                        tablePath.getDatabaseName(),
-                        tablePath.getDatabaseName(),
-                        tablePath.getTableName());
-
-        if (!tableExists(gbaseTablePath)) {
+        if (!tableExists(tablePath)) {
             throw new TableNotExistException(catalogName, tablePath);
         }
 
@@ -126,22 +120,22 @@ public class Gbase8sCatalog extends AbstractJdbcCatalog {
             Optional<PrimaryKey> primaryKey =
                     getPrimaryKey(
                             metaData,
-                            gbaseTablePath.getDatabaseName(),
-                            gbaseTablePath.getSchemaName(),
-                            gbaseTablePath.getTableName());
+                            tablePath.getDatabaseName(),
+                            tablePath.getSchemaName(),
+                            tablePath.getTableName());
             List<ConstraintKey> constraintKeys =
                     getConstraintKeys(
                             metaData,
-                            gbaseTablePath.getDatabaseName(),
-                            gbaseTablePath.getSchemaName(),
-                            gbaseTablePath.getTableName());
+                            tablePath.getDatabaseName(),
+                            tablePath.getSchemaName(),
+                            tablePath.getTableName());
             constraintKeys = filterDuplicateConstraintKeys(constraintKeys, primaryKey);
-            String tableComment = getTableComment(metaData, gbaseTablePath);
+            String tableComment = getTableComment(metaData, tablePath);
             try (ResultSet resultSet =
                     metaData.getColumns(
-                            gbaseTablePath.getDatabaseName(),
-                            gbaseTablePath.getSchemaName(),
-                            gbaseTablePath.getTableName(),
+                            tablePath.getDatabaseName(),
+                            tablePath.getSchemaName(),
+                            tablePath.getTableName(),
                             null)) {
                 TableSchema.Builder builder = TableSchema.builder();
                 buildColumnsWithErrorCheck(tablePath, resultSet, builder);
@@ -199,7 +193,7 @@ public class Gbase8sCatalog extends AbstractJdbcCatalog {
     protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
         return new Gbase8sCreateTableSqlBuilder(table)
                 .build(
-                        tablePath.getDatabaseName() + "." + tablePath.getTableName(),
+                        tablePath.getDatabaseName() + ":" + tablePath.getTableName(),
                         table.getOptions().get("fieldIde"));
     }
 
@@ -207,15 +201,14 @@ public class Gbase8sCatalog extends AbstractJdbcCatalog {
     protected String getDropTableSql(TablePath tablePath) {
         return "DROP TABLE IF EXISTS "
                 + tablePath.getDatabaseName()
-                + "."
-                + tablePath.getTableName().toUpperCase();
+                + ":"
+                + tablePath.getTableName();
     }
 
     @Override
     protected String getTruncateTableSql(TablePath tablePath) {
         return String.format(
-                "truncate table %s.%s",
-                tablePath.getDatabaseName(), tablePath.getTableName().toUpperCase());
+                "truncate table %s:%s", tablePath.getDatabaseName(), tablePath.getTableName());
     }
 
     @Override
@@ -226,8 +219,8 @@ public class Gbase8sCatalog extends AbstractJdbcCatalog {
     @Override
     protected String getTableWithConditionSql(TablePath tablePath) {
         return String.format(
-                "SELECT * FROM %s.user_tables WHERE  table_name = '%s'",
-                tablePath.getDatabaseName(), tablePath.getTableName().toUpperCase());
+                "SELECT * FROM %s:systables WHERE  tabname = '%s'",
+                tablePath.getDatabaseName(), tablePath.getTableName());
     }
 
     @Override

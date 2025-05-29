@@ -21,7 +21,6 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.gbase;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
-import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a.Gbase8sTypeConverter;
@@ -42,15 +41,15 @@ public class Gbase8sCreateTableSqlBuilder {
         this.sourceCatalogName = catalogTable.getCatalogName();
     }
 
-    public String build(TablePath tablePath) {
+    public String build(String tablePath) {
         return build(tablePath, "");
     }
 
-    public String build(TablePath tablePath, String fieldIde) {
+    public String build(String tablePath, String fieldIde) {
         StringBuilder createTableSql = new StringBuilder();
         createTableSql
                 .append(CatalogUtils.quoteIdentifier("CREATE TABLE IF NOT EXISTS ", fieldIde))
-                .append(tablePath.getFullName())
+                .append(tablePath)
                 .append(" (\n");
 
         List<String> columnSqls =
@@ -80,12 +79,7 @@ public class Gbase8sCreateTableSqlBuilder {
         List<String> commentSqls =
                 columns.stream()
                         .filter(column -> StringUtils.isNotBlank(column.getComment()))
-                        .map(
-                                columns ->
-                                        buildColumnCommentSql(
-                                                columns,
-                                                tablePath.getSchemaAndTableName(),
-                                                fieldIde))
+                        .map(columns -> buildColumnCommentSql(columns, tablePath, fieldIde))
                         .collect(Collectors.toList());
 
         if (!commentSqls.isEmpty()) {
