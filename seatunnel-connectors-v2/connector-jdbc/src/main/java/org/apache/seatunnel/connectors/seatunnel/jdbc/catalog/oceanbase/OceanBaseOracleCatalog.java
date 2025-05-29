@@ -114,6 +114,12 @@ public class OceanBaseOracleCatalog extends OracleCatalog {
     }
 
     @Override
+    protected List<String> getCreateTableSqls(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
+        return new OceanBaseOracleCreateTableSqlBuilder(table, createIndex).build(tablePath);
+    }
+
+    @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         try {
             return super.getTable(sqlQuery);
