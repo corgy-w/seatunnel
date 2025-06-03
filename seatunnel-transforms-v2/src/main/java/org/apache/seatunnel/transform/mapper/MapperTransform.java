@@ -34,6 +34,8 @@ import org.apache.seatunnel.transform.common.MultipleFieldOutputTransform;
 import org.apache.seatunnel.transform.common.SeaTunnelRowAccessor;
 import org.apache.seatunnel.transform.common.SeaTunnelRowContainerGenerator;
 import org.apache.seatunnel.transform.exception.MapperError;
+import org.apache.seatunnel.transform.exception.TransformCommonError;
+import org.apache.seatunnel.transform.exception.TransformExceptionUtil;
 import org.apache.seatunnel.transform.sql.SQLTransform;
 import org.apache.seatunnel.transform.sql.SQLTransformConfig;
 
@@ -54,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -549,6 +552,7 @@ public class MapperTransform extends MultipleFieldOutputTransform {
     public CatalogTable getProducedCatalogTable() {
         SeaTunnelRowType deductionOutputRowType =
                 sqlTransform.getOutputRowTypeAndColumns(new ArrayList<>());
+        preCheckForMapperConfig(inputCatalogTable);
         Map<String, List<Map<String, String>>> wrongField = new LinkedHashMap<>();
         for (int i = 0; i < outputColumns.size(); i++) {
             SeaTunnelDataType<?> fieldType = deductionOutputRowType.getFieldType(i);
@@ -573,6 +577,28 @@ public class MapperTransform extends MultipleFieldOutputTransform {
             throw MapperError.fieldWithWrongSqlFunction(wrongField);
         }
         return super.getProducedCatalogTable();
+    }
+
+    private void preCheckForMapperConfig(CatalogTable inputCatalogTable) {
+        if (specificModified == null
+                || specificModified.getSourceFieldNames() == null
+                || specificModified.getSourceFieldNames().isEmpty()) {
+            return;
+        }
+        Set<String> fields =
+                inputCatalogTable.getTableSchema().getColumns().stream()
+                        .map(Column::getName)
+                        .collect(Collectors.toSet());
+
+        TransformExceptionUtil.withErrorCheck(
+                PLUGIN_NAME,
+                specificModified.getSourceFieldNames().iterator(),
+                field -> {
+                    if (!fields.contains(field)) {
+                        throw TransformCommonError.cannotFindInputTableFieldError(
+                                PLUGIN_NAME, outputTableIdentifier.getTableName(), field);
+                    }
+                });
     }
 
     @Data
