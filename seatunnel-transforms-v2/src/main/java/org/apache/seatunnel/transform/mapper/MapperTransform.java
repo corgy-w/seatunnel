@@ -203,6 +203,9 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                                                     && conditionColumn.getDataType()
                                                             != tgt.getDataType()) {
                                                 cw.setTypeChanged(true);
+                                                cw.setDataType(
+                                                        convertSqlTypeToSeaTunnelDataType(
+                                                                conditionColumn.getDataType()));
                                                 tgt.setDataType(conditionColumn.getDataType());
                                             }
                                             if (StringUtils.isNotBlank(
