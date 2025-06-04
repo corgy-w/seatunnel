@@ -250,6 +250,13 @@ public class Gbase8sInformixCatalog extends AbstractJdbcCatalog {
         }
     }
 
+    protected Optional<PrimaryKey> getPrimaryKey(
+            DatabaseMetaData metaData, String database, String schema, String table)
+            throws SQLException {
+        return CatalogUtils.getPrimaryKeyWithTablePathStrictMode(
+                metaData, TablePath.of(database, schema, table));
+    }
+
     @Override
     protected Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
