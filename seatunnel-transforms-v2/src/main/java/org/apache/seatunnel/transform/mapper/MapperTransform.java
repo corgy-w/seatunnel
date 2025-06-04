@@ -557,7 +557,7 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                 Map<String, String> detail = new LinkedHashMap<>();
                 detail.put("specify_type", cw.column.getDataType().toString());
                 detail.put("actual_type", fieldType.getSqlType().toString());
-                detail.put("field_name", cw.column.getInputName());
+                detail.put("field_name", cw.column.getOutputName());
                 detail.put("sql_function", cw.column.getSqlFunction());
                 String tableName =
                         StringUtils.defaultIfBlank(
