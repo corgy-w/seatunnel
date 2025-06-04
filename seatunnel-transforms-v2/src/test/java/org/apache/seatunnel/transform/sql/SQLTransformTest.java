@@ -25,10 +25,10 @@ import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.LocalTimeType;
-import org.apache.seatunnel.api.table.type.MapType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.transform.exception.TransformException;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 
 public class SQLTransformTest {
@@ -45,21 +46,25 @@ public class SQLTransformTest {
     private static final String[] FILED_NAMES =
             new String[] {"id", "name", "age", TIMESTAMP_FILEDNAME};
     private static final String GENERATE_PARTITION_KEY = "dt";
+    private static final SQLTransformConfig sqlTransformConfig =
+            new SQLTransformConfig() {
+                {
+                    setQuery(
+                            "select *,FORMATDATETIME(create_time,'yyyy-MM-dd HH:mm') as dt from dual");
+                    setEngineType(SQLEngineFactory.EngineType.ZETA);
+                }
+            };
     private static final ReadonlyConfig READONLY_CONFIG =
             ReadonlyConfig.fromMap(
                     new HashMap<String, Object>() {
                         {
-                            put(
-                                    "query",
-                                    "select *,FORMATDATETIME(create_time,'yyyy-MM-dd HH:mm') as dt from test");
                         }
                     });
 
     @Test
     public void testScaleSupport() {
         SQLTransform sqlTransform =
-                new SQLTransform(
-                        SQLTransformConfig.of(READONLY_CONFIG), READONLY_CONFIG, getCatalogTable());
+                new SQLTransform(sqlTransformConfig, READONLY_CONFIG, getCatalogTable());
         TableSchema tableSchema = sqlTransform.transformTableSchema();
         tableSchema
                 .getColumns()
@@ -79,19 +84,13 @@ public class SQLTransformTest {
     public void testQueryWithAnyTable() {
         SQLTransform sqlTransform =
                 new SQLTransform(
-                        SQLTransformConfig.of(
-                                ReadonlyConfig.fromMap(
-                                        new HashMap<String, Object>() {
-                                            {
-                                                put("query", "select * from anyTableName");
-                                            }
-                                        })),
-                        ReadonlyConfig.fromMap(
-                                new HashMap<String, Object>() {
-                                    {
-                                        put("query", "select * from anyTableName");
-                                    }
-                                }),
+                        new SQLTransformConfig() {
+                            {
+                                setQuery("select * from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
                         getCatalogTable());
         TableSchema tableSchema = sqlTransform.transformTableSchema();
         Assertions.assertEquals(4, tableSchema.getColumns().size());
@@ -100,8 +99,7 @@ public class SQLTransformTest {
     @Test
     public void testNotLoseSourceTypeAndOptions() {
         SQLTransform sqlTransform =
-                new SQLTransform(
-                        SQLTransformConfig.of(READONLY_CONFIG), READONLY_CONFIG, getCatalogTable());
+                new SQLTransform(sqlTransformConfig, READONLY_CONFIG, getCatalogTable());
         TableSchema tableSchema = sqlTransform.transformTableSchema();
         tableSchema
                 .getColumns()
@@ -161,134 +159,188 @@ public class SQLTransformTest {
     }
 
     @Test
-    public void testEscapeIdentifier() {
+    public void tesCaseWhenClausesWithBooleanField() {
         String tableName = "test";
-        String[] fields = new String[] {"id", "apply"};
+        String[] fields = new String[] {"id", "bool"};
         CatalogTable table =
                 CatalogTableUtil.getCatalogTable(
                         tableName,
                         new SeaTunnelRowType(
                                 fields,
                                 new SeaTunnelDataType[] {
-                                    BasicType.INT_TYPE, BasicType.STRING_TYPE
+                                    BasicType.INT_TYPE, BasicType.BOOLEAN_TYPE
                                 }));
-        ReadonlyConfig config =
-                ReadonlyConfig.fromMap(
-                        Collections.singletonMap(
-                                "query",
-                                "select id, trim(`apply`) as `apply` from test where `apply` = 'a'"));
-        SQLTransform sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
-        TableSchema tableSchema = sqlTransform.transformTableSchema();
-        SeaTunnelRow result =
-                sqlTransform.transformRow(
-                        new SeaTunnelRow(new Object[] {Integer.valueOf(1), String.valueOf("a")}));
-        Assertions.assertEquals("apply", tableSchema.getFieldNames()[1]);
-        Assertions.assertEquals("a", result.getField(1));
-        result =
-                sqlTransform.transformRow(
-                        new SeaTunnelRow(new Object[] {Integer.valueOf(1), String.valueOf("b")}));
-        Assertions.assertNull(result);
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery(
+                                        "select `id`, `bool`, case when bool then 1 else 2 end as bool_1 from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        List<SeaTunnelRow> result =
+                Collections.singletonList(
+                        sqlTransform.transformRow(
+                                new SeaTunnelRow(new Object[] {Integer.valueOf(1), true})));
+        Assertions.assertEquals(1, result.get(0).getField(0));
+        Assertions.assertEquals(true, result.get(0).getField(1));
+        Assertions.assertEquals(1, result.get(0).getField(2));
 
-        config =
-                ReadonlyConfig.fromMap(
-                        Collections.singletonMap(
-                                "query",
-                                "select id, IFNULL(`apply`, '1') as `apply` from test  where `apply` = 'a'"));
-        sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
-        tableSchema = sqlTransform.transformTableSchema();
         result =
-                sqlTransform.transformRow(
-                        new SeaTunnelRow(new Object[] {Integer.valueOf(1), String.valueOf("a")}));
-        Assertions.assertEquals("apply", tableSchema.getFieldNames()[1]);
-        Assertions.assertEquals(
-                BasicType.STRING_TYPE, tableSchema.getColumns().get(1).getDataType());
-        Assertions.assertEquals("a", result.getField(1));
+                Collections.singletonList(
+                        sqlTransform.transformRow(
+                                new SeaTunnelRow(new Object[] {Integer.valueOf(1), false})));
+        Assertions.assertEquals(1, result.get(0).getField(0));
+        Assertions.assertEquals(false, result.get(0).getField(1));
+        Assertions.assertEquals(2, result.get(0).getField(2));
+    }
 
-        table =
-                CatalogTableUtil.getCatalogTable(
-                        tableName,
-                        new SeaTunnelRowType(
-                                fields,
-                                new SeaTunnelDataType[] {BasicType.INT_TYPE, BasicType.LONG_TYPE}));
-        config =
-                ReadonlyConfig.fromMap(
-                        Collections.singletonMap(
-                                "query",
-                                "select id, `apply` + 1 as `apply` from test where `apply` > 0"));
-        sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
-        tableSchema = sqlTransform.transformTableSchema();
-        result =
-                sqlTransform.transformRow(
-                        new SeaTunnelRow(new Object[] {Integer.valueOf(1), Long.valueOf(1)}));
-        Assertions.assertEquals("apply", tableSchema.getFieldNames()[1]);
-        Assertions.assertEquals(BasicType.LONG_TYPE, tableSchema.getColumns().get(1).getDataType());
-        Assertions.assertEquals(Long.valueOf(2), result.getField(1));
-        result =
-                sqlTransform.transformRow(
-                        new SeaTunnelRow(new Object[] {Integer.valueOf(1), Long.valueOf(0)}));
-        Assertions.assertNull(result);
-
-        table =
+    @Test
+    public void tesCaseWhenBooleanClausesWithField() {
+        String tableName = "test";
+        String[] fields = new String[] {"id", "int", "string"};
+        CatalogTable table =
                 CatalogTableUtil.getCatalogTable(
                         tableName,
                         new SeaTunnelRowType(
                                 fields,
                                 new SeaTunnelDataType[] {
-                                    BasicType.INT_TYPE,
-                                    new MapType<String, String>(
-                                            BasicType.STRING_TYPE, BasicType.STRING_TYPE)
+                                    BasicType.INT_TYPE, BasicType.INT_TYPE, BasicType.STRING_TYPE
                                 }));
-        config =
-                ReadonlyConfig.fromMap(
-                        Collections.singletonMap(
-                                "query",
-                                "select id, `apply`.k1 as `apply` from test where `apply`.k1 = 'a'"));
-        sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
-        tableSchema = sqlTransform.transformTableSchema();
-        result =
-                sqlTransform.transformRow(
-                        new SeaTunnelRow(
-                                new Object[] {
-                                    Integer.valueOf(1), Collections.singletonMap("k1", "a")
-                                }));
-        Assertions.assertEquals("apply", tableSchema.getFieldNames()[1]);
-        Assertions.assertEquals(
-                BasicType.STRING_TYPE, tableSchema.getColumns().get(1).getDataType());
-        Assertions.assertEquals("a", result.getField(1));
-        result =
-                sqlTransform.transformRow(
-                        new SeaTunnelRow(
-                                new Object[] {
-                                    Integer.valueOf(1), Collections.singletonMap("k1", "b")
-                                }));
-        Assertions.assertNull(result);
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery(
+                                        "select `id`, `int`, (case when `int` = 1 then true else false end) as bool_1 , `string`, (case when `string` = 'true' then true else false end) as bool_2 from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        List<SeaTunnelRow> result =
+                Collections.singletonList(
+                        sqlTransform.transformRow(new SeaTunnelRow(new Object[] {1, 1, "true"})));
 
-        table =
+        Assertions.assertEquals(1, result.get(0).getField(0));
+        Assertions.assertEquals(1, result.get(0).getField(1));
+        Assertions.assertEquals(true, result.get(0).getField(2));
+        Assertions.assertEquals("true", result.get(0).getField(3));
+        Assertions.assertEquals(true, result.get(0).getField(4));
+
+        result =
+                Collections.singletonList(
+                        sqlTransform.transformRow(new SeaTunnelRow(new Object[] {1, 0, "false"})));
+        Assertions.assertEquals(1, result.get(0).getField(0));
+        Assertions.assertEquals(0, result.get(0).getField(1));
+        Assertions.assertEquals(false, result.get(0).getField(2));
+        Assertions.assertEquals("false", result.get(0).getField(3));
+        Assertions.assertEquals(false, result.get(0).getField(4));
+    }
+
+    @Test
+    public void tesCastBooleanClausesWithField() {
+        String tableName = "test";
+        String[] fields = new String[] {"id", "int", "string"};
+        CatalogTable table =
                 CatalogTableUtil.getCatalogTable(
                         tableName,
                         new SeaTunnelRowType(
-                                new String[] {"id", "map"},
+                                fields,
                                 new SeaTunnelDataType[] {
-                                    BasicType.INT_TYPE,
-                                    new MapType<String, String>(
-                                            BasicType.STRING_TYPE, BasicType.STRING_TYPE)
+                                    BasicType.INT_TYPE, BasicType.INT_TYPE, BasicType.STRING_TYPE
                                 }));
-        config =
-                ReadonlyConfig.fromMap(
-                        Collections.singletonMap(
-                                "query",
-                                "select id, map.`apply` as `apply` from test where map.`apply` = 'a'"));
-        sqlTransform = new SQLTransform(SQLTransformConfig.of(config), config, table);
-        tableSchema = sqlTransform.transformTableSchema();
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery(
+                                        "select `id`, `int`, cast(`int` as boolean) as bool_1 , `string`, cast(`string` as boolean) as bool_2 from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        List<SeaTunnelRow> result =
+                Collections.singletonList(
+                        sqlTransform.transformRow(
+                                new SeaTunnelRow(new Object[] {Integer.valueOf(1), 1, "true"})));
+
+        Assertions.assertEquals(1, result.get(0).getField(0));
+        Assertions.assertEquals(1, result.get(0).getField(1));
+        Assertions.assertEquals(true, result.get(0).getField(2));
+        Assertions.assertEquals("true", result.get(0).getField(3));
+        Assertions.assertEquals(true, result.get(0).getField(4));
+
         result =
-                sqlTransform.transformRow(
-                        new SeaTunnelRow(
-                                new Object[] {
-                                    Integer.valueOf(1), Collections.singletonMap("apply", "a")
+                Collections.singletonList(
+                        sqlTransform.transformRow(
+                                new SeaTunnelRow(new Object[] {Integer.valueOf(1), 0, "false"})));
+        Assertions.assertEquals(1, result.get(0).getField(0));
+        Assertions.assertEquals(0, result.get(0).getField(1));
+        Assertions.assertEquals(false, result.get(0).getField(2));
+        Assertions.assertEquals("false", result.get(0).getField(3));
+        Assertions.assertEquals(false, result.get(0).getField(4));
+
+        Assertions.assertThrows(
+                TransformException.class,
+                () -> {
+                    try {
+                        sqlTransform.transformRow(
+                                new SeaTunnelRow(new Object[] {Integer.valueOf(1), 3, "false"}));
+                    } catch (Exception e) {
+                        Assertions.assertEquals(
+                                "ErrorCode:[COMMON-05], ErrorDescription:[Unsupported operation] - Unsupported CAST AS Boolean: 3",
+                                e.getMessage());
+                        throw e;
+                    }
+                });
+
+        Assertions.assertThrows(
+                TransformException.class,
+                () -> {
+                    try {
+                        sqlTransform.transformRow(
+                                new SeaTunnelRow(new Object[] {Integer.valueOf(1), 0, "false333"}));
+                    } catch (Exception e) {
+                        Assertions.assertEquals(
+                                "ErrorCode:[COMMON-05], ErrorDescription:[Unsupported operation] - Unsupported CAST AS Boolean: false333",
+                                e.getMessage());
+                        throw e;
+                    }
+                });
+    }
+
+    @Test
+    public void tesBooleanField() {
+        String tableName = "test";
+        String[] fields = new String[] {"id", "int", "string"};
+        CatalogTable table =
+                CatalogTableUtil.getCatalogTable(
+                        tableName,
+                        new SeaTunnelRowType(
+                                fields,
+                                new SeaTunnelDataType[] {
+                                    BasicType.INT_TYPE, BasicType.INT_TYPE, BasicType.STRING_TYPE
                                 }));
-        Assertions.assertEquals("apply", tableSchema.getFieldNames()[1]);
-        Assertions.assertEquals(
-                BasicType.STRING_TYPE, tableSchema.getColumns().get(1).getDataType());
-        Assertions.assertEquals("a", result.getField(1));
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery("select `id`, true as bool_1, false as bool_2 from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        List<SeaTunnelRow> result =
+                Collections.singletonList(
+                        sqlTransform.transformRow(new SeaTunnelRow(new Object[] {1, 1, "true"})));
+        Assertions.assertEquals(1, result.get(0).getField(0));
+        Assertions.assertEquals(true, result.get(0).getField(1));
+        Assertions.assertEquals(false, result.get(0).getField(2));
     }
 }
