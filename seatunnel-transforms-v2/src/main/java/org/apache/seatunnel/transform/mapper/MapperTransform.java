@@ -396,13 +396,6 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                     @Override
                     public SeaTunnelRow apply(SeaTunnelRow inputRow) {
                         Object[] outputFieldValues = new Object[outputColumns.length];
-                        System.arraycopy(
-                                inputRow.getFields(),
-                                0,
-                                outputFieldValues,
-                                0,
-                                outputColumns.length);
-
                         SeaTunnelRow outputRow = new SeaTunnelRow(outputFieldValues);
                         outputRow.setTableId(generateRowContainerTableId(inputRow.getTableId()));
                         outputRow.setRowKind(inputRow.getRowKind());
