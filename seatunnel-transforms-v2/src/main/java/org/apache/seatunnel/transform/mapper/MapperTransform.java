@@ -204,8 +204,10 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                                                             != tgt.getDataType()) {
                                                 cw.setTypeChanged(true);
                                                 cw.setDataType(
-                                                        convertSqlTypeToSeaTunnelDataType(
-                                                                conditionColumn.getDataType()));
+                                                        transTypeWithBasicType(
+                                                                conditionColumn.getDataType(),
+                                                                conditionColumn.getLength(),
+                                                                conditionColumn.getScale()));
                                                 tgt.setDataType(conditionColumn.getDataType());
                                             }
                                             if (StringUtils.isNotBlank(
@@ -315,19 +317,35 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                                     for (MapperConfig.Column ref : referenceColumns) {
                                         if (fname.equals(ref.getOutputName())) {
                                             if (StringUtils.isNotBlank(col.getDateFormat())) {
-                                                if (col.getDataType() == SqlType.STRING) {
+                                                if (StringUtils.isNotBlank(ref.getSqlFunction())) {
+                                                    fname =
+                                                            ref.getSqlFunction()
+                                                                    + " AS "
+                                                                    + ref.getOutputName();
+                                                } else if (col.getDataType() == SqlType.STRING) {
                                                     fname =
                                                             String.format(
                                                                     "FORMATDATETIME(%s, '%s') AS %s",
                                                                     ref.getInputName(),
                                                                     col.getDateFormat(),
                                                                     ref.getOutputName());
-                                                } else if (col.getDataType() == SqlType.TIMESTAMP) {
+                                                } else if ((col.getDataType() == SqlType.TIMESTAMP
+                                                                || col.getDataType() == SqlType.DATE
+                                                                || col.getDataType()
+                                                                        == SqlType.TIME)
+                                                        && !cw.typeChanged) {
                                                     fname =
                                                             String.format(
                                                                     "PARSEDATETIME(FORMATDATETIME(%s, '%s'), '%s') AS %s",
                                                                     ref.getInputName(),
                                                                     col.getDateFormat(),
+                                                                    col.getDateFormat(),
+                                                                    ref.getOutputName());
+                                                } else {
+                                                    fname =
+                                                            String.format(
+                                                                    "PARSEDATETIME(%s, '%s') AS %s",
+                                                                    ref.getInputName(),
                                                                     col.getDateFormat(),
                                                                     ref.getOutputName());
                                                 }
@@ -338,12 +356,23 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                                                                 + " AS "
                                                                 + ref.getOutputName();
                                             } else if (cw.isTypeChanged()) {
-                                                fname =
-                                                        String.format(
-                                                                "CAST(%s AS %s) AS %s",
-                                                                ref.getInputName(),
-                                                                col.getDataType(),
-                                                                ref.getOutputName());
+                                                if (col.getDataType() == SqlType.DECIMAL) {
+                                                    fname =
+                                                            String.format(
+                                                                    "CAST(%s AS DECIMAL(%d, %d)) AS %s",
+                                                                    ref.getInputName(),
+                                                                    col.getLength(),
+                                                                    col.getScale(),
+                                                                    ref.getOutputName());
+                                                } else {
+                                                    fname =
+                                                            String.format(
+                                                                    "CAST(%s AS %s) AS %s",
+                                                                    ref.getInputName(),
+                                                                    col.getDataType(),
+                                                                    ref.getOutputName());
+                                                }
+
                                             } else {
                                                 fname =
                                                         ref.getInputName()
@@ -436,7 +465,10 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                             SeaTunnelDataType<?> dt =
                                     cw.getDataType() != null
                                             ? cw.getDataType()
-                                            : convertSqlTypeToSeaTunnelDataType(col.getDataType());
+                                            : transTypeWithBasicType(
+                                                    col.getDataType(),
+                                                    col.getLength(),
+                                                    col.getScale());
 
                             return PhysicalColumn.of(
                                     col.getOutputName(),
@@ -625,5 +657,14 @@ public class MapperTransform extends MultipleFieldOutputTransform {
             merged.add(m);
         }
         return merged;
+    }
+
+    private SeaTunnelDataType<?> transTypeWithBasicType(
+            SqlType sqlType, Long length, Integer scale) {
+        if (sqlType == SqlType.DECIMAL) {
+            return convertSqlTypeToSeaTunnelDataType(
+                    String.format("DECIMAL(%d, %d)", length, scale));
+        }
+        return convertSqlTypeToSeaTunnelDataType(sqlType.name());
     }
 }
