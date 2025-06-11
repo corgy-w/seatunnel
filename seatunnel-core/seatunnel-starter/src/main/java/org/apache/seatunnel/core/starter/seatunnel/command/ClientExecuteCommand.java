@@ -138,7 +138,12 @@ public class ClientExecuteCommand implements Command<ClientCommandArgs> {
                 } else {
                     jobExecutionEnv =
                             engineClient.createExecutionContext(
-                                    configFile.toString(), jobConfig, seaTunnelConfig);
+                                    configFile.toString(),
+                                    jobConfig,
+                                    seaTunnelConfig,
+                                    clientCommandArgs.getCustomJobId() != null
+                                            ? Long.parseLong(clientCommandArgs.getCustomJobId())
+                                            : null);
                 }
 
                 // get job start time

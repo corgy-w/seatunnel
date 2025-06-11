@@ -63,8 +63,13 @@ public class ClientJobExecutionEnvironment extends AbstractJobEnvironment {
         this.seaTunnelHazelcastClient = seaTunnelHazelcastClient;
         this.jobClient = new JobClient(seaTunnelHazelcastClient);
         this.seaTunnelConfig = seaTunnelConfig;
-        this.jobConfig.setJobContext(
-                new JobContext(isStartWithSavePoint ? jobId : jobClient.getNewJobId()));
+        Long finalJobId;
+        if (isStartWithSavePoint || jobId != null) {
+            finalJobId = jobId;
+        } else {
+            finalJobId = jobClient.getNewJobId();
+        }
+        this.jobConfig.setJobContext(new JobContext(finalJobId));
         this.connectorPackageClient = new ConnectorPackageClient(seaTunnelHazelcastClient);
     }
 

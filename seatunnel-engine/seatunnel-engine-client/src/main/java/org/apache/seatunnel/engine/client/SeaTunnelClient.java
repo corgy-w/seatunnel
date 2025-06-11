@@ -62,6 +62,16 @@ public class SeaTunnelClient implements SeaTunnelClientInstance, AutoCloseable {
     }
 
     @Override
+    public ClientJobExecutionEnvironment createExecutionContext(
+            @NonNull String filePath,
+            @NonNull JobConfig jobConfig,
+            @NonNull SeaTunnelConfig seaTunnelConfig,
+            Long jobId) {
+        return new ClientJobExecutionEnvironment(
+                jobConfig, filePath, hazelcastClient, seaTunnelConfig, false, jobId);
+    }
+
+    @Override
     public ClientJobExecutionEnvironment restoreExecutionContext(
             @NonNull String filePath,
             @NonNull JobConfig jobConfig,

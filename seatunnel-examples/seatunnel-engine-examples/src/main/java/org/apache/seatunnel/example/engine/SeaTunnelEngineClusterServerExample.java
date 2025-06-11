@@ -21,10 +21,19 @@ import org.apache.seatunnel.core.starter.SeaTunnel;
 import org.apache.seatunnel.core.starter.exception.CommandException;
 import org.apache.seatunnel.core.starter.seatunnel.args.ServerCommandArgs;
 
-public class SeaTunnelEngineServerExample {
+import static org.apache.seatunnel.example.engine.SeaTunnelEngineLocalExample.getTestConfigFile;
+
+public class SeaTunnelEngineClusterServerExample {
+
+    static {
+        // https://logging.apache.org/log4j/2.x/manual/simple-logger.html#isThreadContextMapInheritable
+        System.setProperty("log4j2.isThreadContextMapInheritable", "true");
+        System.setProperty(
+                "SEATUNNEL_LICENCE_HOME", getTestConfigFile("/license/whaletunnel.license"));
+    }
+
     public static void main(String[] args) throws CommandException {
         ServerCommandArgs serverCommandArgs = new ServerCommandArgs();
-        serverCommandArgs.setClusterName("seatunnel");
         SeaTunnel.run(serverCommandArgs.buildCommand());
     }
 }
