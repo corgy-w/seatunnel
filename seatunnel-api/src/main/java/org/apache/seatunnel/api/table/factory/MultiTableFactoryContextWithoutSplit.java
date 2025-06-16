@@ -15,23 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.sapbw.config;
+package org.apache.seatunnel.api.table.factory;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 
 import lombok.Getter;
 
-import java.util.Map;
+import java.util.List;
 
 @Getter
-public class SAPBWSourceConfig extends SAPCommonConfig {
+public class MultiTableFactoryContextWithoutSplit extends TableSinkFactoryContext {
 
-    private static final long serialVersionUID = 1L;
-    private final Map<TablePath, QueryTableConfig> queryTableConfigs;
+    private final List<CatalogTable> catalogTables;
 
-    public SAPBWSourceConfig(ReadonlyConfig readonlyConfig) {
-        super(readonlyConfig);
-        queryTableConfigs = QueryTableConfig.of(readonlyConfig);
+    public MultiTableFactoryContextWithoutSplit(
+            ReadonlyConfig options, ClassLoader classLoader, List<CatalogTable> catalogTables) {
+        super(null, options, classLoader);
+        this.catalogTables = catalogTables;
     }
 }

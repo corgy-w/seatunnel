@@ -162,6 +162,26 @@ public final class FactoryUtil {
         }
     }
 
+    public static <IN, StateT, CommitInfoT, AggregatedCommitInfoT>
+            SeaTunnelSink<IN, StateT, CommitInfoT, AggregatedCommitInfoT>
+                    createMultiTableSinkWithoutSplit(
+                            List<CatalogTable> catalogTables,
+                            ReadonlyConfig options,
+                            ClassLoader classLoader,
+                            String factoryIdentifier) {
+        try {
+            TableSinkFactory<IN, StateT, CommitInfoT, AggregatedCommitInfoT> factory =
+                    discoverFactory(classLoader, TableSinkFactory.class, factoryIdentifier);
+            MultiTableFactoryContextWithoutSplit context =
+                    new MultiTableFactoryContextWithoutSplit(options, classLoader, catalogTables);
+            ConfigValidator.of(context.getOptions()).validate(factory.optionRule());
+            return factory.createSink(context).createSink();
+        } catch (Throwable t) {
+            throw new FactoryException(
+                    "Unable to create a sink for identifier 'MultiTableSink'.", t);
+        }
+    }
+
     public static Optional<Catalog> createOptionalCatalog(
             String catalogName,
             ReadonlyConfig options,

@@ -17,21 +17,21 @@
 
 package org.apache.seatunnel.connectors.seatunnel.sapbw.config;
 
-import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.configuration.Option;
+import org.apache.seatunnel.api.configuration.Options;
 
-import lombok.Getter;
+public class SAPBAPISinkOption extends SAPCommonOption {
 
-import java.util.Map;
+    public static final Option<String> BAPI_NAME =
+            Options.key("bapi_name")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("The name of the BAPI to be called.");
 
-@Getter
-public class SAPBWSourceConfig extends SAPCommonConfig {
-
-    private static final long serialVersionUID = 1L;
-    private final Map<TablePath, QueryTableConfig> queryTableConfigs;
-
-    public SAPBWSourceConfig(ReadonlyConfig readonlyConfig) {
-        super(readonlyConfig);
-        queryTableConfigs = QueryTableConfig.of(readonlyConfig);
-    }
+    public static final Option<String> BAPI_RETURN_TABLE_NAME =
+            Options.key("bapi_return_table_name")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "The name of the BAPI return table to be used for error handling.");
 }

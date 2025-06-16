@@ -20,33 +20,35 @@ package org.apache.seatunnel.connectors.seatunnel.sapbw.config;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 
-import java.util.List;
-
-public class SAPBWSourceOption extends SAPCommonOption {
-    public static final Option<String> CATEGORY =
-            Options.key("category")
+public abstract class SAPCommonOption {
+    public static final Option<String> APPLICATION_SERVER_HOST =
+            Options.key("ashost")
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("SAP Business Warehouse category");
-    public static final Option<String> QUERY =
-            Options.key("query")
+                    .withDescription("SAP Business Warehouse application server host");
+    public static final Option<String> SYSTEM_NUMBER =
+            Options.key("sysnr")
+                    .stringType()
+                    .defaultValue("00")
+                    .withDescription("SAP Business Warehouse system number");
+    public static final Option<String> CLIENT =
+            Options.key("client")
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("SAP Business Warehouse query");
-    public static final Option<List<String>> DIMENSIONS_AND_MEASURES =
-            Options.key("dimensions_and_measures")
-                    .listType()
-                    .noDefaultValue()
-                    .withDescription("SAP Business Warehouse dimensions and measures of the query");
-    public static final Option<String> VARIABLES =
-            Options.key("variables")
+                    .withDescription("SAP Business Warehouse client");
+    public static final Option<String> USER =
+            Options.key("user")
                     .stringType()
                     .noDefaultValue()
-                    .withDescription("SAP Business Warehouse variables of the query");
-
-    public static final Option<List<QueryTableConfig>> TABLE_LIST =
-            Options.key("table_list")
-                    .listType(QueryTableConfig.class)
+                    .withDescription("SAP Business Warehouse user");
+    public static final Option<String> PASSWORD =
+            Options.key("password")
+                    .stringType()
                     .noDefaultValue()
-                    .withDescription("table list config");
+                    .withDescription("SAP Business Warehouse password");
+    public static final Option<String> LANGUAGE =
+            Options.key("lang")
+                    .stringType()
+                    .defaultValue("EN")
+                    .withDescription("SAP Business Warehouse language");
 }
