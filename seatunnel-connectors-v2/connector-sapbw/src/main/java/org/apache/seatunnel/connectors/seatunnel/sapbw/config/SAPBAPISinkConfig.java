@@ -18,20 +18,20 @@
 package org.apache.seatunnel.connectors.seatunnel.sapbw.config;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
-import org.apache.seatunnel.api.table.catalog.TablePath;
 
 import lombok.Getter;
 
-import java.util.Map;
-
 @Getter
-public class SAPBWSourceConfig extends SAPCommonConfig {
+public class SAPBAPISinkConfig extends SAPCommonConfig {
 
     private static final long serialVersionUID = 1L;
-    private final Map<TablePath, QueryTableConfig> queryTableConfigs;
 
-    public SAPBWSourceConfig(ReadonlyConfig readonlyConfig) {
+    private final String bapiName;
+    private final String bapiReturnTableName;
+
+    public SAPBAPISinkConfig(ReadonlyConfig readonlyConfig) {
         super(readonlyConfig);
-        queryTableConfigs = QueryTableConfig.of(readonlyConfig);
+        this.bapiName = readonlyConfig.get(SAPBAPISinkOption.BAPI_NAME);
+        this.bapiReturnTableName = readonlyConfig.get(SAPBAPISinkOption.BAPI_RETURN_TABLE_NAME);
     }
 }

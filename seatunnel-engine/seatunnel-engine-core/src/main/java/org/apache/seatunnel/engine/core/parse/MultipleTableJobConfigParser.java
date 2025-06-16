@@ -28,6 +28,7 @@ import org.apache.seatunnel.api.sink.SaveModeExecuteWrapper;
 import org.apache.seatunnel.api.sink.SaveModeHandler;
 import org.apache.seatunnel.api.sink.SeaTunnelSink;
 import org.apache.seatunnel.api.sink.SupportMultiTableSink;
+import org.apache.seatunnel.api.sink.SupportMultiTableSinkWithoutSplit;
 import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceSplit;
@@ -377,6 +378,9 @@ public class MultipleTableJobConfigParser {
         if (!factory.isPresent()) {
             return true;
         }
+        if (factory.get() instanceof SupportMultiTableSinkWithoutSplit) {
+            return false;
+        }
         try {
             virtualCreator.accept(factory.get());
         } catch (Exception e) {
@@ -655,26 +659,44 @@ public class MultipleTableJobConfigParser {
 
         // TODO move it into tryGenerateMultiTableSink when we don't support sink template
         // sink template
-        for (Tuple2<CatalogTable, Action> tuple : inputVertices.get(0)) {
-            SinkAction<?, ?, ?, ?> sinkAction =
-                    createSinkAction(
-                            tuple._1(),
-                            Collections.singleton(tuple._2()),
+
+        TableSinkFactory<?, ?, ?, ?> factory =
+                FactoryUtil.discoverFactory(classLoader, TableSinkFactory.class, factoryId);
+        if (factory instanceof SupportMultiTableSinkWithoutSplit) {
+            tryGenerateMultiTableSinkWithoutSplit(
+                            inputVertices.get(0).get(0)._2(),
+                            inputVertices.get(0).stream()
+                                    .map(Tuple2::_1)
+                                    .collect(Collectors.toList()),
                             readonlyConfig,
                             classLoader,
-                            jarUrls,
-                            new HashSet<>(),
                             factoryId,
-                            tuple._2().getParallelism(),
-                            configIndex);
-            sinkActions.add(sinkAction);
+                            configIndex,
+                            jarUrls)
+                    .ifPresent(sinkActions::add);
+            return sinkActions;
+        } else {
+            for (Tuple2<CatalogTable, Action> tuple : inputVertices.get(0)) {
+                SinkAction<?, ?, ?, ?> sinkAction =
+                        createSinkAction(
+                                tuple._1(),
+                                Collections.singleton(tuple._2()),
+                                readonlyConfig,
+                                classLoader,
+                                jarUrls,
+                                new HashSet<>(),
+                                factoryId,
+                                tuple._2().getParallelism(),
+                                configIndex);
+                sinkActions.add(sinkAction);
+            }
+            Optional<SinkAction<?, ?, ?, ?>> multiTableSink =
+                    tryGenerateMultiTableSink(
+                            sinkActions, readonlyConfig, classLoader, factoryId, configIndex);
+            return multiTableSink
+                    .<List<SinkAction<?, ?, ?, ?>>>map(Collections::singletonList)
+                    .orElse(sinkActions);
         }
-        Optional<SinkAction<?, ?, ?, ?>> multiTableSink =
-                tryGenerateMultiTableSink(
-                        sinkActions, readonlyConfig, classLoader, factoryId, configIndex);
-        return multiTableSink
-                .<List<SinkAction<?, ?, ?, ?>>>map(Collections::singletonList)
-                .orElse(sinkActions);
     }
 
     private Optional<SinkAction<?, ?, ?, ?>> tryGenerateMultiTableSink(
@@ -712,6 +734,32 @@ public class MultipleTableJobConfigParser {
                         jars,
                         new HashSet<>());
         multiTableAction.setParallelism(sinkActions.get(0).getParallelism());
+        return Optional.of(multiTableAction);
+    }
+
+    private Optional<SinkAction<?, ?, ?, ?>> tryGenerateMultiTableSinkWithoutSplit(
+            Action inputAction,
+            List<CatalogTable> catalogTables,
+            ReadonlyConfig options,
+            ClassLoader classLoader,
+            String factoryId,
+            int configIndex,
+            Set<URL> jarUrls) {
+        SeaTunnelSink<?, ?, ?, ?> sink =
+                FactoryUtil.createMultiTableSinkWithoutSplit(
+                        catalogTables, options, classLoader, factoryId);
+        String actionName =
+                JobConfigParser.createSinkActionName(
+                        configIndex, factoryId, "MultiTableSinkWithoutSplit");
+        SinkAction<?, ?, ?, ?> multiTableAction =
+                new SinkAction<>(
+                        idGenerator.getNextId(),
+                        actionName,
+                        Collections.singletonList(inputAction),
+                        sink,
+                        jarUrls,
+                        new HashSet<>());
+        multiTableAction.setParallelism(inputAction.getParallelism());
         return Optional.of(multiTableAction);
     }
 
