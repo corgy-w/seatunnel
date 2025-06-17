@@ -64,7 +64,8 @@ public class InformixIncrementalSourceFactory implements TableSourceFactory {
                         JdbcSourceOptions.CONNECTION_POOL_SIZE,
                         InformixSourceOptions.STARTUP_MODE,
                         InformixSourceOptions.STOP_MODE,
-                        JdbcSourceOptions.TABLE_NAMES_CONFIG)
+                        JdbcSourceOptions.TABLE_NAMES_CONFIG,
+                        JdbcSourceOptions.WHERE_CONDITION)
                 .build();
     }
 

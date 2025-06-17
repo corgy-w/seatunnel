@@ -150,7 +150,8 @@ public class IncrementalSplitStateTest {
                 null,
                 null,
                 null,
-                new SnapshotSplitWatermark(null, lowWatermark, highWatermark));
+                new SnapshotSplitWatermark(null, lowWatermark, highWatermark),
+                null);
     }
 
     @ToString

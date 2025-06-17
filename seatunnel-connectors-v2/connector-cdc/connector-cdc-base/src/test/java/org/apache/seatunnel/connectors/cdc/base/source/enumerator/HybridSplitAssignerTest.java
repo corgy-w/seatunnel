@@ -92,7 +92,8 @@ public class HybridSplitAssignerTest {
                                         null,
                                         -1,
                                         -1,
-                                        false)),
+                                        false,
+                                        null)),
                         new AbstractMap.SimpleEntry<>(
                                 "db1.table1.2",
                                 new SnapshotSplit(
@@ -103,7 +104,8 @@ public class HybridSplitAssignerTest {
                                         null,
                                         -1,
                                         -1,
-                                        false)),
+                                        false,
+                                        null)),
                         new AbstractMap.SimpleEntry<>(
                                 "db1.table2.1",
                                 new SnapshotSplit(
@@ -114,7 +116,8 @@ public class HybridSplitAssignerTest {
                                         null,
                                         -1,
                                         -1,
-                                        false)),
+                                        false,
+                                        null)),
                         new AbstractMap.SimpleEntry<>(
                                 "db1.table2.2",
                                 new SnapshotSplit(
@@ -125,7 +128,8 @@ public class HybridSplitAssignerTest {
                                         null,
                                         -1,
                                         -1,
-                                        false)))
+                                        false,
+                                        null)))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 

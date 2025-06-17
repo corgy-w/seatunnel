@@ -42,6 +42,8 @@ public class SnapshotSplit extends SourceSplitBase {
 
     private final boolean isNull;
 
+    private final String whereConditionClause;
+
     public SnapshotSplit(
             String splitId,
             TableId tableId,
@@ -50,7 +52,8 @@ public class SnapshotSplit extends SourceSplitBase {
             Object[] splitEnd,
             int index,
             int splitCount,
-            boolean isNull) {
+            boolean isNull,
+            String whereConditionClause) {
         this(
                 splitId,
                 tableId,
@@ -61,7 +64,8 @@ public class SnapshotSplit extends SourceSplitBase {
                 null,
                 index,
                 splitCount,
-                isNull);
+                isNull,
+                whereConditionClause);
     }
 
     public SnapshotSplit(
@@ -74,7 +78,8 @@ public class SnapshotSplit extends SourceSplitBase {
             Offset highWatermark,
             int index,
             int splitCount,
-            boolean isNull) {
+            boolean isNull,
+            String whereConditionClause) {
         super(splitId);
         this.tableId = tableId;
         this.splitKeyType = splitKeyType;
@@ -85,6 +90,7 @@ public class SnapshotSplit extends SourceSplitBase {
         this.index = index;
         this.splitCount = splitCount;
         this.isNull = isNull;
+        this.whereConditionClause = whereConditionClause;
     }
 
     @Override

@@ -78,7 +78,17 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                     tableId));
                 }
                 SnapshotSplit singleSplit =
-                        createSnapshotSplit(jdbc, tableId, 0, null, null, null, 0, 1, false);
+                        createSnapshotSplit(
+                                jdbc,
+                                tableId,
+                                0,
+                                null,
+                                null,
+                                null,
+                                0,
+                                1,
+                                false,
+                                sourceConfig.getWhereConditionClause());
                 splits.add(singleSplit);
                 log.warn(
                         "No evenly split column found for table {}, use single split {}",
@@ -104,7 +114,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                         null,
                                         0,
                                         1,
-                                        false));
+                                        false,
+                                        sourceConfig.getWhereConditionClause()));
                         return splits;
                     }
                 }
@@ -132,7 +143,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                     chunk.getChunkEnd(),
                                     i,
                                     totalChunks,
-                                    false);
+                                    false,
+                                    sourceConfig.getWhereConditionClause());
                     if (split.getSplitStart() == null && split.getSplitEnd() == null) {
                         includeKeyNullValue = true;
                     }
@@ -149,7 +161,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                                     null,
                                     totalChunks - 1,
                                     totalChunks,
-                                    true));
+                                    true,
+                                    sourceConfig.getWhereConditionClause()));
                 }
             }
 
@@ -201,7 +214,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                             new Object[] {shardCount},
                             i,
                             totalChunks,
-                            false);
+                            false,
+                            sourceConfig.getWhereConditionClause());
             splits.add(split);
         }
         // add null split
@@ -214,7 +228,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                         null,
                         totalChunks - 1,
                         totalChunks,
-                        true));
+                        true,
+                        sourceConfig.getWhereConditionClause()));
         return splits;
     }
 
@@ -575,7 +590,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
             Object chunkEnd,
             int index,
             int splitCount,
-            boolean isNull) {
+            boolean isNull,
+            String whereConditionClause) {
         // currently, we only support single split column
         Object[] splitStart = chunkStart == null ? null : new Object[] {chunkStart};
         Object[] splitEnd = chunkEnd == null ? null : new Object[] {chunkEnd};
@@ -587,7 +603,8 @@ public abstract class AbstractJdbcSourceChunkSplitter implements JdbcSourceChunk
                 splitEnd,
                 index,
                 splitCount,
-                isNull);
+                isNull,
+                whereConditionClause);
     }
 
     protected Column getSplitColumn(

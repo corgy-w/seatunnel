@@ -68,7 +68,8 @@ public class DamengIncrementalSourceFactory implements TableSourceFactory {
                         JdbcSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_UPPER_BOUND,
                         JdbcSourceOptions.SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN,
                         JdbcSourceOptions.SAMPLE_SHARDING_THRESHOLD,
-                        JdbcSourceOptions.TABLE_NAMES_CONFIG)
+                        JdbcSourceOptions.TABLE_NAMES_CONFIG,
+                        JdbcSourceOptions.WHERE_CONDITION)
                 .optional(DamengSourceOptions.STARTUP_MODE, DamengSourceOptions.STOP_MODE)
                 .conditional(
                         DamengSourceOptions.STARTUP_MODE,
