@@ -72,7 +72,8 @@ public class OracleIncrementalSourceFactory implements TableSourceFactory {
                         JdbcSourceOptions.SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN,
                         JdbcSourceOptions.SAMPLE_SHARDING_THRESHOLD,
                         JdbcSourceOptions.TABLE_NAMES_CONFIG,
-                        JdbcSourceOptions.SCHEMA_CHANGES_ENABLED)
+                        JdbcSourceOptions.SCHEMA_CHANGES_ENABLED,
+                        JdbcSourceOptions.WHERE_CONDITION)
                 .optional(OracleSourceOptions.STARTUP_MODE, OracleSourceOptions.STOP_MODE)
                 .conditional(
                         OracleSourceOptions.STARTUP_MODE,

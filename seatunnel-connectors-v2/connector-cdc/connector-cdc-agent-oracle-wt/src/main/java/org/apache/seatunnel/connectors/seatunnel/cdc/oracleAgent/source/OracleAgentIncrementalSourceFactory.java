@@ -67,7 +67,8 @@ public class OracleAgentIncrementalSourceFactory implements TableSourceFactory {
                         JdbcSourceOptions.CONNECT_TIMEOUT_MS,
                         JdbcSourceOptions.CONNECT_MAX_RETRIES,
                         JdbcSourceOptions.CONNECTION_POOL_SIZE,
-                        JdbcSourceOptions.TABLE_NAMES_CONFIG)
+                        JdbcSourceOptions.TABLE_NAMES_CONFIG,
+                        JdbcSourceOptions.WHERE_CONDITION)
                 .optional(OracleAgentSourceOptions.STARTUP_MODE, OracleAgentSourceOptions.STOP_MODE)
                 .build();
     }
