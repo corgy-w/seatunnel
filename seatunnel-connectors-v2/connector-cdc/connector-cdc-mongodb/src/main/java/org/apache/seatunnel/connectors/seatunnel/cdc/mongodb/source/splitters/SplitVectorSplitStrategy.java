@@ -103,7 +103,8 @@ public enum SplitVectorSplitStrategy implements SplitStrategy {
                             boundOfId(splitKeyValue),
                             i,
                             splitKeys.size() + 1,
-                            false));
+                            false,
+                            splitContext.getWhereConditionClause()));
             lowerValue = splitKeyValue;
         }
 
@@ -116,7 +117,8 @@ public enum SplitVectorSplitStrategy implements SplitStrategy {
                         maxUpperBoundOfId(),
                         splitKeys.size(),
                         splitKeys.size() + 1,
-                        false);
+                        false,
+                        splitContext.getWhereConditionClause());
         snapshotSplits.add(lastSplit);
 
         return snapshotSplits;
