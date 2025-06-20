@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.engine.core.parse;
 
+import org.apache.seatunnel.shade.com.google.common.base.Preconditions;
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
 
 import org.apache.seatunnel.api.common.CommonOptions;
@@ -31,6 +32,7 @@ import org.apache.seatunnel.api.sink.SupportSaveMode;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.factory.ChangeStreamTableSourceCheckpoint;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.FactoryUtil;
 import org.apache.seatunnel.api.table.factory.TableSinkFactory;
@@ -59,6 +61,7 @@ import org.apache.seatunnel.engine.core.dag.actions.SinkConfig;
 import org.apache.seatunnel.engine.core.dag.actions.SourceAction;
 import org.apache.seatunnel.engine.core.dag.actions.TransformAction;
 import org.apache.seatunnel.engine.core.job.ConnectorJarIdentifier;
+import org.apache.seatunnel.engine.core.job.JobPipelineCheckpointData;
 import org.apache.seatunnel.plugin.discovery.PluginIdentifier;
 import org.apache.seatunnel.plugin.discovery.seatunnel.SeaTunnelSinkPluginDiscovery;
 import org.apache.seatunnel.plugin.discovery.seatunnel.SeaTunnelSourcePluginDiscovery;
@@ -91,7 +94,9 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode.HANDLE_SAVE_MODE_FAILED;
 import static org.apache.seatunnel.api.table.factory.FactoryUtil.DEFAULT_ID;
@@ -123,6 +128,7 @@ public class MultipleTableJobConfigParser {
 
     private final JobConfigParser fallbackParser;
     private final boolean isStartWithSavePoint;
+    private final List<JobPipelineCheckpointData> pipelineCheckpoints;
 
     public MultipleTableJobConfigParser(
             String jobDefineFilePath, IdGenerator idGenerator, JobConfig jobConfig) {
@@ -131,7 +137,13 @@ public class MultipleTableJobConfigParser {
 
     public MultipleTableJobConfigParser(
             Config seaTunnelJobConfig, IdGenerator idGenerator, JobConfig jobConfig) {
-        this(seaTunnelJobConfig, idGenerator, jobConfig, Collections.emptyList(), false);
+        this(
+                seaTunnelJobConfig,
+                idGenerator,
+                jobConfig,
+                Collections.emptyList(),
+                false,
+                Collections.emptyList());
     }
 
     public MultipleTableJobConfigParser(
@@ -140,6 +152,41 @@ public class MultipleTableJobConfigParser {
             JobConfig jobConfig,
             List<URL> commonPluginJars,
             boolean isStartWithSavePoint) {
+        this(
+                jobDefineFilePath,
+                null,
+                idGenerator,
+                jobConfig,
+                commonPluginJars,
+                isStartWithSavePoint,
+                Collections.emptyList());
+    }
+
+    public MultipleTableJobConfigParser(
+            String jobDefineFilePath,
+            IdGenerator idGenerator,
+            JobConfig jobConfig,
+            List<URL> commonPluginJars,
+            boolean isStartWithSavePoint,
+            List<JobPipelineCheckpointData> pipelineCheckpoints) {
+        this(
+                jobDefineFilePath,
+                null,
+                idGenerator,
+                jobConfig,
+                commonPluginJars,
+                isStartWithSavePoint,
+                pipelineCheckpoints);
+    }
+
+    public MultipleTableJobConfigParser(
+            String jobDefineFilePath,
+            List<String> variables,
+            IdGenerator idGenerator,
+            JobConfig jobConfig,
+            List<URL> commonPluginJars,
+            boolean isStartWithSavePoint,
+            List<JobPipelineCheckpointData> pipelineCheckpoints) {
         this.idGenerator = idGenerator;
         this.jobConfig = jobConfig;
         this.commonPluginJars = commonPluginJars;
@@ -148,6 +195,7 @@ public class MultipleTableJobConfigParser {
         this.envOptions = ReadonlyConfig.fromConfig(seaTunnelJobConfig.getConfig("env"));
         this.fallbackParser =
                 new JobConfigParser(idGenerator, commonPluginJars, isStartWithSavePoint);
+        this.pipelineCheckpoints = pipelineCheckpoints;
     }
 
     public MultipleTableJobConfigParser(
@@ -155,7 +203,8 @@ public class MultipleTableJobConfigParser {
             IdGenerator idGenerator,
             JobConfig jobConfig,
             List<URL> commonPluginJars,
-            boolean isStartWithSavePoint) {
+            boolean isStartWithSavePoint,
+            List<JobPipelineCheckpointData> pipelineCheckpoints) {
         this.idGenerator = idGenerator;
         this.jobConfig = jobConfig;
         this.commonPluginJars = commonPluginJars;
@@ -164,6 +213,7 @@ public class MultipleTableJobConfigParser {
         this.envOptions = ReadonlyConfig.fromConfig(seaTunnelJobConfig.getConfig("env"));
         this.fallbackParser =
                 new JobConfigParser(idGenerator, commonPluginJars, isStartWithSavePoint);
+        this.pipelineCheckpoints = pipelineCheckpoints;
     }
 
     public ImmutablePair<List<Action>, Set<URL>> parse(ClassLoaderService classLoaderService) {
@@ -203,6 +253,11 @@ public class MultipleTableJobConfigParser {
 
             boolean isMultipleTableJob = false;
             log.info("start generating all sources.");
+            if (isStartWithSavePoint && !CollectionUtils.isEmpty(pipelineCheckpoints)) {
+                Preconditions.checkState(
+                        sourceConfigs.size() == pipelineCheckpoints.size(),
+                        "The number of source configurations and pipeline checkpoints must be equal.");
+            }
             for (int configIndex = 0; configIndex < sourceConfigs.size(); configIndex++) {
                 Config sourceConfig = sourceConfigs.get(configIndex);
                 Tuple2<String, List<Tuple2<CatalogTable, Action>>> tuple2 =
@@ -374,8 +429,16 @@ public class MultipleTableJobConfigParser {
             return new Tuple2<>(tableId, Collections.singletonList(tuple));
         }
 
-        Tuple2<SeaTunnelSource<Object, SourceSplit, Serializable>, List<CatalogTable>> tuple2 =
-                FactoryUtil.createAndPrepareSource(readonlyConfig, classLoader, factoryId);
+        Tuple2<SeaTunnelSource<Object, SourceSplit, Serializable>, List<CatalogTable>> tuple2;
+        if (isStartWithSavePoint && !CollectionUtils.isEmpty(pipelineCheckpoints)) {
+            ChangeStreamTableSourceCheckpoint checkpoint =
+                    getSourceCheckpoint(configIndex, factoryId);
+            tuple2 =
+                    FactoryUtil.restoreAndPrepareSource(
+                            readonlyConfig, classLoader, factoryId, checkpoint);
+        } else {
+            tuple2 = FactoryUtil.createAndPrepareSource(readonlyConfig, classLoader, factoryId);
+        }
 
         Set<URL> factoryUrls = new HashSet<>();
         factoryUrls.addAll(getSourcePluginJarPaths(sourceConfig));
@@ -834,5 +897,43 @@ public class MultipleTableJobConfigParser {
                 sinkPluginDiscovery.getPluginJarAndDependencyPaths(
                         Lists.newArrayList(pluginIdentifier));
         return pluginJarPaths;
+    }
+
+    private ChangeStreamTableSourceCheckpoint getSourceCheckpoint(
+            int sourceConfigIndex, String sourceFactoryId) {
+        String sourceActionName =
+                JobConfigParser.createSourceActionName(sourceConfigIndex, sourceFactoryId);
+        JobPipelineCheckpointData pipelineCheckpointData =
+                pipelineCheckpoints.get(sourceConfigIndex);
+        Preconditions.checkArgument(
+                pipelineCheckpointData.getPipelineId() == sourceConfigIndex + 1,
+                String.format(
+                        "The pipeline id in the checkpoint data is %d, but the config index is %d.",
+                        pipelineCheckpointData.getPipelineId(), sourceConfigIndex + 1));
+
+        List<JobPipelineCheckpointData.ActionState> sourceCheckpointData =
+                pipelineCheckpointData.getTaskStates().entrySet().stream()
+                        .filter(entry -> entry.getKey().contains(sourceActionName))
+                        .map(e -> e.getValue())
+                        .collect(Collectors.toList());
+        Preconditions.checkArgument(
+                sourceCheckpointData.size() == 1,
+                String.format(
+                        "The source action name %s is not found in the checkpoint keys %s.",
+                        sourceActionName, pipelineCheckpointData.getTaskStates().keySet()));
+
+        byte[] coordinatorState = sourceCheckpointData.get(0).getCoordinatorState().get(0);
+        List<List<byte[]>> subtaskState =
+                sourceCheckpointData.get(0).getSubtaskState().stream()
+                        .flatMap(
+                                (Function<
+                                                JobPipelineCheckpointData.ActionSubtaskState,
+                                                Stream<List<byte[]>>>)
+                                        state ->
+                                                state == null
+                                                        ? Stream.of(Collections.emptyList())
+                                                        : Stream.of(state.getState()))
+                        .collect(Collectors.toList());
+        return new ChangeStreamTableSourceCheckpoint(coordinatorState, subtaskState);
     }
 }

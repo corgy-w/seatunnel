@@ -15,29 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.engine.server.checkpoint;
-
-import org.apache.seatunnel.engine.core.dag.actions.Action;
+package org.apache.seatunnel.api.table.factory;
 
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
-@ToString
-@Setter
-@Getter
+@Data
 @AllArgsConstructor
-@NoArgsConstructor
-@EqualsAndHashCode
-public class ActionStateKey implements Serializable {
-    private String name;
-
-    public static ActionStateKey of(Action action) {
-        return new ActionStateKey("ActionStateKey - " + action.getName());
-    }
+public class ChangeStreamTableSourceCheckpoint implements Serializable {
+    private byte[] enumeratorState;
+    public List<List<byte[]>> splits;
 }
