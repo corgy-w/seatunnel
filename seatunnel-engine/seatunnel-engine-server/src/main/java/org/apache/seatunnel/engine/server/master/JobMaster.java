@@ -62,6 +62,7 @@ import org.apache.seatunnel.engine.server.dag.DAGUtils;
 import org.apache.seatunnel.engine.server.dag.physical.PhysicalPlan;
 import org.apache.seatunnel.engine.server.dag.physical.PipelineLocation;
 import org.apache.seatunnel.engine.server.dag.physical.PlanUtils;
+import org.apache.seatunnel.engine.server.dag.physical.ResourceUtils;
 import org.apache.seatunnel.engine.server.dag.physical.SubPlan;
 import org.apache.seatunnel.engine.server.execution.TaskExecutionState;
 import org.apache.seatunnel.engine.server.execution.TaskGroupLocation;
@@ -102,6 +103,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -117,6 +119,7 @@ public class JobMaster implements DynamicMetricsProvider {
     private static final ILogger LOGGER = Logger.getLogger(JobMaster.class);
     private static final String JOB_RESTORE_TIMES = "JobRestoreTimes";
     private PhysicalPlan physicalPlan;
+
     private final Data jobImmutableInformationData;
 
     private final NodeEngine nodeEngine;
@@ -173,6 +176,8 @@ public class JobMaster implements DynamicMetricsProvider {
     private final SeaTunnelMetricsContext metricsContext;
     private final Counter jobRestoreTimesCounter;
 
+    @Getter private Long jobId;
+
     public String getErrorMessage() {
         return errorMessage;
     }
@@ -180,6 +185,7 @@ public class JobMaster implements DynamicMetricsProvider {
     private String errorMessage;
 
     public JobMaster(
+            @NonNull Long jobId,
             @NonNull Data jobImmutableInformationData,
             @NonNull NodeEngine nodeEngine,
             @NonNull ExecutorService executorService,
@@ -192,6 +198,7 @@ public class JobMaster implements DynamicMetricsProvider {
             @NonNull IMap<Long, HashMap<TaskLocation, SeaTunnelMetricsContext>> metricsImap,
             EngineConfig engineConfig,
             SeaTunnelServer seaTunnelServer) {
+        this.jobId = jobId;
         this.jobImmutableInformationData = jobImmutableInformationData;
         this.nodeEngine = nodeEngine;
         this.executorService = executorService;
@@ -380,6 +387,98 @@ public class JobMaster implements DynamicMetricsProvider {
                             cleanJob();
                             jobMasterCompleteFuture.complete(jobResult);
                         }));
+    }
+
+    /**
+     * Apply for resources
+     *
+     * @return true if apply resources successfully, otherwise false
+     */
+    public boolean preApplyResources() {
+        Map<TaskGroupLocation, CompletableFuture<SlotProfile>> preApplyResourceFutures =
+                new HashMap<>();
+        for (SubPlan subPlan : physicalPlan.getPipelineList()) {
+            Map<TaskGroupLocation, CompletableFuture<SlotProfile>> coordinatorFutures =
+                    new HashMap<>();
+            subPlan.getCoordinatorVertexList()
+                    .forEach(
+                            coordinator ->
+                                    coordinatorFutures.put(
+                                            coordinator.getTaskGroupLocation(),
+                                            ResourceUtils.applyResourceForTask(
+                                                    resourceManager,
+                                                    coordinator,
+                                                    subPlan.getTags())));
+
+            Map<TaskGroupLocation, CompletableFuture<SlotProfile>> taskFutures = new HashMap<>();
+            subPlan.getPhysicalVertexList()
+                    .forEach(
+                            task ->
+                                    taskFutures.put(
+                                            task.getTaskGroupLocation(),
+                                            ResourceUtils.applyResourceForTask(
+                                                    resourceManager, task, subPlan.getTags())));
+
+            preApplyResourceFutures.putAll(coordinatorFutures);
+            preApplyResourceFutures.putAll(taskFutures);
+        }
+
+        boolean enoughResource =
+                preApplyResourceFutures.values().stream()
+                                .filter(
+                                        value -> {
+                                            try {
+                                                return value != null && value.join() != null;
+                                            } catch (CompletionException e) {
+                                                LOGGER.warning(
+                                                        "Pre resource application failed, resources may be not enough");
+                                                return false;
+                                            }
+                                        })
+                                .count()
+                        == preApplyResourceFutures.size();
+
+        if (enoughResource) {
+            // Adequate resources, pass on resources to the plan
+            physicalPlan.setPreApplyResourceFutures(preApplyResourceFutures);
+        } else {
+            // Release the resource that has been applied
+            try {
+                RetryUtils.retryWithException(
+                        () -> {
+                            resourceManager
+                                    .releaseResources(
+                                            jobImmutableInformation.getJobId(),
+                                            preApplyResourceFutures.values().stream()
+                                                    .filter(
+                                                            value -> {
+                                                                try {
+                                                                    return value != null
+                                                                            && value.join() != null;
+                                                                } catch (CompletionException e) {
+                                                                    LOGGER.warning(
+                                                                            "Pre resource application failed, resources may be not enough");
+                                                                    return false;
+                                                                }
+                                                            })
+                                                    .map(CompletableFuture::join)
+                                                    .collect(Collectors.toList()))
+                                    .join();
+                            return null;
+                        },
+                        new RetryUtils.RetryMaterial(
+                                Constant.OPERATION_RETRY_TIME,
+                                true,
+                                ExceptionUtil::isOperationNeedRetryException,
+                                Constant.OPERATION_RETRY_SLEEP));
+            } catch (Exception e) {
+                LOGGER.warning(
+                        String.format(
+                                "Pre resource application failed %s",
+                                ExceptionUtils.getMessage(e)));
+            }
+        }
+        return enoughResource;
     }
 
     public void run() {

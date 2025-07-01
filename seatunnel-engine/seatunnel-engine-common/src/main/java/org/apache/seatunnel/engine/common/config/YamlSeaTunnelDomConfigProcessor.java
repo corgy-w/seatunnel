@@ -24,6 +24,7 @@ import org.apache.seatunnel.engine.common.config.server.ConnectorJarStorageConfi
 import org.apache.seatunnel.engine.common.config.server.ConnectorJarStorageMode;
 import org.apache.seatunnel.engine.common.config.server.HttpConfig;
 import org.apache.seatunnel.engine.common.config.server.QueueType;
+import org.apache.seatunnel.engine.common.config.server.ScheduleStrategy;
 import org.apache.seatunnel.engine.common.config.server.ServerConfigOptions;
 import org.apache.seatunnel.engine.common.config.server.SlotServiceConfig;
 import org.apache.seatunnel.engine.common.config.server.TelemetryConfig;
@@ -170,6 +171,9 @@ public class YamlSeaTunnelDomConfigProcessor extends AbstractDomConfigProcessor 
                 }
             } else if (ServerConfigOptions.TELEMETRY.key().equals(name)) {
                 engineConfig.setTelemetryConfig(parseTelemetryConfig(node));
+            } else if (ServerConfigOptions.JOB_SCHEDULE_STRATEGY.key().equals(name)) {
+                engineConfig.setScheduleStrategy(
+                        ScheduleStrategy.valueOf(getTextContent(node).toUpperCase(Locale.ROOT)));
             } else if (ServerConfigOptions.HTTP.key().equals(name)) {
                 engineConfig.setHttpConfig(parseHttpConfig(node));
             } else if (ServerConfigOptions.LICENSE_GET_HTTP.equalsIgnoreCase(name)) {
@@ -192,6 +196,12 @@ public class YamlSeaTunnelDomConfigProcessor extends AbstractDomConfigProcessor 
             } else {
                 LOGGER.warning("Unrecognized element: " + name);
             }
+        }
+
+        if (engineConfig.getSlotServiceConfig().isDynamicSlot()) {
+            // If dynamic slot is enabled, the schedule strategy must be REJECT
+            LOGGER.info("Dynamic slot is enabled, the schedule strategy is set to REJECT");
+            engineConfig.setScheduleStrategy(ScheduleStrategy.REJECT);
         }
     }
 

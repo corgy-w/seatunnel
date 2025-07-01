@@ -186,10 +186,10 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
         if (!seaTunnelServer.isMasterNode()) {
 
             NodeEngineUtil.sendOperationToMasterNode(
-                            node.nodeEngine,
+                            getNode().nodeEngine,
                             new SubmitJobOperation(
                                     jobId,
-                                    node.nodeEngine.toData(jobImmutableInformation),
+                                    getNode().nodeEngine.toData(jobImmutableInformation),
                                     jobImmutableInformation.isStartWithSavePoint()))
                     .join();
 
