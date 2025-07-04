@@ -168,7 +168,10 @@ public class MapperTransform extends MultipleFieldOutputTransform {
                                         MapperConfig.Column.builder()
                                                 .inputName(conditionColumn.getInputName())
                                                 .outputName(conditionColumn.getOutputName())
-                                                .position(position.getAndIncrement())
+                                                .position(
+                                                        conditionColumn.getPosition() == null
+                                                                ? position.getAndIncrement()
+                                                                : conditionColumn.getPosition())
                                                 .dataType(conditionColumn.getDataType())
                                                 .dateFormat(conditionColumn.getDateFormat())
                                                 .length(conditionColumn.getLength())
