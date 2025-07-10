@@ -23,6 +23,7 @@ import org.apache.seatunnel.engine.core.dag.actions.ActionUtils;
 import org.apache.seatunnel.engine.core.dag.logical.LogicalDag;
 import org.apache.seatunnel.engine.core.dag.logical.LogicalVertex;
 import org.apache.seatunnel.engine.core.job.Edge;
+import org.apache.seatunnel.engine.core.job.ExecutionAddress;
 import org.apache.seatunnel.engine.core.job.JobDAGInfo;
 import org.apache.seatunnel.engine.core.job.JobImmutableInformation;
 import org.apache.seatunnel.engine.core.job.VertexInfo;
@@ -66,7 +67,8 @@ public class DAGUtils {
     public static LogicalDag restoreLogicalDag(
             JobImmutableInformation jobImmutableInformation,
             SerializationService serializationService,
-            ClassLoaderService classLoaderService) {
+            ClassLoaderService classLoaderService,
+            Set<ExecutionAddress> historyExecutionAddress) {
         List<Set<URL>> logicalVertexJarsList = jobImmutableInformation.getLogicalVertexJarsList();
         List<ClassLoader> classLoaders = new ArrayList<>();
         try {
@@ -87,7 +89,8 @@ public class DAGUtils {
             LogicalDag logicalDag,
             JobImmutableInformation jobImmutableInformation,
             EngineConfig engineConfig,
-            boolean isPhysicalDAGIInfo) {
+            boolean isPhysicalDAGIInfo,
+            Set<ExecutionAddress> historyExecutionAddress) {
         List<Pipeline> pipelines =
                 new ExecutionPlanGenerator(logicalDag, jobImmutableInformation, engineConfig)
                         .generate()
@@ -120,7 +123,10 @@ public class DAGUtils {
                                         });
                     });
             return new JobDAGInfo(
-                    jobImmutableInformation.getJobId(), pipelineWithEdges, vertexInfoMap);
+                    jobImmutableInformation.getJobId(),
+                    pipelineWithEdges,
+                    vertexInfoMap,
+                    historyExecutionAddress);
         } else {
             // Generate LogicalPlan DAG
             List<Edge> edges =
@@ -163,7 +169,10 @@ public class DAGUtils {
                                             },
                                             Collectors.toList()));
             return new JobDAGInfo(
-                    jobImmutableInformation.getJobId(), pipelineWithEdges, vertexInfoMap);
+                    jobImmutableInformation.getJobId(),
+                    pipelineWithEdges,
+                    vertexInfoMap,
+                    historyExecutionAddress);
         }
     }
 }

@@ -48,6 +48,7 @@ import org.apache.seatunnel.engine.core.dag.actions.SinkAction;
 import org.apache.seatunnel.engine.core.dag.logical.LogicalDag;
 import org.apache.seatunnel.engine.core.dag.logical.LogicalVertex;
 import org.apache.seatunnel.engine.core.job.ConnectorJarIdentifier;
+import org.apache.seatunnel.engine.core.job.ExecutionAddress;
 import org.apache.seatunnel.engine.core.job.JobDAGInfo;
 import org.apache.seatunnel.engine.core.job.JobImmutableInformation;
 import org.apache.seatunnel.engine.core.job.JobInfo;
@@ -166,6 +167,8 @@ public class JobMaster implements DynamicMetricsProvider {
     private final Map<Integer, List<SlotProfile>> releasedSlotWhenTaskGroupFinished;
 
     private final IMap<Long, JobInfo> runningJobInfoIMap;
+
+    @Getter private final Set<ExecutionAddress> historyExecutionAddress = new HashSet<>();
 
     private final IMap<Long, HashMap<TaskLocation, SeaTunnelMetricsContext>> metricsImap;
 
@@ -439,8 +442,20 @@ public class JobMaster implements DynamicMetricsProvider {
                         == preApplyResourceFutures.size();
 
         if (enoughResource) {
+            for (Map.Entry<TaskGroupLocation, CompletableFuture<SlotProfile>> entry :
+                    preApplyResourceFutures.entrySet()) {
+                try {
+                    Address worker = entry.getValue().get().getWorker();
+                    historyExecutionAddress.add(
+                            new ExecutionAddress(worker.getHost(), worker.getPort()));
+
+                } catch (Exception e) {
+                    LOGGER.warning("history execution plan add worker failed", e);
+                }
+            }
             // Adequate resources, pass on resources to the plan
             physicalPlan.setPreApplyResourceFutures(preApplyResourceFutures);
+
         } else {
             // Release the resource that has been applied
             try {
@@ -597,7 +612,11 @@ public class JobMaster implements DynamicMetricsProvider {
         if (jobDAGInfo == null) {
             jobDAGInfo =
                     DAGUtils.getJobDAGInfo(
-                            logicalDag, jobImmutableInformation, engineConfig, isPhysicalDAGIInfo);
+                            logicalDag,
+                            jobImmutableInformation,
+                            engineConfig,
+                            isPhysicalDAGIInfo,
+                            historyExecutionAddress);
         }
         return jobDAGInfo;
     }
