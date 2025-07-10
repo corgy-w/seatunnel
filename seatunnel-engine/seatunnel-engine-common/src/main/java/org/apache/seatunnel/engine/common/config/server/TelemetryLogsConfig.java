@@ -15,23 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.engine.core.job;
+package org.apache.seatunnel.engine.common.config.server;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
-public class JobDAGInfo implements Serializable {
-    Long jobId;
-    Map<Integer, List<Edge>> pipelineEdges;
-    Map<Long, VertexInfo> vertexInfoMap;
-    Set<ExecutionAddress> historyExecutionPlan;
+public class TelemetryLogsConfig implements Serializable {
+
+    private boolean enabled =
+            ServerConfigOptions.TELEMETRY_LOGS_SCHEDULED_DELETION_ENABLE.defaultValue();
 }
