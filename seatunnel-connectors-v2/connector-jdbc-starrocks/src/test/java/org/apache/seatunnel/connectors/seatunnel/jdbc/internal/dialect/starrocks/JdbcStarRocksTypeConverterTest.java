@@ -40,6 +40,4 @@ public class JdbcStarRocksTypeConverterTest {
         Column column = converter.convert(define);
         Assertions.assertEquals(SqlType.DECIMAL, column.getDataType().getSqlType());
     }
-
-
 }
