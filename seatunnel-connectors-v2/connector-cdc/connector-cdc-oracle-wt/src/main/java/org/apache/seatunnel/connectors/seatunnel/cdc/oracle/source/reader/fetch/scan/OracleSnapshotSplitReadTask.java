@@ -212,7 +212,9 @@ public class OracleSnapshotSplitReadTask
                         snapshotSplit.getSplitEnd() == null,
                         snapshotSplit.getSplitEnd(),
                         snapshotSplit.isNull(),
-                        new WhereConditionClauseHook(snapshotSplit.getWhereConditionClause()));
+                        new WhereConditionClauseHook(
+                                snapshotSplit.getWhereConditionClause(),
+                                snapshotSplit.getReadColumnsMap().get(snapshotSplit.getTableId())));
         LOG.info(
                 "For split '{}' of table {} using select statement: '{}'",
                 snapshotSplit.splitId(),

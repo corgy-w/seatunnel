@@ -19,12 +19,14 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.oracle.source;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.source.SupportColumnProjection;
 import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.source.SupportSchemaEvolution;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.schema.SchemaChangeType;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
+import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceTableConfig;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
@@ -61,7 +63,7 @@ import java.util.stream.Collectors;
 
 @NoArgsConstructor
 public class OracleIncrementalSource<T> extends IncrementalSource<T, JdbcSourceConfig>
-        implements SupportParallelism, SupportSchemaEvolution {
+        implements SupportParallelism, SupportSchemaEvolution, SupportColumnProjection {
 
     static final String IDENTIFIER = "Oracle-CDC";
 
@@ -107,6 +109,11 @@ public class OracleIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
         }
 
         String zoneId = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);
+
+        Map<String, List<String>> readColumnsMap =
+                JdbcSourceTableConfig.toReadColumnsMap(
+                        config.get(JdbcSourceOptions.TABLE_NAMES_CONFIG));
+
         return (DebeziumDeserializationSchema<T>)
                 SeaTunnelRowDebeziumDeserializeSchema.builder()
                         .setTables(catalogTables)
@@ -114,6 +121,7 @@ public class OracleIncrementalSource<T> extends IncrementalSource<T, JdbcSourceC
                         .setSchemaChangeResolver(
                                 new OracleSchemaChangeResolver(createSourceConfigFactory(config)))
                         .setTableIdTableChangeMap(tableIdStructMap)
+                        .setReadColumnsMap(readColumnsMap)
                         .build();
     }
 

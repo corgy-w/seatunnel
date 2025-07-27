@@ -49,6 +49,7 @@ public class SnapshotSplitState extends SourceSplitStateBase {
                 snapshotSplit.getIndex(),
                 snapshotSplit.getSplitCount(),
                 snapshotSplit.isNull(),
-                snapshotSplit.getWhereConditionClause());
+                snapshotSplit.getWhereConditionClause(),
+                snapshotSplit.getReadColumnsMap());
     }
 }

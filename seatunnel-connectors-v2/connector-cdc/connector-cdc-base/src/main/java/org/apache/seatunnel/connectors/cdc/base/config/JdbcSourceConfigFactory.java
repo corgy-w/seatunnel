@@ -26,7 +26,9 @@ import lombok.Setter;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /** A {@link SourceConfig.Factory} to provide {@link SourceConfig} of JDBC data source. */
 public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<JdbcSourceConfig> {
@@ -43,6 +45,7 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
     protected StartupConfig startupConfig;
     protected StopConfig stopConfig;
     protected String whereCondition;
+    protected Map<String, List<String>> readColumnsMap;
     protected double distributionFactorUpper =
             JdbcSourceOptions.CHUNK_KEY_EVEN_DISTRIBUTION_FACTOR_UPPER_BOUND.defaultValue();
     protected double distributionFactorLower =
@@ -269,9 +272,41 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
         config.getOptional(SourceOptions.DEBEZIUM_PROPERTIES)
                 .ifPresent(map -> dbzProperties.putAll(map));
         this.whereCondition = config.getOptional(JdbcSourceOptions.WHERE_CONDITION).orElse(null);
+        if (config.getOptional(JdbcSourceOptions.TABLE_NAMES_CONFIG).orElse(null) != null) {
+            List<JdbcSourceTableConfig> jdbcSourceTableConfigs =
+                    config.get(JdbcSourceOptions.TABLE_NAMES_CONFIG);
+            this.readColumnsMap = JdbcSourceTableConfig.toReadColumnsMap(jdbcSourceTableConfigs);
+        } else {
+            this.readColumnsMap = null;
+        }
         return this;
     }
 
     @Override
     public abstract JdbcSourceConfig create(int subtask);
+
+    /**
+     * Build the column include list from the read columns map.
+     *
+     * @param readColumnsMap The map of table names to their read columns.
+     * @return A string representing the column include list.
+     */
+    public static String buildColumnIncludeList(Map<String, List<String>> readColumnsMap) {
+        if (readColumnsMap == null || readColumnsMap.isEmpty()) {
+            return "";
+        }
+        return readColumnsMap.entrySet().stream()
+                .map(
+                        entry -> {
+                            String table = entry.getKey();
+                            List<String> cols = entry.getValue();
+                            if (cols != null && !cols.isEmpty()) {
+                                String colPattern = String.join("|", cols);
+                                return table + ".(" + colPattern + ")";
+                            } else {
+                                return table + ".*";
+                            }
+                        })
+                .collect(Collectors.joining(","));
+    }
 }

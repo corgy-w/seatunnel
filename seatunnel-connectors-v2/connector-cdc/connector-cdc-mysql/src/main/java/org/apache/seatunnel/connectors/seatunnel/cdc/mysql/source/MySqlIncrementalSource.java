@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.mysql.source;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.source.SupportColumnProjection;
 import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.source.SupportSchemaEvolution;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
@@ -26,6 +27,7 @@ import org.apache.seatunnel.api.table.schema.SchemaChangeType;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceConfig;
+import org.apache.seatunnel.connectors.cdc.base.config.JdbcSourceTableConfig;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
@@ -61,7 +63,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceConfig>
-        implements SupportParallelism, SupportSchemaEvolution {
+        implements SupportParallelism, SupportSchemaEvolution, SupportColumnProjection {
     static final String IDENTIFIER = "MySQL-CDC";
 
     public MySqlIncrementalSource(ReadonlyConfig options, List<CatalogTable> catalogTables) {
@@ -116,6 +118,10 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
         String zoneId = config.get(JdbcSourceOptions.SERVER_TIME_ZONE);
         JdbcSourceConfig sourceConfig = configFactory.create(0);
         RelationalDatabaseConnectorConfig dbzConnectorConfig = sourceConfig.getDbzConnectorConfig();
+
+        Map<String, List<String>> readColumnsMap =
+                JdbcSourceTableConfig.toReadColumnsMap(
+                        config.get(JdbcSourceOptions.TABLE_NAMES_CONFIG));
         return (DebeziumDeserializationSchema<T>)
                 SeaTunnelRowDebeziumDeserializeSchema.builder()
                         .setTables(catalogTables)
@@ -127,6 +133,7 @@ public class MySqlIncrementalSource<T> extends IncrementalSource<T, JdbcSourceCo
                                                 (MySqlConnectorConfig) dbzConnectorConfig),
                                         dataSourceDialect.getName(),
                                         sourceConfig))
+                        .setReadColumnsMap(readColumnsMap)
                         .build();
     }
 

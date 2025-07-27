@@ -17,13 +17,15 @@
 
 package org.apache.seatunnel.connectors.cdc.base.source.split;
 
-import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 
 import io.debezium.relational.TableId;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.util.List;
+import java.util.Map;
 
 @Getter
 @ToString(callSuper = true)
@@ -43,6 +45,8 @@ public class SnapshotSplit extends SourceSplitBase {
     private final boolean isNull;
 
     private final String whereConditionClause;
+
+    private final Map<TableId, List<String>> readColumnsMap;
 
     public SnapshotSplit(
             String splitId,
@@ -65,7 +69,34 @@ public class SnapshotSplit extends SourceSplitBase {
                 index,
                 splitCount,
                 isNull,
-                whereConditionClause);
+                whereConditionClause,
+                null);
+    }
+
+    public SnapshotSplit(
+            String splitId,
+            TableId tableId,
+            SeaTunnelRowType splitKeyType,
+            Object[] splitStart,
+            Object[] splitEnd,
+            int index,
+            int splitCount,
+            boolean isNull,
+            String whereConditionClause,
+            Map<TableId, List<String>> readColumnsMap) {
+        this(
+                splitId,
+                tableId,
+                splitKeyType,
+                splitStart,
+                splitEnd,
+                null,
+                null,
+                index,
+                splitCount,
+                isNull,
+                whereConditionClause,
+                readColumnsMap);
     }
 
     public SnapshotSplit(
@@ -79,7 +110,8 @@ public class SnapshotSplit extends SourceSplitBase {
             int index,
             int splitCount,
             boolean isNull,
-            String whereConditionClause) {
+            String whereConditionClause,
+            Map<TableId, List<String>> readColumnsMap) {
         super(splitId);
         this.tableId = tableId;
         this.splitKeyType = splitKeyType;
@@ -91,11 +123,12 @@ public class SnapshotSplit extends SourceSplitBase {
         this.splitCount = splitCount;
         this.isNull = isNull;
         this.whereConditionClause = whereConditionClause;
+        this.readColumnsMap = readColumnsMap;
     }
 
     @Override
-    public TablePath getTablePath() {
-        return tableId.toTablePath();
+    public String splitId() {
+        return this.splitId;
     }
 
     public boolean isSnapshotReadFinished() {
