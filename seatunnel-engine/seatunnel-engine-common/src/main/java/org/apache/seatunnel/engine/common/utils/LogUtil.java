@@ -26,14 +26,25 @@ import org.apache.logging.log4j.core.config.properties.PropertiesConfiguration;
 import org.apache.logging.log4j.core.lookup.StrSubstitutor;
 
 import java.lang.reflect.Field;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.regex.Pattern;
 
 public class LogUtil {
 
     /** Get configuration log path by log4j */
     public static String getLogPath() throws NoSuchFieldException, IllegalAccessException {
+        PropertiesConfiguration config = getLogConfiguration();
+        StrSubstitutor substitutor = config.getStrSubstitutor();
+
+        String filePath = substitutor.replace("${file_path}");
+        if (!"${file_path}".equals(filePath) && StringUtils.isNotBlank(filePath)) {
+            return filePath;
+        }
+
         String routingAppender = "routingAppender";
         String fileAppender = "fileAppender";
-        PropertiesConfiguration config = getLogConfiguration();
+
         // Get routingAppender log file path
         String routingLogFilePath = getRoutingLogFilePath(config);
 
@@ -52,6 +63,51 @@ public class LogUtil {
         } else {
             throw new IllegalArgumentException(
                     String.format("Log file path is empty, get logRef : %s", logRef));
+        }
+    }
+
+    /** Get configuration file name by log4j */
+    public static String getLogFileName() throws NoSuchFieldException, IllegalAccessException {
+        PropertiesConfiguration config = getLogConfiguration();
+        StrSubstitutor substitutor = config.getStrSubstitutor();
+
+        String fileName = substitutor.replace("${file_name}");
+        if ("${file_name}".equals(fileName) || StringUtils.isBlank(fileName)) {
+            fileName = "seatunnel";
+        }
+        return fileName;
+    }
+
+    /** Get log file pattern for rolling files */
+    public static String getLogFilePattern() throws NoSuchFieldException, IllegalAccessException {
+        PropertiesConfiguration config = getLogConfiguration();
+        StrSubstitutor substitutor = config.getStrSubstitutor();
+
+        String filePattern = getFileAppenderPattern(config, substitutor);
+        if (StringUtils.isBlank(filePattern)) {
+            String fileName = getLogFileName();
+            filePattern = fileName + ".log.%d{yyyy-MM-dd}-%i";
+        }
+        return filePattern;
+    }
+
+    /** Check if a file matches the log file pattern for a specific date */
+    public static boolean isLogFileForDate(String fileName, LocalDate date) {
+        try {
+            String logFileName = getLogFileName();
+            String dateStr = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            LocalDate today = LocalDate.now();
+
+            if (fileName.equals(logFileName + ".log")) {
+                return date.equals(today);
+            }
+
+            String pattern = logFileName + "\\.log\\." + dateStr + "-\\d+";
+            return Pattern.matches(pattern, fileName);
+
+        } catch (Exception e) {
+            String dateStr = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            return fileName.contains(dateStr);
         }
     }
 
@@ -87,6 +143,19 @@ public class LogUtil {
         return propertiesComponent.getComponents().stream()
                 .filter(component -> "fileAppender".equals(component.getAttributes().get("name")))
                 .map(component -> substitutor.replace(component.getAttributes().get("fileName")))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static String getFileAppenderPattern(
+            PropertiesConfiguration config, StrSubstitutor substitutor)
+            throws NoSuchFieldException, IllegalAccessException {
+        Field propertiesField = BuiltConfiguration.class.getDeclaredField("appendersComponent");
+        propertiesField.setAccessible(true);
+        Component propertiesComponent = (Component) propertiesField.get(config);
+        return propertiesComponent.getComponents().stream()
+                .filter(component -> "fileAppender".equals(component.getAttributes().get("name")))
+                .map(component -> substitutor.replace(component.getAttributes().get("filePattern")))
                 .findFirst()
                 .orElse(null);
     }
