@@ -39,6 +39,8 @@ import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobMetricsCod
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobStatusCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetRunningJobMetricsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelListJobStatusCodec;
+import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelPackageJobLogsCodec;
+import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelPackageZetaLogsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelSavePointJobCodec;
 
 import lombok.NonNull;
@@ -179,5 +181,17 @@ public class JobClient {
                         hazelcastClient.requestOnMasterAndDecodeResponse(
                                 SeaTunnelGetJobCheckpointCodec.encodeRequest(jobId),
                                 SeaTunnelGetJobCheckpointCodec::decodeResponse));
+    }
+
+    public byte[] packageJobLogs(Long jobId) {
+        return hazelcastClient.requestOnMasterAndDecodeResponse(
+                SeaTunnelPackageJobLogsCodec.encodeRequest(jobId),
+                SeaTunnelPackageJobLogsCodec::decodeResponse);
+    }
+
+    public byte[] packageZetaLogs(String dateStr, String host) {
+        return hazelcastClient.requestOnMasterAndDecodeResponse(
+                SeaTunnelPackageZetaLogsCodec.encodeRequest(dateStr, host),
+                SeaTunnelPackageZetaLogsCodec::decodeResponse);
     }
 }

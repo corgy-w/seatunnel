@@ -55,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Spliterators;
@@ -188,6 +189,17 @@ public class SeaTunnelClientTest {
                                                     && jobClient
                                                             .listJobStatus(true)
                                                             .contains("FINISHED")));
+            Date today = new Date();
+            String todayStr = new java.text.SimpleDateFormat("yyyy-MM-dd").format(today);
+
+            await().atMost(30000, TimeUnit.MILLISECONDS)
+                    .untilAsserted(
+                            () ->
+                                    Assertions.assertTrue(
+                                            jobClient.packageJobLogs(jobId).length > 0
+                                                    && jobClient.packageZetaLogs(todayStr, null)
+                                                                    .length
+                                                            > 0));
 
         } catch (ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
