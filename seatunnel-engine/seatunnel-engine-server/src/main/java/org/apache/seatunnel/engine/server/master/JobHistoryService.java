@@ -136,6 +136,13 @@ public class JobHistoryService {
         }
     }
 
+    // Gets the jobs with specific status
+    public List<JobStatusData> listJobsByStatus(JobStatus jobStatus) {
+        return getJobStatusData().stream()
+                .filter(jobStatusData -> jobStatusData.getJobStatus() == jobStatus)
+                .collect(Collectors.toList());
+    }
+
     public List<JobStatusData> getJobStatusData() {
         List<JobStatusData> status = new ArrayList<>();
         final List<JobState> runningJobStateList =

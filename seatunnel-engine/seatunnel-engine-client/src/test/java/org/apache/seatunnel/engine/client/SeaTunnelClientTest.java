@@ -173,6 +173,15 @@ public class SeaTunnelClientTest {
                                                     && jobClient
                                                             .listJobStatus(true)
                                                             .contains("FINISHED")));
+
+            await().atMost(30000, TimeUnit.MILLISECONDS)
+                    .untilAsserted(
+                            () ->
+                                    Assertions.assertTrue(
+                                            jobClient
+                                                    .listJobsByStatus(JobStatus.FINISHED)
+                                                    .contains(jobId)));
+
             Date today = new Date();
             String todayStr = new java.text.SimpleDateFormat("yyyy-MM-dd").format(today);
 
