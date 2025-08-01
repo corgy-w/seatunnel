@@ -848,6 +848,9 @@ public class CoordinatorService {
         if (jobInfo != null) {
             return jobInfo;
         }
+        if (pendingJobMasterMap.containsKey(jobId)) {
+            return pendingJobMasterMap.get(jobId)._2().getJobDAGInfo();
+        }
         return runningJobMasterMap.get(jobId).getJobDAGInfo();
     }
 
