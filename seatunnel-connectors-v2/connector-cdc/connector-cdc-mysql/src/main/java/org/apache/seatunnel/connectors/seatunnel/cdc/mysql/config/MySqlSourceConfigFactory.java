@@ -105,7 +105,7 @@ public class MySqlSourceConfigFactory extends JdbcSourceConfigFactory {
             props.setProperty("database.serverTimezone", serverTimeZone);
         }
 
-        String colIncludeRegex = buildColumnIncludeList(readColumnsMap);
+        String colIncludeRegex = buildColumnIncludeList(readColumnsMap, tableList);
         if (StringUtils.isNotBlank(colIncludeRegex)) {
             props.setProperty("column.include.list", colIncludeRegex);
         }

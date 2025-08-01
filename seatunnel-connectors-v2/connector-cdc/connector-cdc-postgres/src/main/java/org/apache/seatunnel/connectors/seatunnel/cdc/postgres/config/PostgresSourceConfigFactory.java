@@ -102,7 +102,7 @@ public class PostgresSourceConfigFactory extends JdbcSourceConfigFactory {
                             .collect(Collectors.joining(",")));
         }
 
-        String colIncludeRegex = buildColumnIncludeList(readColumnsMap);
+        String colIncludeRegex = buildColumnIncludeList(readColumnsMap, tableList);
         if (StringUtils.isNotBlank(colIncludeRegex)) {
             props.setProperty("column.include.list", colIncludeRegex);
         }

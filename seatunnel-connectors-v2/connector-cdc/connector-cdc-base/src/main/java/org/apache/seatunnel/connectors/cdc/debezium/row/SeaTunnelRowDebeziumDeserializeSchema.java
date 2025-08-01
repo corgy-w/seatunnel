@@ -74,7 +74,7 @@ public final class SeaTunnelRowDebeziumDeserializeSchema
     private List<CatalogTable> tables;
     private Map<String, SeaTunnelRowDebeziumDeserializationConverters> tableRowConverters;
 
-    private final boolean selectAll;
+    private final Map<String, Boolean> selectAllMap;
     private final Map<String, List<String>> readColumnsMap;
 
     SeaTunnelRowDebeziumDeserializeSchema(
@@ -95,7 +95,19 @@ public final class SeaTunnelRowDebeziumDeserializeSchema
         this.tableRowConverters =
                 createTableRowConverters(
                         tables, metadataConverters, serverTimeZone, userDefinedConverterFactory);
-        this.selectAll = readColumnsMap == null || readColumnsMap.isEmpty();
+        this.selectAllMap =
+                tables.stream()
+                        .map(CatalogTable::getTablePath)
+                        .collect(
+                                HashMap::new,
+                                (map, tablePath) ->
+                                        map.put(
+                                                tablePath.toString(),
+                                                readColumnsMap == null
+                                                        || readColumnsMap.isEmpty()
+                                                        || readColumnsMap.get(tablePath.toString())
+                                                                == null),
+                                HashMap::putAll);
         this.readColumnsMap = readColumnsMap;
     }
 
@@ -275,7 +287,7 @@ public final class SeaTunnelRowDebeziumDeserializeSchema
     }
 
     private SeaTunnelRow filterFields(SeaTunnelRow row, String tableId) {
-        if (selectAll) {
+        if (selectAllMap.get(tableId)) {
             return row;
         }
 
