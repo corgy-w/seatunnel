@@ -39,6 +39,7 @@ import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobMetricsCod
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobStatusCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetRunningJobMetricsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelListJobStatusCodec;
+import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelListJobsByStatusCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelPackageJobLogsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelPackageZetaLogsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelSavePointJobCodec;
@@ -126,6 +127,18 @@ public class JobClient {
         return hazelcastClient.requestOnMasterAndDecodeResponse(
                 SeaTunnelGetRunningJobMetricsCodec.encodeRequest(),
                 SeaTunnelGetRunningJobMetricsCodec::decodeResponse);
+    }
+
+    /**
+     * Get jobs by specific status
+     *
+     * @param jobStatus the job status to filter by
+     * @return JSON string containing list of jobs with the specified status
+     */
+    public List<JobStatusData> listJobsByStatus(JobStatus jobStatus) {
+        return hazelcastClient.requestOnMasterAndDecodeResponse(
+                SeaTunnelListJobsByStatusCodec.encodeRequest(jobStatus.toString()),
+                SeaTunnelListJobsByStatusCodec::decodeResponse);
     }
 
     public void savePointJob(Long jobId) {
