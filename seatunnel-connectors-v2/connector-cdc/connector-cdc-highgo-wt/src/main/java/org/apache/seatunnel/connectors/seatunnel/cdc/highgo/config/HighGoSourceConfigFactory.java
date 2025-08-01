@@ -86,7 +86,7 @@ public class HighGoSourceConfigFactory extends JdbcSourceConfigFactory {
             props.setProperty("table.include.list", tableIncludeList);
         }
 
-        String colIncludeRegex = buildColumnIncludeList(readColumnsMap);
+        String colIncludeRegex = buildColumnIncludeList(readColumnsMap, tableList);
         if (StringUtils.isNotBlank(colIncludeRegex)) {
             props.setProperty("column.include.list", colIncludeRegex);
         }

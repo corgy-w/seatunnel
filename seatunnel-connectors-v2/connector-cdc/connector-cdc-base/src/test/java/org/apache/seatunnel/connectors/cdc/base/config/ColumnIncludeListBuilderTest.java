@@ -2,6 +2,8 @@ package org.apache.seatunnel.connectors.cdc.base.config;
 
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.Lists;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -23,7 +25,7 @@ public class ColumnIncludeListBuilderTest {
         cols.add("col3");
         map.put("mydb.my_table", cols);
 
-        String regex = JdbcSourceConfigFactory.buildColumnIncludeList(map);
+        String regex = JdbcSourceConfigFactory.buildColumnIncludeList(map, new ArrayList<>());
 
         assertEquals("mydb.my_table.(col1|col2|col3)", regex);
         assertTrue("mydb.my_table.col1".matches(regex));
@@ -36,7 +38,7 @@ public class ColumnIncludeListBuilderTest {
         Map<String, List<String>> map = new HashMap<>();
         map.put("mydb.my_table", new ArrayList<>()); // empty => match all
 
-        String regex = JdbcSourceConfigFactory.buildColumnIncludeList(map);
+        String regex = JdbcSourceConfigFactory.buildColumnIncludeList(map, new ArrayList<>());
 
         assertEquals("mydb.my_table.*", regex);
         assertTrue("mydb.my_table.anything".matches(regex));
@@ -52,9 +54,8 @@ public class ColumnIncludeListBuilderTest {
         cols1.add("b");
         map.put("db1.tbl1", cols1);
 
-        map.put("db2.tbl2", new ArrayList<>()); // empty => all cols
-
-        String regex = JdbcSourceConfigFactory.buildColumnIncludeList(map);
+        String regex =
+                JdbcSourceConfigFactory.buildColumnIncludeList(map, Lists.newArrayList("db2.tbl2"));
         String expected = "db1.tbl1.(a|b),db2.tbl2.*";
         assertEquals(expected, regex);
     }
