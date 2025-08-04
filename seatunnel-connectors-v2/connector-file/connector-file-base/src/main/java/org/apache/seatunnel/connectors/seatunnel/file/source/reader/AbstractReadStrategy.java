@@ -194,7 +194,7 @@ public abstract class AbstractReadStrategy implements ReadStrategy {
         if (pluginConfig.hasPath(BaseSourceConfigOptions.FILE_FILTER_PATTERN.key())) {
             String filterPattern =
                     pluginConfig.getString(BaseSourceConfigOptions.FILE_FILTER_PATTERN.key());
-            this.pattern = Pattern.compile(Matcher.quoteReplacement(filterPattern));
+            this.pattern = Pattern.compile(filterPattern);
         }
     }
 
