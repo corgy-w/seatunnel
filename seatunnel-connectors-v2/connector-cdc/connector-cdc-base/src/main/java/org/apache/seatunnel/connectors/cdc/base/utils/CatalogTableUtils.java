@@ -99,7 +99,10 @@ public class CatalogTableUtils {
                                 : table.getTableSchema().getColumns().stream())
                         .map(
                                 column -> {
-                                    if (primaryKeys.getColumnNames().contains(column.getName())
+                                    if (primaryKeys != null
+                                            && primaryKeys
+                                                    .getColumnNames()
+                                                    .contains(column.getName())
                                             && column.isNullable()) {
                                         log.warn(
                                                 "Primary key({}) is nullable for catalog table {}",
