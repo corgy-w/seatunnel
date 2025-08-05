@@ -112,7 +112,8 @@ public class OracleAgentSourceConfigFactory extends JdbcSourceConfigFactory {
         // tombstones.on.delete is set to false to avoid tombstones being sent to the sink
         props.setProperty("tombstones.on.delete", String.valueOf(false));
 
-        String colIncludeRegex = buildColumnIncludeList(readColumnsMap, tableList);
+        String colIncludeRegex =
+                buildColumnIncludeList(readColumnsMap, databaseList, tableList, true);
         if (StringUtils.isNotBlank(colIncludeRegex)) {
             props.setProperty("column.include.list", colIncludeRegex);
         }
