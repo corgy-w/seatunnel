@@ -25,7 +25,12 @@ public class ColumnIncludeListBuilderTest {
         cols.add("col3");
         map.put("mydb.my_table", cols);
 
-        String regex = JdbcSourceConfigFactory.buildColumnIncludeList(map, new ArrayList<>());
+        String regex =
+                JdbcSourceConfigFactory.buildColumnIncludeList(
+                        map,
+                        Lists.newArrayList("mydb"),
+                        Lists.newArrayList("mydb.my_table"),
+                        false);
 
         assertEquals("mydb.my_table.(col1|col2|col3)", regex);
         assertTrue("mydb.my_table.col1".matches(regex));
@@ -38,7 +43,12 @@ public class ColumnIncludeListBuilderTest {
         Map<String, List<String>> map = new HashMap<>();
         map.put("mydb.my_table", new ArrayList<>()); // empty => match all
 
-        String regex = JdbcSourceConfigFactory.buildColumnIncludeList(map, new ArrayList<>());
+        String regex =
+                JdbcSourceConfigFactory.buildColumnIncludeList(
+                        map,
+                        Lists.newArrayList("mydb"),
+                        Lists.newArrayList("mydb.my_table"),
+                        false);
 
         assertEquals("mydb.my_table.*", regex);
         assertTrue("mydb.my_table.anything".matches(regex));
@@ -55,7 +65,11 @@ public class ColumnIncludeListBuilderTest {
         map.put("db1.tbl1", cols1);
 
         String regex =
-                JdbcSourceConfigFactory.buildColumnIncludeList(map, Lists.newArrayList("db2.tbl2"));
+                JdbcSourceConfigFactory.buildColumnIncludeList(
+                        map,
+                        Lists.newArrayList("db1", "db2"),
+                        Lists.newArrayList("db2.tbl2"),
+                        false);
         String expected = "db1.tbl1.(a|b),db2.tbl2.*";
         assertEquals(expected, regex);
     }

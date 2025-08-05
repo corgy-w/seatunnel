@@ -26,11 +26,12 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 /** A {@link SourceConfig.Factory} to provide {@link SourceConfig} of JDBC data source. */
 public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<JdbcSourceConfig> {
@@ -292,33 +293,85 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
      * Build the column include list from the read columns map.
      *
      * @param readColumnsMap The map of table names to their read columns.
+     * @param databaseList The list of database names
      * @param tableList The list of table names
      * @return A string representing the column include list.
      */
     public static String buildColumnIncludeList(
-            Map<String, List<String>> readColumnsMap, List<String> tableList) {
-        List<String> patterns = new ArrayList<>();
+            Map<String, List<String>> readColumnsMap,
+            List<String> databaseList,
+            List<String> tableList,
+            boolean hasSchema) {
 
-        if (readColumnsMap != null && !readColumnsMap.isEmpty()) {
+        List<String> patterns = new ArrayList<>();
+        boolean filterDb = databaseList != null && !databaseList.isEmpty();
+
+        BiFunction<String, String[], String> extractTablePart =
+                (fullName, parts) -> {
+                    if (hasSchema) {
+                        return parts[1] + "." + parts[2];
+                    } else {
+                        return parts[0] + "." + parts[1];
+                    }
+                };
+
+        if (readColumnsMap != null) {
             for (Map.Entry<String, List<String>> entry : readColumnsMap.entrySet()) {
-                String table = entry.getKey();
+                String fullName = entry.getKey();
+                String[] parts = fullName.split("\\.", hasSchema ? 3 : 2);
+                if (parts.length < (hasSchema ? 3 : 2)) {
+                    continue;
+                }
+                String dbName = parts[0];
+                if (filterDb && !databaseList.contains(dbName)) {
+                    continue;
+                }
+                String tablePart = extractTablePart.apply(fullName, parts);
+
                 List<String> cols = entry.getValue();
                 if (cols != null && !cols.isEmpty()) {
-                    String colPattern = String.join("|", cols);
-                    patterns.add(table + ".(" + colPattern + ")");
+                    String colPat = String.join("|", cols);
+                    patterns.add(tablePart + ".(" + colPat + ")");
                 } else {
-                    patterns.add(table + ".*");
+                    patterns.add(tablePart + ".*");
                 }
             }
         }
 
-        if (tableList != null && !tableList.isEmpty()) {
-            Set<String> existingTables =
-                    readColumnsMap != null ? readColumnsMap.keySet() : Collections.emptySet();
-            for (String table : tableList) {
-                if (!existingTables.contains(table)) {
-                    patterns.add(table + ".*");
+        if (patterns.isEmpty() && (readColumnsMap == null || readColumnsMap.isEmpty())) {
+            return "";
+        }
+
+        if (tableList != null) {
+            Set<String> seen =
+                    patterns.stream()
+                            .map(
+                                    p -> {
+                                        int idx = p.indexOf('(');
+                                        if (idx < 0) {
+                                            idx = p.indexOf(".*");
+                                        }
+                                        return idx > 0 ? p.substring(0, idx) : p;
+                                    })
+                            .collect(Collectors.toSet());
+
+            for (String fullName : tableList) {
+                if (readColumnsMap.containsKey(fullName)) {
+                    continue;
                 }
+                String[] parts = fullName.split("\\.", hasSchema ? 3 : 2);
+                if (parts.length < (hasSchema ? 3 : 2)) {
+                    continue;
+                }
+                String dbName = parts[0];
+                if (filterDb && !databaseList.contains(dbName)) {
+                    continue;
+                }
+                String tablePart = extractTablePart.apply(fullName, parts);
+                if (seen.contains(tablePart)) {
+                    continue;
+                }
+                patterns.add(tablePart + ".*");
             }
         }
 

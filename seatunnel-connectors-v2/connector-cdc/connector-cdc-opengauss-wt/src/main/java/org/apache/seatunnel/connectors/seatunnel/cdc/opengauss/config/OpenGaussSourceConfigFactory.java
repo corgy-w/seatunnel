@@ -86,7 +86,8 @@ public class OpenGaussSourceConfigFactory extends JdbcSourceConfigFactory {
             props.setProperty("table.include.list", tableIncludeList);
         }
 
-        String colIncludeRegex = buildColumnIncludeList(readColumnsMap, tableList);
+        String colIncludeRegex =
+                buildColumnIncludeList(readColumnsMap, databaseList, tableList, true);
         if (StringUtils.isNotBlank(colIncludeRegex)) {
             props.setProperty("column.include.list", colIncludeRegex);
         }

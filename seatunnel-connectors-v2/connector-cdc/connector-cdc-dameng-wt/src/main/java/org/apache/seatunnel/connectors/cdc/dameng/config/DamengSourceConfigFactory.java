@@ -73,7 +73,8 @@ public class DamengSourceConfigFactory extends JdbcSourceConfigFactory {
                             .collect(Collectors.joining(",")));
         }
 
-        String colIncludeRegex = buildColumnIncludeList(readColumnsMap, tableList);
+        String colIncludeRegex =
+                buildColumnIncludeList(readColumnsMap, databaseList, tableList, true);
         if (StringUtils.isNotBlank(colIncludeRegex)) {
             props.setProperty("column.include.list", colIncludeRegex);
         }
