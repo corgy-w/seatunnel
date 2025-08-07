@@ -179,7 +179,7 @@ public abstract class AbstractJdbcCatalog implements Catalog {
     @Override
     public CatalogTable getTable(TablePath tablePath, List<String> fieldNames)
             throws CatalogException, TableNotExistException {
-        return getTableInternal(tablePath, fieldNames, true);
+        return getTableInternal(tablePath, fieldNames, false);
     }
 
     private CatalogTable getTableInternal(
@@ -217,8 +217,10 @@ public abstract class AbstractJdbcCatalog implements Catalog {
                                         e.getSeaTunnelErrorCode())) {
                             if (ignoreUnsupported) {
                             } else {
-                                unsupported.put(
-                                        e.getParams().get("field"), e.getParams().get("dataType"));
+                                String field = e.getParams().get("field");
+                                if (fieldNames == null || fieldNames.contains(field)) {
+                                    unsupported.put(field, e.getParams().get("dataType"));
+                                }
                             }
                         } else {
                             throw e;
