@@ -94,6 +94,10 @@ public class SqlServerSourceConfigFactory extends JdbcSourceConfigFactory {
         String colIncludeRegex =
                 buildColumnIncludeList(readColumnsMap, databaseList, tableList, true);
         if (StringUtils.isNotBlank(colIncludeRegex)) {
+            // If there exists a ].[, remove all [] symbols
+            if (colIncludeRegex.contains("].[")) {
+                colIncludeRegex = colIncludeRegex.replaceAll("\\[", "").replaceAll("\\]", "");
+            }
             props.setProperty("column.include.list", colIncludeRegex);
         }
 
