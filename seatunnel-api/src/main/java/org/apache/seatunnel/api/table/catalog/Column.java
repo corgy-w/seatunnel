@@ -146,7 +146,9 @@ public abstract class Column implements Serializable {
             boolean nullable,
             Object defaultValue,
             String comment,
-            String sinkType) {
+            String sinkType,
+            String sourceType,
+            Map<String, Object> options) {
         this.name = name;
         this.dataType = dataType;
         this.columnLength = columnLength;
@@ -154,9 +156,9 @@ public abstract class Column implements Serializable {
         this.nullable = nullable;
         this.defaultValue = defaultValue;
         this.comment = comment;
-        this.sourceType = null;
+        this.sourceType = sourceType;
         this.sinkType = sinkType;
-        this.options = null;
+        this.options = options;
 
         // TODO Waiting for migration to complete before remove
         this.bitLen = columnLength != null ? columnLength * 8 : 0;
