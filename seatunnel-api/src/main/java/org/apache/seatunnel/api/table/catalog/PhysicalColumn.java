@@ -99,7 +99,8 @@ public class PhysicalColumn extends Column {
             Object defaultValue,
             String comment,
             String sinkType,
-            String sourceType) {
+            String sourceType,
+            Map<String, Object> options) {
         super(
                 name,
                 dataType,
@@ -110,7 +111,7 @@ public class PhysicalColumn extends Column {
                 comment,
                 sinkType,
                 sourceType,
-                null);
+                options);
     }
 
     @Builder
@@ -271,7 +272,8 @@ public class PhysicalColumn extends Column {
                 defaultValue,
                 comment,
                 sinkType,
-                sourceType);
+                sourceType,
+                null);
     }
 
     @Deprecated
