@@ -100,7 +100,8 @@ public class PIDataTypeConverter {
                     JsonNode dataPointsNode = itemNode.path("Items");
                     if (dataPointsNode.isArray() && dataPointsNode.size() > 0) {
                         // Case with nested Items (e.g., batch query response)
-                        log.info("Found nested Items, data point count: {}", dataPointsNode.size());
+                        log.debug(
+                                "Found nested Items, data point count: {}", dataPointsNode.size());
                         for (JsonNode dataPointNode : dataPointsNode) {
                             SeaTunnelRow row =
                                     convertFromJson(
@@ -109,7 +110,7 @@ public class PIDataTypeConverter {
                         }
                     } else {
                         // Case without nested Items (e.g., single data point)
-                        log.info("No nested Items, directly process current node");
+                        log.debug("No nested Items, directly process current node");
                         SeaTunnelRow row =
                                 convertFromJson(itemNode, itemNode, rowType, jsonFieldMapping);
                         rows.add(row);

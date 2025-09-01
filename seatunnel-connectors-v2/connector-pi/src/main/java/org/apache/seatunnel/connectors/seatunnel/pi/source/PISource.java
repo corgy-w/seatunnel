@@ -26,8 +26,7 @@ import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.SupportColumnProjection;
 import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.pi.config.AuthType;
@@ -44,10 +43,8 @@ import org.apache.seatunnel.connectors.seatunnel.pi.utils.PISchemaBuilder;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * PI Web API Source Connector
@@ -118,8 +115,14 @@ public class PISource
         // Validate Schema
         PISchemaBuilder.validateSchema(this.rowType);
 
-        // Create CatalogTable (reuse PIMetadataSource logic)
-        this.catalogTable = createCatalogTable(config);
+        // Create CatalogTable
+        if (config.getOptional(PIConfig.SCHEMA).isPresent()) {
+            this.catalogTable = CatalogTableUtil.buildWithConfig(config);
+        } else {
+            throw new PIConnectorException(
+                    PIErrorCode.CONFIG_INVALID,
+                    "Schema configuration not exists, please check your task configuration.");
+        }
     }
 
     @Override
@@ -234,53 +237,5 @@ public class PISource
             return configHelper.getWebIds().size();
         }
         return 0;
-    }
-
-    public List<CatalogTable> getIncrementalTables(String incrementalIdentifier) {
-        // PI connector does not support incremental table discovery
-        return null;
-    }
-
-    public void setTypeInfo(SeaTunnelRowType seaTunnelRowType) {
-        // Support column projection
-        this.rowType = seaTunnelRowType;
-    }
-
-    private CatalogTable createCatalogTable(ReadonlyConfig config) {
-        TableSchema tableSchema;
-
-        if (config.getOptional(PIConfig.SCHEMA).isPresent()) {
-            Map<String, Object> schemaMap = config.get(PIConfig.SCHEMA);
-
-            // Prioritize new columns format, supporting columnLength and other attributes
-            if (schemaMap.containsKey("columns")) {
-                tableSchema = PISchemaBuilder.createTableSchemaFromColumns(schemaMap);
-
-            } else if (schemaMap.containsKey("fields")) {
-                // Backward compatibility: use old fields format
-                tableSchema =
-                        TableSchema.builder()
-                                .columns(new ArrayList<>()) // Empty list, will use SeaTunnelRowType
-                                .build();
-
-            } else {
-                throw new IllegalArgumentException(
-                        "Schema configuration missing columns or fields definition");
-            }
-        } else {
-            // Use default Schema
-            tableSchema =
-                    TableSchema.builder()
-                            .columns(new ArrayList<>()) // Empty list, will use default
-                            // SeaTunnelRowType
-                            .build();
-        }
-
-        return CatalogTable.of(
-                TableIdentifier.of("pi", "default", "pi_data"),
-                tableSchema,
-                Collections.emptyMap(),
-                Collections.emptyList(),
-                "PI Web API data source table");
     }
 }

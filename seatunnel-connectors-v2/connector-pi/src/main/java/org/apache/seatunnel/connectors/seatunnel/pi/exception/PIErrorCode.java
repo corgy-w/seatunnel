@@ -31,6 +31,7 @@ public enum PIErrorCode implements SeaTunnelErrorCode {
     CONFIG_TOO_MANY_WEBIDS("PI_CONFIG_006", "WebID count exceeds limit"),
     CONFIG_INVALID_READ_MODE("PI_CONFIG_007", "Read mode configuration invalid"),
     CONFIG_VALIDATION_FAILED("PI_CONFIG_008", "Configuration validation failed"),
+    CONFIG_INVALID_PARALLELISM("PI_CONFIG_009", "WebID count exceeds single task capacity"),
 
     // Connection errors (PI_CONNECTION_100 ~ PI_CONNECTION_199)
     CONNECTION_FAILED("PI_CONNECTION_100", "Connection to PI Web API failed"),

@@ -327,7 +327,33 @@ public class PICDCSplitEnumerator
         List<PICDCSplit> splits = new ArrayList<>();
         int maxWebIDsPerSplit = MAX_WEBIDS_PER_SPLIT;
 
-        log.info("Create CDC splits - max WebIDs per split: {}", maxWebIDsPerSplit);
+        // Validate total capacity based on parallelism
+        int parallelism = Math.max(1, context.currentParallelism());
+        int maxTotalWebIds = parallelism * maxWebIDsPerSplit;
+
+        if (webIds.size() > maxTotalWebIds) {
+            String errorMsg =
+                    String.format(
+                            "Total WebID/PI Path count (%d) exceeds system capacity (%d). "
+                                    + "Current parallelism: %d, max WebIDs per split: %d. "
+                                    + "Please reduce PI Path count to %d or increase parallelism to %d.",
+                            webIds.size(),
+                            maxTotalWebIds,
+                            parallelism,
+                            maxWebIDsPerSplit,
+                            maxTotalWebIds,
+                            (int) Math.ceil((double) webIds.size() / maxWebIDsPerSplit));
+
+            log.error(errorMsg);
+            throw new IllegalArgumentException(errorMsg);
+        }
+
+        log.info(
+                "Create CDC splits - parallelism: {}, max WebIDs per split: {}, total capacity: {}, actual WebIDs: {}",
+                parallelism,
+                maxWebIDsPerSplit,
+                maxTotalWebIds,
+                webIds.size());
 
         // Split WebID list by split size
         for (int i = 0; i < webIds.size(); i += maxWebIDsPerSplit) {

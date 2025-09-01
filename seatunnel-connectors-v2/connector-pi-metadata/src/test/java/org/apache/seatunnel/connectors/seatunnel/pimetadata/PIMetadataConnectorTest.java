@@ -59,13 +59,13 @@ public class PIMetadataConnectorTest {
     private ReadonlyConfig createTestConfig() {
         // Create a simple configuration for testing
         Map<String, Object> configMap = new HashMap<>();
-        configMap.put("pi_web_api_url", "https://10.89.63.4:8443/piwebapi");
+        configMap.put("pi_web_api_url", "https://mock-pi-server.test:8443/piwebapi");
         // Automatic judgment type through path, no need to use metadata_type configuration
         configMap.put(
                 "pi_paths",
                 Arrays.asList(
-                        "\\\\pims.huafeng.com\\HF.AA.NAB:LIA-26101.PV",
-                        "\\\\pims.huafeng.com\\HF.AA.NAB:LIA-26102.PV"));
+                        "\\\\mock-pi-server.test\\HF.AA.NAB:LIA-26101.PV",
+                        "\\\\mock-pi-server.test\\HF.AA.NAB:LIA-26102.PV"));
         configMap.put("username", "test");
         configMap.put("password", "test");
         configMap.put("validate_ssl", false);

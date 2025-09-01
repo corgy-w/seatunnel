@@ -106,16 +106,30 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
 
     @Override
     public void open() throws Exception {
+        PIHttpClient tempHttpClient = null;
 
         try {
             // Only perform basic resource initialization, not dependent on splits
-            httpClient = new PIHttpClient(configHelper);
+            tempHttpClient = new PIHttpClient(configHelper);
 
             // Initialize WebID resolver
-            webIdResolver = new PIWebIdResolver(configHelper, httpClient);
+            webIdResolver = new PIWebIdResolver(configHelper, tempHttpClient);
+
+            // Only assign to instance variable after successful initialization
+            httpClient = tempHttpClient;
 
         } catch (Exception e) {
             log.error("Failed to open PI data source reader", e);
+
+            // Clean up resources if initialization failed
+            if (tempHttpClient != null) {
+                try {
+                    tempHttpClient.close();
+                } catch (Exception closeException) {
+                    log.warn("Failed to close HTTP client during cleanup", closeException);
+                }
+            }
+
             throw e;
         }
     }
@@ -349,12 +363,25 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
         // Use WebIDs from splits, but need to rebuild mapping relationships
         resolvedWebIds.addAll(splitWebIds);
 
-        // Rebuild mapping relationships and create metadata objects
-        for (String webId : splitWebIds) {
-            piPathToWebIdMap.put(webId, webId);
-            // Create basic metadata objects to avoid webIdMetadataMap.get(webId) returning null
-            PIWebIdMetadata metadata = new PIWebIdMetadata(webId, webId, webId);
-            webIdMetadataMap.put(webId, metadata);
+        // Resolve metadata for provided WebIDs and rebuild mappings
+        try {
+            PIWebIdBatchResolver batchResolver = new PIWebIdBatchResolver(httpClient, configHelper);
+            Map<String, PIWebIdMetadata> metadataByWebId =
+                    batchResolver.batchResolveWebIdMetadataByWebIds(new ArrayList<>(splitWebIds));
+            for (String webId : splitWebIds) {
+                PIWebIdMetadata metadata = metadataByWebId.get(webId);
+                if (metadata != null) {
+                    webIdMetadataMap.put(webId, metadata);
+                    // Use real path from metadata to build mapping
+                    if (metadata.getPath() != null && !metadata.getPath().isEmpty()) {
+                        piPathToWebIdMap.put(metadata.getPath(), webId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to resolve metadata for split WebIDs, proceeding with WebIDs only: {}",
+                    e.getMessage());
         }
 
         return true;
@@ -422,9 +449,18 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
                 resolvedWebIds.add(webId);
                 piPathToWebIdMap.put(webId, webId);
 
-                // Create basic metadata for direct WebIDs
-                PIWebIdMetadata metadata = new PIWebIdMetadata(webId, webId, webId);
-                webIdMetadataMap.put(webId, metadata);
+                // Try to resolve metadata for direct WebID
+                try {
+                    PIWebIdBatchResolver batchResolver =
+                            new PIWebIdBatchResolver(httpClient, configHelper);
+                    // Resolve WebID metadata with intelligent type detection
+                    PIWebIdMetadata metadata = batchResolver.resolveWebIdMetadata(webId);
+                    if (metadata != null) {
+                        webIdMetadataMap.put(webId, metadata);
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to resolve metadata for WebID {}: {}", webId, e.getMessage());
+                }
                 addedCount++;
             }
         }

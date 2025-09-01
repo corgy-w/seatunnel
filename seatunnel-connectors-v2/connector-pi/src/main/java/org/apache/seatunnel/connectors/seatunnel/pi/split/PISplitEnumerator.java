@@ -46,6 +46,7 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
     private final Map<Integer, List<PISplit>> pendingSplits;
     private final Object stateLock = new Object();
 
+    private PIHttpClient httpClient;
     private PIWebIdBatchResolver webIdResolver;
     private PISplitStrategy splitStrategy;
 
@@ -67,7 +68,7 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
 
     private void initializeComponents() {
         try {
-            PIHttpClient httpClient = new PIHttpClient(configHelper);
+            this.httpClient = new PIHttpClient(configHelper);
             this.webIdResolver = new PIWebIdBatchResolver(httpClient, configHelper);
             this.splitStrategy = new PISplitStrategy();
 
@@ -270,13 +271,27 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
     /**
      * Enumerator shutdown and resource cleanup method
      *
-     * @throws IOException IO exception (currently not thrown)
+     * @throws IOException IO exception if resource cleanup fails
      */
     @Override
     public void close() throws IOException {
-        log.info("PI split enumerator closed");
-        synchronized (stateLock) {
-            pendingSplits.clear();
+        log.info("PI split enumerator closing...");
+
+        try {
+            synchronized (stateLock) {
+                pendingSplits.clear();
+            }
+
+            // Close HTTP client to prevent resource leak
+            if (httpClient != null) {
+                httpClient.close();
+                log.debug("HTTP client closed successfully");
+            }
+
+            log.info("PI split enumerator closed successfully");
+        } catch (Exception e) {
+            log.error("Error occurred while closing PI split enumerator", e);
+            throw new IOException("Failed to close PI enumerator resources", e);
         }
     }
 }

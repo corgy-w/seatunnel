@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,14 +35,30 @@ public class PIWebIdBatchResolver {
 
     private static final Logger log = LoggerFactory.getLogger(PIWebIdBatchResolver.class);
 
+    /** PI Web API endpoints */
+    /** PI Web API endpoints for different resource types */
+    private static final String PIWEBAPI_POINTS_ENDPOINT = "/piwebapi/points";
+
+    private static final String PIWEBAPI_POINTS_MULTIPLE_ENDPOINT = "/piwebapi/points/multiple";
+    private static final String PIWEBAPI_ATTRIBUTES_ENDPOINT = "/piwebapi/attributes";
+    private static final String PIWEBAPI_ATTRIBUTES_MULTIPLE_ENDPOINT =
+            "/piwebapi/attributes/multiple";
+
+    /** Default cache size for WebID type information */
+    private static final int DEFAULT_WEBID_CACHE_SIZE = 10000;
+
     private final PIHttpClient httpClient;
     private final PIConfigHelper config;
     private final int batchSize;
+
+    /** WebID type cache manager for optimized API calls */
+    private final WebIdTypeCache webIdTypeCache;
 
     public PIWebIdBatchResolver(PIHttpClient httpClient, PIConfigHelper config) {
         this.httpClient = httpClient;
         this.config = config;
         this.batchSize = config.getWebIdResolveBatchSize();
+        this.webIdTypeCache = new WebIdTypeCache(DEFAULT_WEBID_CACHE_SIZE);
     }
 
     /**
@@ -61,16 +76,27 @@ public class PIWebIdBatchResolver {
                 List<String> batchWebIds = resolveBatch(batch);
                 webIds.addAll(batchWebIds);
 
-                log.info("Batch WebID resolution completed: {}/{}", endIndex, piPaths.size());
+                log.debug(
+                        "Batch pi paths to WebID completed, current batch: {}, total batch: {}",
+                        endIndex,
+                        piPaths.size());
 
                 // Avoid too frequent requests
                 Thread.sleep(config.getWebIdResolveDelayMs());
 
             } catch (Exception e) {
-                log.error("Batch WebID resolution failed, batch: {}-{}", i, endIndex, e);
-                // Fallback to single resolution
-                List<String> fallbackWebIds = fallbackSingleResolve(batch);
-                webIds.addAll(fallbackWebIds);
+                log.error(
+                        "Batch WebID resolution failed, batch: {}-{}, paths: {}",
+                        i,
+                        endIndex,
+                        batch,
+                        e);
+                throw new RuntimeException(
+                        "Batch WebID resolution failed for paths: "
+                                + batch
+                                + ". Error: "
+                                + e.getMessage(),
+                        e);
             }
         }
 
@@ -99,11 +125,18 @@ public class PIWebIdBatchResolver {
                 Thread.sleep(config.getWebIdResolveDelayMs());
 
             } catch (Exception e) {
-                log.error("Batch WebID metadata resolution failed, batch: {}-{}", i, endIndex, e);
-                // Fallback to single resolution
-                Map<String, PIWebIdMetadata> fallbackMetadata =
-                        fallbackSingleResolveMetadata(batch);
-                webIdMetadataMap.putAll(fallbackMetadata);
+                log.error(
+                        "Batch WebID metadata resolution failed, batch: {}-{}, paths: {}",
+                        i,
+                        endIndex,
+                        batch,
+                        e);
+                throw new RuntimeException(
+                        "Batch WebID metadata resolution failed for paths: "
+                                + batch
+                                + ". Error: "
+                                + e.getMessage(),
+                        e);
             }
         }
 
@@ -117,9 +150,9 @@ public class PIWebIdBatchResolver {
 
         // Select API based on path type
         if (isAttributePath(piPaths.get(0))) {
-            endpointBuilder.append("/piwebapi/attributes?");
+            endpointBuilder.append(PIWEBAPI_ATTRIBUTES_MULTIPLE_ENDPOINT).append("?");
         } else {
-            endpointBuilder.append("/piwebapi/points?");
+            endpointBuilder.append(PIWEBAPI_POINTS_MULTIPLE_ENDPOINT).append("?");
         }
 
         for (int i = 0; i < piPaths.size(); i++) {
@@ -138,9 +171,9 @@ public class PIWebIdBatchResolver {
 
         // Select API based on path type
         if (isAttributePath(piPaths.get(0))) {
-            endpointBuilder.append("/piwebapi/attributes?");
+            endpointBuilder.append(PIWEBAPI_ATTRIBUTES_MULTIPLE_ENDPOINT).append("?");
         } else {
-            endpointBuilder.append("/piwebapi/points?");
+            endpointBuilder.append(PIWEBAPI_POINTS_MULTIPLE_ENDPOINT).append("?");
         }
 
         for (int i = 0; i < piPaths.size(); i++) {
@@ -150,87 +183,6 @@ public class PIWebIdBatchResolver {
 
         JsonNode response = httpClient.get(endpointBuilder.toString(), JsonNode.class);
         return extractWebIdMetadata(response, piPaths);
-    }
-
-    /** Fallback to single resolution */
-    private List<String> fallbackSingleResolve(List<String> piPaths) {
-        List<String> webIds = new ArrayList<>();
-
-        for (String path : piPaths) {
-            try {
-                String webId = resolveSingle(path);
-                if (webId != null) {
-                    webIds.add(webId);
-                }
-
-                // Single resolution also needs delay
-                Thread.sleep(config.getWebIdResolveDelayMs());
-
-            } catch (Exception e) {
-                log.error("Single WebID resolution failed, path: {}", path, e);
-            }
-        }
-
-        return webIds;
-    }
-
-    /** Fallback to single metadata resolution */
-    private Map<String, PIWebIdMetadata> fallbackSingleResolveMetadata(List<String> piPaths) {
-        Map<String, PIWebIdMetadata> metadataMap = new HashMap<>();
-
-        for (String path : piPaths) {
-            try {
-                PIWebIdMetadata metadata = resolveSingleMetadata(path);
-                if (metadata != null) {
-                    metadataMap.put(metadata.getWebId(), metadata);
-                }
-
-                // Single resolution also needs delay
-                Thread.sleep(config.getWebIdResolveDelayMs());
-
-            } catch (Exception e) {
-                log.error("Single WebID metadata resolution failed, path: {}", path, e);
-            }
-        }
-
-        return metadataMap;
-    }
-
-    /** Resolve single PI path */
-    private String resolveSingle(String piPath) throws Exception {
-        StringBuilder endpointBuilder = new StringBuilder();
-
-        if (isAttributePath(piPath)) {
-            endpointBuilder.append("/piwebapi/attributes?");
-        } else {
-            endpointBuilder.append("/piwebapi/points?");
-        }
-
-        endpointBuilder.append("path=").append(URLEncoder.encode(piPath, "UTF-8"));
-
-        JsonNode response = httpClient.get(endpointBuilder.toString(), JsonNode.class);
-        List<String> webIds = extractWebIds(response);
-
-        return webIds.isEmpty() ? null : webIds.get(0);
-    }
-
-    /** Resolve single PI path metadata */
-    private PIWebIdMetadata resolveSingleMetadata(String piPath) throws Exception {
-        StringBuilder endpointBuilder = new StringBuilder();
-
-        if (isAttributePath(piPath)) {
-            endpointBuilder.append("/piwebapi/attributes?");
-        } else {
-            endpointBuilder.append("/piwebapi/points?");
-        }
-
-        endpointBuilder.append("path=").append(URLEncoder.encode(piPath, "UTF-8"));
-
-        JsonNode response = httpClient.get(endpointBuilder.toString(), JsonNode.class);
-        Map<String, PIWebIdMetadata> metadataMap =
-                extractWebIdMetadata(response, Arrays.asList(piPath));
-
-        return metadataMap.isEmpty() ? null : metadataMap.values().iterator().next();
     }
 
     /** Extract WebID list from response */
@@ -251,6 +203,8 @@ public class PIWebIdBatchResolver {
             for (JsonNode item : response.get("Items")) {
                 if (item.has("WebId")) {
                     webIds.add(item.get("WebId").asText());
+                } else if (item.has("Object") && item.get("Object").has("WebId")) {
+                    webIds.add(item.get("Object").get("WebId").asText());
                 }
             }
         }
@@ -270,33 +224,50 @@ public class PIWebIdBatchResolver {
 
         log.debug("Extracting metadata from response: {}", response.toString());
 
-        // Handle single object response
-        if (response.has("WebId")) {
-            String webId = response.get("WebId").asText();
-            String name =
-                    response.has("Name")
-                            ? response.get("Name").asText()
-                            : extractNameFromPath(originalPaths.get(0));
-            String path = originalPaths.get(0);
-            log.info("Single object response - WebId: {}, Name: {}, Path: {}", webId, name, path);
-            metadataMap.put(webId, new PIWebIdMetadata(webId, name, path));
-        }
-
         // Handle array response
         if (response.has("Items") && response.get("Items").isArray()) {
             JsonNode items = response.get("Items");
             for (int i = 0; i < items.size() && i < originalPaths.size(); i++) {
                 JsonNode item = items.get(i);
+                String webId = null;
+                String name = null;
+
                 if (item.has("WebId")) {
-                    String webId = item.get("WebId").asText();
-                    String name =
+                    webId = item.get("WebId").asText();
+                    name =
                             item.has("Name")
                                     ? item.get("Name").asText()
                                     : extractNameFromPath(originalPaths.get(i));
-                    String path = originalPaths.get(i);
-                    metadataMap.put(webId, new PIWebIdMetadata(webId, name, path));
+                    String pathVal =
+                            item.has("Path") ? item.get("Path").asText() : originalPaths.get(i);
+                    if (webId != null) {
+                        metadataMap.put(webId, new PIWebIdMetadata(webId, name, pathVal));
+                        // Cache the type information for this WebID
+                        webIdTypeCache.putType(webId, isAttributePath(originalPaths.get(i)));
+                    }
+                } else if (item.has("Object") && item.get("Object").has("WebId")) {
+                    JsonNode objectNode = item.get("Object");
+                    webId = objectNode.get("WebId").asText();
+                    name =
+                            objectNode.has("Name")
+                                    ? objectNode.get("Name").asText()
+                                    : extractNameFromPath(originalPaths.get(i));
+                    String pathVal =
+                            objectNode.has("Path")
+                                    ? objectNode.get("Path").asText()
+                                    : originalPaths.get(i);
+                    if (webId != null) {
+                        metadataMap.put(webId, new PIWebIdMetadata(webId, name, pathVal));
+                        // Cache the type information for this WebID
+                        webIdTypeCache.putType(webId, isAttributePath(originalPaths.get(i)));
+                    }
                 }
             }
+        }
+
+        // Log cache statistics for monitoring
+        if (log.isDebugEnabled()) {
+            log.debug("WebID type cache statistics: {}", webIdTypeCache.getStatistics());
         }
 
         return metadataMap;
@@ -332,5 +303,79 @@ public class PIWebIdBatchResolver {
     /** Determine if it's an AF Attribute path */
     private boolean isAttributePath(String path) {
         return path.contains("|");
+    }
+
+    /** Batch resolve WebID metadata by WebIDs (for splits containing WebIDs) */
+    public Map<String, PIWebIdMetadata> batchResolveWebIdMetadataByWebIds(List<String> webIds)
+            throws Exception {
+        Map<String, PIWebIdMetadata> metadataMap = new HashMap<>();
+
+        for (String webId : webIds) {
+            try {
+                // Resolve WebID metadata with intelligent type detection
+                PIWebIdMetadata metadata = resolveWebIdMetadata(webId);
+                if (metadata != null) {
+                    metadataMap.put(webId, metadata);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to resolve metadata for WebID {}: {}", webId, e.getMessage());
+            }
+        }
+
+        return metadataMap;
+    }
+
+    /**
+     * Resolve single WebID metadata with intelligent type detection.
+     *
+     * <p>This method uses cached type information when available to make precise API calls, falling
+     * back to automatic detection when cache miss occurs.
+     *
+     * @param webId the WebID to resolve
+     * @return PIWebIdMetadata containing WebID, name and path information
+     * @throws Exception if API call fails or WebID is invalid
+     */
+    public PIWebIdMetadata resolveWebIdMetadata(String webId) throws Exception {
+        // Check if we have cached type information for this WebID
+        Boolean isAttribute = webIdTypeCache.getType(webId);
+
+        if (isAttribute != null) {
+            // We have cached type info, use it to make precise API call
+            String endpoint =
+                    isAttribute
+                            ? PIWEBAPI_ATTRIBUTES_ENDPOINT + "/" + webId
+                            : PIWEBAPI_POINTS_ENDPOINT + "/" + webId;
+
+            JsonNode response = httpClient.get(endpoint, JsonNode.class);
+
+            if (response != null) {
+                String name = response.has("Name") ? response.get("Name").asText() : webId;
+                String path = response.has("Path") ? response.get("Path").asText() : webId;
+                return new PIWebIdMetadata(webId, name, path);
+            }
+        }
+
+        // Fallback: no cached type info, try Points first then Attributes
+        String endpoint = PIWEBAPI_POINTS_ENDPOINT + "/" + webId;
+        JsonNode response = httpClient.get(endpoint, JsonNode.class);
+
+        if (response != null) {
+            String name = response.has("Name") ? response.get("Name").asText() : webId;
+            String path = response.has("Path") ? response.get("Path").asText() : webId;
+            return new PIWebIdMetadata(webId, name, path);
+        }
+
+        // If Points failed, try Attributes API
+        endpoint = PIWEBAPI_ATTRIBUTES_ENDPOINT + "/" + webId;
+        response = httpClient.get(endpoint, JsonNode.class);
+
+        if (response == null) {
+            return null;
+        }
+
+        String name = response.has("Name") ? response.get("Name").asText() : webId;
+        String path = response.has("Path") ? response.get("Path").asText() : webId;
+
+        return new PIWebIdMetadata(webId, name, path);
     }
 }

@@ -570,6 +570,21 @@ public class PIWebSocketClient implements AutoCloseable {
 
         webSocketUrl = webSocketUrl + queryParams.toString();
 
+        // Validate URL length to prevent HTTP 414 error
+        if (webSocketUrl.length() > 8192) { // 8KB limit
+            log.error(
+                    "WebSocket URL too long ({} chars, max: 8192). URL: {}",
+                    webSocketUrl.length(),
+                    webSocketUrl.length() > 500
+                            ? webSocketUrl.substring(0, 500) + "..."
+                            : webSocketUrl);
+            throw new IllegalArgumentException(
+                    String.format(
+                            "WebSocket URL too long (%d chars, max: 8192). "
+                                    + "WebID count: %d. Please reduce PI Path count or increase parallelism.",
+                            webSocketUrl.length(), webIds != null ? webIds.size() : 0));
+        }
+
         // Configuration parameters
         boolean trustAllCerts =
                 piConfigHelper.isTrustAllCerts(); // Use trustAllCerts field in configuration

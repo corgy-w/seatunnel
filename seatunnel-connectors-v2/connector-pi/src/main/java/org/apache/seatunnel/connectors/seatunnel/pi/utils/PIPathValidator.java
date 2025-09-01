@@ -105,13 +105,23 @@ public class PIPathValidator {
         }
 
         // 3. Output validation results
-        log.info("PI path validation passed:");
-        log.info("  - Total path count: {}", piPaths.size());
-        log.info("  - Unique path count: {}", uniquePaths.size());
-        log.info("  - PI Point paths: {}", pointCount);
-        log.info("  - AF Attribute paths: {}", attributeCount);
-        log.info("  - No duplicate paths: ✓");
-        log.info("  - Format validation passed: ✓");
+        StringBuilder validationResult = new StringBuilder();
+        validationResult.append("PI path validation passed:\n");
+        validationResult.append("  - Total path count: ").append(piPaths.size()).append("\n");
+        validationResult.append("  - Unique path count: ").append(uniquePaths.size()).append("\n");
+        validationResult.append("  - PI Point paths: ").append(pointCount).append("\n");
+        validationResult.append("  - AF Attribute paths: ").append(attributeCount).append("\n");
+
+        // Check for duplicate paths
+        boolean hasDuplicates = piPaths.size() != uniquePaths.size();
+        validationResult
+                .append("  - No duplicate paths: ")
+                .append(hasDuplicates ? "FAILED" : "PASSED")
+                .append("\n");
+
+        // Format validation already passed (if we reach here, no invalid paths found)
+        validationResult.append("  - Format validation passed: PASSED");
+        log.info(validationResult.toString());
     }
 
     /** Validate if PI path format is correct */

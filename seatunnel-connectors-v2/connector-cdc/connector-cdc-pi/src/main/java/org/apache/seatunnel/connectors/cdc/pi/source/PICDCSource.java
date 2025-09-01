@@ -25,8 +25,7 @@ import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.common.config.CheckConfigUtil;
@@ -46,10 +45,8 @@ import org.apache.seatunnel.connectors.seatunnel.pi.utils.PISchemaBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * PI CDC source connector
@@ -123,8 +120,14 @@ public class PICDCSource
             // Validate Schema
             PISchemaBuilder.validateSchema(this.rowType);
 
-            // Create CatalogTable (reuse PIMetadataSource's logic)
-            this.catalogTable = createCatalogTable(config);
+            // Create CatalogTable (reuse PIMetadataSource logic)
+            if (config.getOptional(PIConfig.SCHEMA).isPresent()) {
+                this.catalogTable = CatalogTableUtil.buildWithConfig(config);
+            } else {
+                throw new PIConnectorException(
+                        PIErrorCode.CONFIG_INVALID,
+                        "PI CDC schema configuration not exists, please check your task configuration.");
+            }
 
         } catch (Exception e) {
             log.error("PI CDC source connector initialization failed", e);
@@ -189,43 +192,5 @@ public class PICDCSource
 
     public CatalogTable getProducedCatalogTable() {
         return catalogTable;
-    }
-
-    private CatalogTable createCatalogTable(ReadonlyConfig config) {
-        TableSchema tableSchema;
-
-        if (config.getOptional(PIConfig.SCHEMA).isPresent()) {
-            Map<String, Object> schemaMap = config.get(PIConfig.SCHEMA);
-
-            // Use new columns format, support columnLength, etc.
-            if (schemaMap.containsKey("columns")) {
-                tableSchema = PISchemaBuilder.createTableSchemaFromColumns(schemaMap);
-
-            } else if (schemaMap.containsKey("fields")) {
-                // Backward compatibility: use old fields format
-                tableSchema =
-                        TableSchema.builder()
-                                .columns(new ArrayList<>()) // Empty list, will use SeaTunnelRowType
-                                .build();
-
-            } else {
-                throw new IllegalArgumentException(
-                        "Schema configuration is missing columns or fields definition");
-            }
-        } else {
-            // Use default Schema
-            tableSchema =
-                    TableSchema.builder()
-                            .columns(new ArrayList<>()) // Empty list, will use default
-                            // SeaTunnelRowType
-                            .build();
-        }
-
-        return CatalogTable.of(
-                TableIdentifier.of("pi_cdc", "default", "pi_cdc_data"),
-                tableSchema,
-                config.toMap(),
-                new ArrayList<>(),
-                "PI Web API CDC data source table");
     }
 }

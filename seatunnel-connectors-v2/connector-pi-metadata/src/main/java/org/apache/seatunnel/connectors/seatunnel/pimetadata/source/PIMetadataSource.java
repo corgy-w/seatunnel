@@ -24,22 +24,21 @@ import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.api.table.catalog.TableIdentifier;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
+import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.seatunnel.pi.config.PIConfig;
 import org.apache.seatunnel.connectors.seatunnel.pi.config.PIConfigHelper;
+import org.apache.seatunnel.connectors.seatunnel.pi.exception.PIConnectorException;
+import org.apache.seatunnel.connectors.seatunnel.pi.exception.PIErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.pi.utils.PISchemaBuilder;
 import org.apache.seatunnel.connectors.seatunnel.pimetadata.split.PIMetadataSplit;
 import org.apache.seatunnel.connectors.seatunnel.pimetadata.state.PIMetadataEnumeratorState;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 public class PIMetadataSource
@@ -67,7 +66,13 @@ public class PIMetadataSource
         }
 
         // Create CatalogTable
-        this.catalogTable = createCatalogTable(config);
+        if (config.getOptional(PIConfig.SCHEMA).isPresent()) {
+            this.catalogTable = CatalogTableUtil.buildWithConfig(config);
+        } else {
+            throw new PIConnectorException(
+                    PIErrorCode.CONFIG_INVALID,
+                    "PI Metadata schema configuration not exists, please check your task configuration.");
+        }
     }
 
     @Override
@@ -108,42 +113,5 @@ public class PIMetadataSource
             PIMetadataEnumeratorState checkpointState)
             throws Exception {
         return new PIMetadataSplitEnumerator(enumeratorContext, configHelper, checkpointState);
-    }
-
-    private CatalogTable createCatalogTable(ReadonlyConfig config) {
-        TableSchema tableSchema;
-
-        if (config.getOptional(PIConfig.SCHEMA).isPresent()) {
-            Map<String, Object> schemaMap = config.get(PIConfig.SCHEMA);
-
-            // Columns format, supports columnLength attribute
-            if (schemaMap.containsKey("columns")) {
-                tableSchema = PISchemaBuilder.createTableSchemaFromColumns(schemaMap);
-
-            } else if (schemaMap.containsKey("fields")) {
-                // Compatible: fields format
-                tableSchema =
-                        TableSchema.builder()
-                                .columns(new ArrayList<>()) // Null, SeaTunnelRowType
-                                .build();
-
-            } else {
-                throw new IllegalArgumentException(
-                        "Schema Configuration missing columns or fields definition");
-            }
-        } else {
-            // Default Schema
-            tableSchema =
-                    TableSchema.builder()
-                            .columns(new ArrayList<>()) // Null, Default SeaTunnelRowType
-                            .build();
-        }
-
-        return CatalogTable.of(
-                TableIdentifier.of("pi_metadata", "default", "pi_metadata_table"),
-                tableSchema,
-                config.toMap(),
-                new ArrayList<>(),
-                "PI Metadata Data source table");
     }
 }
