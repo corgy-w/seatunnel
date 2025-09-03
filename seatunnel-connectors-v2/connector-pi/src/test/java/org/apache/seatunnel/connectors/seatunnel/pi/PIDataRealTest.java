@@ -45,14 +45,309 @@ public class PIDataRealTest {
     private PIHttpClient httpClient;
     private PIWebIdBatchResolver webIdResolver;
 
-    /** The 5 PI points from configuration file */
+    /** The 302 PI points from configuration file */
     private static final List<String> PI_PATHS =
             Arrays.asList(
-                    "\\\\pims.huafeng.com\\HF.AA.NAB:LIA-26101.PV",
                     "\\\\pims.huafeng.com\\HF.AA.267XHS:FRQ-26701.PV",
                     "\\\\pims.huafeng.com\\HF.AA.267XHS:FRQ-26703.PV",
                     "\\\\pims.huafeng.com\\HF.AA.267XHS:HO-F26701.PV",
-                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HO-F26703.PV");
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HO-F26703.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HO-F26705.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HO-F26707.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HO-P26701.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HO-P26703.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HO-P26705.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HS-F26702.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HS-F26704.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HS-F26706.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HS-F26708.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HS-P26702.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HS-P26704.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HZOI-26701A.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HZOI-26701C.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:HZOI-26701E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PI-26701.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26701X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26701Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26702Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26703X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26703Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26704Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26705X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26705Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26706Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26707X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26707Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-LF26708Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-TE26701.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-TE26703.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-TE26705.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:PL-TE26707.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:ST-LF26701.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:ST-LF26703.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:ST-LF26705.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:ST-LF26707.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TI-26701.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26701D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26701U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26701W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26702E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26702V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26703D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26703U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26703W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26704E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26704V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26705D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26705U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26705W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26706E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26706V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26707D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26707U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26707W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26708E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-F26708V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26701D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26701U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26701W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26702E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26702V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26703D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26703U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26703W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26704E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26704V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26705D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26705U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TIA-P26705W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TISA-F26702.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TISA-F26704.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TISA-F26706.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:TISA-F26708.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26701Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26702X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26702Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26703Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26704X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26704Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26705Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26706X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26706Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26707Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26708X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:VISA-F26708Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:XI-F26702.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:XI-F26704.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:XI-F26706.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:XI-F26708.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:XI-P26702.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.267XHS:XI-P26704.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:FIQ-26201.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:FIQ-26203.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:FIQ-26205.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:FIQ-26207.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:HS-LF26301A.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:HS-LF26301C.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:HS-LF26301E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:LIA-26201.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:PIA-26202.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26201E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26201V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26202D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26202U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26202W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26203E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26203V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26204D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26204U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26204W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26205E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26205V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26206D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26206U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26206W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26207E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26207V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26208D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26208U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-F26208W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26201E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26201V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26202D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26202U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26202W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26203E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26203V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26204D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26204U.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26204W.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26205E.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-P26205V.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-V26201.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TIA-V26202.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TISA-F26202.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TISA-F26204.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TISA-F26206.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:TISA-F26208.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26201Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26202X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26202Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26203Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26204X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26204Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26205Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26206X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26206Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26207Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26208X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:VISA-F26208Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:XI-LF26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:XI-LF26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:XI-LF26301F.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:XI-P26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS3:XI-P26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:FRQ-26302.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:FRQ-26304.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:LICA-26301.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:PI-26302.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TI-26302.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA1-F26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA1-F26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA1-F26301F.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA1-P26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA1-P26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA2-F26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA2-F26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA2-F26301F.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA2-P26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA2-P26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA3-F26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA3-F26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA3-F26301F.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA3-P26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA3-P26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA4-F26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA4-F26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA4-F26301F.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA4-P26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA4-P26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA5-F26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA5-F26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA5-F26301F.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA5-P26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TIA5-P26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TISA-26301B.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TISA-26301D.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:TISA-26301F.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301AY.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301BX.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301BZ.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301CY.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301DX.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301DZ.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301EY.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301FX.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:VISA-26301FZ.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:XI-F26202.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:XI-F26204.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:XI-F26206.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:XI-F26208.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:XI-P26202.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XHS4:XI-P26204.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:FIRQ-26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:FIRQ-26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:FIRQ-26606.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:FIRQ-26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:FIRQ-26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:FIRQ-26806.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:LIA-26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:LISA-26602.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:LISA-26604.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:PI-26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:PI-26801.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TI-26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TI-26801.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-F26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-F26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-F26605.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-F26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-F26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-F26806.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-F26808.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-P26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-P26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA1-P26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-F26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-F26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-F26605.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-F26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-F26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-F26806.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-F26808.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-P26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-P26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA2-P26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-F26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-F26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-F26605.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-F26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-F26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-F26806.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-F26808.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-P26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-P26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA3-P26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-F26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-F26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-F26605.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-F26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-F26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-F26806.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-F26808.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-P26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-P26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA4-P26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-F26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-F26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-F26605.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-F26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-F26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-F26806.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-F26808.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-P26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-P26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIA5-P26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIAS-F26801.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIAS-F26803.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIAS-F26805.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TIAS-F26807.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TISA-26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:TISA-26605.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26602.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26604.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26801X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26801Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26802Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26803X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26803Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26804Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26805X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26805Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26806Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26807X.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26807Z.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:VISA-26808Y.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-LF26601.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-LF26603.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-LF26605.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-LF26802.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-LF26804.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-LF26806.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-LF26808.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-P26602.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-P26801.PV",
+                    "\\\\pims.huafeng.com\\HF.AA.XQXHS:XI-P26803.PV");
 
     @BeforeEach
     void setUp() {
@@ -73,7 +368,7 @@ public class PIDataRealTest {
         webIdResolver = new PIWebIdBatchResolver(httpClient, configHelper);
     }
 
-    /** Test that all 5 PI points can resolve WebIDs */
+    /** Test that all 302 PI points can resolve WebIDs */
     @Test
     void testAllPIPointsResolveWebIds() {
         try {
@@ -95,6 +390,11 @@ public class PIDataRealTest {
             Assertions.assertEquals(PI_PATHS.size(), webIds.size());
 
             StringBuilder sb = new StringBuilder(200);
+            // Statistical variables for data analysis
+            int totalPaths = webIds.size();
+            int zeroCountPaths = 0;
+            int totalDataPoints = 0;
+
             for (int i = 0; i < webIds.size(); i++) {
                 String webId = webIds.get(i);
                 try {
@@ -120,11 +420,21 @@ public class PIDataRealTest {
                             .append(count)
                             .append("\n");
 
+                    // Collect statistical data for summary report
+                    if (count == 0) {
+                        zeroCountPaths++;
+                    }
+                    totalDataPoints += count;
+
                     Assertions.assertTrue(count >= 0);
                 } catch (Exception e) {
                     Assertions.fail("Failed to retrieve data for WebID: " + webId, e);
                 }
             }
+
+            // Generate summary statistics report
+            appendSummaryStatistics(sb, totalPaths, zeroCountPaths, totalDataPoints);
+
             // Print detailed results
             log.info("Data retrieval test completed, details:");
             log.info(sb.toString());
@@ -134,20 +444,67 @@ public class PIDataRealTest {
         }
     }
 
-    /** Count data points in PI Web API response */
+    /**
+     * Count data points in PI Web API response Based on actual PI Web API format from runinfo.txt
+     */
     private int countDataPoints(String response) {
         if (response == null || response.trim().isEmpty()) {
             return 0;
         }
 
-        // Count "Timestamp" occurrences which indicate data points
-        int count = 0;
+        // Primary method: Count Timestamp occurrences
+        // Each data point in PI Web API has exactly one "Timestamp" field
+        int timestampCount = 0;
         int index = 0;
         while ((index = response.indexOf("\"Timestamp\"", index)) != -1) {
-            count++;
-            index += 11;
+            timestampCount++;
+            index += 11; // Length of "Timestamp"
         }
 
-        return count;
+        // Backup method: Count Value occurrences
+        int valueCount = 0;
+        index = 0;
+        while ((index = response.indexOf("\"Value\"", index)) != -1) {
+            valueCount++;
+            index += 7; // Length of "Value"
+        }
+
+        // Use timestamp count as primary, value count as backup
+        int finalCount = timestampCount > 0 ? timestampCount : valueCount;
+
+        // Log detailed counting information for debugging
+        if (finalCount > 0) {
+            log.debug(
+                    "Data point counting - Timestamps: {}, Values: {}, Using: {}",
+                    timestampCount,
+                    valueCount,
+                    finalCount);
+        }
+
+        return finalCount;
+    }
+
+
+    /**
+     * Append summary statistics to the report string builder
+     *
+     * @param sb StringBuilder to append statistics to
+     * @param totalPaths Total number of PI paths tested
+     * @param zeroCountPaths Number of paths with zero data points
+     * @param totalDataPoints Total data points across all paths
+     */
+    private void appendSummaryStatistics(
+            StringBuilder sb, int totalPaths, int zeroCountPaths, int totalDataPoints) {
+        sb.append("\n=== Summary Statistics ===\n");
+        sb.append("Total Paths: ").append(totalPaths).append("\n");
+        sb.append("Paths with Zero Data Points: ").append(zeroCountPaths).append("\n");
+        sb.append("Paths with Data: ").append(totalPaths - zeroCountPaths).append("\n");
+        sb.append("Total Data Points: ").append(totalDataPoints).append("\n");
+        sb.append("Average Data Points per Path: ")
+                .append(
+                        totalPaths > 0
+                                ? String.format("%.2f", (double) totalDataPoints / totalPaths)
+                                : "0.00")
+                .append("\n");
     }
 }

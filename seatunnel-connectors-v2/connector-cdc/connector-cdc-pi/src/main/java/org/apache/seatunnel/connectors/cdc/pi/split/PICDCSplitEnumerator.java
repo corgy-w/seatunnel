@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.connectors.seatunnel.pi.config.PIConfigHelper;
 import org.apache.seatunnel.connectors.seatunnel.pi.exception.PIConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.pi.exception.PIErrorCode;
+import org.apache.seatunnel.connectors.seatunnel.pi.utils.PIPathValidator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -431,6 +432,9 @@ public class PICDCSplitEnumerator
         int totalWebIDs = webIds.size();
         int maxWebIDsPerSplit = MAX_WEBIDS_PER_SPLIT;
         int expectedSplits = (totalWebIDs + maxWebIDsPerSplit - 1) / maxWebIDsPerSplit;
+
+        // Validate and resolve paths
+        PIPathValidator.validatePiPaths(webIds);
 
         // Validate WebID count limit
         if (totalWebIDs > 160000) {

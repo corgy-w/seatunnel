@@ -32,10 +32,12 @@ public class PISplitStrategy {
     private static final Logger log = LoggerFactory.getLogger(PISplitStrategy.class);
 
     private static final int DEFAULT_WEBIDS_PER_SPLIT = 150;
-    private static final int MAX_URL_LENGTH = 1800; // Reserve safety margin
+    private static final int MAX_URL_LENGTH = 1800;
+    private static final int MIN_WEBIDS_PER_SPLIT =
+            1; // Minimum split size to prevent infinite recursion
 
     /**
-     * Create split list
+     * Create split list with recursion termination protection this is a recursive method
      *
      * @param webIds WebID list
      * @param startTime Start time
@@ -79,11 +81,31 @@ public class PISplitStrategy {
 
             // Validate URL length
             if (estimateUrlLength(splitWebIds) > MAX_URL_LENGTH) {
+                if (splitWebIds.size() == 1) {
+                    String webId = splitWebIds.get(0);
+                    int urlLength = estimateUrlLength(splitWebIds);
+                    throw new IllegalArgumentException(
+                            String.format(
+                                    "Single WebID URL length exceeds limit (%d > %d). WebID: %s. "
+                                            + "Consider: 1) Use shorter WebID paths, 2) Increase MAX_URL_LENGTH.",
+                                    urlLength,
+                                    MAX_URL_LENGTH,
+                                    webId.length() > 100
+                                            ? webId.substring(0, 100) + "..."
+                                            : webId));
+                }
+
+                // Apply step size lower bound protection
+                int nextStepSize = Math.max(MIN_WEBIDS_PER_SPLIT, maxWebIdsPerSplit / 2);
                 log.warn(
-                        "Split {} URL length exceeds limit, performing subdivision",
-                        i / maxWebIdsPerSplit);
-                // Recursive subdivision
-                splits.addAll(createSplits(splitWebIds, startTime, endTime, maxWebIdsPerSplit / 2));
+                        "Split {} URL length exceeds limit (estimated: {} chars), performing subdivision from {} to {} WebIDs per split",
+                        i / maxWebIdsPerSplit,
+                        estimateUrlLength(splitWebIds),
+                        maxWebIdsPerSplit,
+                        nextStepSize);
+
+                // Recursive subdivision with protection
+                splits.addAll(createSplits(splitWebIds, startTime, endTime, nextStepSize));
             } else {
                 String splitId = "split-" + (i / maxWebIdsPerSplit);
                 PISplit split =
@@ -98,24 +120,38 @@ public class PISplitStrategy {
         return splits;
     }
 
-    /** Estimate URL length for determining whether split subdivision is needed */
+    /**
+     * Estimate URL length for determining whether split subdivision is needed More accurate
+     * estimation based on actual PI Web API URL structure
+     */
     private int estimateUrlLength(List<String> webIds) {
         if (webIds == null || webIds.isEmpty()) {
             return 0;
         }
 
-        // Base URL length estimation
-        int baseUrlLength = 100; // Base URL part
-        int paramLength = 0;
+        // Base URL length estimation (more accurate)
+        // Example: https://server:8443/piwebapi/streamsets/recorded?
+        int baseUrlLength = 150;
 
+        // WebID parameters: webid=P1AbEiO7ub6ZrVQ0-uLVXfPJQVQAAAAUE1EQVRBSE9TVFxDREE158&
+        int webIdParamLength = 0;
         for (String webId : webIds) {
-            // webid=xxx&
-            paramLength += 6 + (webId != null ? webId.length() : 0) + 1;
+            if (webId != null) {
+                // "webid=" + webId + "&"
+                webIdParamLength += 6 + webId.length() + 1;
+            }
         }
 
-        // Add time parameter length estimation
-        int timeParamLength = 100; // startTime and endTime parameters
+        // Time parameters: startTime=2024-01-01T00:00:00Z&endTime=2024-01-01T01:00:00Z&
+        int timeParamLength = 120;
 
-        return baseUrlLength + paramLength + timeParamLength;
+        // Additional parameters: maxCount=1000&boundaryType=Inside&
+        int additionalParamLength = 50;
+
+        int totalLength =
+                baseUrlLength + webIdParamLength + timeParamLength + additionalParamLength;
+
+        log.debug("Estimated URL length: {} chars for {} WebIDs", totalLength, webIds.size());
+        return totalLength;
     }
 }

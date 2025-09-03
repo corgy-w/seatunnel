@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.pimetadata.source;
 
 import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.connectors.seatunnel.pi.config.PIConfigHelper;
+import org.apache.seatunnel.connectors.seatunnel.pi.utils.PIPathValidator;
 import org.apache.seatunnel.connectors.seatunnel.pimetadata.split.PIMetadataSplit;
 import org.apache.seatunnel.connectors.seatunnel.pimetadata.state.PIMetadataEnumeratorState;
 
@@ -60,6 +61,7 @@ public class PIMetadataSplitEnumerator
 
     private void initializeSplits() {
         List<String> allPaths = configHelper.getPiPaths();
+
         // Use batch size optimized specifically for metadata, default 20 paths per split
         int batchSize = getOptimalBatchSize(allPaths);
 
@@ -68,8 +70,8 @@ public class PIMetadataSplitEnumerator
                 allPaths.size(),
                 batchSize);
 
-        // Validate paths
-        validatePaths(allPaths);
+        // Validate and resolve paths
+        PIPathValidator.validatePiPaths(allPaths);
 
         // Create splits by batching paths
         for (int i = 0; i < allPaths.size(); i += batchSize) {
@@ -254,37 +256,5 @@ public class PIMetadataSplitEnumerator
                 optimalBatchSize);
 
         return optimalBatchSize;
-    }
-
-    private void validatePaths(List<String> paths) {
-        if (paths == null || paths.isEmpty()) {
-            throw new IllegalArgumentException("PI paths cannot be null or empty");
-        }
-
-        Set<String> uniquePaths = new HashSet<>();
-        int duplicateCount = 0;
-
-        for (String path : paths) {
-            if (path == null || path.trim().isEmpty()) {
-                throw new IllegalArgumentException("PI path cannot be null or empty");
-            }
-
-            if (!uniquePaths.add(path.trim())) {
-                duplicateCount++;
-                log.warn("Duplicate PI path found: {}", path);
-            }
-        }
-
-        log.info(
-                "Path validation completed: {} total paths, {} unique paths, {} duplicates",
-                paths.size(),
-                uniquePaths.size(),
-                duplicateCount);
-
-        if (duplicateCount > 0) {
-            log.warn(
-                    "Found {} duplicate paths. Consider removing duplicates for better performance.",
-                    duplicateCount);
-        }
     }
 }

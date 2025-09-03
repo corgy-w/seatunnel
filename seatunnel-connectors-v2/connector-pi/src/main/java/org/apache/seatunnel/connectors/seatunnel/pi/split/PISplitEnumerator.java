@@ -25,8 +25,7 @@ import org.apache.seatunnel.connectors.seatunnel.pi.exception.PIConnectorExcepti
 import org.apache.seatunnel.connectors.seatunnel.pi.exception.PIErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.pi.utils.PIPathValidator;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,9 +36,8 @@ import java.util.Map;
 import java.util.Set;
 
 /** PI Batch Data Source Split Enumerator */
+@Slf4j
 public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheckpointState> {
-
-    private static final Logger log = LoggerFactory.getLogger(PISplitEnumerator.class);
 
     private final SourceSplitEnumerator.Context<PISplit> context;
     private final PIConfigHelper configHelper;
@@ -149,7 +147,6 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
                 readerSplits.clear();
                 pendingSplits.remove(subtaskId);
 
-                context.signalNoMoreSplits(subtaskId);
                 log.info("Assigned splits to reader {}", subtaskId);
             }
         }
@@ -173,16 +170,16 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
     }
 
     private void assignPendingSplits(Set<Integer> readers) {
-        for (Map.Entry<Integer, List<PISplit>> entry : pendingSplits.entrySet()) {
-            int readerId = entry.getKey();
-            List<PISplit> splits = entry.getValue();
+        log.debug("Assign pendingSplits to readers {}", readers);
 
-            if (readers.contains(readerId) && !splits.isEmpty()) {
-                context.assignSplit(readerId, splits);
-                log.info("Assigned {} splits to reader {}", splits.size(), readerId);
+        for (int readerId : readers) {
+            List<PISplit> assignPISplitForReader = pendingSplits.remove(readerId);
+            if (assignPISplitForReader != null && !assignPISplitForReader.isEmpty()) {
+                log.info(
+                        "Assigned {} splits to reader {}", assignPISplitForReader.size(), readerId);
+                context.assignSplit(readerId, assignPISplitForReader);
             }
         }
-        pendingSplits.clear();
     }
 
     /**
