@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.common.config.Common;
+import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.kafka.state.KafkaSourceState;
@@ -72,12 +73,15 @@ public class KafkaSourceSplitEnumerator
     private ScheduledFuture<?> scheduledFuture;
     private volatile boolean initialized;
 
+    private final boolean isRestored;
+
     private final Map<String, TablePath> topicMappingTablePathMap = new HashMap<>();
 
     KafkaSourceSplitEnumerator(
             KafkaSourceConfig kafkaSourceConfig,
             Context<KafkaSourceSplit> context,
-            KafkaSourceState sourceState) {
+            KafkaSourceState sourceState,
+            boolean isRestored) {
         this.kafkaSourceConfig = kafkaSourceConfig;
         this.tablePathMetadataMap = kafkaSourceConfig.getMapMetadata();
         this.context = context;
@@ -86,6 +90,21 @@ public class KafkaSourceSplitEnumerator
         this.adminClient = initAdminClient(this.kafkaSourceConfig.getProperties());
         this.eventRecorder = new EnumeratorEventRecorder(context);
         this.discoveryIntervalMillis = kafkaSourceConfig.getDiscoveryIntervalMillis();
+        this.isRestored = isRestored;
+        if (this.isRestored) {
+            log.info("Task is being restored, forcing start mode to GROUP_OFFSETS for all topics");
+            this.tablePathMetadataMap.forEach(
+                    (tablePath, metadata) -> {
+                        StartMode originalMode = metadata.getStartMode();
+                        if (originalMode != StartMode.GROUP_OFFSETS) {
+                            log.info(
+                                    "Changing start mode from {} to GROUP_OFFSETS for table path: {}",
+                                    originalMode,
+                                    tablePath);
+                            metadata.setStartMode(StartMode.GROUP_OFFSETS);
+                        }
+                    });
+        }
     }
 
     @Override
@@ -141,7 +160,11 @@ public class KafkaSourceSplitEnumerator
             // Supports topic list fine-grained Settings for kafka consumer configurations
             ConsumerMetadata metadata = tablePathMetadataMap.get(tablePath);
             Set<TopicPartition> topicPartitions = tablePathPartitionMap.get(tablePath);
-            switch (metadata.getStartMode()) {
+
+            StartMode effectiveStartMode =
+                    isRestored ? StartMode.GROUP_OFFSETS : metadata.getStartMode();
+
+            switch (effectiveStartMode) {
                 case EARLIEST:
                     topicPartitionOffsets.putAll(
                             listOffsets(topicPartitions, OffsetSpec.earliest()));
