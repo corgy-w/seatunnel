@@ -32,24 +32,78 @@ public class PISplitStrategy {
     private static final Logger log = LoggerFactory.getLogger(PISplitStrategy.class);
 
     private static final int DEFAULT_WEBIDS_PER_SPLIT = 150;
-    private static final int MAX_URL_LENGTH = 1800;
+    private static final int MAX_URL_LENGTH = 4000; // Increased limit for better performance
     private static final int MIN_WEBIDS_PER_SPLIT =
-            1; // Minimum split size to prevent infinite recursion
+            5; // Minimum split size to prevent over-subdivision
 
     /**
-     * Create split list with recursion termination protection this is a recursive method
+     * Create splits from PI paths (optimized for parallel processing)
+     *
+     * @param piPaths PI path list
+     * @param startTime Start time
+     * @param endTime End time
+     * @param maxPathsPerSplit Maximum number of paths per split
+     * @param maxSplits Maximum number of splits allowed
+     * @param autoAdjustSplitSize Whether to automatically adjust split size
+     * @return Split list with paths for later WebID resolution
+     */
+    public List<PISplit> createSplitsFromPaths(
+            List<String> piPaths,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            int maxPathsPerSplit,
+            int maxSplits,
+            boolean autoAdjustSplitSize) {
+
+        if (piPaths == null || piPaths.isEmpty()) {
+            log.warn("PI path list is empty, cannot create splits");
+            return new ArrayList<>();
+        }
+
+        if (maxPathsPerSplit <= 0) {
+            maxPathsPerSplit = DEFAULT_WEBIDS_PER_SPLIT;
+        }
+
+        log.info(
+                "Creating splits from paths, total paths: {}, max paths per split: {}",
+                piPaths.size(),
+                maxPathsPerSplit);
+
+        List<PISplit> splits = new ArrayList<>();
+
+        for (int i = 0; i < piPaths.size(); i += maxPathsPerSplit) {
+            int endIndex = Math.min(i + maxPathsPerSplit, piPaths.size());
+            List<String> splitPaths = piPaths.subList(i, endIndex);
+
+            String splitId = "split-" + (splits.size());
+            PISplit split = new PISplit(splitId, splitPaths);
+            splits.add(split);
+
+            log.info("Created split: {}, path count: {}", splitId, splitPaths.size());
+        }
+
+        log.info("Created {} splits for {} paths", splits.size(), piPaths.size());
+        return splits;
+    }
+
+    /**
+     * Create split list
      *
      * @param webIds WebID list
      * @param startTime Start time
      * @param endTime End time
      * @param maxWebIdsPerSplit Maximum number of WebIDs per split
+     * @param maxSplits Maximum number of splits allowed
+     * @param autoAdjustSplitSize Whether to automatically adjust split size
      * @return Split list
      */
     public List<PISplit> createSplits(
             List<String> webIds,
             LocalDateTime startTime,
             LocalDateTime endTime,
-            int maxWebIdsPerSplit) {
+            int maxWebIdsPerSplit,
+            int maxSplits,
+            boolean autoAdjustSplitSize) {
 
         if (webIds == null || webIds.isEmpty()) {
             log.warn("WebID list is empty, cannot create splits");
@@ -61,9 +115,11 @@ public class PISplitStrategy {
         }
 
         log.info(
-                "Starting to create splits, total WebIDs: {}, max WebIDs per split: {}",
+                "Starting to create splits, total WebIDs: {}, max WebIDs per split: {}, max splits: {}, auto adjust: {}",
                 webIds.size(),
-                maxWebIdsPerSplit);
+                maxWebIdsPerSplit,
+                maxSplits,
+                autoAdjustSplitSize);
 
         List<PISplit> splits = new ArrayList<>();
 
@@ -80,39 +136,48 @@ public class PISplitStrategy {
             List<String> splitWebIds = webIds.subList(i, endIndex);
 
             // Validate URL length
-            if (estimateUrlLength(splitWebIds) > MAX_URL_LENGTH) {
-                if (splitWebIds.size() == 1) {
-                    String webId = splitWebIds.get(0);
-                    int urlLength = estimateUrlLength(splitWebIds);
-                    throw new IllegalArgumentException(
-                            String.format(
-                                    "Single WebID URL length exceeds limit (%d > %d). WebID: %s. "
-                                            + "Consider: 1) Use shorter WebID paths, 2) Increase MAX_URL_LENGTH.",
-                                    urlLength,
-                                    MAX_URL_LENGTH,
-                                    webId.length() > 100
-                                            ? webId.substring(0, 100) + "..."
-                                            : webId));
-                }
+            int estimatedLength = estimateUrlLength(splitWebIds);
+            boolean shouldSubdivide =
+                    estimatedLength > MAX_URL_LENGTH
+                            && maxWebIdsPerSplit > MIN_WEBIDS_PER_SPLIT
+                            && autoAdjustSplitSize
+                            && splits.size() < maxSplits;
 
-                // Apply step size lower bound protection
-                int nextStepSize = Math.max(MIN_WEBIDS_PER_SPLIT, maxWebIdsPerSplit / 2);
+            if (shouldSubdivide) {
                 log.warn(
-                        "Split {} URL length exceeds limit (estimated: {} chars), performing subdivision from {} to {} WebIDs per split",
+                        "Split {} URL length ({} chars) exceeds limit ({}), performing subdivision from {} to {} WebIDs per split",
                         i / maxWebIdsPerSplit,
-                        estimateUrlLength(splitWebIds),
+                        estimatedLength,
+                        MAX_URL_LENGTH,
                         maxWebIdsPerSplit,
-                        nextStepSize);
-
-                // Recursive subdivision with protection
-                splits.addAll(createSplits(splitWebIds, startTime, endTime, nextStepSize));
+                        maxWebIdsPerSplit / 2);
+                // Recursive subdivision with all constraints
+                splits.addAll(
+                        createSplits(
+                                splitWebIds,
+                                startTime,
+                                endTime,
+                                maxWebIdsPerSplit / 2,
+                                maxSplits,
+                                autoAdjustSplitSize));
             } else {
+                if (estimatedLength > MAX_URL_LENGTH) {
+                    log.warn(
+                            "Split {} URL length ({} chars) exceeds limit ({}) but cannot subdivide further (min size: {}), proceeding anyway",
+                            i / maxWebIdsPerSplit,
+                            estimatedLength,
+                            MAX_URL_LENGTH,
+                            MIN_WEBIDS_PER_SPLIT);
+                }
                 String splitId = "split-" + (i / maxWebIdsPerSplit);
-                PISplit split =
-                        new PISplit(splitId, new ArrayList<>(splitWebIds), startTime, endTime);
+                PISplit split = new PISplit(splitId, new ArrayList<>(splitWebIds));
                 splits.add(split);
 
-                log.info("Created split: {}, WebID count: {}", splitId, splitWebIds.size());
+                log.info(
+                        "Created split: {}, WebID count: {}, estimated URL length: {} chars",
+                        splitId,
+                        splitWebIds.size(),
+                        estimatedLength);
             }
         }
 
@@ -121,8 +186,8 @@ public class PISplitStrategy {
     }
 
     /**
-     * Estimate URL length for determining whether split subdivision is needed More accurate
-     * estimation based on actual PI Web API URL structure
+     * Estimate URL length for determining whether split subdivision is needed Improved estimation
+     * based on actual PI Web API URL format
      */
     private int estimateUrlLength(List<String> webIds) {
         if (webIds == null || webIds.isEmpty()) {
@@ -131,27 +196,32 @@ public class PISplitStrategy {
 
         // Base URL length estimation (more accurate)
         // Example: https://server:8443/piwebapi/streamsets/recorded?
-        int baseUrlLength = 150;
+        int baseUrlLength = 200; // Base URL part with some buffer
+        int paramLength = 0;
 
-        // WebID parameters: webid=P1AbEiO7ub6ZrVQ0-uLVXfPJQVQAAAAUE1EQVRBSE9TVFxDREE158&
-        int webIdParamLength = 0;
         for (String webId : webIds) {
-            if (webId != null) {
-                // "webid=" + webId + "&"
-                webIdParamLength += 6 + webId.length() + 1;
-            }
+            // More accurate parameter estimation: webid=F1DP...&
+            // WebIDs are typically 40-50 characters long
+            paramLength += 7 + (webId != null ? webId.length() : 45) + 1; // "webid=" + webId + "&"
         }
 
-        // Time parameters: startTime=2024-01-01T00:00:00Z&endTime=2024-01-01T01:00:00Z&
-        int timeParamLength = 120;
+        // Add time parameter length estimation (more accurate)
+        // startTime=2025-08-29T09:00:00Z&endTime=2025-08-29T09:20:00Z&
+        int timeParamLength = 80; // startTime and endTime parameters
 
-        // Additional parameters: maxCount=1000&boundaryType=Inside&
-        int additionalParamLength = 50;
+        // Add other common parameters (maxCount, boundaryType, etc.)
+        int otherParamLength = 50;
 
-        int totalLength =
-                baseUrlLength + webIdParamLength + timeParamLength + additionalParamLength;
+        int totalLength = baseUrlLength + paramLength + timeParamLength + otherParamLength;
 
-        log.debug("Estimated URL length: {} chars for {} WebIDs", totalLength, webIds.size());
+        log.debug(
+                "URL length estimation: base={}, params={}, time={}, other={}, total={}",
+                baseUrlLength,
+                paramLength,
+                timeParamLength,
+                otherParamLength,
+                totalLength);
+
         return totalLength;
     }
 }

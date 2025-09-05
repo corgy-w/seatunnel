@@ -170,8 +170,9 @@ public class PIConfig {
     public static final Option<Integer> MAX_COUNT =
             Options.key("max_count")
                     .intType()
-                    .defaultValue(1000)
-                    .withDescription("Maximum number of records returned per query");
+                    .defaultValue(100000)
+                    .withDescription(
+                            "Maximum number of records returned per query. If actual data exceeds this limit, only the first N records will be returned and remaining data will be lost.");
 
     public static final Option<String> BOUNDARY_TYPE =
             Options.key("boundary_type")
@@ -182,7 +183,7 @@ public class PIConfig {
     public static final Option<Integer> BATCH_WINDOW_MINUTES =
             Options.key("batch_window_minutes")
                     .intType()
-                    .defaultValue(60)
+                    .defaultValue(3)
                     .withDescription("Batch processing time window in minutes");
 
     // ================= Historical Mode Configuration =================
@@ -282,7 +283,7 @@ public class PIConfig {
     public static final Option<Integer> WEBIDS_PER_SPLIT =
             Options.key("webids_per_split")
                     .intType()
-                    .defaultValue(150)
+                    .defaultValue(20)
                     .withDescription("Number of WebIDs contained in each split");
 
     public static final Option<Integer> MAX_SPLITS =
@@ -308,7 +309,7 @@ public class PIConfig {
     public static final Option<Long> WEBID_RESOLVE_DELAY_MS =
             Options.key("webid_resolve_delay_ms")
                     .longType()
-                    .defaultValue(100L)
+                    .defaultValue(10L)
                     .withDescription("WebID resolution interval (milliseconds)");
 
     /** supportmaximum WebID quantity */

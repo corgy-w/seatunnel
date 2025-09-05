@@ -31,11 +31,11 @@ public class PISplitSerializer implements Serializer<PISplit> {
             // Write split ID
             oos.writeUTF(split.getSplitId());
 
-            // Write WebID list
-            List<String> webIds = split.getWebIds();
-            oos.writeInt(webIds.size());
-            for (String webId : webIds) {
-                oos.writeUTF(webId);
+            // Write piPaths list
+            List<String> piPaths = split.getPiPaths();
+            oos.writeInt(piPaths.size());
+            for (String piPath : piPaths) {
+                oos.writeUTF(piPath);
             }
 
             // Write checkpoint time
@@ -60,10 +60,10 @@ public class PISplitSerializer implements Serializer<PISplit> {
             // Read split ID
             String splitId = ois.readUTF();
 
-            // Read WebID list
-            int webIdCount = ois.readInt();
-            List<String> webIds = new ArrayList<>(webIdCount);
-            for (int i = 0; i < webIdCount; i++) {
+            // Read piPaths list
+            int piPathsCount = ois.readInt();
+            List<String> webIds = new ArrayList<>(piPathsCount);
+            for (int i = 0; i < piPathsCount; i++) {
                 webIds.add(ois.readUTF());
             }
 

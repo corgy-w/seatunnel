@@ -61,18 +61,47 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
         this.configHelper = configHelper;
         this.pendingSplits = new HashMap<>();
 
+        // Restore state from checkpoint if available
+        if (checkpointState != null) {
+            Map<Integer, List<PISplit>> restoredSplits = checkpointState.getPendingSplits();
+            if (restoredSplits != null && !restoredSplits.isEmpty()) {
+                this.pendingSplits.putAll(restoredSplits);
+                log.info(
+                        "Restored {} pending splits from checkpoint {}",
+                        restoredSplits.size(),
+                        checkpointState.getCheckpointId());
+            }
+        }
+
         initializeComponents();
     }
 
     private void initializeComponents() {
+        PIHttpClient tempHttpClient = null;
+        PIWebIdBatchResolver tempWebIdResolver = null;
+
         try {
-            this.httpClient = new PIHttpClient(configHelper);
-            this.webIdResolver = new PIWebIdBatchResolver(httpClient, configHelper);
+            tempHttpClient = new PIHttpClient(configHelper);
+            tempWebIdResolver = new PIWebIdBatchResolver(tempHttpClient, configHelper);
             this.splitStrategy = new PISplitStrategy();
+
+            // Only assign to instance variables after successful initialization
+            this.httpClient = tempHttpClient;
+            this.webIdResolver = tempWebIdResolver;
 
             log.info("PI components initialization completed");
         } catch (Exception e) {
             log.error("PI components initialization failed", e);
+
+            if (tempHttpClient != null) {
+                try {
+                    tempHttpClient.close();
+                    log.debug("HTTP client cleanup completed");
+                } catch (Exception cleanupException) {
+                    log.warn("Failed to cleanup HTTP client", cleanupException);
+                }
+            }
+
             throw new PIConnectorException(
                     PIErrorCode.INITIALIZATION_FAILED, "PI components initialization failed", e);
         }
@@ -92,17 +121,18 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
 
     private void initializeSplits(List<String> piPaths) {
         try {
-            // Validate and resolve paths
+            // Only validate paths, defer WebID resolution to readers for parallel processing
             PIPathValidator.validatePiPaths(piPaths);
-            List<String> resolvedWebIds = webIdResolver.batchResolveWebIds(piPaths);
 
-            // Create splits using strategy
+            // Create splits directly with PI paths instead of resolving WebIDs here
             List<PISplit> splits =
-                    splitStrategy.createSplits(
-                            resolvedWebIds,
+                    splitStrategy.createSplitsFromPaths(
+                            piPaths,
                             configHelper.getStartDateTime(),
                             configHelper.getEndDateTime(),
-                            configHelper.getWebIdsPerSplit());
+                            configHelper.getWebIdsPerSplit(),
+                            configHelper.getMaxSplits(),
+                            configHelper.getAutoAdjustSplitSize());
 
             // Distribute splits using round-robin
             synchronized (stateLock) {
@@ -110,9 +140,9 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
             }
 
             log.info(
-                    "Created {} splits for {} WebIDs, time range: {} - {}",
+                    "Created {} splits for {} PI paths, time range: {} - {}",
                     splits.size(),
-                    resolvedWebIds.size(),
+                    piPaths.size(),
                     configHelper.getStartTime(),
                     configHelper.getEndTime());
 
@@ -247,9 +277,16 @@ public class PISplitEnumerator implements SourceSplitEnumerator<PISplit, PICheck
     @Override
     public PICheckpointState snapshotState(long checkpointId) throws Exception {
         synchronized (stateLock) {
-            log.debug("Creating snapshot for checkpoint {}", checkpointId);
             PICheckpointState snapshot = new PICheckpointState();
             snapshot.setCheckpointId(checkpointId);
+
+            // Save pending splits state for recovery
+            snapshot.setPendingSplits(pendingSplits);
+
+            log.debug(
+                    "Snapshot created with {} pending splits for checkpoint {}",
+                    pendingSplits.size(),
+                    checkpointId);
             return snapshot;
         }
     }

@@ -18,77 +18,22 @@
 package org.apache.seatunnel.connectors.seatunnel.pi.split;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-/**
- * PI checkpoint state for tracking the latest timestamp of each WebID and disconnection recovery
- * state
- */
+/** PI Enumerator checkpoint state - only contains enumerator-specific state */
 public class PICheckpointState implements Serializable {
     private static final long serialVersionUID = 1L;
 
     // Checkpoint ID
     private long checkpointId;
 
-    // Latest timestamp for each WebID
-    private final Map<String, LocalDateTime> webIdTimestamps = new HashMap<>();
-
-    // Disconnection recovery state
-    private LocalDateTime disconnectStartTime;
-    private LocalDateTime lastMessageTime;
+    // Pending splits state for enumerator recovery (core state)
+    private final Map<Integer, List<PISplit>> pendingSplits = new HashMap<>();
 
     public PICheckpointState() {
-        this.lastMessageTime = LocalDateTime.now();
-    }
-
-    /** Update WebID timestamp */
-    public void updateState(String webId, LocalDateTime timestamp) {
-        if (webId != null && timestamp != null) {
-            webIdTimestamps.put(webId, timestamp);
-            lastMessageTime = LocalDateTime.now();
-        }
-    }
-
-    /** Get the latest timestamp for WebID */
-    public LocalDateTime getTimestamp(String webId) {
-        return webIdTimestamps.getOrDefault(webId, null);
-    }
-
-    /** Get the earliest recovery time for disconnection data compensation */
-    public LocalDateTime getEarliestRecoveryTime() {
-        if (disconnectStartTime != null) {
-            return disconnectStartTime;
-        }
-
-        // If there's no explicit disconnection time, use the time of the last message
-        if (lastMessageTime != null) {
-            return lastMessageTime;
-        }
-
-        // Default to current time minus 5 minutes
-        return LocalDateTime.now().minusMinutes(5);
-    }
-
-    /** Set disconnection start time */
-    public void setDisconnectStartTime(LocalDateTime disconnectStartTime) {
-        this.disconnectStartTime = disconnectStartTime;
-    }
-
-    /** Get disconnection start time */
-    public LocalDateTime getDisconnectStartTime() {
-        return disconnectStartTime;
-    }
-
-    /** Get last message time */
-    public LocalDateTime getLastMessageTime() {
-        return lastMessageTime;
-    }
-
-    /** Set last message time */
-    public void setLastMessageTime(LocalDateTime lastMessageTime) {
-        this.lastMessageTime = lastMessageTime;
+        // Empty constructor for enumerator state
     }
 
     /** Get checkpoint ID */
@@ -101,14 +46,21 @@ public class PICheckpointState implements Serializable {
         this.checkpointId = checkpointId;
     }
 
-    /** Get timestamps for all WebIDs */
-    public Map<String, LocalDateTime> getWebIdTimestamps() {
-        return new HashMap<>(webIdTimestamps);
+    /** Get pending splits */
+    public Map<Integer, List<PISplit>> getPendingSplits() {
+        return new HashMap<>(pendingSplits);
+    }
+
+    /** Set pending splits */
+    public void setPendingSplits(Map<Integer, List<PISplit>> pendingSplits) {
+        this.pendingSplits.clear();
+        if (pendingSplits != null) {
+            this.pendingSplits.putAll(pendingSplits);
+        }
     }
 
     /** Clear state */
     public void clear() {
-        webIdTimestamps.clear();
-        disconnectStartTime = null;
+        pendingSplits.clear();
     }
 }

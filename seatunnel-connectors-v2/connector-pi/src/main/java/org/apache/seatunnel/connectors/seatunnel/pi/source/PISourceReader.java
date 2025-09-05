@@ -28,7 +28,6 @@ import org.apache.seatunnel.connectors.seatunnel.pi.client.PIWebIdResolver;
 import org.apache.seatunnel.connectors.seatunnel.pi.config.PIConfigHelper;
 import org.apache.seatunnel.connectors.seatunnel.pi.exception.PIConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.pi.exception.PIErrorCode;
-import org.apache.seatunnel.connectors.seatunnel.pi.split.PICheckpointState;
 import org.apache.seatunnel.connectors.seatunnel.pi.split.PISplit;
 import org.apache.seatunnel.connectors.seatunnel.pi.utils.PIDataTypeConverter;
 
@@ -43,19 +42,17 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-/** PI Data Source Reader - Unified management of read modes */
 @Slf4j
 public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
 
@@ -67,28 +64,27 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
     // ==================== Core Components ====================
     private PIHttpClient httpClient;
     private PIWebIdResolver webIdResolver;
-    private PICheckpointState checkpointState;
 
     // ==================== Split and Data Management ====================
     private final List<PISplit> assignedSplits = new CopyOnWriteArrayList<>();
     private final BlockingQueue<SeaTunnelRow> dataBufferBlockQueue =
-            new LinkedBlockingQueue<>(10000);
+            new LinkedBlockingQueue<>(300000);
 
     // ==================== Batch Processing State ====================
-    private LocalDateTime batchStartTime;
-    private LocalDateTime batchEndTime;
-    private LocalDateTime currentBatchStart;
-    private LocalDateTime currentBatchEnd;
-    private int batchWindowMinutes;
-    private boolean queryCompleted = false;
+    private volatile LocalDateTime batchStartTime;
+    private volatile LocalDateTime batchEndTime;
+    private volatile LocalDateTime currentBatchStart;
+    private volatile LocalDateTime currentBatchEnd;
+    private volatile int batchWindowMinutes;
+    private volatile boolean queryCompleted = false;
 
     // ==================== WebID Management ====================
     // Primary: PI Path to WebID mapping
-    private final Map<String, String> piPathToWebIdMap = new HashMap<>();
+    private final Map<String, String> piPathToWebIdMap = new ConcurrentHashMap<>();
     // Resolved WebIDs for data querying
-    private List<String> resolvedWebIds = new ArrayList<>();
+    private List<String> resolvedWebIds = new CopyOnWriteArrayList<>();
     // WebID metadata for enhanced functionality
-    private Map<String, PIWebIdMetadata> webIdMetadataMap = new HashMap<>();
+    private Map<String, PIWebIdMetadata> webIdMetadataMap = new ConcurrentHashMap<>();
 
     // ==================== Execution State ====================
     private volatile boolean initialized = false;
@@ -101,7 +97,6 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
         this.readerContext = readerContext;
         this.configHelper = configHelper;
         this.rowType = rowType;
-        this.checkpointState = new PICheckpointState();
     }
 
     @Override
@@ -136,6 +131,7 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
 
     @Override
     public void close() throws IOException {
+        log.info("Closing PI data source reader");
 
         try {
             // Clear data buffer
@@ -144,11 +140,16 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
             // Close HTTP client
             if (httpClient != null) {
                 httpClient.close();
+                httpClient = null;
             }
 
         } catch (Exception e) {
             log.error("Error occurred while closing PI data source reader", e);
             throw new IOException("Failed to close reader", e);
+        } finally {
+            // Ensure resources are nullified even if exceptions occur
+            webIdResolver = null;
+            log.info("PI data source reader closed successfully");
         }
     }
 
@@ -171,8 +172,8 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
 
             // Wait for split assignment
             if (assignedSplits.isEmpty()) {
-                // Use configurable wait time instead of hard-coded value
-                TimeUnit.MILLISECONDS.sleep(100);
+                // Reduce wait time for faster response
+                TimeUnit.MILLISECONDS.sleep(50);
                 return;
             }
 
@@ -188,18 +189,18 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
 
             // Batch mode needs to check if data reading is complete
             if (!hasMoreBatchData()) {
-
                 readerContext.signalNoMoreElement();
             }
         }
     }
 
     @Override
-    public List<PISplit> snapshotState(long checkpointId) throws Exception {
-
-        // Update checkpoint ID
-        checkpointState.setCheckpointId(checkpointId);
-        // Return currently processing splits
+    public List<PISplit> snapshotState(long checkpointId) {
+        log.debug(
+                "Creating state snapshot for checkpoint {}, reader {}",
+                checkpointId,
+                readerContext.getIndexOfSubtask());
+        // Simply return current splits, processing state is managed internally by Reader
         return new ArrayList<>(assignedSplits);
     }
 
@@ -227,8 +228,7 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
                 "Checkpoint completion notification - checkpointId: {}, Reader: {}",
                 checkpointId,
                 readerContext.getIndexOfSubtask());
-
-        checkpointState.setCheckpointId(checkpointId);
+        // Reader doesn't need to manage checkpoint state, framework handles it
     }
 
     /**
@@ -252,284 +252,6 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
                     PIErrorCode.INTERNAL_ERROR, "Resolved WebIDs list is empty");
         }
 
-        initializeBatchMode();
-    }
-
-    /** Parse timestamp string to LocalDateTime, correctly handling timezone information */
-    private LocalDateTime parseTimestamp(String timestamp) {
-        if (timestamp == null) {
-            return null;
-        }
-
-        try {
-            // Use PIDataTypeConverter's correct timezone handling logic
-            if (timestamp.endsWith("Z")) {
-                // UTC time, needs to be converted to system default timezone
-                ZonedDateTime zdt =
-                        ZonedDateTime.parse(
-                                timestamp,
-                                DateTimeFormatter.ISO_DATE_TIME.withZone(ZoneId.of("UTC")));
-                return zdt.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
-            } else {
-                // Try multiple time formats
-                try {
-                    // Standard ISO format: 2024-06-20T09:00:00
-                    return LocalDateTime.parse(timestamp, DateTimeFormatter.ISO_DATE_TIME);
-                } catch (DateTimeParseException e1) {
-                    try {
-                        // Space-separated format: 2024-06-20 09:00:00
-                        return LocalDateTime.parse(
-                                timestamp, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                    } catch (DateTimeParseException e2) {
-                        // Other possible formats
-                        return LocalDateTime.parse(
-                                timestamp, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
-                    }
-                }
-            }
-        } catch (DateTimeParseException e) {
-            log.error(
-                    "Unable to parse timestamp: {}, supported formats: 'yyyy-MM-dd HH:mm:ss' or 'yyyy-MM-ddTHH:mm:ss' or 'yyyy-MM-ddTHH:mm:ssZ'",
-                    timestamp,
-                    e);
-            return null;
-        }
-    }
-
-    /**
-     * Optimized WebID resolution based on splits
-     *
-     * <p>Optimization strategies: 1. Delayed execution until after split assignment to avoid
-     * invalid resolution by readers without splits 2. Prioritize using pre-resolved WebIDs in
-     * splits to reduce HTTP requests 3. Only resolve pi_paths actually needed by current Reader to
-     * reduce server pressure
-     */
-    private void preResolveWebIdsOptimized() throws Exception {
-
-        piPathToWebIdMap.clear();
-        resolvedWebIds.clear();
-
-        // Strategy 1: Prioritize extracting pre-resolved WebIDs from splits
-        if (tryExtractWebIdsFromSplits()) {
-            return;
-        }
-
-        // Strategy 2: fallback to traditional resolution method, prioritize PI Paths
-        List<String> configPaths = configHelper.getPiPaths();
-        List<String> configWebIds = configHelper.getWebIds();
-
-        // Primary: Process PI Paths (most common user scenario)
-        if (configPaths != null && !configPaths.isEmpty()) {
-            resolvePiPathsOptimized(configPaths);
-        }
-
-        // Fallback: Process directly configured WebIDs (rare scenario)
-        if (configWebIds != null && !configWebIds.isEmpty()) {
-            addDirectWebIds(configWebIds);
-        }
-
-        if (resolvedWebIds.isEmpty()) {
-            throw new PIConnectorException(
-                    PIErrorCode.CONFIG_MISSING_TAG_PATHS,
-                    "No valid PI Paths or WebIDs configured. Please configure pi_paths for normal usage.");
-        }
-
-        log.info("WebID resolution completed - Total: {} WebIDs", resolvedWebIds.size());
-    }
-
-    /**
-     * Try to extract pre-resolved WebIDs from splits
-     *
-     * @return true if successfully extracted WebIDs from splits
-     */
-    private boolean tryExtractWebIdsFromSplits() {
-        if (assignedSplits.isEmpty()) {
-
-            return false;
-        }
-
-        Set<String> splitWebIds = new HashSet<>();
-        for (PISplit split : assignedSplits) {
-            if (split.getWebIds() != null && !split.getWebIds().isEmpty()) {
-                splitWebIds.addAll(split.getWebIds());
-            }
-        }
-
-        if (splitWebIds.isEmpty()) {
-
-            return false;
-        }
-
-        // Use WebIDs from splits, but need to rebuild mapping relationships
-        resolvedWebIds.addAll(splitWebIds);
-
-        // Resolve metadata for provided WebIDs and rebuild mappings
-        try {
-            PIWebIdBatchResolver batchResolver = new PIWebIdBatchResolver(httpClient, configHelper);
-            Map<String, PIWebIdMetadata> metadataByWebId =
-                    batchResolver.batchResolveWebIdMetadataByWebIds(new ArrayList<>(splitWebIds));
-            for (String webId : splitWebIds) {
-                PIWebIdMetadata metadata = metadataByWebId.get(webId);
-                if (metadata != null) {
-                    webIdMetadataMap.put(webId, metadata);
-                    // Use real path from metadata to build mapping
-                    if (metadata.getPath() != null && !metadata.getPath().isEmpty()) {
-                        piPathToWebIdMap.put(metadata.getPath(), webId);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn(
-                    "Failed to resolve metadata for split WebIDs, proceeding with WebIDs only: {}",
-                    e.getMessage());
-        }
-
-        return true;
-    }
-
-    /**
-     * Optimized version of PI Paths resolution - utilize cache to reduce HTTP requests while
-     * obtaining metadata
-     */
-    private void resolvePiPathsOptimized(List<String> configPaths) throws PIConnectorException {
-
-        try {
-            // Use PIWebIdBatchResolver to obtain metadata information
-            PIWebIdBatchResolver batchResolver = new PIWebIdBatchResolver(httpClient, configHelper);
-            webIdMetadataMap = batchResolver.batchResolveWebIdMetadata(configPaths);
-
-            // Build traditional mapping relationships to maintain compatibility
-            for (PIWebIdMetadata metadata : webIdMetadataMap.values()) {
-                String webId = metadata.getWebId();
-                String path = metadata.getPath();
-                piPathToWebIdMap.put(path, webId);
-                resolvedWebIds.add(webId);
-            }
-
-            log.info(
-                    "Successfully resolved {} Paths to WebIDs (with metadata)",
-                    webIdMetadataMap.size());
-        } catch (Exception e) {
-            log.error("Failed to resolve PI Paths", e);
-            throw new PIConnectorException(
-                    PIErrorCode.WEBID_RESOLUTION_FAILED,
-                    "Failed to resolve PI Paths: " + e.getMessage(),
-                    e);
-        }
-    }
-
-    /** Resolve PI Paths */
-    private void resolvePiPaths(List<String> configPaths) throws PIConnectorException {
-
-        try {
-            Map<String, String> resolved = webIdResolver.resolveWebIdsAsMap(configPaths);
-            piPathToWebIdMap.putAll(resolved);
-            resolvedWebIds.addAll(resolved.values());
-
-        } catch (Exception e) {
-            log.error("Failed to resolve PI Paths", e);
-            throw new PIConnectorException(
-                    PIErrorCode.WEBID_RESOLUTION_FAILED,
-                    "Failed to resolve PI Paths: " + e.getMessage(),
-                    e);
-        }
-    }
-
-    /**
-     * Add directly configured WebIDs
-     *
-     * <p>Note: Most users should use pi_paths instead of direct WebIDs. This method is provided for
-     * advanced users who already know the WebIDs.
-     */
-    private void addDirectWebIds(List<String> configWebIds) {
-
-        int addedCount = 0;
-        for (String webId : configWebIds) {
-            if (webId != null && !webId.trim().isEmpty() && !resolvedWebIds.contains(webId)) {
-                resolvedWebIds.add(webId);
-                piPathToWebIdMap.put(webId, webId);
-
-                // Try to resolve metadata for direct WebID
-                try {
-                    PIWebIdBatchResolver batchResolver =
-                            new PIWebIdBatchResolver(httpClient, configHelper);
-                    // Resolve WebID metadata with intelligent type detection
-                    PIWebIdMetadata metadata = batchResolver.resolveWebIdMetadata(webId);
-                    if (metadata != null) {
-                        webIdMetadataMap.put(webId, metadata);
-                    }
-                } catch (Exception e) {
-                    log.warn("Failed to resolve metadata for WebID {}: {}", webId, e.getMessage());
-                }
-                addedCount++;
-            }
-        }
-    }
-
-    // ==================== Batch Data Reading Methods ====================
-
-    /** Poll batch data */
-    private void pollNextBatchData(Collector<SeaTunnelRow> output) throws Exception {
-        // Check if need to query next batch of data: buffer is empty & query not completed
-        if (dataBufferBlockQueue.isEmpty() && !queryCompleted) {
-            fetchNextBatch();
-        }
-
-        // Batch retrieve data from buffer and output
-        List<SeaTunnelRow> rows = new ArrayList<>();
-        int drainedCount = dataBufferBlockQueue.drainTo(rows, 100);
-
-        for (SeaTunnelRow row : rows) {
-            output.collect(row);
-        }
-
-        // If no data, sleep briefly to avoid CPU spinning
-        if (drainedCount == 0) {
-            Thread.sleep(100);
-        }
-    }
-
-    /** Query next batch of data */
-    private void fetchNextBatch() throws Exception {
-        // Check if reached or exceeded end time
-        if (!currentBatchStart.isBefore(batchEndTime)) {
-            queryCompleted = true;
-
-            return;
-        }
-
-        try {
-            JsonNode response = queryBatchData();
-            List<SeaTunnelRow> rows = parseResponseToRows(response);
-
-            int recordCount = addRowsToBuffer(rows);
-            log.debug("Batch query completed - retrieved {} records", recordCount);
-
-            // Update next batch time range
-            moveToNextBatch();
-
-        } catch (Exception e) {
-            log.error("Batch query failed", e);
-            throw new PIConnectorException(
-                    PIErrorCode.HTTP_REQUEST_FAILED, "Batch query failed: " + e.getMessage(), e);
-        }
-    }
-
-    /** Calculate batch end time */
-    private LocalDateTime calculateBatchEnd(LocalDateTime batchStart) {
-        LocalDateTime nextBatchEnd = batchStart.plusMinutes(batchWindowMinutes);
-        return nextBatchEnd.isAfter(batchEndTime) ? batchEndTime : nextBatchEnd;
-    }
-
-    /** Whether there is more batch data */
-    private boolean hasMoreBatchData() {
-        return !queryCompleted || !dataBufferBlockQueue.isEmpty();
-    }
-
-    // ==================== Helper Methods ====================
-
-    /** Initialize batch mode */
-    private void initializeBatchMode() throws PIConnectorException {
         // Check if start_time is provided (required)
         if (configHelper.getStartTime() == null) {
             throw new PIConnectorException(
@@ -572,9 +294,249 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
         batchStartTime = startTime;
         batchEndTime = endTime;
         batchWindowMinutes = windowMinutes;
+
+        // Initialize batch processing state
         currentBatchStart = batchStartTime;
         currentBatchEnd = calculateBatchEnd(currentBatchStart);
+        queryCompleted = false;
     }
+
+    /**
+     * Optimized WebID resolution based on splits
+     *
+     * <p>Optimization strategies: 1. Delayed execution until after split assignment to avoid
+     * invalid resolution by readers without splits 2. Prioritize using pre-resolved WebIDs in
+     * splits to reduce HTTP requests 3. Only resolve pi_paths actually needed by current Reader to
+     * reduce server pressure
+     */
+    private void preResolveWebIdsOptimized() throws Exception {
+        piPathToWebIdMap.clear();
+        resolvedWebIds.clear();
+
+        // Strategy 1: Prioritize resolving PI paths from assigned splits
+        if (tryResolvePiPathsFromSplits()) {
+            return;
+        }
+
+        // Strategy 2: fallback to traditional resolution method, prioritize PI Paths
+        List<String> configPaths = configHelper.getPiPaths();
+        List<String> configWebIds = configHelper.getWebIds();
+
+        // Primary: Process PI Paths (most common user scenario)
+        if (configPaths != null && !configPaths.isEmpty()) {
+            resolvePiPathsOptimized(configPaths);
+        }
+
+        // Fallback: Process directly configured WebIDs (rare scenario)
+        if (configWebIds != null && !configWebIds.isEmpty()) {
+            addDirectWebIds(configWebIds);
+        }
+
+        if (resolvedWebIds.isEmpty()) {
+            throw new PIConnectorException(
+                    PIErrorCode.CONFIG_MISSING_TAG_PATHS,
+                    "No valid PI Paths or WebIDs configured. Please configure pi_paths for normal usage.");
+        }
+
+        log.info("WebID resolution completed - Total: {} WebIDs", resolvedWebIds.size());
+    }
+
+    /**
+     * Resolve PI paths from assigned splits (optimized for parallel processing)
+     *
+     * @return true if successfully resolved PI paths from splits to WebIDs
+     */
+    private boolean tryResolvePiPathsFromSplits() {
+        if (assignedSplits.isEmpty()) {
+            return false;
+        }
+
+        Set<String> splitPiPaths = new HashSet<>();
+        for (PISplit split : assignedSplits) {
+            // Get PI paths from split
+            List<String> piPaths = split.getPiPaths();
+            if (piPaths != null && !piPaths.isEmpty()) {
+                splitPiPaths.addAll(piPaths);
+            }
+        }
+
+        if (splitPiPaths.isEmpty()) {
+            return false;
+        }
+
+        // Resolve PI paths to WebIDs in parallel for this reader
+        try {
+            log.info(
+                    "Reader {} resolving {} PI paths to WebIDs",
+                    readerContext.getIndexOfSubtask(),
+                    splitPiPaths.size());
+
+            PIWebIdBatchResolver batchResolver = new PIWebIdBatchResolver(httpClient, configHelper);
+            webIdMetadataMap =
+                    batchResolver.batchResolveWebIdMetadata(new ArrayList<>(splitPiPaths));
+
+            // Build WebID list and mapping
+            for (PIWebIdMetadata metadata : webIdMetadataMap.values()) {
+                String webId = metadata.getWebId();
+                String path = metadata.getPath();
+                resolvedWebIds.add(webId);
+                piPathToWebIdMap.put(path, webId);
+            }
+
+            log.info(
+                    "Reader {} successfully resolved {} PI paths to {} WebIDs",
+                    readerContext.getIndexOfSubtask(),
+                    splitPiPaths.size(),
+                    resolvedWebIds.size());
+            return true;
+
+        } catch (Exception e) {
+            log.error(
+                    "Reader {} failed to resolve PI paths from splits: {}",
+                    readerContext.getIndexOfSubtask(),
+                    e.getMessage());
+            throw new PIConnectorException(
+                    PIErrorCode.WEBID_RESOLUTION_FAILED,
+                    "Failed to resolve PI paths from splits: " + e.getMessage(),
+                    e);
+        }
+    }
+
+    /**
+     * Optimized version of PI Paths resolution - utilize cache to reduce HTTP requests while
+     * obtaining metadata
+     */
+    private void resolvePiPathsOptimized(List<String> configPaths) throws PIConnectorException {
+
+        try {
+            // Use PIWebIdBatchResolver to obtain metadata information
+            PIWebIdBatchResolver batchResolver = new PIWebIdBatchResolver(httpClient, configHelper);
+            webIdMetadataMap = batchResolver.batchResolveWebIdMetadata(configPaths);
+
+            // Build traditional mapping relationships to maintain compatibility
+            for (PIWebIdMetadata metadata : webIdMetadataMap.values()) {
+                String webId = metadata.getWebId();
+                String path = metadata.getPath();
+                piPathToWebIdMap.put(path, webId);
+                resolvedWebIds.add(webId);
+            }
+
+            log.info(
+                    "Successfully resolved {} Paths to WebIDs (with metadata)",
+                    webIdMetadataMap.size());
+        } catch (Exception e) {
+            log.error("Failed to resolve PI Paths", e);
+            throw new PIConnectorException(
+                    PIErrorCode.WEBID_RESOLUTION_FAILED,
+                    "Failed to resolve PI Paths: " + e.getMessage(),
+                    e);
+        }
+    }
+
+    /**
+     * Add directly configured WebIDs
+     *
+     * <p>Note: Most users should use pi_paths instead of direct WebIDs. This method is provided for
+     * advanced users who already know the WebIDs.
+     */
+    private void addDirectWebIds(List<String> configWebIds) {
+
+        int addedCount = 0;
+        for (String webId : configWebIds) {
+            if (webId != null && !webId.trim().isEmpty() && !resolvedWebIds.contains(webId)) {
+                resolvedWebIds.add(webId);
+                piPathToWebIdMap.put(webId, webId);
+
+                // Try to resolve metadata for direct WebID
+                try {
+                    PIWebIdBatchResolver batchResolver =
+                            new PIWebIdBatchResolver(httpClient, configHelper);
+                    // Resolve WebID metadata with intelligent type detection
+                    PIWebIdMetadata metadata = batchResolver.resolveWebIdMetadata(webId);
+                    if (metadata != null) {
+                        webIdMetadataMap.put(webId, metadata);
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to resolve metadata for WebID {}: {}", webId, e.getMessage());
+                }
+                addedCount++;
+            }
+        }
+
+        if (addedCount > 0) {
+            log.info("Successfully added {} direct WebIDs", addedCount);
+        }
+    }
+
+    // ==================== Batch Data Reading Methods ====================
+
+    /** Poll batch data */
+    private void pollNextBatchData(Collector<SeaTunnelRow> output) throws Exception {
+        // First, consume existing data from buffer
+        // Increase batch size for better throughput while maintaining manageable memory usage
+        List<SeaTunnelRow> rows = new ArrayList<>();
+        int drainedCount = dataBufferBlockQueue.drainTo(rows, 2000);
+
+        for (SeaTunnelRow row : rows) {
+            output.collect(row);
+        }
+
+        // Then check if need to query next batch of data: buffer is low & query not completed
+        // Use higher threshold to prefetch more aggressively for better throughput
+        if (dataBufferBlockQueue.size() < 5000 && !queryCompleted) {
+            fetchNextBatch();
+        }
+
+        // If no data, sleep briefly to avoid CPU spinning
+        // Reduce sleep time for more responsive polling when data becomes available
+        if (drainedCount == 0) {
+            Thread.sleep(50);
+        }
+    }
+
+    /** Query next batch of data */
+    private void fetchNextBatch() throws Exception {
+        // Check if reached or exceeded end time
+        if (!currentBatchStart.isBefore(batchEndTime)) {
+            queryCompleted = true;
+            return;
+        }
+
+        try {
+            JsonNode response = queryBatchData();
+            List<SeaTunnelRow> rows = parseResponseToRows(response);
+
+            // Add rows to buffer queue
+            int recordCount = addRowsToBufferQueue(rows);
+            log.info("Added {} records to buffer queue", recordCount);
+
+            // Always move to next batch after processing current batch
+            if (recordCount > 0) {
+                moveToNextBatch();
+            } else {
+                // If no records were added due to backpressure, don't move batch window yet
+                log.warn("Buffer full, no records added. Will retry in next poll.");
+            }
+
+        } catch (Exception e) {
+            log.error("Batch query failed", e);
+            throw new PIConnectorException(
+                    PIErrorCode.HTTP_REQUEST_FAILED, "Batch query failed: " + e.getMessage(), e);
+        }
+    }
+
+    /** Calculate batch end time */
+    private LocalDateTime calculateBatchEnd(LocalDateTime batchStart) {
+        LocalDateTime nextBatchEnd = batchStart.plusMinutes(batchWindowMinutes);
+        return nextBatchEnd.isAfter(batchEndTime) ? batchEndTime : nextBatchEnd;
+    }
+
+    /** Whether there is more batch data */
+    private boolean hasMoreBatchData() {
+        return !queryCompleted || !dataBufferBlockQueue.isEmpty();
+    }
+
+    // ==================== Helper Methods ====================
 
     /** Query batch data */
     private JsonNode queryBatchData() throws Exception {
@@ -683,12 +645,35 @@ public class PISourceReader implements SourceReader<SeaTunnelRow, PISplit> {
                 response.toString(), rowType, configHelper.getJsonField());
     }
 
-    /** Add row data to buffer */
-    private int addRowsToBuffer(List<SeaTunnelRow> rows) throws InterruptedException {
+    /** Add row data to buffer queue */
+    private int addRowsToBufferQueue(List<SeaTunnelRow> rows) throws InterruptedException {
+        int addedCount = 0;
         for (SeaTunnelRow row : rows) {
-            dataBufferBlockQueue.put(row);
+            // Try non-blocking offer first
+            if (dataBufferBlockQueue.offer(row)) {
+                addedCount++;
+                if (addedCount % 10000 == 0) {
+                    log.info("Added {} records to buffer queue", addedCount);
+                }
+            } else {
+                // Queue is full, wait briefly and retry to avoid data loss
+                log.warn("Buffer queue is full, waiting for space to avoid data loss...");
+
+                // Reduce wait timeout for faster backpressure response
+                boolean added = dataBufferBlockQueue.offer(row, 1000, TimeUnit.MILLISECONDS);
+                if (added) {
+                    addedCount++;
+                } else {
+                    // Still couldn't add after waiting, this indicates severe backpressure
+                    log.warn(
+                            "Failed to add record to buffer after waiting 1000ms. "
+                                    + "Remaining records will be skipped for this batch. Consider reducing batchWindowMinutes, maxCount, or using smaller time ranges to fetch smaller data batches.");
+                    // Break here, remaining records will be skipped
+                    break;
+                }
+            }
         }
-        return rows.size();
+        return addedCount;
     }
 
     /** Move to next batch */

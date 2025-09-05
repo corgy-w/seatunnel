@@ -2,14 +2,14 @@ package org.apache.seatunnel.connectors.seatunnel.pi.serialization;
 
 import org.apache.seatunnel.api.serialization.Serializer;
 import org.apache.seatunnel.connectors.seatunnel.pi.split.PICheckpointState;
+import org.apache.seatunnel.connectors.seatunnel.pi.split.PISplit;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -20,7 +20,6 @@ import java.util.Map;
 public class PICheckpointStateSerializer implements Serializer<PICheckpointState> {
 
     private static final int VERSION = 1;
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     @Override
     public byte[] serialize(PICheckpointState state) throws IOException {
@@ -33,30 +32,21 @@ public class PICheckpointStateSerializer implements Serializer<PICheckpointState
             // Write checkpoint ID
             oos.writeLong(state.getCheckpointId());
 
-            // Write WebID timestamp mapping
-            Map<String, LocalDateTime> webIdTimestamps = state.getWebIdTimestamps();
-            oos.writeInt(webIdTimestamps.size());
-            for (Map.Entry<String, LocalDateTime> entry : webIdTimestamps.entrySet()) {
-                oos.writeUTF(entry.getKey());
-                oos.writeUTF(entry.getValue().format(FORMATTER));
-            }
-
-            // Write disconnection start time
-            LocalDateTime disconnectStartTime = state.getDisconnectStartTime();
-            if (disconnectStartTime != null) {
-                oos.writeBoolean(true);
-                oos.writeUTF(disconnectStartTime.format(FORMATTER));
-            } else {
-                oos.writeBoolean(false);
-            }
-
-            // Write last message time
-            LocalDateTime lastMessageTime = state.getLastMessageTime();
-            if (lastMessageTime != null) {
-                oos.writeBoolean(true);
-                oos.writeUTF(lastMessageTime.format(FORMATTER));
-            } else {
-                oos.writeBoolean(false);
+            // Write pending splits
+            Map<Integer, List<PISplit>> pendingSplits = state.getPendingSplits();
+            oos.writeInt(pendingSplits.size());
+            for (Map.Entry<Integer, List<PISplit>> entry : pendingSplits.entrySet()) {
+                oos.writeInt(entry.getKey());
+                List<PISplit> splits = entry.getValue();
+                oos.writeInt(splits.size());
+                for (PISplit split : splits) {
+                    oos.writeUTF(split.getSplitId());
+                    oos.writeInt(split.getPiPaths().size());
+                    for (String webId : split.getPiPaths()) {
+                        oos.writeUTF(webId);
+                    }
+                    oos.writeLong(split.getLastCheckpointTime());
+                }
             }
 
             oos.flush();
@@ -80,29 +70,26 @@ public class PICheckpointStateSerializer implements Serializer<PICheckpointState
             // Read checkpoint ID
             state.setCheckpointId(ois.readLong());
 
-            // Read WebID timestamp mapping
-            int webIdTimestampsSize = ois.readInt();
-            for (int i = 0; i < webIdTimestampsSize; i++) {
-                String webId = ois.readUTF();
-                String timestampStr = ois.readUTF();
-                LocalDateTime timestamp = LocalDateTime.parse(timestampStr, FORMATTER);
-                state.updateState(webId, timestamp);
+            // Read pending splits
+            int pendingSplitsSize = ois.readInt();
+            Map<Integer, List<PISplit>> pendingSplits = new java.util.HashMap<>();
+            for (int i = 0; i < pendingSplitsSize; i++) {
+                int readerId = ois.readInt();
+                int splitsSize = ois.readInt();
+                List<PISplit> splits = new java.util.ArrayList<>();
+                for (int j = 0; j < splitsSize; j++) {
+                    String splitId = ois.readUTF();
+                    int webIdsSize = ois.readInt();
+                    List<String> webIds = new java.util.ArrayList<>();
+                    for (int k = 0; k < webIdsSize; k++) {
+                        webIds.add(ois.readUTF());
+                    }
+                    long lastCheckpointTime = ois.readLong();
+                    splits.add(new PISplit(splitId, webIds, lastCheckpointTime));
+                }
+                pendingSplits.put(readerId, splits);
             }
-
-            // Read disconnection start time
-            if (ois.readBoolean()) {
-                String disconnectStartTimeStr = ois.readUTF();
-                LocalDateTime disconnectStartTime =
-                        LocalDateTime.parse(disconnectStartTimeStr, FORMATTER);
-                state.setDisconnectStartTime(disconnectStartTime);
-            }
-
-            // Read last message time
-            if (ois.readBoolean()) {
-                String lastMessageTimeStr = ois.readUTF();
-                LocalDateTime lastMessageTime = LocalDateTime.parse(lastMessageTimeStr, FORMATTER);
-                state.setLastMessageTime(lastMessageTime);
-            }
+            state.setPendingSplits(pendingSplits);
 
             return state;
         }

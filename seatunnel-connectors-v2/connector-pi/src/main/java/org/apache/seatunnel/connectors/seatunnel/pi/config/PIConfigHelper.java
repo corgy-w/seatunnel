@@ -115,7 +115,7 @@ public class PIConfigHelper implements Serializable {
     }
 
     public int getMaxCount() {
-        return config.getOptional(PIConfig.MAX_COUNT).orElse(1000);
+        return config.getOptional(PIConfig.MAX_COUNT).orElse(100000);
     }
 
     public String getBoundaryType() {
@@ -123,7 +123,7 @@ public class PIConfigHelper implements Serializable {
     }
 
     public int getBatchWindowMinutes() {
-        return config.getOptional(PIConfig.BATCH_WINDOW_MINUTES).orElse(60);
+        return config.getOptional(PIConfig.BATCH_WINDOW_MINUTES).orElse(3);
     }
 
     // ================= JSON Configuration =================
@@ -192,7 +192,15 @@ public class PIConfigHelper implements Serializable {
     }
 
     public int getWebIdsPerSplit() {
-        return config.getOptional(PIConfig.WEBIDS_PER_SPLIT).orElse(10);
+        return config.getOptional(PIConfig.WEBIDS_PER_SPLIT).orElse(20);
+    }
+
+    public int getMaxSplits() {
+        return config.getOptional(PIConfig.MAX_SPLITS).orElse(100);
+    }
+
+    public boolean getAutoAdjustSplitSize() {
+        return config.getOptional(PIConfig.AUTO_ADJUST_SPLIT_SIZE).orElse(true);
     }
 
     public int getWebIdResolveBatchSize() {
@@ -200,7 +208,7 @@ public class PIConfigHelper implements Serializable {
     }
 
     public long getWebIdResolveDelayMs() {
-        return config.getOptional(PIConfig.WEBID_RESOLVE_DELAY_MS).orElse(100L);
+        return config.getOptional(PIConfig.WEBID_RESOLVE_DELAY_MS).orElse(10L);
     }
 
     public int getWebSocketConnectionWaitTimeoutMs() {

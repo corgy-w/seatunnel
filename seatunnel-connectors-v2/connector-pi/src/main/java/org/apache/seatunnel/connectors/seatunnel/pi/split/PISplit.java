@@ -19,7 +19,6 @@ package org.apache.seatunnel.connectors.seatunnel.pi.split;
 
 import org.apache.seatunnel.api.source.SourceSplit;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -31,40 +30,18 @@ public class PISplit implements SourceSplit {
     private static final long serialVersionUID = 1L;
 
     private final String splitId;
-    private final List<String> webIds;
+    private final List<String> piPaths;
 
     private final long lastCheckpointTime;
 
-    // batch mode specific fields
-    private final LocalDateTime startTime;
-    private final LocalDateTime endTime;
-    private boolean completed;
-    private int retryCount;
-
-    public PISplit(String splitId, List<String> webIds) {
-        this(splitId, webIds, 0L);
+    public PISplit(String splitId, List<String> piPaths) {
+        this(splitId, piPaths, 0L);
     }
 
-    public PISplit(String splitId, List<String> webIds, long lastCheckpointTime) {
+    public PISplit(String splitId, List<String> piPaths, long lastCheckpointTime) {
         this.splitId = splitId;
-        this.webIds = webIds;
+        this.piPaths = piPaths;
         this.lastCheckpointTime = lastCheckpointTime;
-        this.startTime = null;
-        this.endTime = null;
-        this.completed = false;
-        this.retryCount = 0;
-    }
-
-    /** Batch mode constructor with time range */
-    public PISplit(
-            String splitId, List<String> webIds, LocalDateTime startTime, LocalDateTime endTime) {
-        this.splitId = splitId;
-        this.webIds = webIds;
-        this.lastCheckpointTime = 0L;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.completed = false;
-        this.retryCount = 0;
     }
 
     @Override
@@ -77,53 +54,27 @@ public class PISplit implements SourceSplit {
         return splitId;
     }
 
-    public List<String> getWebIds() {
-        return webIds;
+    public List<String> getPiPaths() {
+        return piPaths;
     }
 
     public long getLastCheckpointTime() {
         return lastCheckpointTime;
     }
 
-    // ================= batch mode specific methods =================
-
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
-
-    public LocalDateTime getEndTime() {
-        return endTime;
-    }
-
-    public boolean isCompleted() {
-        return completed;
-    }
-
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
-    }
-
-    public int getRetryCount() {
-        return retryCount;
-    }
-
-    public void incrementRetryCount() {
-        this.retryCount++;
-    }
-
-    /** Get split size (number of contained WebIDs) */
+    /** Get split size (number of contained PI Paths) */
     public int getSize() {
-        return webIds != null ? webIds.size() : 0;
+        return piPaths != null ? piPaths.size() : 0;
     }
 
     /** Check if split is empty */
     public boolean isEmpty() {
-        return webIds == null || webIds.isEmpty();
+        return piPaths == null || piPaths.isEmpty();
     }
 
     /** Create split copy with new checkpoint time */
     public PISplit withCheckpointTime(long checkpointTime) {
-        return new PISplit(splitId, webIds, checkpointTime);
+        return new PISplit(splitId, piPaths, checkpointTime);
     }
 
     @Override
@@ -133,12 +84,12 @@ public class PISplit implements SourceSplit {
         PISplit piSplit = (PISplit) o;
         return lastCheckpointTime == piSplit.lastCheckpointTime
                 && Objects.equals(splitId, piSplit.splitId)
-                && Objects.equals(webIds, piSplit.webIds);
+                && Objects.equals(piPaths, piSplit.piPaths);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(splitId, webIds, lastCheckpointTime);
+        return Objects.hash(splitId, piPaths, lastCheckpointTime);
     }
 
     @Override
@@ -147,7 +98,7 @@ public class PISplit implements SourceSplit {
                 + "splitId='"
                 + splitId
                 + '\''
-                + ", webIdCount="
+                + ", piPathCount="
                 + getSize()
                 + ", lastCheckpointTime="
                 + lastCheckpointTime

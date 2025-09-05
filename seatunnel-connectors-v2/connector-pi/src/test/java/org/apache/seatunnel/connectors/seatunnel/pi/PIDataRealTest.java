@@ -45,7 +45,7 @@ public class PIDataRealTest {
     private PIHttpClient httpClient;
     private PIWebIdBatchResolver webIdResolver;
 
-    /** The 302 PI points from configuration file */
+    /** The PI points */
     private static final List<String> PI_PATHS =
             Arrays.asList(
                     "\\\\pims.huafeng.com\\HF.AA.267XHS:FRQ-26701.PV",
@@ -356,8 +356,8 @@ public class PIDataRealTest {
         configMap.put("username", "WhaleStudio");
         configMap.put("password", "huafeng#2025");
         configMap.put("pi_paths", PI_PATHS);
-        configMap.put("start_time", "2025-08-31 09:00:00");
-        configMap.put("end_time", "2025-08-31 09:01:00");
+        configMap.put("start_time", "2025-08-29 09:00:00");
+        configMap.put("end_time", "2025-08-29 09:20:00");
         configMap.put("web_id_resolve_delay_ms", 100);
         configMap.put("data_request_delay_ms", 100);
         configMap.put("max_web_ids_per_split", 1);
@@ -366,19 +366,6 @@ public class PIDataRealTest {
         configHelper = new PIConfigHelper(config);
         httpClient = new PIHttpClient(configHelper);
         webIdResolver = new PIWebIdBatchResolver(httpClient, configHelper);
-    }
-
-    /** Test that all 302 PI points can resolve WebIDs */
-    @Test
-    void testAllPIPointsResolveWebIds() {
-        try {
-            List<String> webIds = webIdResolver.batchResolveWebIds(PI_PATHS);
-            Assertions.assertNotNull(webIds);
-            Assertions.assertEquals(PI_PATHS.size(), webIds.size());
-        } catch (Exception e) {
-            // Network may be unavailable in test environment
-            Assertions.assertNotNull(e.getMessage());
-        }
     }
 
     /** Test data retrieval for each PI point */
@@ -390,10 +377,9 @@ public class PIDataRealTest {
             Assertions.assertEquals(PI_PATHS.size(), webIds.size());
 
             StringBuilder sb = new StringBuilder(200);
-            // Statistical variables for data analysis
-            int totalPaths = webIds.size();
-            int zeroCountPaths = 0;
             int totalDataPoints = 0;
+            int zeroDataPointCount = 0;
+            int successfulRetrievals = 0;
 
             for (int i = 0; i < webIds.size(); i++) {
                 String webId = webIds.get(i);
@@ -420,11 +406,12 @@ public class PIDataRealTest {
                             .append(count)
                             .append("\n");
 
-                    // Collect statistical data for summary report
-                    if (count == 0) {
-                        zeroCountPaths++;
-                    }
+                    // Collect statistics
                     totalDataPoints += count;
+                    if (count == 0) {
+                        zeroDataPointCount++;
+                    }
+                    successfulRetrievals++;
 
                     Assertions.assertTrue(count >= 0);
                 } catch (Exception e) {
@@ -432,8 +419,20 @@ public class PIDataRealTest {
                 }
             }
 
-            // Generate summary statistics report
-            appendSummaryStatistics(sb, totalPaths, zeroCountPaths, totalDataPoints);
+            // Add summary statistics
+            sb.append("\n=== Summary Statistics ===\n");
+            sb.append("Total PI Points: ").append(PI_PATHS.size()).append("\n");
+            sb.append("Successful Retrievals: ").append(successfulRetrievals).append("\n");
+            sb.append("Total Data Points Retrieved: ").append(totalDataPoints).append("\n");
+            sb.append("PI Points with Zero Data: ").append(zeroDataPointCount).append("\n");
+            sb.append("PI Points with Data: ")
+                    .append(successfulRetrievals - zeroDataPointCount)
+                    .append("\n");
+            if (successfulRetrievals > 0) {
+                sb.append("Average Data Points per PI Point: ")
+                        .append(totalDataPoints / successfulRetrievals)
+                        .append("\n");
+            }
 
             // Print detailed results
             log.info("Data retrieval test completed, details:");
@@ -444,67 +443,55 @@ public class PIDataRealTest {
         }
     }
 
-    /**
-     * Count data points in PI Web API response Based on actual PI Web API format from runinfo.txt
-     */
+    /** Count data points in PI Web API response */
     private int countDataPoints(String response) {
         if (response == null || response.trim().isEmpty()) {
             return 0;
         }
 
-        // Primary method: Count Timestamp occurrences
-        // Each data point in PI Web API has exactly one "Timestamp" field
-        int timestampCount = 0;
-        int index = 0;
-        while ((index = response.indexOf("\"Timestamp\"", index)) != -1) {
-            timestampCount++;
-            index += 11; // Length of "Timestamp"
+        try {
+            // Parse JSON response to correctly count data points
+            com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(response);
+            com.fasterxml.jackson.databind.JsonNode itemsNode = rootNode.path("Items");
+
+            if (!itemsNode.isArray()) {
+                return 0;
+            }
+
+            int totalDataPoints = 0;
+
+            // Iterate through each item in the Items array
+            for (com.fasterxml.jackson.databind.JsonNode itemNode : itemsNode) {
+                // Check if there are nested Items (data points)
+                com.fasterxml.jackson.databind.JsonNode dataPointsNode = itemNode.path("Items");
+                if (dataPointsNode.isArray() && dataPointsNode.size() > 0) {
+                    // Case with nested Items (e.g., batch query response)
+                    totalDataPoints += dataPointsNode.size();
+                } else {
+                    // Case without nested Items (e.g., single data point)
+                    // Check if this item has Timestamp field to confirm it's a data point
+                    if (itemNode.has("Timestamp")) {
+                        totalDataPoints++;
+                    }
+                }
+            }
+
+            return totalDataPoints;
+
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to parse JSON response for counting data points, fallback to string search: {}",
+                    e.getMessage());
+            // Fallback to original method if JSON parsing fails
+            int count = 0;
+            int index = 0;
+            while ((index = response.indexOf("\"Timestamp\"", index)) != -1) {
+                count++;
+                index += 11;
+            }
+            return count;
         }
-
-        // Backup method: Count Value occurrences
-        int valueCount = 0;
-        index = 0;
-        while ((index = response.indexOf("\"Value\"", index)) != -1) {
-            valueCount++;
-            index += 7; // Length of "Value"
-        }
-
-        // Use timestamp count as primary, value count as backup
-        int finalCount = timestampCount > 0 ? timestampCount : valueCount;
-
-        // Log detailed counting information for debugging
-        if (finalCount > 0) {
-            log.debug(
-                    "Data point counting - Timestamps: {}, Values: {}, Using: {}",
-                    timestampCount,
-                    valueCount,
-                    finalCount);
-        }
-
-        return finalCount;
-    }
-
-
-    /**
-     * Append summary statistics to the report string builder
-     *
-     * @param sb StringBuilder to append statistics to
-     * @param totalPaths Total number of PI paths tested
-     * @param zeroCountPaths Number of paths with zero data points
-     * @param totalDataPoints Total data points across all paths
-     */
-    private void appendSummaryStatistics(
-            StringBuilder sb, int totalPaths, int zeroCountPaths, int totalDataPoints) {
-        sb.append("\n=== Summary Statistics ===\n");
-        sb.append("Total Paths: ").append(totalPaths).append("\n");
-        sb.append("Paths with Zero Data Points: ").append(zeroCountPaths).append("\n");
-        sb.append("Paths with Data: ").append(totalPaths - zeroCountPaths).append("\n");
-        sb.append("Total Data Points: ").append(totalDataPoints).append("\n");
-        sb.append("Average Data Points per Path: ")
-                .append(
-                        totalPaths > 0
-                                ? String.format("%.2f", (double) totalDataPoints / totalPaths)
-                                : "0.00")
-                .append("\n");
     }
 }
