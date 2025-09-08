@@ -61,7 +61,7 @@ public class Murmur64Test {
                 rowType,
                 "select MURMUR64(str_v1) as hash_v1, MURMUR64(str_v2) as hash_v2, MURMUR64(str_v3) as hash_v3, MURMUR64(str_v4) as hash_v4, MURMUR64(str_v5) as hash_v5 from test");
 
-        SeaTunnelRow outRow = sqlEngine.transformBySQL(inputRow, rowType).get(0);
+        SeaTunnelRow outRow = sqlEngine.transformBySQL(inputRow);
 
         // Verify results match direct implementation
         Assertions.assertEquals(murmur64Direct("hello world"), outRow.getField(0));

@@ -49,13 +49,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <!-- Netty for WebSocket -->
-        <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>4.1.94.Final</version>
-        </dependency>
-
         <!-- HTTP Client -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -79,6 +72,13 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Netty for WebSocket -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty-buffer.version}</version>
         </dependency>
 
         <!-- Test Dependencies -->
