@@ -90,7 +90,7 @@
             </activation>
             <properties>
                 <mysql.version>8.0.27</mysql.version>
-                <postgresql.version>42.4.3</postgresql.version>
+                <postgresql.version>42.4.4</postgresql.version>
                 <postgis.jdbc.version>2.5.1</postgis.jdbc.version>
                 <dm-jdbc.version>8.1.2.141</dm-jdbc.version>
                 <sqlserver.version>9.2.1.jre8</sqlserver.version>
