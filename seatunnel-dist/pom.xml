@@ -108,6 +108,7 @@
                 <iceberg-aws.version>1.4.2</iceberg-aws.version>
                 <software.amazon.version>2.27.12</software.amazon.version>
                 <oceanbase.version>2.4.3</oceanbase.version>
+                <snowflake.version>3.13.29</snowflake.version>
 
                 <!-- Imap storage dependency package  -->
                 <hadoop-aliyun.version>3.3.6</hadoop-aliyun.version>
