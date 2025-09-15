@@ -18,9 +18,10 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.snowflake;
 
 import org.apache.seatunnel.api.table.type.BasicType;
-import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.DecimalType;
+import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
+import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import org.junit.jupiter.api.Test;
@@ -28,11 +29,12 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
- * Unit test for SnowflakeDataTypeConvertor to verify consistent timestamp type handling
- * and proper data type conversions after fixes.
+ * Unit test for SnowflakeDataTypeConvertor to verify consistent timestamp type handling and proper
+ * data type conversions after fixes.
  */
 public class SnowflakeDataTypeConvertorTest {
 
@@ -46,111 +48,141 @@ public class SnowflakeDataTypeConvertorTest {
     @Test
     public void testTimestampTypesConsistency() {
         // Test all timestamp variations with correct underscores (TIMESTAMP_*)
-        assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, convertor.toSeaTunnelType("TIMESTAMP_LTZ"));
-        assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, convertor.toSeaTunnelType("TIMESTAMP_NTZ"));
-        assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, convertor.toSeaTunnelType("TIMESTAMP_TZ"));
-        assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, convertor.toSeaTunnelType("TIMESTAMP"));
-        assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, convertor.toSeaTunnelType("DATE_TIME"));
+        assertEquals(
+                LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                convertor.toSeaTunnelType("test_field", "TIMESTAMP_LTZ"));
+        assertEquals(
+                LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                convertor.toSeaTunnelType("test_field", "TIMESTAMP_NTZ"));
+        assertEquals(
+                LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                convertor.toSeaTunnelType("test_field", "TIMESTAMP_TZ"));
+        assertEquals(
+                LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                convertor.toSeaTunnelType("test_field", "TIMESTAMP"));
+        assertEquals(
+                LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                convertor.toSeaTunnelType("test_field", "DATE_TIME"));
     }
 
     @Test
     public void testGeographyAndGeometryMapping() {
         // Test GEOGRAPHY maps to byte array (as per SnowflakeDataTypeConvertor)
-        assertEquals(PrimitiveByteArrayType.INSTANCE, convertor.toSeaTunnelType("GEOGRAPHY"));
-        
+        assertEquals(
+                PrimitiveByteArrayType.INSTANCE,
+                convertor.toSeaTunnelType("test_field", "GEOGRAPHY"));
+
         // Test GEOMETRY maps to String (as per SnowflakeDataTypeConvertor)
-        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("GEOMETRY"));
+        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("test_field", "GEOMETRY"));
     }
 
-    @Test 
+    @Test
     public void testDecimalTypeWithPrecisionScale() {
         Map<String, Object> properties = new HashMap<>();
         properties.put("precision", 15);
         properties.put("scale", 2);
-        
-        DecimalType result = (DecimalType) convertor.toSeaTunnelType("DECIMAL", properties);
+
+        DecimalType result =
+                (DecimalType) convertor.toSeaTunnelType("test_field", "DECIMAL", properties);
         assertEquals(15, result.getPrecision());
         assertEquals(2, result.getScale());
-        
+
         // Test default values
-        DecimalType defaultResult = (DecimalType) convertor.toSeaTunnelType("NUMBER");
+        DecimalType defaultResult = (DecimalType) convertor.toSeaTunnelType("test_field", "NUMBER");
         assertEquals(10, defaultResult.getPrecision());
         assertEquals(0, defaultResult.getScale());
     }
 
     @Test
     public void testIntegerTypes() {
-        assertEquals(BasicType.SHORT_TYPE, convertor.toSeaTunnelType("SMALLINT"));
-        assertEquals(BasicType.SHORT_TYPE, convertor.toSeaTunnelType("TINYINT"));
-        assertEquals(BasicType.SHORT_TYPE, convertor.toSeaTunnelType("BYTEINT"));
-        assertEquals(BasicType.INT_TYPE, convertor.toSeaTunnelType("INTEGER"));
-        assertEquals(BasicType.INT_TYPE, convertor.toSeaTunnelType("INT"));
-        assertEquals(BasicType.LONG_TYPE, convertor.toSeaTunnelType("BIGINT"));
+        assertEquals(BasicType.SHORT_TYPE, convertor.toSeaTunnelType("test_field", "SMALLINT"));
+        assertEquals(BasicType.SHORT_TYPE, convertor.toSeaTunnelType("test_field", "TINYINT"));
+        assertEquals(BasicType.SHORT_TYPE, convertor.toSeaTunnelType("test_field", "BYTEINT"));
+        assertEquals(BasicType.INT_TYPE, convertor.toSeaTunnelType("test_field", "INTEGER"));
+        assertEquals(BasicType.INT_TYPE, convertor.toSeaTunnelType("test_field", "INT"));
+        assertEquals(BasicType.LONG_TYPE, convertor.toSeaTunnelType("test_field", "BIGINT"));
     }
 
     @Test
     public void testFloatingPointTypes() {
-        assertEquals(BasicType.FLOAT_TYPE, convertor.toSeaTunnelType("REAL"));
-        assertEquals(BasicType.FLOAT_TYPE, convertor.toSeaTunnelType("FLOAT4"));
-        assertEquals(BasicType.DOUBLE_TYPE, convertor.toSeaTunnelType("DOUBLE"));
-        assertEquals(BasicType.DOUBLE_TYPE, convertor.toSeaTunnelType("DOUBLE PRECISION"));
-        assertEquals(BasicType.DOUBLE_TYPE, convertor.toSeaTunnelType("FLOAT8"));
-        assertEquals(BasicType.DOUBLE_TYPE, convertor.toSeaTunnelType("FLOAT"));
+        assertEquals(BasicType.FLOAT_TYPE, convertor.toSeaTunnelType("test_field", "REAL"));
+        assertEquals(BasicType.FLOAT_TYPE, convertor.toSeaTunnelType("test_field", "FLOAT4"));
+        assertEquals(BasicType.DOUBLE_TYPE, convertor.toSeaTunnelType("test_field", "DOUBLE"));
+        assertEquals(
+                BasicType.DOUBLE_TYPE, convertor.toSeaTunnelType("test_field", "DOUBLE PRECISION"));
+        assertEquals(BasicType.DOUBLE_TYPE, convertor.toSeaTunnelType("test_field", "FLOAT8"));
+        assertEquals(BasicType.DOUBLE_TYPE, convertor.toSeaTunnelType("test_field", "FLOAT"));
     }
 
     @Test
     public void testStringTypes() {
-        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("CHAR"));
-        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("CHARACTER"));
-        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("VARCHAR"));
-        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("STRING"));
-        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("TEXT"));
-        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("VARIANT"));
-        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("OBJECT"));
+        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("test_field", "CHAR"));
+        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("test_field", "CHARACTER"));
+        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("test_field", "VARCHAR"));
+        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("test_field", "STRING"));
+        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("test_field", "TEXT"));
+        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("test_field", "VARIANT"));
+        assertEquals(BasicType.STRING_TYPE, convertor.toSeaTunnelType("test_field", "OBJECT"));
     }
 
     @Test
     public void testBinaryTypes() {
-        assertEquals(PrimitiveByteArrayType.INSTANCE, convertor.toSeaTunnelType("BINARY"));
-        assertEquals(PrimitiveByteArrayType.INSTANCE, convertor.toSeaTunnelType("VARBINARY"));
+        assertEquals(
+                PrimitiveByteArrayType.INSTANCE, convertor.toSeaTunnelType("test_field", "BINARY"));
+        assertEquals(
+                PrimitiveByteArrayType.INSTANCE,
+                convertor.toSeaTunnelType("test_field", "VARBINARY"));
     }
 
     @Test
     public void testDateTimeTypes() {
-        assertEquals(LocalTimeType.LOCAL_DATE_TYPE, convertor.toSeaTunnelType("DATE"));
-        assertEquals(LocalTimeType.LOCAL_TIME_TYPE, convertor.toSeaTunnelType("TIME"));
+        assertEquals(
+                LocalTimeType.LOCAL_DATE_TYPE, convertor.toSeaTunnelType("test_field", "DATE"));
+        assertEquals(
+                LocalTimeType.LOCAL_TIME_TYPE, convertor.toSeaTunnelType("test_field", "TIME"));
     }
 
     @Test
     public void testBooleanType() {
-        assertEquals(BasicType.BOOLEAN_TYPE, convertor.toSeaTunnelType("BOOLEAN"));
+        assertEquals(BasicType.BOOLEAN_TYPE, convertor.toSeaTunnelType("test_field", "BOOLEAN"));
     }
 
     @Test
     public void testReverseConversion() {
         // Test SeaTunnel types back to Snowflake types
-        assertEquals("SMALLINT", convertor.toConnectorType(BasicType.SHORT_TYPE, null));
-        assertEquals("INTEGER", convertor.toConnectorType(BasicType.INT_TYPE, null));
-        assertEquals("BIGINT", convertor.toConnectorType(BasicType.LONG_TYPE, null));
-        assertEquals("DECIMAL", convertor.toConnectorType(new DecimalType(10, 2), null));
-        assertEquals("FLOAT4", convertor.toConnectorType(BasicType.FLOAT_TYPE, null));
-        assertEquals("DOUBLE PRECISION", convertor.toConnectorType(BasicType.DOUBLE_TYPE, null));
-        assertEquals("BOOLEAN", convertor.toConnectorType(BasicType.BOOLEAN_TYPE, null));
-        assertEquals("TEXT", convertor.toConnectorType(BasicType.STRING_TYPE, null));
-        assertEquals("DATE", convertor.toConnectorType(LocalTimeType.LOCAL_DATE_TYPE, null));
-        assertEquals("GEOMETRY", convertor.toConnectorType(PrimitiveByteArrayType.INSTANCE, null));
-        assertEquals("TIME", convertor.toConnectorType(LocalTimeType.LOCAL_TIME_TYPE, null));
-        assertEquals("TIMESTAMP", convertor.toConnectorType(LocalTimeType.LOCAL_DATE_TIME_TYPE, null));
+        assertEquals(
+                "SMALLINT", convertor.toConnectorType("test_field", BasicType.SHORT_TYPE, null));
+        assertEquals("INTEGER", convertor.toConnectorType("test_field", BasicType.INT_TYPE, null));
+        assertEquals("BIGINT", convertor.toConnectorType("test_field", BasicType.LONG_TYPE, null));
+        assertEquals(
+                "DECIMAL", convertor.toConnectorType("test_field", new DecimalType(10, 2), null));
+        assertEquals("FLOAT4", convertor.toConnectorType("test_field", BasicType.FLOAT_TYPE, null));
+        assertEquals(
+                "DOUBLE PRECISION",
+                convertor.toConnectorType("test_field", BasicType.DOUBLE_TYPE, null));
+        assertEquals(
+                "BOOLEAN", convertor.toConnectorType("test_field", BasicType.BOOLEAN_TYPE, null));
+        assertEquals("TEXT", convertor.toConnectorType("test_field", BasicType.STRING_TYPE, null));
+        assertEquals(
+                "DATE",
+                convertor.toConnectorType("test_field", LocalTimeType.LOCAL_DATE_TYPE, null));
+        assertEquals(
+                "GEOMETRY",
+                convertor.toConnectorType("test_field", PrimitiveByteArrayType.INSTANCE, null));
+        assertEquals(
+                "TIME",
+                convertor.toConnectorType("test_field", LocalTimeType.LOCAL_TIME_TYPE, null));
+        assertEquals(
+                "TIMESTAMP",
+                convertor.toConnectorType("test_field", LocalTimeType.LOCAL_DATE_TIME_TYPE, null));
     }
 
     @Test
     public void testUnsupportedType() {
-        assertThrows(UnsupportedOperationException.class, () -> {
-            convertor.toSeaTunnelType("UNSUPPORTED_TYPE");
-        });
-        
-        assertThrows(UnsupportedOperationException.class, () -> {
-            convertor.toConnectorType(BasicType.DOUBLE_TYPE, null);
-        });
+        assertThrows(
+                SeaTunnelRuntimeException.class,
+                () -> {
+                    convertor.toSeaTunnelType("test_field", "UNSUPPORTED_TYPE");
+                });
     }
 }
