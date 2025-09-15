@@ -30,7 +30,7 @@
     <name>SeaTunnel : Connectors V2 : CDC : Postgres</name>
 
     <properties>
-        <postgresql.version>42.4.4</postgresql.version>
+        <postgresql.version>42.6.2</postgresql.version>
     </properties>
 
     <dependencyManagement>
