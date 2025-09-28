@@ -38,26 +38,26 @@ import java.util.Locale;
 @AutoService(TypeConverter.class)
 public class GaussDBTypeConverter extends PostgresTypeConverter {
 
-    // DWS jdbc driver maps several alias to real type, we use real type rather than alias:
+    // GAUSSDB jdbc driver maps several alias to real type, we use real type rather than alias:
 
     // number type
-    public static final String DWS_TINYINT = "int1";
-    public static final String DWS_TINYINT_ARRAY = "_int1";
+    public static final String GAUSSDB_TINYINT = "int1";
+    public static final String GAUSSDB_TINYINT_ARRAY = "_int1";
 
     // varchar type
-    public static final String DWS_NVARCHAR2 = "nvarchar2";
-    public static final String DWS_NVARCHAR = "nvarchar";
-    public static final String DWS_NVARCHAR_ARRAY = "_nvarchar";
-    public static final String DWS_NVARCHAR2_ARRAY = "_nvarchar2";
+    public static final String GAUSSDB_NVARCHAR2 = "nvarchar2";
+    public static final String GAUSSDB_NVARCHAR = "nvarchar";
+    public static final String GAUSSDB_NVARCHAR_ARRAY = "_nvarchar";
+    public static final String GAUSSDB_NVARCHAR2_ARRAY = "_nvarchar2";
 
     // date type
 
     // Date and time without time zone. Accurate to the minute, the second bit is greater than or
     // equal to 30 seconds.
-    public static final String DWS_SMALLDATETIME = "smalldatetime";
+    public static final String GAUSSDB_SMALLDATETIME = "smalldatetime";
 
     // jsonb
-    public static final String DWS_JSONB = "JSONB";
+    public static final String GAUSSDB_JSONB = "JSONB";
 
     public static final GaussDBTypeConverter INSTANCE = new GaussDBTypeConverter();
 
@@ -76,31 +76,31 @@ public class GaussDBTypeConverter extends PostgresTypeConverter {
                         .defaultValue(typeDefine.getDefaultValue())
                         .comment(typeDefine.getComment());
 
-        String dwsDataType = typeDefine.getDataType().toLowerCase(Locale.ROOT);
-        switch (dwsDataType) {
-            case DWS_TINYINT:
-                // The tinyint is 0 ~ 255 in dws, so need use short to storage it.
+        String gaussdbDataType = typeDefine.getDataType().toLowerCase(Locale.ROOT);
+        switch (gaussdbDataType) {
+            case GAUSSDB_TINYINT:
+                // The tinyint is 0 ~ 255 in GAUSSDB, so need use short to storage it.
                 builder.dataType(BasicType.SHORT_TYPE);
                 break;
-            case DWS_TINYINT_ARRAY:
+            case GAUSSDB_TINYINT_ARRAY:
                 builder.dataType(ArrayType.SHORT_ARRAY_TYPE);
                 break;
-            case DWS_NVARCHAR2:
-            case DWS_NVARCHAR:
+            case GAUSSDB_NVARCHAR2:
+            case GAUSSDB_NVARCHAR:
                 if (typeDefine.getLength() != null && typeDefine.getLength() > 0) {
                     builder.columnLength(TypeDefineUtils.charTo4ByteLength(typeDefine.getLength()));
                 }
                 builder.dataType(BasicType.STRING_TYPE);
                 break;
-            case DWS_NVARCHAR2_ARRAY:
-            case DWS_NVARCHAR_ARRAY:
+            case GAUSSDB_NVARCHAR2_ARRAY:
+            case GAUSSDB_NVARCHAR_ARRAY:
                 builder.dataType(ArrayType.STRING_ARRAY_TYPE);
                 break;
-            case DWS_SMALLDATETIME:
+            case GAUSSDB_SMALLDATETIME:
                 builder.dataType(LocalTimeType.LOCAL_DATE_TIME_TYPE);
                 builder.scale(0);
                 break;
-            case DWS_JSONB:
+            case GAUSSDB_JSONB:
                 builder.dataType(BasicType.STRING_TYPE);
                 break;
             default:
@@ -124,8 +124,8 @@ public class GaussDBTypeConverter extends PostgresTypeConverter {
                 builder.dataType("BOOLEAN");
                 break;
             case TINYINT:
-                builder.columnType("INT1");
-                builder.dataType("INT1");
+                builder.columnType("INT2");
+                builder.dataType("INT2");
                 break;
             case SMALLINT:
                 builder.columnType("SMALLINT");
