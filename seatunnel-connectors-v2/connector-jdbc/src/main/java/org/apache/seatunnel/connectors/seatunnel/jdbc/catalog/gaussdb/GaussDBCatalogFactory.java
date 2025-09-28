@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dws;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.gaussdb;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.configuration.util.OptionRule;
@@ -32,11 +32,11 @@ import com.google.auto.service.AutoService;
 import java.util.Optional;
 
 @AutoService(Factory.class)
-public class DwsCatalogFactory implements CatalogFactory {
+public class GaussDBCatalogFactory implements CatalogFactory {
 
     @Override
     public String factoryIdentifier() {
-        return DatabaseIdentifier.DWS;
+        return DatabaseIdentifier.GAUSSDB;
     }
 
     @Override
@@ -47,7 +47,7 @@ public class DwsCatalogFactory implements CatalogFactory {
         if (!defaultDatabase.isPresent()) {
             throw new OptionValidationException(JdbcCatalogOptions.BASE_URL);
         }
-        return new DwsCatalog(
+        return new GaussDBCatalog(
                 catalogName,
                 options.get(JdbcCatalogOptions.USERNAME),
                 options.get(JdbcCatalogOptions.PASSWORD),

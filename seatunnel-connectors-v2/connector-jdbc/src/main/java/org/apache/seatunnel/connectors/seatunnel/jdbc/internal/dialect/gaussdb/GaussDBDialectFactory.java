@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gaussdb;
 
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
@@ -24,11 +24,11 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDiale
 import com.google.auto.service.AutoService;
 
 @AutoService(JdbcDialectFactory.class)
-public class DWSDialectFactory implements JdbcDialectFactory {
+public class GaussDBDialectFactory implements JdbcDialectFactory {
 
     @Override
     public String dialectFactoryName() {
-        return DatabaseIdentifier.DWS;
+        return DatabaseIdentifier.GAUSSDB;
     }
 
     @Override
@@ -38,6 +38,6 @@ public class DWSDialectFactory implements JdbcDialectFactory {
 
     @Override
     public JdbcDialect create() {
-        return new DwsDialect();
+        return new GaussDBDialect();
     }
 }

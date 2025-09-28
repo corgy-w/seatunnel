@@ -22,7 +22,7 @@ import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dws.DwsCatalogFactory;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.gaussdb.GaussDBCatalogFactory;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
@@ -60,7 +60,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Disabled("disable because have no gaussdb(dws) docker image")
-public class JdbcDwsSourceIT extends TestSuiteBase implements TestResource {
+public class JdbcGaussDBSourceIT extends TestSuiteBase implements TestResource {
 
     public static final String DWS_DRIVER_JAR =
             "https://repo1.maven.org/maven2/com/huaweicloud/dws/huaweicloud-dws-jdbc/8.2.1.300-200/huaweicloud-dws-jdbc-8.2.1.300-200.jar";
@@ -435,15 +435,15 @@ public class JdbcDwsSourceIT extends TestSuiteBase implements TestResource {
         map.put("col_jsonb", "STRING");
         map.put("col_xml", "STRING");
 
-        DwsCatalogFactory dwsCatalogFactory = new DwsCatalogFactory();
+        GaussDBCatalogFactory gaussDBCatalogFactory = new GaussDBCatalogFactory();
         Map<String, Object> configMap = new HashMap<>();
         configMap.put("base-url", DWS_JDBC_URL);
         configMap.put("username", SOURCE_USERNAME);
         configMap.put("password", SOURCE_PASSWORD);
         configMap.put("schema", "test");
         Catalog catalog =
-                dwsCatalogFactory.createCatalog(
-                        DatabaseIdentifier.DWS, ReadonlyConfig.fromMap(configMap));
+                gaussDBCatalogFactory.createCatalog(
+                        DatabaseIdentifier.GAUSSDB, ReadonlyConfig.fromMap(configMap));
         CatalogTable table =
                 catalog.getTable(
                         TablePath.of(String.format("%s.%s", SOURCE_DB_NAME, SOURCE_TABLE)));
