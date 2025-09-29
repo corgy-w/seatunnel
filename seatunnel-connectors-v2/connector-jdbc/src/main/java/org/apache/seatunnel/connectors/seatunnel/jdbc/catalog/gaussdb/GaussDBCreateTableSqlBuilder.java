@@ -67,7 +67,8 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
         this.constraintKeys = catalogTable.getTableSchema().getConstraintKeys();
     }
 
-    public String build(TablePath tablePath) {
+    public List<String> buildGaussDBCreateTableSql(TablePath tablePath) {
+        List<String> sqls = new ArrayList<>();
         StringBuilder createTableSql = new StringBuilder();
         createTableSql
                 .append(CatalogUtils.quoteIdentifier("CREATE TABLE IF NOT EXISTS ", fieldIde))
@@ -108,20 +109,39 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
         createTableSql.append(String.join(",\n", columnSqls));
         createTableSql.append("\n)");
 
+        // Add the CREATE TABLE statement first
+        sqls.add(createTableSql.toString());
+
+        // Add table comment separately (for GaussDB TP compatibility)
         if (StringUtils.isNotBlank(comment)) {
-            createTableSql.append(" COMMENT '").append(comment).append("'");
+            StringBuilder commentSql = new StringBuilder();
+            commentSql.append("COMMENT ON TABLE ");
+            commentSql.append(tablePath.getSchemaAndTableName("\""));
+            commentSql.append(" IS '").append(comment.replace("'", "''")).append("'");
+            sqls.add(commentSql.toString());
         }
 
-        return createTableSql.toString();
+        // Add column comments separately (for GaussDB TP compatibility)
+        List<String> commentSqls =
+                columns.stream()
+                        .filter(column -> StringUtils.isNotBlank(column.getComment()))
+                        .map(
+                                column ->
+                                        buildColumnCommentSql(
+                                                column, tablePath.getSchemaAndTableName("\"")))
+                        .collect(Collectors.toList());
+        sqls.addAll(commentSqls);
+
+        return sqls;
     }
 
     private String buildColumnSql(Column column) {
         StringBuilder columnSql = new StringBuilder();
         columnSql.append("\t\"").append(column.getName()).append("\" ");
 
-        // Convert SeaTunnel type to DWS type
-        String dwsType = convertToDwsType(column);
-        columnSql.append(dwsType);
+        // Convert SeaTunnel type to GaussDB type
+        String gaussdbType = convertToGaussDBType(column);
+        columnSql.append(gaussdbType);
 
         // Handle nullable
         if (!column.isNullable()) {
@@ -138,16 +158,13 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
             }
         }
 
-        // Handle comment
-        if (StringUtils.isNotBlank(column.getComment())) {
-            columnSql.append(" COMMENT '").append(column.getComment()).append("'");
-        }
+        // Note: Comments are handled separately for GaussDB TP compatibility
 
         return columnSql.toString();
     }
 
-    private String convertToDwsType(Column column) {
-        // Use DwsTypeConverter to convert back to DWS type
+    private String convertToGaussDBType(Column column) {
+        // Use GaussDBTypeConverter to convert back to GaussDB type
         BasicTypeDefine typeDefine = GaussDBTypeConverter.INSTANCE.reconvert(column);
         if (typeDefine != null && StringUtils.isNotBlank(typeDefine.getColumnType())) {
             return typeDefine.getColumnType();
@@ -201,6 +218,20 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
             default:
                 return "TEXT";
         }
+    }
+
+    private String buildColumnCommentSql(Column column, String tableName) {
+        StringBuilder columnCommentSql = new StringBuilder();
+        columnCommentSql
+                .append(CatalogUtils.quoteIdentifier("COMMENT ON COLUMN ", fieldIde))
+                .append(CatalogUtils.quoteIdentifier(tableName, fieldIde))
+                .append(".");
+        columnCommentSql
+                .append(CatalogUtils.quoteIdentifier(column.getName(), fieldIde, "\""))
+                .append(CatalogUtils.quoteIdentifier(" IS '", fieldIde))
+                .append(column.getComment().replace("'", "''").replace("\\", "\\\\"))
+                .append("'");
+        return columnCommentSql.toString();
     }
 
     private String buildPrimaryKeySql() {

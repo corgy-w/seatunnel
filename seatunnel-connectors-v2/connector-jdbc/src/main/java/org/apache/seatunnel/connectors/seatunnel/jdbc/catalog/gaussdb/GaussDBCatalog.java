@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 @Slf4j
 public class GaussDBCatalog extends PostgresCatalog {
@@ -104,7 +105,13 @@ public class GaussDBCatalog extends PostgresCatalog {
                 createTableSqlBuilder(tablePath, table);
         String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
         try {
-            executeInternal(dbUrl, gaussDBCreateTableSqlBuilder.build(tablePath));
+            List<String> createTableSqls =
+                    gaussDBCreateTableSqlBuilder.buildGaussDBCreateTableSql(tablePath);
+            for (String sql : createTableSqls) {
+                executeInternal(dbUrl, sql);
+            }
+
+            // Execute index creation statements
             if (CollectionUtils.isNotEmpty(gaussDBCreateTableSqlBuilder.getCreateIndexSqls())) {
                 for (String createIndexSql : gaussDBCreateTableSqlBuilder.getCreateIndexSqls()) {
                     executeInternal(dbUrl, createIndexSql);
