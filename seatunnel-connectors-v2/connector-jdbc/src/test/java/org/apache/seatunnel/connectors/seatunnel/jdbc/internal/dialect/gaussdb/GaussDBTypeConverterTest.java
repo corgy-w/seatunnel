@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gaussdb;
 
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
@@ -27,12 +27,12 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.Post
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class DwsTypeConverterTest extends PostgresTypeConverterTest {
+public class GaussDBTypeConverterTest extends PostgresTypeConverterTest {
     @Test
     public void testConvertTinyint() {
         BasicTypeDefine<Object> typeDefine =
                 BasicTypeDefine.builder().name("test").columnType("int1").dataType("int1").build();
-        Column column = DwsTypeConverter.INSTANCE.convert(typeDefine);
+        Column column = GaussDBTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(BasicType.SHORT_TYPE, column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
@@ -46,7 +46,7 @@ public class DwsTypeConverterTest extends PostgresTypeConverterTest {
                         .columnType("_int1")
                         .dataType("_int1")
                         .build();
-        Column column = DwsTypeConverter.INSTANCE.convert(typeDefine);
+        Column column = GaussDBTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(ArrayType.SHORT_ARRAY_TYPE, column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
@@ -61,7 +61,7 @@ public class DwsTypeConverterTest extends PostgresTypeConverterTest {
                         .dataType("nvarchar2")
                         .length(255L)
                         .build();
-        Column column = DwsTypeConverter.INSTANCE.convert(typeDefine);
+        Column column = GaussDBTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
@@ -76,7 +76,7 @@ public class DwsTypeConverterTest extends PostgresTypeConverterTest {
                         .columnType("_nvarchar2")
                         .dataType("_nvarchar2")
                         .build();
-        Column column = DwsTypeConverter.INSTANCE.convert(typeDefine);
+        Column column = GaussDBTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(ArrayType.STRING_ARRAY_TYPE, column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
@@ -90,7 +90,7 @@ public class DwsTypeConverterTest extends PostgresTypeConverterTest {
                         .columnType("smalldatetime")
                         .dataType("smalldatetime")
                         .build();
-        Column column = DwsTypeConverter.INSTANCE.convert(typeDefine);
+        Column column = GaussDBTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
@@ -105,7 +105,7 @@ public class DwsTypeConverterTest extends PostgresTypeConverterTest {
                         .columnType("jsonb")
                         .dataType("jsonb")
                         .build();
-        Column column = DwsTypeConverter.INSTANCE.convert(typeDefine);
+        Column column = GaussDBTypeConverter.INSTANCE.convert(typeDefine);
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(BasicType.STRING_TYPE, column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());

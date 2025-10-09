@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gaussdb;
 
 import org.apache.seatunnel.api.table.type.ArrayType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
@@ -30,10 +30,10 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class DwsJdbcRowConverter extends PostgresJdbcRowConverter {
+public class GaussDBJdbcRowConverter extends PostgresJdbcRowConverter {
     @Override
     public String converterName() {
-        return DatabaseIdentifier.DWS;
+        return DatabaseIdentifier.GAUSSDB;
     }
 
     @Override

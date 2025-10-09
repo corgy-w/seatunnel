@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gaussdb;
 
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresTypeMapper;
 
-public class DwsTypeMapper extends PostgresTypeMapper {
+public class GaussDBTypeMapper extends PostgresTypeMapper {
     @Override
     public Column mappingColumn(BasicTypeDefine typeDefine) {
-        return DwsTypeConverter.INSTANCE.convert(typeDefine);
+        return GaussDBTypeConverter.INSTANCE.convert(typeDefine);
     }
 }

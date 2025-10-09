@@ -16,24 +16,29 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dws;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.gaussdb;
 
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.psql.PostgresCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws.DwsTypeConverter;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dws.DwsTypeMapper;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gaussdb.GaussDBTypeConverter;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gaussdb.GaussDBTypeMapper;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 @Slf4j
-public class DwsCatalog extends PostgresCatalog {
+public class GaussDBCatalog extends PostgresCatalog {
     // added nvarchar2 type for gaussdb
     private static final String SELECT_COLUMNS_SQL_TEMPLATE =
             "SELECT \n"
@@ -78,7 +83,7 @@ public class DwsCatalog extends PostgresCatalog {
                     + "ORDER BY \n"
                     + "    a.attnum;";
 
-    public DwsCatalog(
+    public GaussDBCatalog(
             String catalogName,
             String username,
             String pwd,
@@ -94,13 +99,72 @@ public class DwsCatalog extends PostgresCatalog {
     }
 
     @Override
+    protected void createTableInternal(TablePath tablePath, CatalogTable table, boolean createIndex)
+            throws CatalogException {
+        GaussDBCreateTableSqlBuilder gaussDBCreateTableSqlBuilder =
+                createTableSqlBuilder(tablePath, table, createIndex);
+        String dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        try {
+            List<String> createTableSqls =
+                    gaussDBCreateTableSqlBuilder.buildGaussDBCreateTableSql(tablePath);
+            for (String sql : createTableSqls) {
+                executeInternal(dbUrl, sql);
+            }
+
+            // Execute index creation statements
+            if (CollectionUtils.isNotEmpty(gaussDBCreateTableSqlBuilder.getCreateIndexSqls())) {
+                for (String createIndexSql : gaussDBCreateTableSqlBuilder.getCreateIndexSqls()) {
+                    executeInternal(dbUrl, createIndexSql);
+                }
+            }
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format("Failed creating table %s", tablePath.getFullName()), e);
+        }
+    }
+
+    public GaussDBCreateTableSqlBuilder createTableSqlBuilder(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
+        return new GaussDBCreateTableSqlBuilder(table, createIndex);
+    }
+
+    @Override
     public TypeConverter getTypeConverter() {
-        return DwsTypeConverter.INSTANCE;
+        return GaussDBTypeConverter.INSTANCE;
     }
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new DwsTypeMapper());
+        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new GaussDBTypeMapper());
+    }
+
+    @Override
+    protected String getTruncateTableSql(TablePath tablePath) {
+        String schemaName = tablePath.getSchemaName();
+        String tableName = tablePath.getTableName();
+        return "TRUNCATE TABLE  \"" + schemaName + "\".\"" + tableName + "\"";
+    }
+
+    @Override
+    protected String getDropDatabaseSql(String databaseName) {
+        return "DROP DATABASE \"" + databaseName + "\"";
+    }
+
+    @Override
+    protected void dropDatabaseInternal(String databaseName) throws CatalogException {
+        closeDatabaseConnection(databaseName);
+        super.dropDatabaseInternal(databaseName);
+    }
+
+    @Override
+    protected String getJdbcURL(TablePath tablePath) {
+        String dbUrl;
+        if (StringUtils.isNotBlank(tablePath.getDatabaseName())) {
+            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
+        } else {
+            dbUrl = getUrlFromDatabaseName(defaultDatabase);
+        }
+        return dbUrl;
     }
 }

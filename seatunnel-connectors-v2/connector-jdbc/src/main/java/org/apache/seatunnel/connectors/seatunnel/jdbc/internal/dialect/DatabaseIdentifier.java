@@ -47,7 +47,7 @@ public class DatabaseIdentifier {
     public static final String IRIS = "IRIS";
     public static final String INCEPTOR = "Inceptor";
     public static final String OPENGAUSS = "OpenGauss";
-    public static final String DWS = "DWS";
+    public static final String GAUSSDB = "GaussDB";
     public static final String DMDB = "DMDB";
     public static final String GREENPLUM = "Greenplum";
     public static final String YASHAN = "Yashan";
