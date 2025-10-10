@@ -15,26 +15,33 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.paimon.sink.state;
+package org.apache.seatunnel.connectors.seatunnel.paimon.filesystem;
 
-import org.apache.paimon.table.sink.CommitMessage;
+import org.apache.paimon.fs.FileIO;
+import org.apache.paimon.fs.FileIOLoader;
+import org.apache.paimon.fs.Path;
+import org.apache.paimon.s3.S3FileIO;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-
-import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
-/** Paimon sink state class, save the list of has pre committed messages. */
-@Data
-@AllArgsConstructor
-public class PaimonSinkState implements Serializable {
+public class S3Loader implements FileIOLoader {
+    @Override
+    public String getScheme() {
+        return "s3a";
+    }
 
-    private static final long serialVersionUID = 1L;
+    @Override
+    public List<String[]> requiredOptions() {
+        List<String[]> options = new ArrayList<>();
+        options.add(new String[] {"fs.s3a.access-key", "fs.s3a.access.key"});
+        options.add(new String[] {"fs.s3a.secret-key", "fs.s3a.secret.key"});
+        options.add(new String[] {"fs.s3a.endpoint", "fs.s3a.endpoint"});
+        return options;
+    }
 
-    private List<CommitMessage> commitTables;
-
-    private String commitUser;
-
-    private long checkpointId;
+    @Override
+    public FileIO load(Path path) {
+        return new S3FileIO();
+    }
 }

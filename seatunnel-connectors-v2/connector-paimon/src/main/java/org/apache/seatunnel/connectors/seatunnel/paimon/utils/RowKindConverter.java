@@ -38,7 +38,6 @@ public class RowKindConverter {
             case UPDATE_BEFORE:
                 return org.apache.paimon.types.RowKind.UPDATE_BEFORE;
             case INSERT:
-            case READ:
                 return org.apache.paimon.types.RowKind.INSERT;
             default:
                 return null;

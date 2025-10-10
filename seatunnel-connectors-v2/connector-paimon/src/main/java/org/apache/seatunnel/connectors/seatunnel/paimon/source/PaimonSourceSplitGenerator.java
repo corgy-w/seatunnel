@@ -20,7 +20,6 @@ package org.apache.seatunnel.connectors.seatunnel.paimon.source;
 import org.apache.paimon.table.source.TableScan;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class PaimonSourceSplitGenerator {
@@ -30,16 +29,9 @@ public class PaimonSourceSplitGenerator {
      */
     private final char[] currentId = "0000000000".toCharArray();
 
-    public List<PaimonSourceSplit> createSplits(TableScan.Plan plan) {
-        AtomicInteger index = new AtomicInteger(0);
+    public List<PaimonSourceSplit> createSplits(String tableId, TableScan.Plan plan) {
         return plan.splits().stream()
-                .map(
-                        s ->
-                                new PaimonSourceSplit(
-                                        getNextId(),
-                                        s,
-                                        index.getAndIncrement(),
-                                        plan.splits().size()))
+                .map(s -> new PaimonSourceSplit(getNextId(), tableId, s))
                 .collect(Collectors.toList());
     }
 

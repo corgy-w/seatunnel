@@ -64,11 +64,11 @@ public enum CommonErrorCode implements SeaTunnelErrorCode {
 
     WRITE_SEATUNNEL_ROW_ERROR_WITH_SCHEMA_INCOMPATIBLE_SCHEMA(
             "COMMON-30",
-            "<connector>: The source filed with schema '<sourceFieldSqlSchema>', except filed schema of sink is '<exceptFieldSqlSchema>'; but the filed in sink table which actual schema is '<sinkFieldSqlSchema>'. Please check schema of sink table."),
+            "'<connector>': The source field with schema '<sourceFieldSqlSchema>', expected field schema of sink is '<expectedFieldSqlSchema>'; whose actual schema in the sink table is '<sinkFieldSqlSchema>'. Please check schema of sink table."),
 
-    WRITE_SEATUNNEL_ROW_ERROR_WITH_FILEDS_NOT_MATCH(
+    WRITE_SEATUNNEL_ROW_ERROR_WITH_FIELDS_NOT_MATCH(
             "COMMON-31",
-            "<connector>: The source has '<sourceFieldsNum>' fields, but the table of sink has '<sinkFieldsNum>' fields. Please check schema of sink table."),
+            "'<connector>': The source has '<sourceFieldsNum>' fields, but the table of sink has '<sinkFieldsNum>' fields. Please check schema of sink table."),
     FORMAT_DATE_ERROR(
             "COMMON-32",
             "The date format '<date>' of field '<field>' is not supported. Please check the date format."),
@@ -77,9 +77,9 @@ public enum CommonErrorCode implements SeaTunnelErrorCode {
             "The datetime format '<datetime>' of field '<field>' is not supported. Please check the datetime format."),
     UNSUPPORTED_METHOD("COMMON-34", "'<identifier>' unsupported the method '<methodName>'"),
     KERBEROS_AUTHORIZED_FAILED("COMMON-35", "Kerberos authorized failed"),
-    PRIMARY_KEY_IS_NECESSARY("COMMON-36", "primary key is necessary"),
-    ;
-
+    CLOSE_FAILED("COMMON-36", "'<identifier>' close failed."),
+    PRIMARY_KEY_IS_NECESSARY("COMMON-37", "primary key is necessary"),
+    SEATUNNEL_ROW_SERIALIZE_FAILED("COMMON-38", "Seatunnel row serialize failed. Row={ '<row>' }");
     private final String code;
     private final String description;
 

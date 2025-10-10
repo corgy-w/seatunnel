@@ -17,22 +17,25 @@
 
 package org.apache.seatunnel.connectors.seatunnel.paimon.config;
 
-import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.shade.com.fasterxml.jackson.core.type.TypeReference;
 
-import lombok.Getter;
+import org.apache.seatunnel.api.configuration.Option;
+import org.apache.seatunnel.api.configuration.Options;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
-@Getter
-public class PaimonSourceConfig extends PaimonConfig {
+public class PaimonSourceOptions extends PaimonBaseOptions {
 
-    private String query;
-    private List<PaimonSourceTableConfig> tableConfigList = new ArrayList<>();
+    public static final Option<String> QUERY_SQL =
+            Options.key("query")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("The query of paimon source");
 
-    public PaimonSourceConfig(ReadonlyConfig readonlyConfig) {
-        super(readonlyConfig);
-        this.query = readonlyConfig.get(PaimonSourceOptions.QUERY_SQL);
-        this.tableConfigList = PaimonSourceTableConfig.of(readonlyConfig);
-    }
+    public static final Option<List<Map<String, Object>>> TABLE_LIST =
+            Options.key("table_list")
+                    .type(new TypeReference<List<Map<String, Object>>>() {})
+                    .noDefaultValue()
+                    .withDescription("table list config");
 }
