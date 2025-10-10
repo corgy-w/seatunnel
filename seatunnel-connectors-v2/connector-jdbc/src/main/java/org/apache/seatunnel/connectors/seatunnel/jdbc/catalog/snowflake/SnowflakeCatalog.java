@@ -49,6 +49,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.snowflake.SnowflakeTypeMapper.SNOWFLAKE_TIMESTAMP_NTZ;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.snowflake.SnowflakeTypeMapper.SNOWFLAKE_TIMESTAMP_LTZ;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.snowflake.SnowflakeTypeMapper.SNOWFLAKE_TIMESTAMP_TZ;
+
 @Slf4j
 public class SnowflakeCatalog extends AbstractJdbcCatalog {
 
@@ -180,7 +184,7 @@ public class SnowflakeCatalog extends AbstractJdbcCatalog {
     @Override
     protected Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
-        String typeName = resultSet.getString("TYPE_NAME");
+        String typeName = normalizeTypeName(resultSet.getString("TYPE_NAME"));
         long columnLength = resultSet.getLong("COLUMN_SIZE");
         int columnScale = resultSet.getInt("DECIMAL_DIGITS");
         String columnComment = resultSet.getString("REMARKS");
@@ -259,5 +263,21 @@ public class SnowflakeCatalog extends AbstractJdbcCatalog {
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         return CatalogUtils.getCatalogTable(
                 getConnection(defaultUrl), sqlQuery, new SnowflakeTypeMapper());
+    }
+
+    private String normalizeTypeName(String rawTypeName) {
+        if (rawTypeName == null) {
+            return null;
+        }
+        switch (rawTypeName.toUpperCase(java.util.Locale.ROOT)) {
+            case "TIMESTAMPNTZ":
+                return SNOWFLAKE_TIMESTAMP_NTZ;
+            case "TIMESTAMPLTZ":
+                return SNOWFLAKE_TIMESTAMP_LTZ;
+            case "TIMESTAMPTZ":
+                return SNOWFLAKE_TIMESTAMP_TZ;
+            default:
+                return rawTypeName;
+        }
     }
 }

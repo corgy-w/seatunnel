@@ -25,6 +25,7 @@ import org.apache.seatunnel.api.table.factory.CatalogFactory;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.JdbcCatalogOptions;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import com.google.auto.service.AutoService;
@@ -49,7 +50,8 @@ public class SnowflakeCatalogFactory implements CatalogFactory {
     @Override
     public Catalog createCatalog(String catalogName, ReadonlyConfig options) {
         String urlWithDatabase = options.get(JdbcCatalogOptions.BASE_URL);
-        JdbcUrlUtil.UrlInfo urlInfo = parseSnowflakeUrl(urlWithDatabase);
+        String database = options.get(JdbcOptions.DATABASE);
+        JdbcUrlUtil.UrlInfo urlInfo = parseSnowflakeUrl(urlWithDatabase, database);
         Optional<String> defaultDatabase = urlInfo.getDefaultDatabase();
         if (!defaultDatabase.isPresent()) {
             throw new OptionValidationException(JdbcCatalogOptions.BASE_URL);
@@ -67,26 +69,12 @@ public class SnowflakeCatalogFactory implements CatalogFactory {
         return JdbcCatalogOptions.BASE_RULE.build();
     }
 
-    private JdbcUrlUtil.UrlInfo parseSnowflakeUrl(String url) {
+    private JdbcUrlUtil.UrlInfo parseSnowflakeUrl(String url, String database) {
         Matcher matcher = URL_PATTERN.matcher(url);
         if (matcher.find()) {
             String urlWithoutDatabase = matcher.group("url");
             String host = matcher.group("host");
             String suffix = matcher.group("suffix");
-
-            // Extract database from suffix
-            String database = null;
-            if (suffix != null && suffix.contains("db=")) {
-                // Parse query parameters to extract database name
-                String[] parts = suffix.split("[?&]");
-                for (String part : parts) {
-                    if (part.startsWith("db=")) {
-                        database = part.substring(3);
-                        break;
-                    }
-                }
-            }
-
             return new JdbcUrlUtil.UrlInfo(
                     url,
                     urlWithoutDatabase,
