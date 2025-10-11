@@ -29,6 +29,21 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-cdc-mysql</artifactId>
+            <version>3.0-WS-test-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-jdbc</artifactId>
+            <version>3.0-WS-test-SNAPSHOT</version>
+        </dependency>
         <!--   seatunnel core dependencies   -->
         <dependency>
             <groupId>org.apache.seatunnel</groupId>

@@ -144,7 +144,7 @@
                                 <artifactItem>
                                     <groupId>org.whaleops.whaletunnel</groupId>
                                     <artifactId>whaletunnel-app</artifactId>
-                                    <version>2.7-WS-test-SNAPSHOT</version>
+                                    <version>3.0-WS-test-SNAPSHOT</version>
                                     <type>jar</type>
                                     <includes>**/i18n*.config</includes>
                                     <outputDirectory>${project.build.directory}/classes</outputDirectory>
