@@ -42,10 +42,17 @@ public class PackageJobLogsOperation extends Operation
 
     private byte[] response;
 
+    /**
+     * Flag to indicate if this is a sub-request to avoid recursive calls. When true, only collect
+     * logs from current node without requesting other nodes.
+     */
+    private boolean isSubRequest;
+
     public PackageJobLogsOperation() {}
 
-    public PackageJobLogsOperation(long jobId) {
+    public PackageJobLogsOperation(long jobId, boolean isSubRequest) {
         this.jobId = jobId;
+        this.isSubRequest = isSubRequest;
     }
 
     @Override
@@ -62,12 +69,14 @@ public class PackageJobLogsOperation extends Operation
     protected void writeInternal(ObjectDataOutput out) throws IOException {
         super.writeInternal(out);
         out.writeLong(jobId);
+        out.writeBoolean(isSubRequest);
     }
 
     @Override
     protected void readInternal(ObjectDataInput in) throws IOException {
         super.readInternal(in);
         jobId = in.readLong();
+        isSubRequest = in.readBoolean();
     }
 
     @Override
@@ -122,47 +131,53 @@ public class PackageJobLogsOperation extends Operation
                                     jobId, getNodeEngine().getThisAddress()));
         }
 
-        for (Member member : getNodeEngine().getClusterService().getMembers()) {
-            if (!member.getAddress().equals(getNodeEngine().getThisAddress())) {
-                try {
-                    PackageJobLogsOperation operation = new PackageJobLogsOperation(jobId);
-                    Data result =
-                            (Data)
-                                    getNodeEngine()
-                                            .getOperationService()
-                                            .createInvocationBuilder(
-                                                    SeaTunnelServer.SERVICE_NAME,
-                                                    operation,
-                                                    member.getAddress())
-                                            .invoke()
-                                            .get();
+        // Only collect logs from other nodes if this is not a sub-request
+        // This prevents recursive calls and potential deadlock
+        if (!isSubRequest) {
+            for (Member member : getNodeEngine().getClusterService().getMembers()) {
+                if (!member.getAddress().equals(getNodeEngine().getThisAddress())) {
+                    try {
+                        // Create a sub-request with isSubRequest=true to prevent recursion
+                        PackageJobLogsOperation operation =
+                                new PackageJobLogsOperation(jobId, true);
+                        Data result =
+                                (Data)
+                                        getNodeEngine()
+                                                .getOperationService()
+                                                .createInvocationBuilder(
+                                                        SeaTunnelServer.SERVICE_NAME,
+                                                        operation,
+                                                        member.getAddress())
+                                                .invoke()
+                                                .get();
 
-                    if (result != null) {
-                        byte[] memberLogs =
-                                getNodeEngine().getSerializationService().toObject(result);
-                        if (memberLogs != null && memberLogs.length > 0) {
-                            ZipEntry memberEntry =
-                                    new ZipEntry(
-                                            "node_"
-                                                    + member.getAddress().getHost()
-                                                    + "_"
-                                                    + member.getAddress().getPort()
-                                                    + "/job_"
-                                                    + jobId
-                                                    + "_logs.zip");
-                            zipOut.putNextEntry(memberEntry);
-                            zipOut.write(memberLogs);
-                            zipOut.closeEntry();
+                        if (result != null) {
+                            byte[] memberLogs =
+                                    getNodeEngine().getSerializationService().toObject(result);
+                            if (memberLogs != null && memberLogs.length > 0) {
+                                ZipEntry memberEntry =
+                                        new ZipEntry(
+                                                "node_"
+                                                        + member.getAddress().getHost()
+                                                        + "_"
+                                                        + member.getAddress().getPort()
+                                                        + "/job_"
+                                                        + jobId
+                                                        + "_logs.zip");
+                                zipOut.putNextEntry(memberEntry);
+                                zipOut.write(memberLogs);
+                                zipOut.closeEntry();
+                            }
                         }
+                    } catch (Exception e) {
+                        getLogger()
+                                .warning(
+                                        "Failed to get job logs from node: "
+                                                + member.getAddress()
+                                                + " for jobId: "
+                                                + jobId,
+                                        e);
                     }
-                } catch (Exception e) {
-                    getLogger()
-                            .warning(
-                                    "Failed to get job logs from node: "
-                                            + member.getAddress()
-                                            + " for jobId: "
-                                            + jobId,
-                                    e);
                 }
             }
         }

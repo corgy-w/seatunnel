@@ -45,19 +45,34 @@ public class PackageZetaLogsOperation extends Operation
     private LocalDate date;
     private String targetHost;
 
+    /**
+     * Flag to indicate if this is a sub-request to avoid recursive calls. When true, only collect
+     * logs from current node without requesting other nodes.
+     */
+    private boolean isSubRequest;
+
     public PackageZetaLogsOperation() {
         this.date = LocalDate.now();
         this.targetHost = null;
+        this.isSubRequest = false;
     }
 
     public PackageZetaLogsOperation(LocalDate date) {
         this.date = date != null ? date : LocalDate.now();
         this.targetHost = null;
+        this.isSubRequest = false;
     }
 
     public PackageZetaLogsOperation(LocalDate date, String targetHost) {
         this.date = date != null ? date : LocalDate.now();
         this.targetHost = targetHost;
+        this.isSubRequest = false;
+    }
+
+    public PackageZetaLogsOperation(LocalDate date, String targetHost, boolean isSubRequest) {
+        this.date = date != null ? date : LocalDate.now();
+        this.targetHost = targetHost;
+        this.isSubRequest = isSubRequest;
     }
 
     public PackageZetaLogsOperation(String dateStr) {
@@ -71,6 +86,7 @@ public class PackageZetaLogsOperation extends Operation
             this.date = LocalDate.now();
         }
         this.targetHost = null;
+        this.isSubRequest = false;
     }
 
     public PackageZetaLogsOperation(String dateStr, String targetHost) {
@@ -84,6 +100,7 @@ public class PackageZetaLogsOperation extends Operation
             this.date = LocalDate.now();
         }
         this.targetHost = targetHost;
+        this.isSubRequest = false;
     }
 
     @Override
@@ -101,6 +118,7 @@ public class PackageZetaLogsOperation extends Operation
         super.writeInternal(out);
         out.writeString(date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
         out.writeString(targetHost);
+        out.writeBoolean(isSubRequest);
     }
 
     @Override
@@ -117,6 +135,7 @@ public class PackageZetaLogsOperation extends Operation
             this.date = LocalDate.now();
         }
         this.targetHost = in.readString();
+        this.isSubRequest = in.readBoolean();
     }
 
     @Override
@@ -170,37 +189,44 @@ public class PackageZetaLogsOperation extends Operation
         zipOut.write(currentNodeLogs);
         zipOut.closeEntry();
 
-        for (Member member : getNodeEngine().getClusterService().getMembers()) {
-            if (!member.getAddress().equals(getNodeEngine().getThisAddress())) {
-                try {
-                    PackageZetaLogsOperation operation = new PackageZetaLogsOperation(date, null);
-                    Data result =
-                            (Data)
-                                    getNodeEngine()
-                                            .getOperationService()
-                                            .createInvocationBuilder(
-                                                    SeaTunnelServer.SERVICE_NAME,
-                                                    operation,
-                                                    member.getAddress())
-                                            .invoke()
-                                            .get();
+        // Only collect logs from other nodes if this is not a sub-request
+        // This prevents recursive calls and potential deadlock
+        if (!isSubRequest) {
+            for (Member member : getNodeEngine().getClusterService().getMembers()) {
+                if (!member.getAddress().equals(getNodeEngine().getThisAddress())) {
+                    try {
+                        // Create a sub-request with isSubRequest=true to prevent recursion
+                        PackageZetaLogsOperation operation =
+                                new PackageZetaLogsOperation(date, null, true);
+                        Data result =
+                                (Data)
+                                        getNodeEngine()
+                                                .getOperationService()
+                                                .createInvocationBuilder(
+                                                        SeaTunnelServer.SERVICE_NAME,
+                                                        operation,
+                                                        member.getAddress())
+                                                .invoke()
+                                                .get();
 
-                    if (result != null) {
-                        byte[] memberLogs =
-                                getNodeEngine().getSerializationService().toObject(result);
-                        ZipEntry memberEntry =
-                                new ZipEntry(
-                                        "node_"
-                                                + member.getAddress().getHost()
-                                                + "_"
-                                                + member.getAddress().getPort()
-                                                + "/logs.zip");
-                        zipOut.putNextEntry(memberEntry);
-                        zipOut.write(memberLogs);
-                        zipOut.closeEntry();
+                        if (result != null) {
+                            byte[] memberLogs =
+                                    getNodeEngine().getSerializationService().toObject(result);
+                            ZipEntry memberEntry =
+                                    new ZipEntry(
+                                            "node_"
+                                                    + member.getAddress().getHost()
+                                                    + "_"
+                                                    + member.getAddress().getPort()
+                                                    + "/logs.zip");
+                            zipOut.putNextEntry(memberEntry);
+                            zipOut.write(memberLogs);
+                            zipOut.closeEntry();
+                        }
+                    } catch (Exception e) {
+                        getLogger()
+                                .warning("Failed to get logs from node: " + member.getAddress(), e);
                     }
-                } catch (Exception e) {
-                    getLogger().warning("Failed to get logs from node: " + member.getAddress(), e);
                 }
             }
         }
