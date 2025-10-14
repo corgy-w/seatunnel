@@ -30,10 +30,12 @@ import com.hazelcast.nio.serialization.IdentifiedDataSerializable;
 import com.hazelcast.spi.impl.AllowedDuringPassiveState;
 import com.hazelcast.spi.impl.operationservice.Operation;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
 public class PackageJobLogsOperation extends Operation
@@ -140,33 +142,69 @@ public class PackageJobLogsOperation extends Operation
                         // Create a sub-request with isSubRequest=true to prevent recursion
                         PackageJobLogsOperation operation =
                                 new PackageJobLogsOperation(jobId, true);
-                        Data result =
-                                (Data)
-                                        getNodeEngine()
-                                                .getOperationService()
-                                                .createInvocationBuilder(
-                                                        SeaTunnelServer.SERVICE_NAME,
-                                                        operation,
-                                                        member.getAddress())
-                                                .invoke()
-                                                .get();
+                        Object result =
+                                getNodeEngine()
+                                        .getOperationService()
+                                        .createInvocationBuilder(
+                                                SeaTunnelServer.SERVICE_NAME,
+                                                operation,
+                                                member.getAddress())
+                                        .invoke()
+                                        .get();
 
                         if (result != null) {
-                            byte[] memberLogs =
-                                    getNodeEngine().getSerializationService().toObject(result);
+                            byte[] memberLogs = null;
+                            if (result instanceof Data) {
+                                memberLogs =
+                                        getNodeEngine()
+                                                .getSerializationService()
+                                                .toObject((Data) result);
+                            } else if (result instanceof byte[]) {
+                                memberLogs = (byte[]) result;
+                            } else {
+                                getLogger()
+                                        .warning(
+                                                "Unexpected result type from node "
+                                                        + member.getAddress()
+                                                        + ": "
+                                                        + result.getClass().getName());
+                            }
+
                             if (memberLogs != null && memberLogs.length > 0) {
-                                ZipEntry memberEntry =
-                                        new ZipEntry(
+                                try (ZipInputStream remoteZipIn =
+                                        new ZipInputStream(new ByteArrayInputStream(memberLogs))) {
+                                    ZipEntry remoteEntry;
+                                    byte[] buffer = new byte[8192];
+
+                                    while ((remoteEntry = remoteZipIn.getNextEntry()) != null) {
+                                        String entryName =
                                                 "node_"
                                                         + member.getAddress().getHost()
-                                                        + "_"
+                                                        + ":"
                                                         + member.getAddress().getPort()
-                                                        + "/job_"
-                                                        + jobId
-                                                        + "_logs.zip");
-                                zipOut.putNextEntry(memberEntry);
-                                zipOut.write(memberLogs);
-                                zipOut.closeEntry();
+                                                        + "/"
+                                                        + remoteEntry.getName();
+
+                                        ZipEntry newEntry = new ZipEntry(entryName);
+                                        zipOut.putNextEntry(newEntry);
+
+                                        int len;
+                                        while ((len = remoteZipIn.read(buffer)) > 0) {
+                                            zipOut.write(buffer, 0, len);
+                                        }
+
+                                        zipOut.closeEntry();
+                                        remoteZipIn.closeEntry();
+                                    }
+                                } catch (IOException e) {
+                                    getLogger()
+                                            .warning(
+                                                    "Failed to merge ZIP from node: "
+                                                            + member.getAddress()
+                                                            + " - "
+                                                            + e.getMessage(),
+                                                    e);
+                                }
                             }
                         }
                     } catch (Exception e) {
