@@ -38,6 +38,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.snowflake
 import org.apache.commons.lang3.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
+import net.snowflake.client.jdbc.SnowflakeDriver;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -48,13 +49,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 
-import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.snowflake.SnowflakeTypeMapper.SNOWFLAKE_TIMESTAMP_NTZ;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.snowflake.SnowflakeTypeMapper.SNOWFLAKE_TIMESTAMP_LTZ;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.snowflake.SnowflakeTypeMapper.SNOWFLAKE_TIMESTAMP_NTZ;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.snowflake.SnowflakeTypeMapper.SNOWFLAKE_TIMESTAMP_TZ;
 
 @Slf4j
 public class SnowflakeCatalog extends AbstractJdbcCatalog {
+
+    SnowflakeDriver driver;
 
     public SnowflakeCatalog(
             String catalogName,
@@ -63,6 +67,30 @@ public class SnowflakeCatalog extends AbstractJdbcCatalog {
             JdbcUrlUtil.UrlInfo urlInfo,
             String defaultSchema) {
         super(catalogName, username, pwd, urlInfo, defaultSchema);
+    }
+
+    protected Connection getConnection(String url) {
+        if (connectionMap.containsKey(url)) {
+            return connectionMap.get(url);
+        }
+        try {
+            Properties info = new Properties();
+            info.put("user", username);
+            if (StringUtils.isNotBlank(pwd)) {
+                info.put("password", pwd);
+            }
+            Connection connection = driver.connect(url, info);
+            connectionMap.put(url, connection);
+            return connection;
+        } catch (SQLException e) {
+            throw new CatalogException(String.format("Failed connecting to %s via JDBC.", url), e);
+        }
+    }
+
+    @Override
+    public void open() throws CatalogException {
+        this.driver = new SnowflakeDriver();
+        this.getConnection(defaultUrl);
     }
 
     @Override
