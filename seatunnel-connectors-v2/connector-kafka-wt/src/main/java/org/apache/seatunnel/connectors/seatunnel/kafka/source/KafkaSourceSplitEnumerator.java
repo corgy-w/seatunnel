@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.common.config.Common;
+import org.apache.seatunnel.common.utils.LoggingUtils;
 import org.apache.seatunnel.connectors.seatunnel.kafka.config.StartMode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.kafka.exception.KafkaConnectorException;
@@ -109,6 +110,7 @@ public class KafkaSourceSplitEnumerator
 
     @Override
     public void open() {
+        log.info("Opening Kafka source split enumerator");
         if (discoveryIntervalMillis > 0) {
             this.executor =
                     Executors.newScheduledThreadPool(
@@ -133,17 +135,24 @@ public class KafkaSourceSplitEnumerator
                             discoveryIntervalMillis,
                             discoveryIntervalMillis,
                             TimeUnit.MILLISECONDS);
+            log.info(
+                    "Kafka partition discovery scheduled with interval: {}ms",
+                    discoveryIntervalMillis);
         }
+        log.info("Kafka source split enumerator opened successfully");
     }
 
     @Override
     public void run() throws ExecutionException, InterruptedException {
+        LoggingUtils.logStart(log, "Sharding process");
+
         fetchPendingPartitionSplit();
         setPartitionStartOffset();
         assignSplit();
         if (!initialized) {
             initialized = true;
         }
+        LoggingUtils.logEnd(log, "All partition sharding");
     }
 
     private void setPartitionStartOffset() throws ExecutionException, InterruptedException {

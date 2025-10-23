@@ -48,6 +48,7 @@ import org.apache.seatunnel.common.constants.JobMode;
 import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.common.exception.SeaTunnelRuntimeException;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
+import org.apache.seatunnel.common.utils.LoggingUtils;
 import org.apache.seatunnel.core.starter.execution.PluginUtil;
 import org.apache.seatunnel.core.starter.utils.ConfigBuilder;
 import org.apache.seatunnel.engine.common.config.JobConfig;
@@ -203,6 +204,8 @@ public class MultipleTableJobConfigParser {
     }
 
     public ImmutablePair<List<Action>, Set<URL>> parse(ClassLoaderService classLoaderService) {
+        LoggingUtils.logStart(log, "job configuration parsing process");
+
         this.fillJobConfigAndCommonJars();
         List<? extends Config> sourceConfigs =
                 TypesafeConfigUtils.getConfigList(
@@ -234,8 +237,11 @@ public class MultipleTableJobConfigParser {
                     new LinkedHashMap<>();
 
             boolean isMultipleTableJob = false;
-            log.info("start generating all sources.");
+            LoggingUtils.logStart(log, "source configuration parsing phase");
             if (isStartWithSavePoint && !CollectionUtils.isEmpty(pipelineCheckpoints)) {
+                log.info(
+                        "Restoring from savepoint with {} pipeline checkpoints",
+                        pipelineCheckpoints.size());
                 Preconditions.checkState(
                         sourceConfigs.size() == pipelineCheckpoints.size(),
                         "The number of source configurations and pipeline checkpoints must be equal.");
@@ -245,14 +251,25 @@ public class MultipleTableJobConfigParser {
                 Tuple2<String, List<Tuple2<CatalogTable, Action>>> tuple2 =
                         parseSource(configIndex, sourceConfig, sourceClassLoader);
                 tableWithActionMap.put(tuple2._1(), tuple2._2());
+                log.debug(
+                        "Source configuration at index {} parsed successfully, tableId: {}",
+                        configIndex,
+                        tuple2._1());
             }
+            LoggingUtils.logEnd(
+                    log,
+                    tableWithActionMap.size()
+                            + " tables with sources processed, source parsing phase");
 
             Thread.currentThread().setContextClassLoader(transformClassLoader);
-            log.info("start generating all transforms.");
+            LoggingUtils.logStart(log, "transform configuration parsing phase");
             parseTransforms(transformConfigs, transformClassLoader, tableWithActionMap);
-
+            LoggingUtils.logEnd(
+                    log,
+                    transformConfigs.size() + " transforms processed, transform parsing phase");
             Thread.currentThread().setContextClassLoader(sinkClassLoader);
-            log.info("start generating all sinks.");
+
+            LoggingUtils.logStart(log, "sink configuration parsing phase");
             List<Action> sinkActions = new ArrayList<>();
             for (int configIndex = 0; configIndex < sinkConfigs.size(); configIndex++) {
                 Config sinkConfig = sinkConfigs.get(configIndex);
@@ -264,6 +281,9 @@ public class MultipleTableJobConfigParser {
                                 tableWithActionMap,
                                 isMultipleTableJob));
             }
+            LoggingUtils.logEnd(
+                    log, sinkActions.size() + " sink actions processed, sink parsing phase");
+
             Set<URL> factoryUrls = getUsedFactoryUrls(sinkActions);
             return new ImmutablePair<>(sinkActions, factoryUrls);
         } finally {
@@ -420,6 +440,10 @@ public class MultipleTableJobConfigParser {
                         (factory) -> factory.createSource(null));
 
         if (fallback) {
+            log.info(
+                    "Using fallback parser for source at index: {}, factoryId: {}",
+                    configIndex,
+                    factoryId);
             Tuple2<CatalogTable, Action> tuple =
                     fallbackParser.parseSource(sourceConfig, jobConfig, tableId, parallelism);
             return new Tuple2<>(tableId, Collections.singletonList(tuple));
@@ -451,6 +475,13 @@ public class MultipleTableJobConfigParser {
         for (CatalogTable catalogTable : tuple2._2()) {
             actions.add(new Tuple2<>(catalogTable, action));
         }
+
+        log.info(
+                "Source parsing completed for index: {} - factoryId: {}, tableId: {}",
+                configIndex,
+                factoryId,
+                tableId);
+
         return new Tuple2<>(tableId, actions);
     }
 
@@ -459,11 +490,16 @@ public class MultipleTableJobConfigParser {
             ClassLoader classLoader,
             LinkedHashMap<String, List<Tuple2<CatalogTable, Action>>> tableWithActionMap) {
         if (CollectionUtils.isEmpty(transformConfigs) || transformConfigs.isEmpty()) {
+            log.info("No transform configurations to parse");
             return;
         }
         Queue<Config> configList = new LinkedList<>(transformConfigs);
         int index = 0;
         while (!configList.isEmpty()) {
+            log.debug(
+                    "Parsing transform configuration at index: {}, remaining configs: {}",
+                    index,
+                    configList.size());
             parseTransform(index++, configList, classLoader, tableWithActionMap);
         }
     }
@@ -539,6 +575,12 @@ public class MultipleTableJobConfigParser {
         for (CatalogTable catalogTable : producedCatalogTables) {
             actions.add(new Tuple2<>(catalogTable, transformAction));
         }
+
+        log.info(
+                "Transform parsing completed for index: {} - factoryId: {}, tableId: {}",
+                index,
+                factoryId,
+                tableId);
 
         tableWithActionMap.put(tableId, actions);
     }
@@ -625,6 +667,10 @@ public class MultipleTableJobConfigParser {
                         factoryId,
                         (factory) -> factory.createSink(null));
         if (fallback) {
+            log.info(
+                    "Using fallback parser for sink at index: {}, factoryId: {}",
+                    configIndex,
+                    factoryId);
             return fallbackParser.parseSinks(configIndex, inputVertices, sinkConfig, jobConfig);
         }
 

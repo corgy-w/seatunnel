@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.source.SourceSplitEnumerator;
 import org.apache.seatunnel.api.source.event.EnumeratorEventRecorder;
 import org.apache.seatunnel.api.source.event.ReaderSplitFinishedEvent;
 import org.apache.seatunnel.api.source.event.SnapshotFinishedEvent;
+import org.apache.seatunnel.common.utils.LoggingUtils;
 import org.apache.seatunnel.connectors.cdc.base.source.enumerator.state.PendingSplitsState;
 import org.apache.seatunnel.connectors.cdc.base.source.event.CompletedSnapshotPhaseEvent;
 import org.apache.seatunnel.connectors.cdc.base.source.event.CompletedSnapshotSplitsAckEvent;
@@ -70,19 +71,32 @@ public class IncrementalSourceEnumerator
 
     @Override
     public void open() {
+        LoggingUtils.logStart(LOG, "CDC Enumerator Initialization");
         splitAssigner.open();
+        LoggingUtils.logEnd(LOG, "CDC Enumerator Initialization");
     }
 
     @Override
     public synchronized void run() throws Exception {
+
+        LoggingUtils.logStart(LOG, "CDC Incremental Source Enumerator");
+        LOG.info(
+                "CDC configuration - Parallelism: {}, Registered readers: {}",
+                context.currentParallelism(),
+                context.registeredReaders());
+
         this.running = true;
+
         assignSplits();
+
+        LoggingUtils.logEnd(LOG, "CDC Incremental Source Enumerator");
     }
 
     @Override
     public synchronized void handleSplitRequest(int subtaskId) {
         if (!context.registeredReaders().contains(subtaskId)) {
             // reader failed between sending the request and now. skip this request.
+            LOG.warn("Reader {} is not registered, skipping split request", subtaskId);
             return;
         }
 
@@ -94,7 +108,8 @@ public class IncrementalSourceEnumerator
 
     @Override
     public void addSplitsBack(List<SourceSplitBase> splits, int subtaskId) {
-        LOG.debug("Incremental Source Enumerator adds splits back: {}", splits);
+        LOG.info("Adding {} splits back to enumerator from reader: {}", splits.size(), subtaskId);
+
         splitAssigner.addSplits(splits);
     }
 
@@ -110,10 +125,14 @@ public class IncrementalSourceEnumerator
 
     @Override
     public void handleSourceEvent(int subtaskId, SourceEvent sourceEvent) {
+        LOG.debug(
+                "Handling CDC source event from subtask: {}, event type: {}",
+                subtaskId,
+                sourceEvent.getClass().getSimpleName());
+
         if (sourceEvent instanceof CompletedSnapshotSplitsReportEvent) {
-            LOG.debug(
-                    "The enumerator receives completed split watermarks(log offset) {} from subtask {}.",
-                    sourceEvent,
+            LOG.info(
+                    "CDC enumerator receives completed split watermarks from subtask: {}",
                     subtaskId);
             CompletedSnapshotSplitsReportEvent reportEvent =
                     (CompletedSnapshotSplitsReportEvent) sourceEvent;
@@ -133,10 +152,10 @@ public class IncrementalSourceEnumerator
                                     .map(SnapshotSplitWatermark::getSplitId)
                                     .collect(Collectors.toList()));
             context.sendEventToSourceReader(subtaskId, ackEvent);
+
         } else if (sourceEvent instanceof CompletedSnapshotPhaseEvent) {
-            LOG.debug(
-                    "The enumerator receives completed snapshot phase event {} from subtask {}.",
-                    sourceEvent,
+            LOG.info(
+                    "CDC enumerator receives completed snapshot phase event from subtask: {}",
                     subtaskId);
             CompletedSnapshotPhaseEvent event = (CompletedSnapshotPhaseEvent) sourceEvent;
             if (splitAssigner instanceof HybridSplitAssigner) {
@@ -154,13 +173,19 @@ public class IncrementalSourceEnumerator
 
     @Override
     public PendingSplitsState snapshotState(long checkpointId) {
-        return splitAssigner.snapshotState(checkpointId);
+        LOG.debug("Creating checkpoint state for checkpoint: {}", checkpointId);
+        PendingSplitsState state = splitAssigner.snapshotState(checkpointId);
+        LOG.debug("Checkpoint state created successfully for checkpoint: {}", checkpointId);
+        return state;
     }
 
     @Override
     public synchronized void notifyCheckpointComplete(long checkpointId) {
+        LOG.info("Checkpoint {} completed, notifying CDC split assigner", checkpointId);
         splitAssigner.notifyCheckpointComplete(checkpointId);
+
         // incremental split may be available after checkpoint complete
+        LOG.debug("Checkpoint completed, attempting to assign incremental splits");
         assignSplits();
     }
 
@@ -175,11 +200,18 @@ public class IncrementalSourceEnumerator
     private void assignSplits() {
         final Iterator<Integer> awaitingReader = readersAwaitingSplit.iterator();
 
+        LOG.debug(
+                "Starting CDC split assignment process, awaiting readers: {}",
+                readersAwaitingSplit.size());
+
         while (awaitingReader.hasNext()) {
             int nextAwaiting = awaitingReader.next();
             // if the reader that requested another split has failed in the meantime, remove
             // it from the list of waiting readers
             if (!context.registeredReaders().contains(nextAwaiting)) {
+                LOG.warn(
+                        "Reader {} is no longer registered, removing from awaiting list",
+                        nextAwaiting);
                 awaitingReader.remove();
                 continue;
             }
@@ -192,14 +224,21 @@ public class IncrementalSourceEnumerator
                 final SourceSplitBase sourceSplit = split.get();
                 context.assignSplit(nextAwaiting, sourceSplit);
                 awaitingReader.remove();
-                LOG.debug("Assign split {} to subtask {}", sourceSplit, nextAwaiting);
+
+                LOG.info(
+                        "Assigned CDC split {} to subtask {}", sourceSplit.splitId(), nextAwaiting);
+                LOG.debug(
+                        "Split details - Type: {}, Status: assigned",
+                        sourceSplit.getClass().getSimpleName());
+
             } else {
                 if (splitAssigner.waitingForCompletedSplits()) {
                     // there is no available splits by now, skip assigning
+                    LOG.debug("No available splits, waiting for completed splits");
                     break;
                 } else {
                     LOG.info(
-                            "No more splits available, signal no more splits to subtask {}",
+                            "No more splits available, signaling no more splits to subtask: {}",
                             nextAwaiting);
                     context.signalNoMoreSplits(nextAwaiting);
                     awaitingReader.remove();

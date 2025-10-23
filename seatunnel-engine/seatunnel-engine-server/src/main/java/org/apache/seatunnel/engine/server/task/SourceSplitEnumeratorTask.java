@@ -99,9 +99,9 @@ public class SourceSplitEnumeratorTask<SplitT extends SourceSplit> extends Coord
         currState = SeaTunnelTaskState.INIT;
         super.init();
         readerRegisterComplete = false;
-        log.info(
-                "starting seatunnel source split enumerator task, source name: "
-                        + source.getName());
+
+        log.info("Starting source split enumerator task, source: {}", source.getName());
+
         enumeratorContext =
                 new SeaTunnelSplitEnumeratorContext<>(
                         this.source.getParallelism(), this, getMetricsContext(), eventListener);
@@ -147,10 +147,13 @@ public class SourceSplitEnumeratorTask<SplitT extends SourceSplit> extends Coord
             this.prepareCloseTriggered = true;
             this.prepareCloseBarrierId.set(barrier.getId());
         }
+
         final long barrierId = barrier.getId();
         Serializable snapshotState = null;
         byte[] serialize = null;
-        // Do not modify this lock object, as it is also used in the SourceSplitEnumerator.
+
+        // Do not modify this lock object, as it is also used in the
+        // SourceSplitEnumerator.
         synchronized (enumeratorContext) {
             if (barrier.snapshot()) {
                 snapshotState = enumerator.snapshotState(barrierId);
@@ -159,6 +162,7 @@ public class SourceSplitEnumeratorTask<SplitT extends SourceSplit> extends Coord
             log.debug("source split enumerator send state [{}] to master", snapshotState);
             sendToActiveReader(barrier);
         }
+
         if (barrier.snapshot()) {
             this.getExecutionContext()
                     .sendToMaster(
@@ -190,12 +194,14 @@ public class SourceSplitEnumeratorTask<SplitT extends SourceSplit> extends Coord
                         .filter(Objects::nonNull)
                         .map(bytes -> sneaky(() -> enumeratorStateSerializer.deserialize(bytes)))
                         .findFirst();
+
         if (state.isPresent()) {
             this.enumerator =
                     this.source.getSource().restoreEnumerator(enumeratorContext, state.get());
         } else {
             this.enumerator = this.source.getSource().createEnumerator(enumeratorContext);
         }
+
         restoreComplete.complete(null);
         log.debug("restoreState split enumerator [{}] finished", actionStateList);
     }
@@ -214,11 +220,12 @@ public class SourceSplitEnumeratorTask<SplitT extends SourceSplit> extends Coord
 
     public void receivedReader(TaskLocation readerId, Address memberAddr)
             throws InterruptedException, ExecutionException {
-        log.info("received reader register, readerID: " + readerId);
+        log.info("Reader {} registered for split enumeration", readerId.getTaskIndex());
 
         SourceSplitEnumerator<SplitT, Serializable> enumerator = getEnumerator();
         this.addTaskMemberMapping(readerId, memberAddr);
         enumerator.registerReader(readerId.getTaskIndex());
+
         int taskSize = taskMemberMapping.size();
         if (maxReaderSize == taskSize) {
             readerRegisterComplete = true;
