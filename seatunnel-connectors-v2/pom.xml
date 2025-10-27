@@ -99,6 +99,8 @@
         <module>connector-jdbc-phoenix</module>
         <module>connector-jdbc-starrocks</module>
         <module>connector-argodb</module>
+        <module>connector-pi</module>
+        <module>connector-pi-metadata</module>
     </modules>
 
     <dependencyManagement>

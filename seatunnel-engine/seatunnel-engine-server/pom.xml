@@ -84,6 +84,17 @@
         <dependency>
             <groupId>org.whaleops</groupId>
             <artifactId>whale-license-sdk</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-all</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty-buffer.version}</version>
         </dependency>
 
         <!-- test -->

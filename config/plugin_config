@@ -92,3 +92,6 @@ connector-sls
 connector-qdrant
 connector-typesense
 connector-cdc-opengauss
+connector-pi
+connector-cdc-pi
+connector-pi-metadata
