@@ -28,7 +28,6 @@ import org.apache.seatunnel.transform.exception.TransformException;
 
 import net.sf.jsqlparser.statement.create.table.ColDataType;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class CastFunction {
@@ -53,165 +52,48 @@ public class CastFunction {
     public static final String TIME = "TIME";
     public static final String BOOLEAN = "BOOLEAN";
 
-    public static final List<SqlType> INT_CAST_TYPE =
-            Arrays.asList(
-                    SqlType.TINYINT,
-                    SqlType.SMALLINT,
-                    SqlType.INT,
-                    SqlType.BIGINT,
-                    SqlType.STRING,
-                    SqlType.DECIMAL,
-                    SqlType.DOUBLE,
-                    SqlType.FLOAT,
-                    SqlType.BOOLEAN);
-    public static final List<SqlType> LONG_CAST_TYPES =
-            Arrays.asList(
-                    SqlType.TINYINT,
-                    SqlType.SMALLINT,
-                    SqlType.INT,
-                    SqlType.BIGINT,
-                    SqlType.STRING,
-                    SqlType.DECIMAL,
-                    SqlType.FLOAT,
-                    SqlType.DOUBLE,
-                    SqlType.BOOLEAN);
-    public static final List<SqlType> FLOAT_CAST_TYPES =
-            Arrays.asList(
-                    SqlType.TINYINT,
-                    SqlType.SMALLINT,
-                    SqlType.INT,
-                    SqlType.BIGINT,
-                    SqlType.FLOAT,
-                    SqlType.DOUBLE,
-                    SqlType.STRING,
-                    SqlType.DECIMAL,
-                    SqlType.BOOLEAN);
-    public static final List<SqlType> BYTE_CAST_TYPES =
-            Arrays.asList(SqlType.TINYINT, SqlType.STRING, SqlType.BOOLEAN);
-    public static final List<SqlType> SHORT_CAST_TYPES =
-            Arrays.asList(SqlType.TINYINT, SqlType.SMALLINT, SqlType.STRING, SqlType.BOOLEAN);
-    public static final List<SqlType> BOOLEAN_CAST_TYPES =
-            Arrays.asList(
-                    SqlType.BOOLEAN,
-                    SqlType.STRING,
-                    SqlType.BIGINT,
-                    SqlType.INT,
-                    SqlType.SMALLINT,
-                    SqlType.TINYINT,
-                    SqlType.FLOAT,
-                    SqlType.DOUBLE,
-                    SqlType.DECIMAL);
-    public static final List<SqlType> DECIMAL_CAST_TYPES =
-            Arrays.asList(
-                    SqlType.TINYINT,
-                    SqlType.SMALLINT,
-                    SqlType.INT,
-                    SqlType.BIGINT,
-                    SqlType.FLOAT,
-                    SqlType.DOUBLE,
-                    SqlType.DECIMAL,
-                    SqlType.STRING,
-                    SqlType.BOOLEAN);
-    public static final List<SqlType> STRING_CAST_TYPES =
-            Arrays.asList(
-                    SqlType.STRING,
-                    SqlType.BOOLEAN,
-                    SqlType.TINYINT,
-                    SqlType.SMALLINT,
-                    SqlType.INT,
-                    SqlType.BIGINT,
-                    SqlType.FLOAT,
-                    SqlType.DOUBLE,
-                    SqlType.DECIMAL,
-                    SqlType.DATE,
-                    SqlType.TIME,
-                    SqlType.TIMESTAMP,
-                    SqlType.BYTES);
-    public static final List<SqlType> DATETIME_CAST_TYPES =
-            Arrays.asList(SqlType.TIMESTAMP, SqlType.BIGINT, SqlType.STRING, SqlType.DATE);
-    public static final List<SqlType> DATE_CAST_TYPES =
-            Arrays.asList(
-                    SqlType.TIMESTAMP, SqlType.DATE, SqlType.INT, SqlType.BIGINT, SqlType.STRING);
-    public static final List<SqlType> TIME_CAST_TYPES =
-            Arrays.asList(
-                    SqlType.TIMESTAMP, SqlType.TIME, SqlType.INT, SqlType.BIGINT, SqlType.STRING);
-
     public static SeaTunnelDataType<?> getCastType(SqlType originType, ColDataType colDataType) {
         String dataType = colDataType.getDataType();
         switch (dataType.toUpperCase()) {
             case DECIMAL:
-                if (DECIMAL_CAST_TYPES.contains(originType)) {
-                    List<String> ps = colDataType.getArgumentsStringList();
-                    return new DecimalType(
-                            Integer.parseInt(ps.get(0)), Integer.parseInt(ps.get(1)));
-                }
-                break;
+                List<String> ps = colDataType.getArgumentsStringList();
+                return new DecimalType(Integer.parseInt(ps.get(0)), Integer.parseInt(ps.get(1)));
             case VARCHAR:
             case STRING:
-                if (STRING_CAST_TYPES.contains(originType)) {
-                    return BasicType.STRING_TYPE;
-                }
-                break;
+                return BasicType.STRING_TYPE;
             case BYTE:
             case TINYINT:
-                if (BYTE_CAST_TYPES.contains(originType)) {
-                    return BasicType.BYTE_TYPE;
-                }
-                break;
+                return BasicType.BYTE_TYPE;
             case SMALLINT:
-                if (SHORT_CAST_TYPES.contains(originType)) {
-                    return BasicType.SHORT_TYPE;
-                }
-                break;
+                return BasicType.SHORT_TYPE;
             case INT:
             case INTEGER:
-                if (INT_CAST_TYPE.contains(originType)) {
-                    return BasicType.INT_TYPE;
-                }
-                break;
+                return BasicType.INT_TYPE;
             case BIGINT:
             case LONG:
-                if (LONG_CAST_TYPES.contains(originType)) {
-                    return BasicType.LONG_TYPE;
-                }
-                break;
+                return BasicType.LONG_TYPE;
             case FLOAT:
-                if (FLOAT_CAST_TYPES.contains(originType)) {
-                    return BasicType.FLOAT_TYPE;
-                }
-                break;
+                return BasicType.FLOAT_TYPE;
             case DOUBLE:
-                if (FLOAT_CAST_TYPES.contains(originType)) {
-                    return BasicType.DOUBLE_TYPE;
-                }
-                break;
+                return BasicType.DOUBLE_TYPE;
             case BYTES:
             case BINARY:
                 return PrimitiveByteArrayType.INSTANCE;
             case TIMESTAMP:
             case DATETIME:
-                if (DATETIME_CAST_TYPES.contains(originType)) {
-                    return LocalTimeType.LOCAL_DATE_TIME_TYPE;
-                }
-                break;
+                return LocalTimeType.LOCAL_DATE_TIME_TYPE;
             case DATE:
-                if (DATE_CAST_TYPES.contains(originType)) {
-                    return LocalTimeType.LOCAL_DATE_TYPE;
-                }
-                break;
+                return LocalTimeType.LOCAL_DATE_TYPE;
             case TIME:
-                if (TIME_CAST_TYPES.contains(originType)) {
-                    return LocalTimeType.LOCAL_TIME_TYPE;
-                }
-                break;
+                return LocalTimeType.LOCAL_TIME_TYPE;
             case BOOLEAN:
-                if (BOOLEAN_CAST_TYPES.contains(originType)) {
-                    return BasicType.BOOLEAN_TYPE;
-                }
-                break;
+                return BasicType.BOOLEAN_TYPE;
+            default:
+                throw new TransformException(
+                        CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
+                        String.format(
+                                "Unsupported CAST FROM %s AS type: %s",
+                                originType.name(), dataType));
         }
-        throw new TransformException(
-                CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
-                String.format("Unsupported CAST FROM %s AS type: %s", originType.name(), dataType));
     }
 }
