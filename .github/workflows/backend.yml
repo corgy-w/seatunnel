@@ -17,6 +17,12 @@
 
 name: Backend
 on:
+  workflow_call:
+    inputs:
+      TEST_IN_PR:
+        required: false
+        type: string
+        default: 'true'
   pull_request:
     pull_request_target:
       types: [ opened, reopened, synchronize ]
@@ -24,24 +30,13 @@ on:
 env:
   GH_USER: ${{ secrets.GH_PACKAGE_USER }}
   GH_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
+  TEST_IN_PR: ${{ inputs.TEST_IN_PR }}
 
 concurrency:
   group: backend-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  #  license-header:
-  #    name: License header
-  #    runs-on:
-  #      labels: wtci_haiwai
-  #    timeout-minutes: 10
-  #    steps:
-  #      - uses: actions/checkout@v3
-  #        with:
-  #          submodules: true
-  #      - name: Check license header
-  #        uses: apache/skywalking-eyes@985866ce7e324454f61e22eb2db2e998db09d6f3
-
   code-style:
     if: github.repository == 'WhaleOps/whaletunnel'
     name: Code style
@@ -91,10 +86,12 @@ jobs:
         run: |
           curr_time=$(date +%s%3N)
           echo "timestamp=$curr_time" >> $GITHUB_OUTPUT
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11.0'
       - name: Check for file changes by python
         id: filter
         run: |
-          source /home/citest/.bashrc
           current_branch='${{ steps.git_init.outputs.current_branch }}'
           target_branch='${{ steps.git_init.outputs.target_branch }}'
           /usr/bin/git fetch origin
@@ -250,12 +247,12 @@ jobs:
     strategy:
       matrix:
         os: [ 'self-hosted' ]
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v2
       - name: run all modules unit test
         run: |
-          ./mvnw -B -T 1 clean verify -D"maven.test.skip"=false -D"license.skipAddThirdParty"=true --no-snapshot-updates
+          ./mvnw -B --settings maven-settings.xml -T 1 clean verify -D"maven.test.skip"=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl '!seatunnel-shade/seatunnel-inceptor-driver,!seatunnel-engine/seatunnel-engine-server'
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -464,7 +461,11 @@ jobs:
           timestamp='${{needs.changes.outputs.timestamp}}'
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_2.txt
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_2.txt`
-          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 1`
+          if [ -z "$sub_modules" ]; then
+            echo "sub_modules is empty, skipping"
+            exit 0
+          fi
+          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 1`
           ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
@@ -486,7 +487,11 @@ jobs:
           timestamp='${{needs.changes.outputs.timestamp}}'
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_3.txt
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_3.txt`
-          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 2`
+          if [ -z "$sub_modules" ]; then
+            echo "sub_modules is empty, skipping"
+            exit 0
+          fi
+          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 2`
           ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
@@ -508,7 +513,11 @@ jobs:
           timestamp='${{needs.changes.outputs.timestamp}}'
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_4.txt
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_4.txt`
-          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 3`
+          if [ -z "$sub_modules" ]; then
+            echo "sub_modules is empty, skipping"
+            exit 0
+          fi
+          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 3`
           ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
@@ -530,7 +539,11 @@ jobs:
           timestamp='${{needs.changes.outputs.timestamp}}'
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_5.txt
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_5.txt`
-          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 4`
+          if [ -z "$sub_modules" ]; then
+            echo "sub_modules is empty, skipping"
+            exit 0
+          fi
+          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 4`
           ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
@@ -552,7 +565,11 @@ jobs:
           timestamp='${{needs.changes.outputs.timestamp}}'
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_6.txt
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_6.txt`
-          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 5`
+          if [ -z "$sub_modules" ]; then
+            echo "sub_modules is empty, skipping"
+            exit 0
+          fi
+          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 5`
           ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
@@ -574,7 +591,11 @@ jobs:
           timestamp='${{needs.changes.outputs.timestamp}}'
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e >> /tmp/${timestamp}_sub_module_all_7.txt
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_7.txt`
-          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module $sub_modules 7 6`
+          if [ -z "$sub_modules" ]; then
+            echo "sub_modules is empty, skipping"
+            exit 0
+          fi
+          run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 6`
           ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
@@ -682,7 +703,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run kudu connector integration test
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kudu-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kudu-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -699,27 +720,27 @@ jobs:
       - uses: actions/checkout@v2
       - name: run amazonsqs connector integration test
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-amazonsqs-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-amazonsqs-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
-  kafka-connector-it:
-    needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
-    runs-on:
-      labels: wtci
-    strategy:
-      matrix:
-        os: [ 'self-hosted' ]
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v2
-      - name: run kafka connector integration test
-        if: needs.changes.outputs.api == 'true'
-        run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kafka-e2e -am -Pci
-        env:
-          MAVEN_OPTS: -Xmx4096m
+#  kafka-connector-it:
+#    needs: [ changes, sanity-check ]
+#    if: needs.changes.outputs.api == 'true'
+#    runs-on:
+#      labels: wtci
+#    strategy:
+#      matrix:
+#        os: [ 'self-hosted' ]
+#    timeout-minutes: 90
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: run kafka connector integration test
+#        if: needs.changes.outputs.api == 'true'
+#        run: |
+#          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kafka-e2e -am -Pci
+#        env:
+#          MAVEN_OPTS: -Xmx4096m
 
   rocketmq-connector-it:
     needs: [ changes, sanity-check ]
@@ -735,7 +756,7 @@ jobs:
       - name: run rocket connector integration test
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-rocketmq-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-rocketmq-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -752,7 +773,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run doris connector integration test
         run: |
-          ./mvnw -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-doris-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-doris-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 

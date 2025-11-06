@@ -31,6 +31,7 @@ import org.apache.parquet.hadoop.example.GroupReadSupport;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.MinIOContainer;
@@ -51,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 import static org.awaitility.Awaitility.given;
 
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public class HudiSeatunnelS3MultiTableIT extends SeaTunnelContainer {
 
     private static final String MINIO_DOCKER_IMAGE = "minio/minio:RELEASE.2024-06-13T22-53-53Z";

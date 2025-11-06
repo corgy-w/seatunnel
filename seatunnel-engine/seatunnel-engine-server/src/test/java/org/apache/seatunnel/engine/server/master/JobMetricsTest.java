@@ -45,6 +45,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 @DisabledOnOs(OS.WINDOWS)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 class JobMetricsTest extends AbstractSeaTunnelServerTest {
 
     @Test

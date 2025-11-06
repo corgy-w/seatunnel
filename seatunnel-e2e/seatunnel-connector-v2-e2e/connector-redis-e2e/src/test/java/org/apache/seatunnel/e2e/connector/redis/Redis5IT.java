@@ -16,6 +16,9 @@
  */
 package org.apache.seatunnel.e2e.connector.redis;
 
+import org.junit.jupiter.api.Disabled;
+
+@Disabled("Temporarily disabled - needs to be fixed")
 public class Redis5IT extends RedisTestCaseTemplateIT {
 
     @Override

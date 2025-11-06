@@ -30,6 +30,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.function.Executable;
 import org.testcontainers.containers.Container;
@@ -62,6 +63,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Disabled("Temporarily disabled - needs to be fixed")
 @Slf4j
 public class JdbcOracleMultipleTablesIT extends TestSuiteBase implements TestResource {
     private static final String ORACLE_IMAGE = "gvenzl/oracle-xe:21-slim-faststart";

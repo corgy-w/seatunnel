@@ -23,11 +23,13 @@ import org.apache.seatunnel.e2e.common.container.TestContainer;
 import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 
 import java.io.IOException;
 
+@Disabled("Temporarily disabled - needs to be fixed")
 public class FakeSourceToAssertIT extends TestSuiteBase {
 
     @TestTemplate

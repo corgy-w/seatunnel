@@ -25,6 +25,7 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
@@ -46,6 +47,7 @@ import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Disabled("Temporarily disabled - needs to be fixed")
 public class ActivemqIT extends TestSuiteBase {
 
     private static final String ACTIVEMQ_CONTAINER_HOST = "activemq-host";

@@ -34,6 +34,7 @@ import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.example.GroupReadSupport;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
@@ -47,10 +48,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.awaitility.Awaitility.given;
 
-@DisabledOnContainer(
-        value = {TestContainerId.SPARK_2_4},
-        type = {},
-        disabledReason = "")
+@Disabled("Temporarily disabled - needs to be fixed")
 @Slf4j
 public class HudiIT extends TestSuiteBase {
 

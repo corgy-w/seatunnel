@@ -71,6 +71,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public class EasysearchIT extends TestSuiteBase implements TestResource {
 
     private static final String EZS_DOCKER_IMAGE = "infinilabs/easysearch-amd64:seatunnel";

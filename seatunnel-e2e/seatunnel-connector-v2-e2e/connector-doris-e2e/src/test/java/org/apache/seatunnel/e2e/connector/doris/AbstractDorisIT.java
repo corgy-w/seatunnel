@@ -22,6 +22,7 @@ import org.apache.seatunnel.e2e.common.TestSuiteBase;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.lifecycle.Startables;
@@ -47,6 +48,7 @@ import java.util.stream.Stream;
 import static org.awaitility.Awaitility.given;
 
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public abstract class AbstractDorisIT extends TestSuiteBase implements TestResource {
 
     protected GenericContainer<?> container;

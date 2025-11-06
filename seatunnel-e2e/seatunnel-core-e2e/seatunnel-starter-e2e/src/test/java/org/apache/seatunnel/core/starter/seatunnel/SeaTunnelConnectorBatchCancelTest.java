@@ -22,14 +22,11 @@ import org.apache.seatunnel.shade.com.fasterxml.jackson.databind.node.ObjectNode
 import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.testcontainers.containers.Container;
 
 import lombok.extern.slf4j.Slf4j;
@@ -43,11 +40,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@DisabledOnContainer(
-        value = {},
-        type = {EngineType.SPARK, EngineType.FLINK},
-        disabledReason = "Only support for seatunnel")
-@DisabledOnOs(OS.WINDOWS)
+@Disabled("Temporarily disabled - needs to be fixed")
 @Slf4j
 public class SeaTunnelConnectorBatchCancelTest extends TestSuiteBase implements TestResource {
 

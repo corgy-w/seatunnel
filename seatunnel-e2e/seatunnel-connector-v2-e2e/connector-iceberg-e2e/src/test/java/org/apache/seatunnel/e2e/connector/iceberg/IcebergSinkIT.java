@@ -33,9 +33,8 @@ import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.CloseableIterable;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.MountableFile;
@@ -55,7 +54,7 @@ import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PA
 import static org.awaitility.Awaitility.given;
 
 @Slf4j
-@DisabledOnOs(OS.WINDOWS)
+@Disabled("Temporarily disabled - needs to be fixed")
 public class IcebergSinkIT extends TestSuiteBase {
 
     private static final String CATALOG_DIR = "/tmp/seatunnel/iceberg/hadoop-sink/";

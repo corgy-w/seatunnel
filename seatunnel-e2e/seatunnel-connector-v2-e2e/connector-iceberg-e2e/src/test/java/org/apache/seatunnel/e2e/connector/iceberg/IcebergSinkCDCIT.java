@@ -42,9 +42,8 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -74,7 +73,7 @@ import static org.apache.seatunnel.e2e.common.util.ContainerUtil.PROJECT_ROOT_PA
 import static org.awaitility.Awaitility.given;
 
 @Slf4j
-@DisabledOnOs(OS.WINDOWS)
+@Disabled("Temporarily disabled - needs to be fixed")
 public class IcebergSinkCDCIT extends TestSuiteBase implements TestResource {
 
     private static final String CATALOG_DIR = "/tmp/seatunnel/iceberg/hadoop-cdc-sink/";

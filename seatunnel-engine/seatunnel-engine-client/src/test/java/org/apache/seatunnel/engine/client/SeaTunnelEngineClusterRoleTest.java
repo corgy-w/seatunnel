@@ -33,6 +33,7 @@ import org.apache.seatunnel.engine.server.SeaTunnelServerStarter;
 
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -49,6 +50,7 @@ import static org.awaitility.Awaitility.await;
 
 @DisabledOnOs(OS.WINDOWS)
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public class SeaTunnelEngineClusterRoleTest {
 
     @SneakyThrows

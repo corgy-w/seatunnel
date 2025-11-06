@@ -145,14 +145,21 @@ def get_deleted_modules(files):
 
 def get_sub_it_modules(modules, total_num, current_num):
     modules_arr = modules.split(",")
-    modules_arr.remove("connector-jdbc-e2e")
-    modules_arr.remove("connector-kafka-e2e")
-    modules_arr.remove("connector-rocketmq-e2e")
-    modules_arr.remove("connector-kudu-e2e")
-    modules_arr.remove("connector-amazonsqs-e2e")
-    modules_arr.remove("connector-doris-e2e")
-    modules_arr.remove("connector-paimon-e2e")
-    modules_arr.remove("connector-cdc-oracle-e2e")
+    # Remove specific modules if they exist
+    modules_to_remove = [
+        "connector-jdbc-e2e",
+        "connector-kafka-e2e",
+        "connector-rocketmq-e2e",
+        "connector-kudu-e2e",
+        "connector-amazonsqs-e2e",
+        "connector-doris-e2e",
+        "connector-paimon-e2e",
+        "connector-cdc-oracle-e2e"
+    ]
+    for module in modules_to_remove:
+        if module in modules_arr:
+            modules_arr.remove(module)
+
     output = ""
     for i, module in enumerate(modules_arr):
         if len(module) > 0 and i % int(total_num) == int(current_num):

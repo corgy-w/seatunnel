@@ -235,7 +235,8 @@ public class SnowflakeCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+    protected String getCreateTableSql(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
         return new SnowflakeCreateTableSqlBuilder(table)
                 .build(
                         "\""

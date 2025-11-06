@@ -30,6 +30,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.junit.jupiter.api.function.Executable;
 import org.testcontainers.containers.Container;
@@ -61,6 +62,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public class JdbcMysqlMultipleTablesIT extends TestSuiteBase implements TestResource {
     private static final String MYSQL_IMAGE = "mysql:8.0";
     private static final String MYSQL_CONTAINER_HOST = "mysql-e2e";

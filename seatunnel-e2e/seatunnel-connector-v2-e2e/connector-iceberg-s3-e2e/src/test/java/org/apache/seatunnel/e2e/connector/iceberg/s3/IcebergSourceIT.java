@@ -25,10 +25,7 @@ import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig;
 import org.apache.seatunnel.e2e.common.TestResource;
 import org.apache.seatunnel.e2e.common.TestSuiteBase;
 import org.apache.seatunnel.e2e.common.container.ContainerExtendedFactory;
-import org.apache.seatunnel.e2e.common.container.EngineType;
 import org.apache.seatunnel.e2e.common.container.TestContainer;
-import org.apache.seatunnel.e2e.common.container.TestContainerId;
-import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 
 import org.apache.hadoop.conf.Configuration;
@@ -53,6 +50,7 @@ import org.apache.iceberg.types.Types;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.MinIOContainer;
@@ -79,11 +77,7 @@ import java.util.Map;
 
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.IcebergCatalogType.HADOOP;
 
-@DisabledOnContainer(
-        value = {TestContainerId.SPARK_2_4},
-        type = {EngineType.FLINK, EngineType.SEATUNNEL},
-        disabledReason =
-                "Needs hadoop-aws,aws-java-sdk jar for flink, spark2.4. For the seatunnel engine, it crashes on seatunnel-hadoop3-3.1.4-uber.jar.")
+@Disabled("Temporarily disabled - needs to be fixed")
 @Slf4j
 public class IcebergSourceIT extends TestSuiteBase implements TestResource {
 

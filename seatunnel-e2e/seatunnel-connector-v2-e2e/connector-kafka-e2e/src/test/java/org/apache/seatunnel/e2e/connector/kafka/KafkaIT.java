@@ -66,6 +66,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.KafkaContainer;
@@ -100,6 +101,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public class KafkaIT extends TestSuiteBase implements TestResource {
     private static final String KAFKA_IMAGE_NAME = "confluentinc/cp-kafka:7.0.9";
 

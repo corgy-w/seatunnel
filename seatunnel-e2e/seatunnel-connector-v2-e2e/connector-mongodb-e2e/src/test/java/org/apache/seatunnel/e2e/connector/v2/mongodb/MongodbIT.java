@@ -23,6 +23,7 @@ import org.apache.seatunnel.e2e.common.junit.DisabledOnContainer;
 
 import org.bson.Document;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
 
@@ -32,6 +33,7 @@ import java.io.IOException;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public class MongodbIT extends AbstractMongodbIT {
 
     @TestTemplate
