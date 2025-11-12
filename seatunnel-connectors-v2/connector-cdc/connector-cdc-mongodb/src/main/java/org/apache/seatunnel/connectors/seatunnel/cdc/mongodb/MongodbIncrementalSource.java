@@ -19,32 +19,34 @@ package org.apache.seatunnel.connectors.seatunnel.cdc.mongodb;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.api.source.SourceReader;
 import org.apache.seatunnel.api.source.SupportParallelism;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
-import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
 import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
 import org.apache.seatunnel.connectors.cdc.base.source.IncrementalSource;
+import org.apache.seatunnel.connectors.cdc.base.source.SchemaChangeEventStrategy;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.OffsetFactory;
+import org.apache.seatunnel.connectors.cdc.base.source.split.SourceRecords;
+import org.apache.seatunnel.connectors.cdc.base.source.split.state.SourceSplitStateBase;
 import org.apache.seatunnel.connectors.cdc.debezium.DebeziumDeserializationSchema;
-import org.apache.seatunnel.connectors.cdc.debezium.DebeziumSchemaNameAdjuster;
 import org.apache.seatunnel.connectors.cdc.debezium.DeserializeFormat;
 import org.apache.seatunnel.connectors.cdc.debezium.row.DebeziumJsonDeserializeSchema;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.config.MongodbSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.config.MongodbSourceConfigProvider;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.config.MongodbSourceOptions;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.sender.MongoDBConnectorDeserializationSchema;
+import org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.source.MongoDBRecordEmitter;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.source.dialect.MongodbDialect;
 import org.apache.seatunnel.connectors.seatunnel.cdc.mongodb.source.offset.ChangeStreamOffsetFactory;
+import org.apache.seatunnel.connectors.seatunnel.common.source.reader.RecordEmitter;
 
 import org.apache.kafka.connect.data.Struct;
 
 import io.debezium.relational.TableId;
-import io.debezium.relational.history.ConnectTableChangeSerializer;
-import io.debezium.relational.history.TableChanges;
 
 import javax.annotation.Nonnull;
 
@@ -52,8 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSourceConfig>
         implements SupportParallelism {
@@ -141,31 +141,17 @@ public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSou
         return new ChangeStreamOffsetFactory();
     }
 
-    private Map<TableId, Struct> tableChanges() {
-        MongodbSourceConfig mongodbSourceConfig = configFactory.create(0);
-        MongodbDialect dialect = new MongodbDialect();
-        List<TableId> discoverTables = dialect.discoverDataCollections(mongodbSourceConfig);
-        ConnectTableChangeSerializer connectTableChangeSerializer =
-                new ConnectTableChangeSerializer(DebeziumSchemaNameAdjuster.create());
-        try {
-            return discoverTables.stream()
-                    .collect(
-                            Collectors.toMap(
-                                    Function.identity(),
-                                    (tableId) -> {
-                                        TableChanges tableChanges = new TableChanges();
-                                        // TODO Adaptation is required
-                                        //                            tableChanges.create(
-                                        //
-                                        // dialect.queryTableSchema(jdbcConnection, tableId)
-                                        //                                    .getTable());
-                                        return connectTableChangeSerializer
-                                                .serialize(tableChanges)
-                                                .get(0);
-                                    }));
-        } catch (Exception e) {
-            throw new SeaTunnelException(e);
-        }
+    @Override
+    protected RecordEmitter<SourceRecords, T, SourceSplitStateBase> createRecordEmitter(
+            SourceConfig sourceConfig,
+            SourceReader.Context context,
+            SchemaChangeEventStrategy schemaChangeEventStrategy) {
+        return new MongoDBRecordEmitter<>(
+                sourceConfig,
+                deserializationSchema,
+                offsetFactory,
+                context,
+                schemaChangeEventStrategy);
     }
 
     @Override
