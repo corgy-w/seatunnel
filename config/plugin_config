@@ -29,7 +29,7 @@ connector-cdc-sqlserver
 connector-cdc-postgres
 connector-cdc-oracle
 connector-cdc-tidb
-connector-clickhouse
+connector-jdbc-clickhouse
 connector-datahub
 connector-dingtalk
 connector-doris
