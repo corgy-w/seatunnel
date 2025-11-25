@@ -38,7 +38,7 @@ def get_engine_e2e_modules(files):
 def get_modules(files, index, start_pre, root_module):
     update_files = json.loads(files)
     modules_name_set = set([])
-    exclude_modules = ["connector-hive","connector-cdc-oracle"]
+    exclude_modules = ["connector-hive","connector-cdc-oracle","connector-kafka-e2e"]
     for file in update_files:
         names = file.split('/')
         module_name = names[index]
