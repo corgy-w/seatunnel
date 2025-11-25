@@ -57,6 +57,7 @@
         <iris.jdbc.version>3.0.0</iris.jdbc.version>
         <tikv.version>3.2.0</tikv.version>
         <gbase8s.version>3.6.3.2</gbase8s.version>
+        <gbase8a.version>9.5.0.8-build1-bin</gbase8a.version>
     </properties>
 
     <dependencyManagement>
@@ -244,6 +245,12 @@
                 <artifactId>jdbc</artifactId>
                 <version>${gbase8s.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.gbase.jdbc</groupId>
+                <artifactId>gbase-connector-java</artifactId>
+                <version>${gbase8a.version}</version>
+                <scope>test</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -404,6 +411,12 @@
             <artifactId>junit-platform-launcher</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.gbase.jdbc</groupId>
+            <artifactId>gbase-connector-java</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
