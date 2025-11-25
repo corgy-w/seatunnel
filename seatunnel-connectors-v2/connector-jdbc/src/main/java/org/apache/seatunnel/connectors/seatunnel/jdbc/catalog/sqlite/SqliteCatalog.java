@@ -21,6 +21,7 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.sqlite;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
+import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
@@ -36,8 +37,8 @@ import com.mysql.cj.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
-import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -46,12 +47,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class SqliteCatalog extends AbstractJdbcCatalog {
 
     protected static final Set<String> SYS_DATABASES = new HashSet<>(4);
+
+    private static final String SELECT_COLUMNS_SQL_TEMPLATE = "PRAGMA table_info('%s')";
 
     public SqliteCatalog(
             String catalogName, String username, String pwd, JdbcUrlUtil.UrlInfo urlInfo) {
@@ -77,6 +82,16 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
     public boolean databaseExists(String databaseName) throws CatalogException {
 
         return true;
+    }
+
+    @Override
+    public boolean tableExists(TablePath tablePath) throws CatalogException {
+        TablePath normalizedTablePath = normalizePath(tablePath);
+        return super.tableExists(normalizedTablePath);
+    }
+
+    private TablePath normalizePath(TablePath tablePath) {
+        return TablePath.of(tablePath.getTableName());
     }
 
     @Override
@@ -118,29 +133,114 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
+    protected String getSelectColumnsSql(TablePath tablePath) {
+        return String.format(SELECT_COLUMNS_SQL_TEMPLATE, tablePath.getTableName());
+    }
+
+    @Override
     protected String getUrlFromDatabaseName(String databaseName) {
         return defaultUrl;
     }
 
     @Override
     protected TableIdentifier getTableIdentifier(TablePath tablePath) {
+        TablePath normalizedTablePath = normalizePath(tablePath);
         return TableIdentifier.of(
-                catalogName, tablePath.getDatabaseName(), tablePath.getTableName());
+                catalogName,
+                normalizedTablePath.getDatabaseName(),
+                normalizedTablePath.getTableName());
+    }
+
+    @Override
+    protected String getCreateTableSql(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
+        return new SqliteCreateTableSqlBuilder(table).build(tablePath);
+    }
+
+    @Override
+    protected Optional<PrimaryKey> getPrimaryKey(DatabaseMetaData metaData, TablePath tablePath)
+            throws SQLException {
+        Connection connection = getConnection(defaultUrl);
+        String sql = String.format("PRAGMA table_info('%s')", tablePath.getTableName());
+
+        try (PreparedStatement ps = connection.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+
+            Map<Integer, String> primaryKeyColumns = new HashMap<>();
+
+            while (rs.next()) {
+                int pkPosition = rs.getInt("pk");
+                if (pkPosition > 0) {
+                    String columnName = rs.getString("name");
+                    primaryKeyColumns.put(pkPosition, columnName);
+                }
+            }
+
+            if (primaryKeyColumns.isEmpty()) {
+                return Optional.empty();
+            }
+
+            List<String> pkFields =
+                    primaryKeyColumns.entrySet().stream()
+                            .sorted(Map.Entry.comparingByKey())
+                            .map(Map.Entry::getValue)
+                            .collect(Collectors.toList());
+
+            String pkName = "PK_" + tablePath.getTableName();
+            return Optional.of(PrimaryKey.of(pkName, pkFields));
+
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to get primary key for table {} using PRAGMA table_info, "
+                            + "falling back to standard JDBC method",
+                    tablePath.getTableName(),
+                    e);
+            return super.getPrimaryKey(metaData, tablePath);
+        }
     }
 
     @Override
     protected Column buildColumn(ResultSet resultSet) throws SQLException {
 
-        String columnName = resultSet.getString("COLUMN_NAME");
-        String fullTypeName = resultSet.getString("TYPE_NAME");
-        long columnLength = resultSet.getLong("COLUMN_SIZE");
-        long columnScale = resultSet.getLong("DECIMAL_DIGITS");
-        String columnComment = resultSet.getString("REMARKS");
-        Object defaultValue = resultSet.getObject("COLUMN_DEF");
-        boolean isNullable = resultSet.getInt("NULLABLE") == 1;
+        String columnName = resultSet.getString("name");
+        String fullTypeName = resultSet.getString("type");
+        if (fullTypeName == null || fullTypeName.isEmpty()) {
+            fullTypeName = "TEXT";
+        }
 
-        String dataType = JDBCType.valueOf(resultSet.getInt("DATA_TYPE")).getName();
-        SeaTunnelDataType<?> type = fromJdbcType(columnName, dataType, columnLength, columnScale);
+        long columnLength = 0;
+        long columnScale = 0;
+
+        if (fullTypeName.contains("(")) {
+            String lengthPart =
+                    fullTypeName.substring(
+                            fullTypeName.indexOf("(") + 1, fullTypeName.indexOf(")"));
+            if (lengthPart.contains(",")) {
+                String[] parts = lengthPart.split(",");
+                columnLength = Long.parseLong(parts[0].trim());
+                columnScale = Long.parseLong(parts[1].trim());
+            } else {
+                columnLength = Long.parseLong(lengthPart.trim());
+            }
+        }
+
+        Object defaultValue = resultSet.getObject("dflt_value");
+
+        int pkPosition = resultSet.getInt("pk");
+        boolean isPrimaryKey = pkPosition > 0;
+
+        boolean isNullable = resultSet.getInt("notnull") == 0;
+        if (isPrimaryKey) {
+            isNullable = false;
+        }
+
+        String baseTypeName =
+                fullTypeName.contains("(")
+                        ? fullTypeName.substring(0, fullTypeName.indexOf("(")).trim()
+                        : fullTypeName;
+
+        SeaTunnelDataType<?> type =
+                fromJdbcType(columnName, baseTypeName, columnLength, columnScale);
 
         return PhysicalColumn.of(
                 columnName,
@@ -148,7 +248,7 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
                 0,
                 isNullable,
                 defaultValue,
-                columnComment,
+                "",
                 fullTypeName,
                 false,
                 false,
@@ -161,7 +261,7 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
         StringBuilder queryBuf = new StringBuilder("SHOW FULL COLUMNS FROM ");
         queryBuf.append(StringUtils.quoteIdentifier(tablePath.getTableName(), "`", false));
         queryBuf.append(" FROM ");
-        queryBuf.append(StringUtils.quoteIdentifier(tablePath.getDatabaseName(), "`", false));
+        queryBuf.append(StringUtils.quoteIdentifier(tablePath.getTableName(), "`", false));
         try (PreparedStatement ps2 = conn.prepareStatement(queryBuf.toString());
                 ResultSet rs = ps2.executeQuery()) {
             Map<String, Object> result = new HashMap<>();
@@ -180,26 +280,39 @@ public class SqliteCatalog extends AbstractJdbcCatalog {
         }
     }
 
-    // todo: If the origin source is mysql, we can directly use create table like to create the
     @Override
     protected void createTableInternal(TablePath tablePath, CatalogTable table, boolean createIndex)
             throws CatalogException {
-        //
-        //        String createTableSql =
-        //                MysqlCreateTableSqlBuilder.builder(tablePath,
-        // table).build(table.getCatalogName());
-        //        createTableSql =
-        //                CatalogUtils.getFieldIde(createTableSql,
-        // table.getOptions().get("fieldIde"));
-        //        Connection connection = getConnection(defaultUrl);
-        //        log.info("create table sql: {}", createTableSql);
-        //        try (PreparedStatement ps = connection.prepareStatement(createTableSql)) {
-        //            ps.execute();
-        //        } catch (Exception e) {
-        //            throw new CatalogException(
-        //                    String.format("Failed creating table %s", tablePath.getFullName()),
-        // e);
-        //        }
+        TablePath normalizedTablePath = normalizePath(tablePath);
+        if (!normalizedTablePath.equals(tablePath)) {
+            log.info(
+                    "Normalized TablePath from {} to {} using defaultDatabase",
+                    tablePath,
+                    normalizedTablePath);
+        }
+
+        SqliteCreateTableSqlBuilder builder = new SqliteCreateTableSqlBuilder(table);
+        String createTableSql = builder.build(normalizedTablePath);
+
+        Connection connection = getConnection(defaultUrl);
+        log.info("Create table SQL: {}", createTableSql);
+
+        try (PreparedStatement ps = connection.prepareStatement(createTableSql)) {
+            ps.execute();
+
+            if (createIndex && !builder.getCreateIndexSqls().isEmpty()) {
+                for (String indexSql : builder.getCreateIndexSqls()) {
+                    log.info("Create index SQL: {}", indexSql);
+                    try (PreparedStatement indexPs = connection.prepareStatement(indexSql)) {
+                        indexPs.execute();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw new CatalogException(
+                    String.format("Failed creating table %s", normalizedTablePath.getFullName()),
+                    e);
+        }
     }
 
     @Override

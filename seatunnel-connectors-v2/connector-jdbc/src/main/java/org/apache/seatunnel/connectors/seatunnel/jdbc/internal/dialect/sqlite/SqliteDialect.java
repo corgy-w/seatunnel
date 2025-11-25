@@ -48,6 +48,11 @@ public class SqliteDialect implements JdbcDialect {
     }
 
     @Override
+    public String tableIdentifier(String database, String tableName) {
+        return quoteIdentifier(tableName);
+    }
+
+    @Override
     public Optional<String> getUpsertStatement(
             String database,
             String tableName,
