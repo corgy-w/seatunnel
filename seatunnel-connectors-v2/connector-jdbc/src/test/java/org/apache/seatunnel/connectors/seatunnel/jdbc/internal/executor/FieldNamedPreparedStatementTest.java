@@ -169,12 +169,13 @@ public class FieldNamedPreparedStatementTest {
     //    }
 
     /**
-     * Test prepareStatement with mismatched parameter count should throw IllegalArgumentException
+     * Test prepareStatement with SQL parameter not in fieldNames should throw
+     * IllegalArgumentException. In 3.0, the code checks if all SQL parameters exist in fieldNames.
      */
     @Test
     void testPrepareStatementWithMismatchedParameterCount() {
         String sql = "INSERT INTO test (name, age, email) VALUES (:name, :age, :email)";
-        String[] fieldNames = {"name", "age"}; // Missing email parameter
+        String[] fieldNames = {"name", "age"}; // SQL parameter 'email' not in fieldNames
 
         IllegalArgumentException exception =
                 assertThrows(
@@ -183,15 +184,20 @@ public class FieldNamedPreparedStatementTest {
                                 FieldNamedPreparedStatement.prepareStatement(
                                         mockConnection, sql, fieldNames));
 
-        // The exception should be thrown due to parameter count mismatch
-        assertNotNull(exception);
+        // The exception should be thrown because SQL parameter 'email' not in fieldNames
+        assertTrue(
+                exception.getMessage().contains("email")
+                        && exception.getMessage().contains("not in source columns"));
     }
 
-    /** Test prepareStatement with missing parameter in SQL should throw IllegalArgumentException */
+    /**
+     * Test prepareStatement with SQL parameter not in fieldNames should throw
+     * IllegalArgumentException. In 3.0, the code checks if all SQL parameters exist in fieldNames.
+     */
     @Test
     void testPrepareStatementWithMissingParameterInSql() {
         String sql = "INSERT INTO test (name, age) VALUES (:name, :age)";
-        String[] fieldNames = {"name", "email"}; // email parameter not in SQL
+        String[] fieldNames = {"name", "email"}; // SQL parameter 'age' not in fieldNames
 
         IllegalArgumentException exception =
                 assertThrows(
@@ -200,9 +206,10 @@ public class FieldNamedPreparedStatementTest {
                                 FieldNamedPreparedStatement.prepareStatement(
                                         mockConnection, sql, fieldNames));
 
+        // The exception should be thrown because SQL parameter 'age' not in fieldNames
         assertTrue(
-                exception.getMessage().contains("email")
-                        && exception.getMessage().contains("doesn't exist in the parameters"));
+                exception.getMessage().contains("age")
+                        && exception.getMessage().contains("not in source columns"));
     }
 
     /** Test prepareStatement with empty parameter name should throw IllegalArgumentException */
