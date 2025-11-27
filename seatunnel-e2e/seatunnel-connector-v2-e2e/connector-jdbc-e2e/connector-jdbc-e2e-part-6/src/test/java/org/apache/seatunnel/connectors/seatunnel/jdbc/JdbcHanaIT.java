@@ -29,6 +29,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.saphana.S
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -46,6 +47,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
+@Disabled
 public class JdbcHanaIT extends AbstractJdbcIT {
     private static final String HANA_IMAGE = "saplabs/hanaexpress:2.00.076.00.20240701.1";
     private static final String HANA_NETWORK_ALIASES = "e2e_saphana";

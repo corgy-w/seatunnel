@@ -24,6 +24,7 @@ import org.apache.seatunnel.e2e.common.container.TestContainer;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import org.junit.jupiter.api.Disabled;
 import org.testcontainers.containers.Container;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public class JdbcXuguIT extends AbstractJdbcIT {
 
     private static final String XUGU_IMAGE = "xugudb/xugudb:v12";

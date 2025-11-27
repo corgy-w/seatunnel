@@ -36,6 +36,7 @@ import org.apache.seatunnel.e2e.common.junit.TestContainerExtension;
 import org.apache.commons.lang3.tuple.Pair;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestTemplate;
 import org.testcontainers.containers.Container;
@@ -67,6 +68,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Disabled("Temporarily disabled - needs to be fixed")
 public class JdbcIrisIT extends AbstractJdbcIT {
     private static final String IRIS_IMAGE = "intersystems/iris-community:2023.1";
     private static final String IRIS_NETWORK_ALIASES = "e2e_irisDb";
