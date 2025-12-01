@@ -35,10 +35,12 @@ import lombok.extern.slf4j.Slf4j;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -54,24 +56,22 @@ public final class ConfigShadeUtils {
 
     private static final String SHADE_IDENTIFIER_OPTION = "shade.identifier";
 
-    public static final String[] DEFAULT_SENSITIVE_KEYWORDS =
-            new String[] {
-                "password",
-                "username",
-                "auth",
-                "token",
-                "user",
-                "access_key",
-                "secret_key",
-                "jdbc_user",
-                "jdbc_password"
-            };
+    private static final String SENSITIVE_FIELDS_CONFIG_FILE = "sensitive-fields.conf";
+
+    public static final List<String> DEFAULT_SENSITIVE_KEYWORDS;
 
     private static final Map<String, ConfigShade> CONFIG_SHADES = new HashMap<>();
 
     private static final ConfigShade DEFAULT_SHADE = new DefaultConfigShade();
 
     static {
+        // Load sensitive fields from configuration file
+        DEFAULT_SENSITIVE_KEYWORDS = loadSensitiveFieldsFromConfig();
+        log.info(
+                "Loaded {} sensitive fields from configuration file",
+                DEFAULT_SENSITIVE_KEYWORDS.size());
+
+        // Load config shade SPI
         ServiceLoader<ConfigShade> serviceLoader = ServiceLoader.load(ConfigShade.class);
         Iterator<ConfigShade> it = serviceLoader.iterator();
         it.forEachRemaining(
@@ -79,6 +79,51 @@ public final class ConfigShadeUtils {
                     CONFIG_SHADES.put(configShade.getIdentifier(), configShade);
                 });
         log.info("Load config shade spi: {}", CONFIG_SHADES.keySet());
+    }
+
+    /**
+     * Load sensitive fields from configuration file using static initialization This method reads
+     * the sensitive-fields.conf file from classpath
+     *
+     * @return unmodifiable list of sensitive field names
+     */
+    private static List<String> loadSensitiveFieldsFromConfig() {
+        try {
+            InputStream inputStream =
+                    ConfigShadeUtils.class
+                            .getClassLoader()
+                            .getResourceAsStream(SENSITIVE_FIELDS_CONFIG_FILE);
+
+            if (inputStream == null) {
+                log.warn(
+                        "Sensitive fields configuration file not found: {}, using empty list",
+                        SENSITIVE_FIELDS_CONFIG_FILE);
+                return Collections.emptyList();
+            }
+
+            Config config =
+                    ConfigFactory.parseReader(
+                            new java.io.InputStreamReader(inputStream, StandardCharsets.UTF_8));
+
+            if (!config.hasPath("sensitive-fields")) {
+                log.warn("No 'sensitive-fields' key found in configuration file, using empty list");
+                return Collections.emptyList();
+            }
+
+            List<String> fields = config.getStringList("sensitive-fields");
+            log.info(
+                    "Successfully loaded {} sensitive fields from {}",
+                    fields.size(),
+                    SENSITIVE_FIELDS_CONFIG_FILE);
+
+            return Collections.unmodifiableList(new ArrayList<>(fields));
+        } catch (Exception e) {
+            log.error(
+                    "Failed to load sensitive fields configuration file: {}",
+                    SENSITIVE_FIELDS_CONFIG_FILE,
+                    e);
+            return Collections.emptyList();
+        }
     }
 
     private static class DefaultConfigShade implements ConfigShade {
@@ -102,12 +147,28 @@ public final class ConfigShadeUtils {
 
     public static String encryptOption(String identifier, String content) {
         ConfigShade configShade = CONFIG_SHADES.getOrDefault(identifier, DEFAULT_SHADE);
-        return configShade.encrypt(content);
+        try {
+            return configShade.encrypt(content);
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to encrypt content with identifier '{}', treating as plain text: {}",
+                    identifier,
+                    e.getMessage());
+            return content;
+        }
     }
 
     public static String decryptOption(String identifier, String content) {
         ConfigShade configShade = CONFIG_SHADES.getOrDefault(identifier, DEFAULT_SHADE);
-        return configShade.decrypt(content);
+        try {
+            return configShade.decrypt(content);
+        } catch (Exception e) {
+            log.warn(
+                    "Failed to decrypt content with identifier '{}', treating as plain text: {}",
+                    identifier,
+                    e.getMessage());
+            return content;
+        }
     }
 
     public static Config decryptConfig(Config config) {
@@ -166,19 +227,34 @@ public final class ConfigShadeUtils {
     private static Config processConfig(
             String identifier, Config config, boolean isDecrypted, CryptoMode cryptoMode) {
         ConfigShade configShade = CONFIG_SHADES.getOrDefault(identifier, DEFAULT_SHADE);
-        List<String> sensitiveOptions = new ArrayList<>(Arrays.asList(DEFAULT_SENSITIVE_KEYWORDS));
+
+        // Use sensitive fields from configuration file
+        List<String> sensitiveOptions = new ArrayList<>(DEFAULT_SENSITIVE_KEYWORDS);
+
+        // Add additional sensitive options from ConfigShade SPI
         sensitiveOptions.addAll(Arrays.asList(configShade.sensitiveOptions()));
+
         if (cryptoMode == CryptoMode.DEFAULT) {
             Set<String> uniqueKeys = new HashSet<>(sensitiveOptions);
             sensitiveOptions.clear();
             sensitiveOptions.addAll(uniqueKeys);
         }
+
         BiFunction<String, Object, String> processFunction =
                 (key, value) -> {
-                    if (isDecrypted) {
-                        return configShade.decrypt(value.toString());
-                    } else {
-                        return configShade.encrypt(value.toString());
+                    try {
+                        if (isDecrypted) {
+                            return configShade.decrypt(value.toString());
+                        } else {
+                            return configShade.encrypt(value.toString());
+                        }
+                    } catch (Exception e) {
+                        log.warn(
+                                "Failed to {} content for key '{}', treating as plain text: {}",
+                                isDecrypted ? "decrypt" : "encrypt",
+                                key,
+                                e.getMessage());
+                        return value.toString();
                     }
                 };
         String jsonString = config.root().render(ConfigRenderOptions.concise());
@@ -194,19 +270,67 @@ public final class ConfigShadeUtils {
                 !sinks.isEmpty(), "Miss <Sink> config! Please check the config file.");
         sources.forEach(
                 source -> {
-                    for (String sensitiveOption : sensitiveOptions) {
-                        source.computeIfPresent(sensitiveOption, processFunction);
-                    }
+                    processMapRecursively(source, sensitiveOptions, processFunction);
                 });
         sinks.forEach(
                 sink -> {
-                    for (String sensitiveOption : sensitiveOptions) {
-                        sink.computeIfPresent(sensitiveOption, processFunction);
-                    }
+                    processMapRecursively(sink, sensitiveOptions, processFunction);
                 });
         configMap.put(Constants.SOURCE, sources);
         configMap.put(Constants.SINK, sinks);
         return ConfigFactory.parseMap(configMap);
+    }
+
+    /**
+     * Recursively process a map to encrypt/decrypt sensitive fields All fields use exact matching
+     * only - no fuzzy matching
+     *
+     * @param map the map to process
+     * @param sensitiveOptions list of sensitive field names for exact matching
+     * @param processFunction the encryption/decryption function
+     */
+    @SuppressWarnings("unchecked")
+    private static void processMapRecursively(
+            Map<String, Object> map,
+            List<String> sensitiveOptions,
+            BiFunction<String, Object, String> processFunction) {
+        if (map == null) {
+            return;
+        }
+
+        List<String> keysToProcess = new ArrayList<>();
+
+        for (String key : map.keySet()) {
+            Object value = map.get(key);
+
+            // Handle nested maps
+            if (value instanceof Map) {
+                processMapRecursively(
+                        (Map<String, Object>) value, sensitiveOptions, processFunction);
+            }
+            // Handle lists of maps
+            else if (value instanceof List) {
+                List<?> list = (List<?>) value;
+                for (Object item : list) {
+                    if (item instanceof Map) {
+                        processMapRecursively(
+                                (Map<String, Object>) item, sensitiveOptions, processFunction);
+                    }
+                }
+            }
+            // Handle string values - use exact matching only
+            else if (value instanceof String) {
+                if (sensitiveOptions.contains(key)) {
+                    keysToProcess.add(key);
+                    log.debug("Field '{}' matched as sensitive field (exact match)", key);
+                }
+            }
+        }
+
+        // Process sensitive fields
+        for (String key : keysToProcess) {
+            map.computeIfPresent(key, processFunction);
+        }
     }
 
     public static class Base64ConfigShade implements ConfigShade {

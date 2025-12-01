@@ -38,7 +38,6 @@ import lombok.extern.slf4j.Slf4j;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -138,8 +137,7 @@ public class ConfigBuilder {
                         (m, p) -> {
                             String key = p.getKey();
                             Object value = p.getValue();
-                            if (Arrays.asList(DEFAULT_SENSITIVE_KEYWORDS)
-                                    .contains(key.toLowerCase())) {
+                            if (DEFAULT_SENSITIVE_KEYWORDS.contains(key.toLowerCase())) {
                                 m.put(key, "******");
                             } else {
                                 if (value instanceof Map<?, ?>) {
