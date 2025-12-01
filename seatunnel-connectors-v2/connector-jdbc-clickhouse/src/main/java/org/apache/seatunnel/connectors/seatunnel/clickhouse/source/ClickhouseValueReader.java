@@ -42,6 +42,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -242,6 +244,7 @@ public class ClickhouseValueReader implements Serializable {
 
     private String buildBatchPartQuery(ClickhousePart part) {
         TablePath tablePath = TablePath.of(part.getDatabase(), part.getTable());
+        String selectColumns = buildSelectColumnsExpression();
 
         String whereClause = String.format("_part = '%s'", part.getName());
         if (StringUtils.isNotEmpty(clickhouseSourceTable.getFilterQuery())) {
@@ -268,7 +271,8 @@ public class ClickhouseValueReader implements Serializable {
             // key cursor mode: no OFFSET, only LIMIT
             sql =
                     String.format(
-                            "SELECT * FROM %s.%s WHERE %s %s LIMIT %d WITH TIES",
+                            "SELECT %s FROM %s.%s WHERE %s %s LIMIT %d WITH TIES",
+                            selectColumns,
                             tablePath.getDatabaseName(),
                             tablePath.getTableName(),
                             whereClause,
@@ -278,7 +282,8 @@ public class ClickhouseValueReader implements Serializable {
             // for the first sql creation, lastOrderingKeyValues is null
             sql =
                     String.format(
-                            "SELECT * FROM %s.%s WHERE %s %s LIMIT %d, %d WITH TIES",
+                            "SELECT %s FROM %s.%s WHERE %s %s LIMIT %d, %d WITH TIES",
+                            selectColumns,
                             tablePath.getDatabaseName(),
                             tablePath.getTableName(),
                             whereClause,
@@ -339,6 +344,44 @@ public class ClickhouseValueReader implements Serializable {
         log.info("generate batch query sql: {}", sql);
 
         return sql;
+    }
+
+    private String buildSelectColumnsExpression() {
+        ClickhouseTable clickhouseTable = clickhouseSourceTable.getClickhouseTable();
+        if (clickhouseTable == null) {
+            return "*";
+        }
+
+        Map<String, String> tableSchema = clickhouseTable.getTableSchema();
+        if (tableSchema == null || tableSchema.isEmpty()) {
+            return "*";
+        }
+
+        String[] fieldNames = rowTypeInfo.getFieldNames();
+        List<String> selectExprs = new ArrayList<>(fieldNames.length);
+        for (String fieldName : fieldNames) {
+            String sourceType = tableSchema.get(fieldName);
+            if (isJsonType(sourceType)) {
+                selectExprs.add(String.format("toJSONString(%s) AS %s", fieldName, fieldName));
+            } else {
+                selectExprs.add(fieldName);
+            }
+        }
+
+        return String.join(", ", selectExprs);
+    }
+
+    private boolean isJsonType(String sourceType) {
+        if (sourceType == null) {
+            return false;
+        }
+
+        String normalized = sourceType.trim().toUpperCase(Locale.ROOT);
+        if (normalized.startsWith("NULLABLE(") && normalized.endsWith(")")) {
+            normalized = normalized.substring("NULLABLE(".length(), normalized.length() - 1).trim();
+        }
+
+        return normalized.contains("JSON");
     }
 
     /**
@@ -541,9 +584,14 @@ public class ClickhouseValueReader implements Serializable {
                 whereClause += " AND (" + clickhouseSourceTable.getFilterQuery() + ")";
             }
 
+            String selectColumns = ClickhouseValueReader.this.buildSelectColumnsExpression();
+
             return String.format(
-                    "SELECT * FROM %s.%s WHERE %s",
-                    tablePath.getDatabaseName(), tablePath.getTableName(), whereClause);
+                    "SELECT %s FROM %s.%s WHERE %s",
+                    selectColumns,
+                    tablePath.getDatabaseName(),
+                    tablePath.getTableName(),
+                    whereClause);
         }
 
         public void close() {

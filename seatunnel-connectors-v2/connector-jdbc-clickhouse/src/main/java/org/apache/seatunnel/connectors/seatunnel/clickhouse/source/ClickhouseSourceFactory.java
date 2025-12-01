@@ -31,6 +31,7 @@ import org.apache.seatunnel.api.table.connector.TableSource;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.constants.PluginType;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.config.ClickhouseSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.config.ClickhouseTableConfig;
@@ -117,6 +118,10 @@ public class ClickhouseSourceFactory implements TableSourceFactory {
                                                     tablePath.getTableName()))
                                     .executeAndWait()) {
 
+                boolean isComplexSql =
+                        StringUtils.isNotEmpty(sql)
+                                && (tablePath == TablePath.DEFAULT || proxy.isComplexSql(sql));
+
                 // Query primary key
                 Optional<PrimaryKey> primaryKey = Optional.empty();
                 try {
@@ -149,19 +154,38 @@ public class ClickhouseSourceFactory implements TableSourceFactory {
                                     pk.getColumnNames());
                         });
 
+                Map<String, String> columnComments = Collections.emptyMap();
+                String tableComment = "";
+                if (!isComplexSql && tablePath != TablePath.DEFAULT) {
+                    columnComments =
+                            proxy.getClickhouseColumnComments(tablePath.getFullNameWithQuoted());
+                    String comment =
+                            proxy.getTableComment(
+                                    tablePath.getDatabaseName(), tablePath.getTableName());
+                    tableComment = comment == null ? "" : comment;
+                }
+
+                final Map<String, String> finalColumnComments = columnComments;
+
                 List<ClickHouseColumn> columns = response.getColumns();
 
                 columns.forEach(
                         column -> {
+                            SeaTunnelDataType<?> dataType = TypeConvertUtil.convert(column);
+
+                            Long columnLength = TypeConvertUtil.getColumnLength(column, dataType);
+
+                            String columnComment = finalColumnComments.get(column.getColumnName());
+
                             PhysicalColumn physicalColumn =
                                     PhysicalColumn.of(
                                             column.getColumnName(),
-                                            TypeConvertUtil.convert(column),
-                                            (long) column.getEstimatedLength(),
+                                            dataType,
+                                            columnLength,
                                             column.getScale(),
                                             column.isNullable(),
                                             null,
-                                            null);
+                                            columnComment);
                             builder.column(physicalColumn);
                         });
 
@@ -176,12 +200,8 @@ public class ClickhouseSourceFactory implements TableSourceFactory {
                                 builder.build(),
                                 Collections.emptyMap(),
                                 Collections.emptyList(),
-                                "",
+                                tableComment,
                                 catalogName);
-
-                boolean isComplexSql =
-                        StringUtils.isNotEmpty(sql)
-                                && (tablePath == TablePath.DEFAULT || proxy.isComplexSql(sql));
 
                 ClickhouseTable clickhouseTable =
                         isComplexSql

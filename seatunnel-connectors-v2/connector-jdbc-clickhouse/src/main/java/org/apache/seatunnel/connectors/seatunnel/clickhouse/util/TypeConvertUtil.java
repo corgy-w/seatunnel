@@ -111,6 +111,13 @@ public class TypeConvertUtil {
         }
     }
 
+    public static Long getColumnLength(ClickHouseColumn column, SeaTunnelDataType<?> dataType) {
+        if (BasicType.STRING_TYPE.equals(dataType)) {
+            return null;
+        }
+        return (long) column.getEstimatedLength();
+    }
+
     public static Object valueUnwrap(SeaTunnelDataType<?> dataType, ClickHouseValue record) {
         if (dataType instanceof DecimalType) {
             return record.asBigDecimal();

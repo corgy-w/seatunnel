@@ -177,6 +177,39 @@ public class ClickhouseProxy implements AutoCloseable {
         return schema;
     }
 
+    /**
+     * Get ClickHouse column comments, the key is column name, value is column comment.
+     *
+     * @param table table name.
+     * @return column comment map.
+     */
+    public Map<String, String> getClickhouseColumnComments(String table) {
+        ClickHouseRequest<?> request = getClickhouseConnection();
+        return getClickhouseColumnComments(request, table);
+    }
+
+    public Map<String, String> getClickhouseColumnComments(
+            ClickHouseRequest<?> request, String table) {
+        String sql = "desc " + table;
+        Map<String, String> comments = new LinkedHashMap<>();
+        try (ClickHouseResponse response = request.query(sql).executeAndWait()) {
+            response.records()
+                    .forEach(
+                            r -> {
+                                if (!"MATERIALIZED".equals(r.getValue(2).asString())) {
+                                    comments.put(
+                                            r.getValue(0).asString(), r.getValue(4).asString());
+                                }
+                            });
+        } catch (ClickHouseException e) {
+            throw new ClickhouseConnectorException(
+                    CommonErrorCodeDeprecated.TABLE_SCHEMA_GET_FAILED,
+                    "Cannot get table column comments from clickhouse",
+                    e);
+        }
+        return comments;
+    }
+
     public List<ClickHouseColumn> getClickHouseColumns(String table) {
         String sql = "SELECT * FROM " + table + " WHERE 1 = 0";
         try (ClickHouseResponse response = this.clickhouseRequest.query(sql).executeAndWait()) {
@@ -187,6 +220,34 @@ public class ClickhouseProxy implements AutoCloseable {
                     CommonErrorCodeDeprecated.TABLE_SCHEMA_GET_FAILED,
                     "Cannot get table schema from clickhouse",
                     e);
+        }
+    }
+
+    /**
+     * Get table comment from ClickHouse.
+     *
+     * @param database database of the table.
+     * @param table table name.
+     * @return table comment, or null if not set.
+     */
+    public String getTableComment(String database, String table) {
+        String sql =
+                String.format(
+                        "select comment from system.tables where database = '%s' and name = '%s'",
+                        database, table);
+        try (ClickHouseResponse response = clickhouseRequest.query(sql).executeAndWait()) {
+            Iterable<ClickHouseRecord> records = response.records();
+            return StreamSupport.stream(records.spliterator(), false)
+                    .map(r -> r.getValue(0).asString())
+                    .findFirst()
+                    .orElse(null);
+        } catch (ClickHouseException e) {
+            log.warn(
+                    "Cannot get table comment from clickhouse for {}.{}: {}",
+                    database,
+                    table,
+                    e.getMessage());
+            return null;
         }
     }
 
