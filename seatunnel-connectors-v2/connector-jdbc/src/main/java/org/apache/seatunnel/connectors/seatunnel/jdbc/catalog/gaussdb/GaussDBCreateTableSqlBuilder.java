@@ -247,7 +247,7 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
     private String buildUniqueKeySql(ConstraintKey constraintKey) {
         String columnNamesString =
                 constraintKey.getColumnNames().stream()
-                        .map(columnName -> "\"" + columnName + "\"")
+                        .map(column -> "\"" + column.getColumnName() + "\"")
                         .collect(Collectors.joining(", "));
         return String.format(
                 "CONSTRAINT \"%s\" UNIQUE (%s)",
@@ -257,7 +257,7 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
     private String buildIndexKeySql(ConstraintKey constraintKey, TablePath tablePath) {
         String columnNamesString =
                 constraintKey.getColumnNames().stream()
-                        .map(columnName -> "\"" + columnName + "\"")
+                        .map(column -> "\"" + column.getColumnName() + "\"")
                         .collect(Collectors.joining(", "));
         String indexName = constraintKey.getConstraintName();
         if (StringUtils.isBlank(indexName)) {
