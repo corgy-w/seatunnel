@@ -37,6 +37,9 @@ import javax.crypto.spec.SecretKeySpec;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -69,18 +72,45 @@ public final class ConfigShadeUtils {
     }
 
     /**
-     * Load sensitive fields from configuration file
+     * Load sensitive fields from configuration file Priority: 1. External config directory
+     * (SEATUNNEL_HOME/config) 2. Classpath resource
      *
      * @return list of sensitive field names
      */
     private static List<String> loadSensitiveFieldsFromConfig() {
-        try (InputStream inputStream =
-                ConfigShadeUtils.class
-                        .getClassLoader()
-                        .getResourceAsStream(SENSITIVE_FIELDS_CONFIG)) {
+        InputStream inputStream = null;
+        String configSource = null;
+
+        try {
+            // Try to load from external config directory first
+            String seatunnelHome = System.getenv("SEATUNNEL_HOME");
+            if (seatunnelHome != null && !seatunnelHome.isEmpty()) {
+                Path externalConfigPath =
+                        Paths.get(seatunnelHome, "config", SENSITIVE_FIELDS_CONFIG);
+                if (Files.exists(externalConfigPath)) {
+                    inputStream = Files.newInputStream(externalConfigPath);
+                    configSource = "external config: " + externalConfigPath;
+                    log.info(
+                            "Loading sensitive fields from external config: {}",
+                            externalConfigPath);
+                }
+            }
+
+            // Fallback to classpath resource
+            if (inputStream == null) {
+                inputStream =
+                        ConfigShadeUtils.class
+                                .getClassLoader()
+                                .getResourceAsStream(SENSITIVE_FIELDS_CONFIG);
+                if (inputStream != null) {
+                    configSource = "classpath resource";
+                    log.info("Loading sensitive fields from classpath resource");
+                }
+            }
+
             if (inputStream == null) {
                 log.warn(
-                        "Sensitive fields configuration file not found: {}, using empty list",
+                        "Sensitive fields configuration file not found in external config or classpath: {}, using empty list",
                         SENSITIVE_FIELDS_CONFIG);
                 return Collections.emptyList();
             }
@@ -90,16 +120,26 @@ public final class ConfigShadeUtils {
                             new java.io.InputStreamReader(inputStream, StandardCharsets.UTF_8));
 
             if (!config.hasPath("sensitive-fields")) {
-                log.warn("No 'sensitive-fields' key found in configuration file");
+                log.warn(
+                        "No 'sensitive-fields' key found in configuration file from {}",
+                        configSource);
                 return Collections.emptyList();
             }
 
             List<String> fields = config.getStringList("sensitive-fields");
-            log.info("Loaded {} sensitive fields from configuration", fields.size());
+            log.info("Loaded {} sensitive fields from {}", fields.size(), configSource);
             return fields;
         } catch (Exception e) {
             log.error("Failed to load sensitive fields from configuration file", e);
             return Collections.emptyList();
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (Exception e) {
+                    log.warn("Failed to close input stream", e);
+                }
+            }
         }
     }
 
