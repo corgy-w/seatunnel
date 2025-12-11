@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.console;
 
+import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.connectors.seatunnel.console.sink.ConsoleSinkFactory;
 
 import org.junit.jupiter.api.Assertions;
@@ -25,6 +26,10 @@ import org.junit.jupiter.api.Test;
 public class ConsoleFactoryTest {
     @Test
     public void testOptionRule() {
-        Assertions.assertNotNull((new ConsoleSinkFactory()).optionRule());
+        ConsoleSinkFactory factory = new ConsoleSinkFactory();
+        OptionRule optionRule = factory.optionRule();
+        Assertions.assertNotNull(optionRule);
+        Assertions.assertTrue(
+                optionRule.getOptionalOptions().contains(ConsoleSinkFactory.LOG_PRINT_DATA));
     }
 }
