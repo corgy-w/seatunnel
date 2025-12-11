@@ -298,8 +298,11 @@ public class ClickhouseValueReader implements Serializable {
     }
 
     private String buildBatchSqlQuery() {
+        String selectColumns = buildSelectColumnsExpressionWithAlias("t.");
         String base =
-                String.format("SELECT * FROM (%s) AS t", clickhouseSourceSplit.getSplitQuery());
+                String.format(
+                        "SELECT %s FROM (%s) AS t",
+                        selectColumns, clickhouseSourceSplit.getSplitQuery());
 
         String sortingKey = clickhouseSourceTable.getClickhouseTable().getSortingKey();
 
@@ -344,6 +347,33 @@ public class ClickhouseValueReader implements Serializable {
         log.info("generate batch query sql: {}", sql);
 
         return sql;
+    }
+
+    private String buildSelectColumnsExpressionWithAlias(String aliasPrefix) {
+        ClickhouseTable clickhouseTable = clickhouseSourceTable.getClickhouseTable();
+        if (clickhouseTable == null) {
+            return "*";
+        }
+
+        Map<String, String> tableSchema = clickhouseTable.getTableSchema();
+        if (tableSchema == null || tableSchema.isEmpty()) {
+            return "*";
+        }
+
+        String[] fieldNames = rowTypeInfo.getFieldNames();
+        List<String> selectExprs = new ArrayList<>(fieldNames.length);
+        for (String fieldName : fieldNames) {
+            String sourceType = tableSchema.get(fieldName);
+            String qualifiedName =
+                    StringUtils.isNotEmpty(aliasPrefix) ? aliasPrefix + fieldName : fieldName;
+            if (isJsonType(sourceType)) {
+                selectExprs.add(String.format("toJSONString(%s) AS %s", qualifiedName, fieldName));
+            } else {
+                selectExprs.add(qualifiedName);
+            }
+        }
+
+        return String.join(", ", selectExprs);
     }
 
     private String buildSelectColumnsExpression() {

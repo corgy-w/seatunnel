@@ -22,6 +22,7 @@ import org.apache.seatunnel.api.configuration.util.OptionRule;
 import org.apache.seatunnel.api.source.SeaTunnelSource;
 import org.apache.seatunnel.api.source.SourceSplit;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
@@ -33,11 +34,14 @@ import org.apache.seatunnel.api.table.factory.TableSourceFactory;
 import org.apache.seatunnel.api.table.factory.TableSourceFactoryContext;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.common.constants.PluginType;
+import org.apache.seatunnel.common.exception.CommonError;
+import org.apache.seatunnel.connectors.seatunnel.clickhouse.config.ClickhouseSinkOptions;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.config.ClickhouseSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.config.ClickhouseTableConfig;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.exception.ClickhouseConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.sink.file.ClickhouseTable;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.util.ClickhouseProxy;
+import org.apache.seatunnel.connectors.seatunnel.clickhouse.util.ClickhouseProxy.ClickhouseIndexInfo;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.util.ClickhouseUtil;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.util.TypeConvertUtil;
 
@@ -54,10 +58,12 @@ import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 import static org.apache.seatunnel.connectors.seatunnel.clickhouse.config.ClickhouseBaseOptions.CLICKHOUSE_CONFIG;
 import static org.apache.seatunnel.connectors.seatunnel.clickhouse.config.ClickhouseBaseOptions.HOST;
@@ -90,6 +96,7 @@ public class ClickhouseSourceFactory implements TableSourceFactory {
 
         Map<TablePath, ClickhouseSourceTable> clickhouseSourceTables = new HashMap<>();
         Map<TablePath, List<ClickHouseNode>> nodesMap = new HashMap<>();
+        Map<String, Map<String, String>> unsupportedTables = new LinkedHashMap<>();
 
         for (ClickhouseTableConfig tableConfig : tableConfigs) {
 
@@ -122,7 +129,65 @@ public class ClickhouseSourceFactory implements TableSourceFactory {
                         StringUtils.isNotEmpty(sql)
                                 && (tablePath == TablePath.DEFAULT || proxy.isComplexSql(sql));
 
-                // Query primary key
+                TableSchema.Builder builder = TableSchema.builder();
+                Map<String, String> tableOptions = new HashMap<>();
+
+                Map<String, String> columnComments = Collections.emptyMap();
+                String tableComment = "";
+                if (!isComplexSql && tablePath != TablePath.DEFAULT) {
+                    columnComments =
+                            proxy.getClickhouseColumnComments(tablePath.getFullNameWithQuoted());
+                    String comment =
+                            proxy.getTableComment(
+                                    tablePath.getDatabaseName(), tablePath.getTableName());
+                    tableComment = comment == null ? "" : comment;
+                }
+
+                List<ClickHouseColumn> columns = response.getColumns();
+
+                final Map<String, String> finalColumnComments = columnComments;
+                Map<String, String> unsupportedFields = new LinkedHashMap<>();
+
+                columns.forEach(
+                        column -> {
+                            try {
+                                SeaTunnelDataType<?> dataType = TypeConvertUtil.convert(column);
+
+                                Long columnLength =
+                                        TypeConvertUtil.getColumnLength(column, dataType);
+
+                                String columnComment =
+                                        finalColumnComments.get(column.getColumnName());
+
+                                PhysicalColumn physicalColumn =
+                                        PhysicalColumn.of(
+                                                column.getColumnName(),
+                                                dataType,
+                                                columnLength,
+                                                column.getScale(),
+                                                column.isNullable(),
+                                                null,
+                                                columnComment);
+                                builder.column(physicalColumn);
+                            } catch (Exception e) {
+                                unsupportedFields.put(
+                                        column.getColumnName(), column.getDataType().name());
+                            }
+                        });
+
+                if (!unsupportedFields.isEmpty()) {
+                    unsupportedTables.put(
+                            tablePath.getDatabaseName() + "." + tablePath.getTableName(),
+                            unsupportedFields);
+                    continue;
+                }
+
+                List<String> queryColumns =
+                        columns.stream()
+                                .map(ClickHouseColumn::getColumnName)
+                                .collect(Collectors.toList());
+
+                // Query primary key and only keep columns that exist in the query result.
                 Optional<PrimaryKey> primaryKey = Optional.empty();
                 try {
                     primaryKey =
@@ -143,51 +208,74 @@ public class ClickhouseSourceFactory implements TableSourceFactory {
                             e);
                 }
 
-                TableSchema.Builder builder = TableSchema.builder();
-
-                // Add primary key if exists
                 primaryKey.ifPresent(
                         pk -> {
-                            builder.primaryKey(pk);
-                            log.debug(
-                                    "ClickhouseSourceFactory: added primary key to TableSchema: {}",
-                                    pk.getColumnNames());
+                            List<String> filteredPkColumns =
+                                    pk.getColumnNames().stream()
+                                            .filter(queryColumns::contains)
+                                            .collect(Collectors.toList());
+                            if (!filteredPkColumns.isEmpty()) {
+                                PrimaryKey adjustedPk =
+                                        PrimaryKey.of(pk.getPrimaryKey(), filteredPkColumns);
+                                builder.primaryKey(adjustedPk);
+                                log.debug(
+                                        "ClickhouseSourceFactory: added adjusted primary key to TableSchema: {}",
+                                        filteredPkColumns);
+                            } else {
+                                log.warn(
+                                        "ClickhouseSourceFactory: skip primary key {} "
+                                                + "because none of its columns exist in query result {}",
+                                        pk.getColumnNames(),
+                                        queryColumns);
+                            }
                         });
 
-                Map<String, String> columnComments = Collections.emptyMap();
-                String tableComment = "";
-                if (!isComplexSql && tablePath != TablePath.DEFAULT) {
-                    columnComments =
-                            proxy.getClickhouseColumnComments(tablePath.getFullNameWithQuoted());
-                    String comment =
-                            proxy.getTableComment(
-                                    tablePath.getDatabaseName(), tablePath.getTableName());
-                    tableComment = comment == null ? "" : comment;
+                // Build index metadata as generic ConstraintKeys and attach ClickHouse-specific
+                // index options for the sink (type, expr, granularity).
+                List<ClickhouseIndexInfo> indexInfos =
+                        proxy.getIndexInfos(tablePath.getDatabaseName(), tablePath.getTableName());
+                if (!indexInfos.isEmpty()) {
+                    for (ClickhouseIndexInfo indexInfo : indexInfos) {
+                        if (indexInfo.getColumnNames() == null
+                                || indexInfo.getColumnNames().isEmpty()) {
+                            continue;
+                        }
+                        List<ConstraintKey.ConstraintKeyColumn> filteredColumns =
+                                indexInfo.getColumnNames().stream()
+                                        .filter(queryColumns::contains)
+                                        .map(
+                                                name ->
+                                                        ConstraintKey.ConstraintKeyColumn.of(
+                                                                name,
+                                                                ConstraintKey.ColumnSortType.ASC))
+                                        .collect(Collectors.toList());
+                        if (filteredColumns.isEmpty()) {
+                            continue;
+                        }
+                        ConstraintKey constraintKey =
+                                ConstraintKey.of(
+                                        ConstraintKey.ConstraintType.INDEX_KEY,
+                                        indexInfo.getName(),
+                                        filteredColumns);
+                        builder.constraintKey(constraintKey);
+
+                        String baseKey =
+                                ClickhouseSinkOptions.INDEX_OPTION_PREFIX + indexInfo.getName();
+                        if (indexInfo.getExpr() != null) {
+                            tableOptions.put(
+                                    baseKey + ClickhouseSinkOptions.INDEX_OPTION_EXPR_SUFFIX,
+                                    indexInfo.getExpr());
+                        }
+                        if (indexInfo.getTypeFull() != null && !indexInfo.getTypeFull().isEmpty()) {
+                            tableOptions.put(
+                                    baseKey + ClickhouseSinkOptions.INDEX_OPTION_TYPE_FULL_SUFFIX,
+                                    indexInfo.getTypeFull());
+                        }
+                        tableOptions.put(
+                                baseKey + ClickhouseSinkOptions.INDEX_OPTION_GRANULARITY_SUFFIX,
+                                String.valueOf(indexInfo.getGranularity()));
+                    }
                 }
-
-                final Map<String, String> finalColumnComments = columnComments;
-
-                List<ClickHouseColumn> columns = response.getColumns();
-
-                columns.forEach(
-                        column -> {
-                            SeaTunnelDataType<?> dataType = TypeConvertUtil.convert(column);
-
-                            Long columnLength = TypeConvertUtil.getColumnLength(column, dataType);
-
-                            String columnComment = finalColumnComments.get(column.getColumnName());
-
-                            PhysicalColumn physicalColumn =
-                                    PhysicalColumn.of(
-                                            column.getColumnName(),
-                                            dataType,
-                                            columnLength,
-                                            column.getScale(),
-                                            column.isNullable(),
-                                            null,
-                                            columnComment);
-                            builder.column(physicalColumn);
-                        });
 
                 String catalogName = "clickhouse_catalog";
 
@@ -198,7 +286,7 @@ public class ClickhouseSourceFactory implements TableSourceFactory {
                                         tablePath.getDatabaseName(),
                                         tablePath.getTableName()),
                                 builder.build(),
-                                Collections.emptyMap(),
+                                tableOptions,
                                 Collections.emptyList(),
                                 tableComment,
                                 catalogName);
@@ -239,10 +327,37 @@ public class ClickhouseSourceFactory implements TableSourceFactory {
             }
         }
 
+        if (!unsupportedTables.isEmpty()) {
+            throw CommonError.getCatalogTablesWithUnsupportedType("ClickHouse", unsupportedTables);
+        }
+
         return () ->
                 (SeaTunnelSource<T, SplitT, StateT>)
                         new ClickhouseSource(
                                 nodesMap, clickhouseSourceTables, clickhouseSourceConfig);
+    }
+
+    private ConstraintKey filterConstraintKeyByColumns(
+            ConstraintKey originalConstraintKey, List<String> queryColumns) {
+        if (originalConstraintKey == null
+                || originalConstraintKey.getColumnNames() == null
+                || originalConstraintKey.getColumnNames().isEmpty()) {
+            return null;
+        }
+        List<ConstraintKey.ConstraintKeyColumn> filteredColumns =
+                originalConstraintKey.getColumnNames().stream()
+                        .filter(
+                                column ->
+                                        column != null
+                                                && queryColumns.contains(column.getColumnName()))
+                        .collect(Collectors.toList());
+        if (filteredColumns.isEmpty()) {
+            return null;
+        }
+        return ConstraintKey.of(
+                originalConstraintKey.getConstraintType(),
+                originalConstraintKey.getConstraintName(),
+                filteredColumns);
     }
 
     private String modifySQLToLimit1(String sql) {

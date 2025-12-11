@@ -162,12 +162,7 @@ public class ClickhouseCatalog implements Catalog {
     public void createTable(TablePath tablePath, CatalogTable table, boolean ignoreIfExists)
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         log.debug("Create table :{}.{}", tablePath.getDatabaseName(), tablePath.getTableName());
-        proxy.createTable(
-                tablePath.getDatabaseName(),
-                tablePath.getTableName(),
-                template,
-                table.getComment(),
-                table.getTableSchema());
+        proxy.createTable(tablePath.getDatabaseName(), tablePath.getTableName(), template, table);
     }
 
     @Override
@@ -276,6 +271,7 @@ public class ClickhouseCatalog implements Catalog {
                             tablePath.getTableName(),
                             catalogTable.get().getTableSchema(),
                             catalogTable.get().getComment(),
+                            catalogTable.get().getOptions(),
                             ClickhouseSinkOptions.SAVE_MODE_CREATE_TEMPLATE.key()));
         } else if (actionType == ActionType.DROP_TABLE) {
             return new SQLPreviewResult(

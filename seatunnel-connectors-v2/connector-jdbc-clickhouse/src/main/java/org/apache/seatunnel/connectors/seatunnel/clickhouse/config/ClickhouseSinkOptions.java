@@ -93,6 +93,18 @@ public class ClickhouseSinkOptions {
                     .noDefaultValue()
                     .withDescription("when data_save_mode selects CUSTOM_PROCESSING custom SQL");
 
+    /**
+     * Internal option keys used to carry ClickHouse index metadata through CatalogTable options.
+     *
+     * <p>These options are only consumed by the ClickHouse sink when reconstructing data skipping
+     * indexes, and are ignored by generic JDBC sinks.
+     */
+    public static final String INDEX_OPTION_PREFIX = "ck.index.";
+
+    public static final String INDEX_OPTION_EXPR_SUFFIX = ".expr";
+    public static final String INDEX_OPTION_TYPE_FULL_SUFFIX = ".type_full";
+    public static final String INDEX_OPTION_GRANULARITY_SUFFIX = ".granularity";
+
     public static final Option<String> SAVE_MODE_CREATE_TEMPLATE =
             Options.key("save_mode_create_template")
                     .stringType()
