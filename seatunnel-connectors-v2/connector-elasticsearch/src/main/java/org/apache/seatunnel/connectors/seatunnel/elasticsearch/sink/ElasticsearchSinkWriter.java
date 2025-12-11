@@ -187,7 +187,10 @@ public class ElasticsearchSinkWriter
 
     @Override
     public void close() throws IOException {
-        bulkEsWithRetry(this.esRestClient, this.requestEsList);
-        esRestClient.close();
+        try {
+            bulkEsWithRetry(this.esRestClient, this.requestEsList);
+        } finally {
+            esRestClient.close();
+        }
     }
 }
