@@ -249,6 +249,7 @@
                 <include>com.oceanbase:oceanbase-client:jar</include>
                 <include>com.yashandb:yashandb-jdbc:jar</include>
                 <include>com.gbasedbt:jdbc:jar</include>
+                <include>com.gbase.jdbc:gbase-connector-java:jar</include>
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
             <outputDirectory>/plugins/connector-jdbc</outputDirectory>

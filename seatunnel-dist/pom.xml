@@ -126,6 +126,7 @@
                 <dolphindb-jdbc.version>3.00.2.1</dolphindb-jdbc.version>
                 <tidb.version>3.3.5</tidb.version>
                 <gbase8s.version>3.6.3.2</gbase8s.version>
+                <gbase8a.version>9.5.0.8-build1-bin</gbase8a.version>
             </properties>
             <dependencies>
                 <!-- starters -->
@@ -674,6 +675,12 @@
                     <groupId>com.gbasedbt</groupId>
                     <artifactId>jdbc</artifactId>
                     <version>${gbase8s.version}</version>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>com.gbase.jdbc</groupId>
+                    <artifactId>gbase-connector-java</artifactId>
+                    <version>${gbase8a.version}</version>
                     <scope>provided</scope>
                 </dependency>
                 <!-- jdbc driver end -->
