@@ -249,7 +249,7 @@
                 <groupId>com.gbase.jdbc</groupId>
                 <artifactId>gbase-connector-java</artifactId>
                 <version>${gbase8a.version}</version>
-                <scope>test</scope>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -400,6 +400,10 @@
         <dependency>
             <groupId>com.gbasedbt</groupId>
             <artifactId>jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.gbase.jdbc</groupId>
+            <artifactId>gbase-connector-java</artifactId>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
