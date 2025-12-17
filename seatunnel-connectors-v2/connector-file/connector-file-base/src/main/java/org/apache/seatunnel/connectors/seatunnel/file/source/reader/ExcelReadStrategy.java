@@ -78,10 +78,11 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
         FSDataInputStream file = hadoopFileSystemProxy.getInputStream(path);
         Workbook workbook;
         FormulaEvaluator formulaEvaluator;
-        if (path.endsWith(".xls")) {
+        String lowerCasePath = path.toLowerCase();
+        if (lowerCasePath.endsWith(".xls")) {
             workbook = new HSSFWorkbook(file);
             formulaEvaluator = workbook.getCreationHelper().createFormulaEvaluator();
-        } else if (path.endsWith(".xlsx")) {
+        } else if (lowerCasePath.endsWith(".xlsx")) {
             workbook = new XSSFWorkbook(file);
             formulaEvaluator = new XSSFFormulaEvaluator((XSSFWorkbook) workbook);
         } else {
