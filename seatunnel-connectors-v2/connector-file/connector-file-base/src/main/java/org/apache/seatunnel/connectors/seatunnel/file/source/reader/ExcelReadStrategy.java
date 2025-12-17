@@ -92,10 +92,11 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
             throws IOException {
         Workbook workbook;
         FormulaEvaluator formulaEvaluator;
-        if (currentFileName.endsWith(".xls")) {
+        String lowerCasePath = currentFileName.toLowerCase();
+        if (lowerCasePath.endsWith(".xls")) {
             workbook = new HSSFWorkbook(inputStream);
             formulaEvaluator = workbook.getCreationHelper().createFormulaEvaluator();
-        } else if (currentFileName.endsWith(".xlsx")) {
+        } else if (lowerCasePath.endsWith(".xlsx")) {
             workbook = new XSSFWorkbook(inputStream);
             formulaEvaluator = new XSSFFormulaEvaluator((XSSFWorkbook) workbook);
         } else {
@@ -211,7 +212,7 @@ public class ExcelReadStrategy extends AbstractReadStrategy {
     public SeaTunnelRowType getSeaTunnelRowTypeInfo(String path) throws FileConnectorException {
         throw new FileConnectorException(
                 CommonErrorCodeDeprecated.UNSUPPORTED_OPERATION,
-                "User must defined schema for json file type");
+                "User must defined schema for excel file type");
     }
 
     private Object getCellValue(
