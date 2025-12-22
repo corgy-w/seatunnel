@@ -82,6 +82,11 @@
             <artifactId>seatunnel-format-cdc-custom-json</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>seatunnel-format-protobuf</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

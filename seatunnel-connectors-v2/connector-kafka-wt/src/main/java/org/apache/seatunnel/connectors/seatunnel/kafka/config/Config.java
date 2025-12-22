@@ -222,4 +222,26 @@ public class Config {
                     .defaultValue(1)
                     .withDescription(
                             "The number of copies you need to specify when creating a topic");
+
+    public static final Option<String> PROTOBUF_SCHEMA =
+            Options.key("protobuf_schema")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "Data serialization method protobuf metadata, used to parse protobuf data.");
+
+    public static final Option<String> PROTOBUF_MESSAGE_NAME =
+            Options.key("protobuf_message_name")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Parsing entity class names from Protobuf data.");
+
+    public static final Option<Boolean> STRIP_SCHEMA_REGISTRY_HEADER =
+            Options.key("strip_schema_registry_header")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription(
+                            "Whether to strip the Confluent Schema Registry wire format header "
+                                    + "(magic byte, schema id and message indexes) before "
+                                    + "protobuf deserialization.");
 }

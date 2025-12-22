@@ -27,5 +27,6 @@ public enum MessageFormat {
     DEBEZIUM_JSON,
     OGG_JSON,
     AVRO,
-    CUSTOM_CDC_JSON;
+    CUSTOM_CDC_JSON,
+    PROTOBUF;
 }

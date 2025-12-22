@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kafka.serialize;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.SerializationSchema;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
@@ -32,6 +33,7 @@ import org.apache.seatunnel.format.json.canal.CanalJsonSerializationSchema;
 import org.apache.seatunnel.format.json.debezium.DebeziumJsonSerializationSchema;
 import org.apache.seatunnel.format.json.exception.SeaTunnelJsonFormatException;
 import org.apache.seatunnel.format.json.ogg.OggJsonSerializationSchema;
+import org.apache.seatunnel.format.protobuf.ProtobufSerializationSchema;
 import org.apache.seatunnel.format.text.TextSerializationSchema;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -44,6 +46,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.PROTOBUF_MESSAGE_NAME;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.PROTOBUF_SCHEMA;
 
 @RequiredArgsConstructor
 public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
@@ -66,13 +71,17 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
     }
 
     public static DefaultSeaTunnelRowSerializer create(
-            String topic, SeaTunnelRowType rowType, MessageFormat format, String delimiter) {
+            String topic,
+            SeaTunnelRowType rowType,
+            MessageFormat format,
+            String delimiter,
+            ReadonlyConfig pluginConfig) {
         return new DefaultSeaTunnelRowSerializer(
                 topicExtractor(topic, rowType, format),
                 partitionExtractor(null),
                 timestampExtractor(),
-                keyExtractor(null, rowType, format, delimiter),
-                valueExtractor(rowType, format, delimiter),
+                keyExtractor(null, rowType, format, delimiter, pluginConfig),
+                valueExtractor(rowType, format, delimiter, pluginConfig),
                 headersExtractor());
     }
 
@@ -81,13 +90,14 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
             Integer partition,
             SeaTunnelRowType rowType,
             MessageFormat format,
-            String delimiter) {
+            String delimiter,
+            ReadonlyConfig pluginConfig) {
         return new DefaultSeaTunnelRowSerializer(
                 topicExtractor(topic, rowType, format),
                 partitionExtractor(partition),
                 timestampExtractor(),
-                keyExtractor(null, rowType, format, delimiter),
-                valueExtractor(rowType, format, delimiter),
+                keyExtractor(null, rowType, format, delimiter, pluginConfig),
+                valueExtractor(rowType, format, delimiter, pluginConfig),
                 headersExtractor());
     }
 
@@ -96,13 +106,14 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
             List<String> keyFields,
             SeaTunnelRowType rowType,
             MessageFormat format,
-            String delimiter) {
+            String delimiter,
+            ReadonlyConfig pluginConfig) {
         return new DefaultSeaTunnelRowSerializer(
                 topicExtractor(topic, rowType, format),
                 partitionExtractor(null),
                 timestampExtractor(),
-                keyExtractor(keyFields, rowType, format, delimiter),
-                valueExtractor(rowType, format, delimiter),
+                keyExtractor(keyFields, rowType, format, delimiter, pluginConfig),
+                valueExtractor(rowType, format, delimiter, pluginConfig),
                 headersExtractor());
     }
 
@@ -156,7 +167,8 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
             List<String> keyFields,
             SeaTunnelRowType rowType,
             MessageFormat format,
-            String delimiter) {
+            String delimiter,
+            ReadonlyConfig pluginConfig) {
         if (MessageFormat.COMPATIBLE_DEBEZIUM_JSON.equals(format)) {
             CompatibleDebeziumJsonSerializationSchema serializationSchema =
                     new CompatibleDebeziumJsonSerializationSchema(rowType, true);
@@ -176,14 +188,17 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
         Function<SeaTunnelRow, SeaTunnelRow> keyRowExtractor =
                 createKeyRowExtractor(keyType, rowType);
         SerializationSchema serializationSchema =
-                createSerializationSchema(keyType, format, delimiter, true);
+                createSerializationSchema(keyType, format, delimiter, true, pluginConfig);
         return row -> serializationSchema.serialize(keyRowExtractor.apply(row));
     }
 
     private static Function<SeaTunnelRow, byte[]> valueExtractor(
-            SeaTunnelRowType rowType, MessageFormat format, String delimiter) {
+            SeaTunnelRowType rowType,
+            MessageFormat format,
+            String delimiter,
+            ReadonlyConfig pluginConfig) {
         SerializationSchema serializationSchema =
-                createSerializationSchema(rowType, format, delimiter, false);
+                createSerializationSchema(rowType, format, delimiter, false, pluginConfig);
         return row -> serializationSchema.serialize(row);
     }
 
@@ -216,7 +231,11 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
     }
 
     private static SerializationSchema createSerializationSchema(
-            SeaTunnelRowType rowType, MessageFormat format, String delimiter, boolean isKey) {
+            SeaTunnelRowType rowType,
+            MessageFormat format,
+            String delimiter,
+            boolean isKey,
+            ReadonlyConfig pluginConfig) {
         switch (format) {
             case JSON:
                 return new org.apache.seatunnel.format.json.JsonSerializationSchema(rowType);
@@ -235,6 +254,11 @@ public class DefaultSeaTunnelRowSerializer implements SeaTunnelRowSerializer {
                 return new CompatibleDebeziumJsonSerializationSchema(rowType, isKey);
             case AVRO:
                 return new AvroSerializationSchema(rowType);
+            case PROTOBUF:
+                String protobufMessageName = pluginConfig.get(PROTOBUF_MESSAGE_NAME);
+                String protobufSchema = pluginConfig.get(PROTOBUF_SCHEMA);
+                return new ProtobufSerializationSchema(
+                        rowType, protobufMessageName, protobufSchema);
             case CUSTOM_CDC_JSON:
                 return new CustomJsonSerializationSchema(rowType, isKey);
             default:
