@@ -48,7 +48,7 @@ jobs:
         with:
           submodules: true
       - name: Check code style
-        run: ./mvnw --batch-mode --settings maven-settings.xml --quiet --no-snapshot-updates clean spotless:check
+        run: ./mvnw --batch-mode --settings maven-settings.xml --quiet -U clean spotless:check
 
   sanity-check:
     if: github.repository == 'WhaleOps/whaletunnel'
@@ -252,7 +252,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run all modules unit test
         run: |
-          ./mvnw -B --settings maven-settings.xml -T 1 clean verify -D"maven.test.skip"=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl '!seatunnel-shade/seatunnel-inceptor-driver,!seatunnel-engine/seatunnel-engine-server'
+          ./mvnw -B --settings maven-settings.xml -T 1 clean verify -D"maven.test.skip"=false -D"license.skipAddThirdParty"=true -U -pl '!seatunnel-shade/seatunnel-inceptor-driver,!seatunnel-engine/seatunnel-engine-server'
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -272,7 +272,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 0`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -295,7 +295,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 1`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -318,7 +318,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 2`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -341,7 +341,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 3`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -363,7 +363,7 @@ jobs:
         run: |
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub_update_it_module ${{needs.changes.outputs.it-modules}} 5 4`
           if [ ! -z $sub_modules ]; then
-            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $sub_modules -am -Pci
+            ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $sub_modules -am -Pci
           else
             echo "sub modules is empty, skipping"
           fi
@@ -383,7 +383,7 @@ jobs:
       - name: run seatunnel zeta integration test
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-seatunnel-e2e-base,:connector-console-seatunnel-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -T 1 -B verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-seatunnel-e2e-base,:connector-console-seatunnel-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
   transform-v2-it-part-1:
@@ -400,7 +400,7 @@ jobs:
       - name: run transform-v2 integration test (part-1)
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :seatunnel-transforms-v2-e2e-part-1 -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :seatunnel-transforms-v2-e2e-part-1 -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -418,7 +418,7 @@ jobs:
       - name: run transform-v2 integration test (part-2)
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :seatunnel-transforms-v2-e2e-part-2 -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :seatunnel-transforms-v2-e2e-part-2 -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -440,7 +440,7 @@ jobs:
           ./mvnw --settings maven-settings.xml help:evaluate -Dexpression=project.modules -q -DforceStdout -pl :seatunnel-connector-v2-e2e > /tmp/${timestamp}_sub_module_all_1.txt
           sub_modules=`python3 tools/update_modules_check/update_modules_check.py sub /tmp/${timestamp}_sub_module_all_1.txt`
           run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 0`
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -466,7 +466,7 @@ jobs:
             exit 0
           fi
           run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 1`
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -492,7 +492,7 @@ jobs:
             exit 0
           fi
           run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 2`
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -518,7 +518,7 @@ jobs:
             exit 0
           fi
           run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 3`
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -544,7 +544,7 @@ jobs:
             exit 0
           fi
           run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 4`
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -570,7 +570,7 @@ jobs:
             exit 0
           fi
           run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 5`
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -596,7 +596,7 @@ jobs:
             exit 0
           fi
           run_it_modules=`python3 tools/update_modules_check/update_modules_check.py sub_it_module "$sub_modules" 7 6`
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl $run_it_modules -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl $run_it_modules -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -614,7 +614,7 @@ jobs:
       - name: run jdbc connectors integration test (part-1)
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-jdbc-e2e-part-1 -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-jdbc-e2e-part-1 -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -632,7 +632,7 @@ jobs:
       - name: run jdbc connectors integration test (part-2)
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-jdbc-e2e-part-2 -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-jdbc-e2e-part-2 -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -650,7 +650,7 @@ jobs:
       - name: run jdbc connectors integration test (part-3)
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-jdbc-e2e-part-3 -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-jdbc-e2e-part-3 -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -668,7 +668,7 @@ jobs:
       - name: run jdbc connectors integration test (part-4)
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-jdbc-e2e-part-4 -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-jdbc-e2e-part-4 -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -686,7 +686,7 @@ jobs:
       - name: run jdbc connectors integration test (part-5)
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-jdbc-e2e-part-5 -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1C verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-jdbc-e2e-part-5 -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -703,7 +703,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run kudu connector integration test
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kudu-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-kudu-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -720,7 +720,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run amazonsqs connector integration test
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-amazonsqs-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-amazonsqs-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -738,7 +738,7 @@ jobs:
 #      - name: run kafka connector integration test
 #        if: needs.changes.outputs.api == 'true'
 #        run: |
-#          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-kafka-e2e -am -Pci
+#          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-kafka-e2e -am -Pci
 #        env:
 #          MAVEN_OPTS: -Xmx4096m
 
@@ -756,7 +756,7 @@ jobs:
       - name: run rocket connector integration test
         if: needs.changes.outputs.api == 'true'
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-rocketmq-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-rocketmq-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
@@ -773,7 +773,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: run doris connector integration test
         run: |
-          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true --no-snapshot-updates -pl :connector-doris-e2e -am -Pci
+          ./mvnw --settings maven-settings.xml -B -T 1 verify -DskipUT=true -DskipIT=false -D"license.skipAddThirdParty"=true -U -pl :connector-doris-e2e -am -Pci
         env:
           MAVEN_OPTS: -Xmx4096m
 
