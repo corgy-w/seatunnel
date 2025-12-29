@@ -106,6 +106,7 @@ public class RowDataDocumentSerializer implements DocumentSerializer<SeaTunnelRo
         writeModelSuppliers.put(
                 RowKind.UPDATE_AFTER, isUpsertEnable ? upsertSupplier : updateSupplier);
         writeModelSuppliers.put(RowKind.DELETE, deleteSupplier);
+        writeModelSuppliers.put(RowKind.READ, isUpsertEnable ? upsertSupplier : insertSupplier);
 
         return writeModelSuppliers;
     }
