@@ -34,3 +34,13 @@
 -XX:GCTimeRatio=4
 -XX:G1ReservePercent=15
 -XX:ConcGCThreads=6
+
+# GC Logging
+-XX:+PrintGCDetails
+-XX:+PrintGCDateStamps
+-XX:+PrintGCTimeStamps
+-Xloggc:/tmp/seatunnel/gc/gc.log
+-XX:+UseGCLogFileRotation
+-XX:NumberOfGCLogFiles=10
+-XX:GCLogFileSize=200M
+-XX:+PrintGCApplicationStoppedTime
