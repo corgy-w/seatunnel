@@ -18,6 +18,7 @@
 package org.apache.seatunnel.transform.dmleventfilter;
 
 import org.apache.seatunnel.api.configuration.util.OptionRule;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.connector.TableTransform;
 import org.apache.seatunnel.api.table.factory.Factory;
 import org.apache.seatunnel.api.table.factory.TableTransformFactory;
@@ -25,10 +26,13 @@ import org.apache.seatunnel.api.table.factory.TableTransformFactoryContext;
 
 import com.google.auto.service.AutoService;
 
+import java.util.List;
+
 import static org.apache.seatunnel.transform.dmleventfilter.DMLEventFilterTransformConfig.OPTION_RULE;
 
 @AutoService(Factory.class)
 public class DMLEventFilterTransformFactory implements TableTransformFactory {
+
     @Override
     public String factoryIdentifier() {
         return DMLEventFilterTransform.PLUGIN_NAME;
@@ -41,9 +45,13 @@ public class DMLEventFilterTransformFactory implements TableTransformFactory {
 
     @Override
     public TableTransform createTransform(TableTransformFactoryContext context) {
-        return () ->
-                new DMLEventFilterTransform(
-                        DMLEventFilterTransformConfig.of(context.getOptions()),
-                        context.getCatalogTables());
+        return () -> {
+            List<CatalogTable> catalogTables = context.getCatalogTables();
+            if (catalogTables.isEmpty()) {
+                throw new IllegalArgumentException("No input catalog tables provided");
+            }
+
+            return new DMLEventFilterTransform(catalogTables, context.getOptions());
+        };
     }
 }

@@ -20,6 +20,7 @@ package org.apache.seatunnel.engine.server.task.flow;
 import org.apache.seatunnel.api.table.schema.event.SchemaChangeEvent;
 import org.apache.seatunnel.api.table.type.Record;
 import org.apache.seatunnel.api.transform.Collector;
+import org.apache.seatunnel.api.transform.SeaTunnelFlatMapTransform;
 import org.apache.seatunnel.api.transform.SeaTunnelTransform;
 import org.apache.seatunnel.engine.common.utils.concurrent.CompletableFuture;
 import org.apache.seatunnel.engine.core.dag.actions.TransformChainAction;
@@ -125,34 +126,74 @@ public class TransformFlowLifeCycle<T> extends ActionFlowLifeCycle
                     return;
                 }
                 T inputData = (T) record.getData();
-                T outputData = inputData;
+
+                // Process through transform chain
+                // Use a list to handle potential multi-output from FlatMapTransform
+                List<T> dataList = Collections.singletonList(inputData);
+
                 for (SeaTunnelTransform<T> t : transform) {
-                    try {
-                        outputData = t.map(inputData);
-                    } catch (Exception e) {
-                        log.error(
-                                "Transform[{}] map data error. input row {}",
-                                t.getPluginName(),
-                                inputData);
-                        throw new RuntimeException(
-                                String.format("Transform[%s] map data error", t.getPluginName()),
-                                e);
-                    }
-                    log.debug(
-                            "Transform[{}] input row {} and output row {}",
-                            t,
-                            inputData,
-                            outputData);
-                    if (outputData == null) {
-                        log.trace("Transform[{}] filtered data row {}", t, inputData);
-                        break;
+                    List<T> nextDataList = new java.util.ArrayList<>();
+
+                    for (T data : dataList) {
+                        if (data == null) {
+                            continue;
+                        }
+
+                        try {
+                            // Check if transform supports FlatMapTransform
+                            if (t instanceof SeaTunnelFlatMapTransform) {
+                                List<T> results = ((SeaTunnelFlatMapTransform<T>) t).flatMap(data);
+                                if (results != null && !results.isEmpty()) {
+                                    for (T result : results) {
+                                        if (result != null) {
+                                            nextDataList.add(result);
+                                        }
+                                    }
+                                }
+                                log.debug(
+                                        "Transform[{}] flatMap input row {} and output {} rows",
+                                        t.getPluginName(),
+                                        data,
+                                        results == null ? 0 : results.size());
+                            } else {
+                                // Fallback to map() for backward compatibility
+                                T outputData = t.map(data);
+                                if (outputData != null) {
+                                    nextDataList.add(outputData);
+                                }
+                                log.debug(
+                                        "Transform[{}] input row {} and output row {}",
+                                        t,
+                                        data,
+                                        outputData);
+                                if (outputData == null) {
+                                    log.trace("Transform[{}] filtered data row {}", t, data);
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.error(
+                                    "Transform[{}] process data error. input row {}",
+                                    t.getPluginName(),
+                                    data);
+                            throw new RuntimeException(
+                                    String.format(
+                                            "Transform[%s] process data error", t.getPluginName()),
+                                    e);
+                        }
                     }
 
-                    inputData = outputData;
+                    dataList = nextDataList;
+                    if (dataList.isEmpty()) {
+                        break;
+                    }
                 }
-                if (outputData != null) {
-                    // todo log metrics
-                    collector.collect(new Record<>(outputData));
+
+                // Collect all output data
+                for (T data : dataList) {
+                    if (data != null) {
+                        // todo log metrics
+                        collector.collect(new Record<>(data));
+                    }
                 }
             }
         } catch (Exception e) {

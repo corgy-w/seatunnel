@@ -39,7 +39,13 @@ public enum TransformCommonErrorCode implements SeaTunnelErrorCode {
             "TRANSFORM_COMMON-06", "The '<transform>' upstream schema not exist tables '<tables>'"),
     GET_CATALOG_TABLES_WITH_NOT_EXIST_FIELDS_AND_TABLES_ERROR(
             "TRANSFORM_COMMON-07",
-            "The '<transform>' upstream schema not exist table '<tables>'，upstream schema not exist fields: '<tableNotExistedFields>'");
+            "The '<transform>' upstream schema not exist table '<tables>'，upstream schema not exist fields: '<tableNotExistedFields>'"),
+    CONFIG_VALIDATION_FAILED(
+            "TRANSFORM_COMMON-08",
+            "Configuration validation failed for '<transform>' transform: <message>"),
+    DUPLICATE_FIELD_NAME(
+            "TRANSFORM_COMMON-09",
+            "Field name '<field>' already exists in the schema. Please use a different name for the new field.");
 
     private final String code;
     private final String description;

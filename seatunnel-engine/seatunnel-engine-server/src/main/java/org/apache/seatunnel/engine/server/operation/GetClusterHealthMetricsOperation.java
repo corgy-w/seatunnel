@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.engine.server.operation;
 
+import org.apache.seatunnel.engine.server.SeaTunnelHealthMonitor;
 import org.apache.seatunnel.engine.server.SeaTunnelServer;
 import org.apache.seatunnel.engine.server.serializable.ClientToServerOperationDataSerializerHook;
 
@@ -44,7 +45,12 @@ public class GetClusterHealthMetricsOperation extends Operation
     @Override
     public void run() {
         SeaTunnelServer service = getService();
-        response = service.getSeaTunnelHealthMonitor().getHealthMetrics().render();
+        SeaTunnelHealthMonitor healthMonitor = service.getSeaTunnelHealthMonitor();
+        if (healthMonitor == null || healthMonitor.getHealthMetrics() == null) {
+            response = "SeaTunnel server is initializing, health metrics not available yet";
+            return;
+        }
+        response = healthMonitor.getHealthMetrics().render();
     }
 
     @Override

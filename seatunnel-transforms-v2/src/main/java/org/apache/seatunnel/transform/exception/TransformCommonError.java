@@ -26,6 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.seatunnel.transform.exception.TransformCommonErrorCode.CONFIG_VALIDATION_FAILED;
+import static org.apache.seatunnel.transform.exception.TransformCommonErrorCode.DUPLICATE_FIELD_NAME;
 import static org.apache.seatunnel.transform.exception.TransformCommonErrorCode.GET_CATALOG_TABLES_WITH_NOT_EXIST_FIELDS_AND_TABLES_ERROR;
 import static org.apache.seatunnel.transform.exception.TransformCommonErrorCode.GET_CATALOG_TABLE_WITH_NOT_EXIST_FIELDS_ERROR;
 import static org.apache.seatunnel.transform.exception.TransformCommonErrorCode.GET_CATALOG_TABLE_WITH_NOT_EXIST_TABLES_ERROR;
@@ -106,5 +108,18 @@ public class TransformCommonError {
         }
         return new TransformException(
                 GET_CATALOG_TABLES_WITH_NOT_EXIST_FIELDS_AND_TABLES_ERROR, params);
+    }
+
+    public static TransformException configValidationFailed(String transform, String message) {
+        Map<String, String> params = new HashMap<>();
+        params.put("transform", transform);
+        params.put("message", message);
+        return new TransformException(CONFIG_VALIDATION_FAILED, params);
+    }
+
+    public static TransformException duplicateFieldName(String field) {
+        Map<String, String> params = new HashMap<>();
+        params.put("field", field);
+        return new TransformException(DUPLICATE_FIELD_NAME, params);
     }
 }
