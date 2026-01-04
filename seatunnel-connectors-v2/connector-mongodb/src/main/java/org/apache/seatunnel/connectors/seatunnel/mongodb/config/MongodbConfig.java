@@ -103,7 +103,7 @@ public class MongodbConfig {
                     .longType()
                     .defaultValue(600L)
                     .withDescription(
-                            "This parameter is a MongoDB query option that limits the maximum execution time for query operations. The value of maxTimeMS is in milliseconds. If the execution time of the query exceeds the specified time limit, MongoDB will terminate the operation and return an error.");
+                            "This parameter is a MongoDB query option that limits the maximum execution time for query operations. The value is in minutes. If the execution time of the query exceeds the specified time limit, MongoDB will terminate the operation and return an error.");
 
     public static final Option<Boolean> FLAT_SYNC_STRING =
             Options.key("flat.sync-string")

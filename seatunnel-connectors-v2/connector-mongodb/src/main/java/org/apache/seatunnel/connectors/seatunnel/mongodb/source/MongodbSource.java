@@ -133,7 +133,7 @@ public class MongodbSource
     private MongodbReadOptions createMongodbReadOptions(ReadonlyConfig config) {
         MongodbReadOptions.MongoReadOptionsBuilder mongoReadOptionsBuilder =
                 MongodbReadOptions.builder();
-        mongoReadOptionsBuilder.setMaxTimeMS(config.get(MongodbConfig.MAX_TIME_MIN));
+        mongoReadOptionsBuilder.setMaxTimeMin(config.get(MongodbConfig.MAX_TIME_MIN));
         mongoReadOptionsBuilder.setFetchSize(config.get(MongodbConfig.FETCH_SIZE));
         mongoReadOptionsBuilder.setNoCursorTimeout(config.get(MongodbConfig.CURSOR_NO_TIMEOUT));
         return mongoReadOptionsBuilder.build();

@@ -1197,10 +1197,12 @@ public class DMLEventFilterTransform extends AbstractCatalogSupportFlatMapTransf
                 return outputRow;
             } catch (CdcJsonEnhanceException e) {
                 log.error("Failed to enhance CDC JSON for ADD_DML_MARKER", e);
-                throw new CdcJsonEnhanceException("Failed to enhance CDC JSON for ADD_DML_MARKER", e);
+                throw new CdcJsonEnhanceException(
+                        "Failed to enhance CDC JSON for ADD_DML_MARKER", e);
             } catch (Exception e) {
                 log.error("Failed to enhance CDC JSON for ADD_DML_MARKER", e);
-                throw new CdcJsonEnhanceException("Failed to enhance CDC JSON for ADD_DML_MARKER", e);
+                throw new CdcJsonEnhanceException(
+                        "Failed to enhance CDC JSON for ADD_DML_MARKER", e);
             }
         }
 
