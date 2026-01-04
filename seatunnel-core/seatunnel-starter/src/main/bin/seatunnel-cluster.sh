@@ -48,6 +48,9 @@ if [ -f "${CONF_DIR}/seatunnel-env.sh" ]; then
     . "${CONF_DIR}/seatunnel-env.sh"
 fi
 
+SEATUNNEL_HOME="${SEATUNNEL_HOME:-$APP_DIR}"
+export SEATUNNEL_HOME
+
 if [ $# == 0 ]
 then
     args=""
@@ -57,12 +60,63 @@ fi
 
 set +u
 
+expand_env_vars() {
+  local input="$1"
+  local output=""
+  local rest="$input"
+  local prefix first_char var_name
+
+  while [[ "$rest" == *'$'* ]]; do
+    prefix="${rest%%\$*}"
+    output+="$prefix"
+    rest="${rest#*\$}"
+
+    if [[ "$rest" =~ ^\{([A-Za-z_][A-Za-z0-9_]*)\}(.*)$ ]]; then
+      var_name="${BASH_REMATCH[1]}"
+      rest="${BASH_REMATCH[2]}"
+      if [[ "${!var_name+x}" == "x" ]]; then
+        output+="${!var_name}"
+      else
+        output+='${'"$var_name"'}'
+      fi
+      continue
+    fi
+
+    first_char="${rest:0:1}"
+    if [[ "$first_char" =~ [A-Za-z_] ]]; then
+      var_name="$first_char"
+      rest="${rest:1}"
+      while [[ -n "$rest" ]]; do
+        first_char="${rest:0:1}"
+        if [[ "$first_char" =~ [A-Za-z0-9_] ]]; then
+          var_name+="$first_char"
+          rest="${rest:1}"
+        else
+          break
+        fi
+      done
+      if [[ "${!var_name+x}" == "x" ]]; then
+        output+="${!var_name}"
+      else
+        output+='$'"$var_name"
+      fi
+      continue
+    fi
+
+    output+='$'"$first_char"
+    rest="${rest:1}"
+  done
+
+  output+="$rest"
+  printf '%s' "$output"
+}
+
 if [ -z $SEATUNNEL_CONFIG ]; then
     SEATUNNEL_CONFIG=${CONF_DIR}/seatunnel.yaml
 fi
 
-if test ${JvmOption} ;then
-    JAVA_OPTS="${JAVA_OPTS} ${JvmOption}"
+if [ -n "${JvmOption:-}" ]; then
+    JAVA_OPTS="${JAVA_OPTS} $(expand_env_vars "${JvmOption}")"
 fi
 
 for i in "$@"
@@ -92,12 +146,35 @@ elif [ -e "${CONF_DIR}/log4j2.properties" ]; then
   JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.path=${APP_DIR}/logs"
 fi
 
+# Detect JDK major version
+JAVA_VERSION=$(java -version 2>&1 | head -n 1 | sed -E 's/.*"([0-9]+)\..*/\1/')
+if [[ "$JAVA_VERSION" == "1" ]]; then
+    # For JDK 8, version string is like "1.8.0_xxx"
+    JAVA_VERSION=$(java -version 2>&1 | head -n 1 | sed -E 's/.*"1\.([0-9]+)\..*/\1/')
+fi
+
 if [ "$NODE_ROLE" = "master" ]; then
   OUT=$MASTER_OUT
   JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.file_name=seatunnel-engine-master"
   while IFS= read -r line || [ -n "$line" ]; do
-      if [[ ! "$line" =~ ^# ]]; then
-          JAVA_OPTS="$JAVA_OPTS $line"
+      if [[ ! "$line" =~ ^# ]] && [ -n "$line" ]; then
+          # Check for version-specific prefixes (8: or 11:)
+          if [[ "$line" == 8:* ]]; then
+              # JDK 8 specific option
+              if [[ "$JAVA_VERSION" == "8" ]]; then
+                  line="${line#8:}"
+              else
+                  continue
+              fi
+          elif [[ "$line" == 11:* ]]; then
+              # JDK 11+ specific option
+              if [[ "$JAVA_VERSION" -ge 11 ]]; then
+                  line="${line#11:}"
+              else
+                  continue
+              fi
+          fi
+          JAVA_OPTS="$JAVA_OPTS $(expand_env_vars "$line")"
       fi
   done < ${APP_DIR}/config/jvm_master_options
   # SeaTunnel Engine Config
@@ -108,8 +185,24 @@ elif [ "$NODE_ROLE" = "worker" ]; then
   OUT=$WORKER_OUT
   JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.file_name=seatunnel-engine-worker"
   while IFS= read -r line || [ -n "$line" ]; do
-      if [[ ! "$line" =~ ^# ]]; then
-          JAVA_OPTS="$JAVA_OPTS $line"
+      if [[ ! "$line" =~ ^# ]] && [ -n "$line" ]; then
+          # Check for version-specific prefixes (8: or 11:)
+          if [[ "$line" == 8:* ]]; then
+              # JDK 8 specific option
+              if [[ "$JAVA_VERSION" == "8" ]]; then
+                  line="${line#8:}"
+              else
+                  continue
+              fi
+          elif [[ "$line" == 11:* ]]; then
+              # JDK 11+ specific option
+              if [[ "$JAVA_VERSION" -ge 11 ]]; then
+                  line="${line#11:}"
+              else
+                  continue
+              fi
+          fi
+          JAVA_OPTS="$JAVA_OPTS $(expand_env_vars "$line")"
       fi
   done < ${APP_DIR}/config/jvm_worker_options
   if [ -z $HAZELCAST_CONFIG ]; then
@@ -118,8 +211,24 @@ elif [ "$NODE_ROLE" = "worker" ]; then
 elif [ "$NODE_ROLE" = "master_and_worker" ]; then
   JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.file_name=seatunnel-engine-server"
   while IFS= read -r line || [ -n "$line" ]; do
-      if [[ ! "$line" =~ ^# ]]; then
-          JAVA_OPTS="$JAVA_OPTS $line"
+      if [[ ! "$line" =~ ^# ]] && [ -n "$line" ]; then
+          # Check for version-specific prefixes (8: or 11:)
+          if [[ "$line" == 8:* ]]; then
+              # JDK 8 specific option
+              if [[ "$JAVA_VERSION" == "8" ]]; then
+                  line="${line#8:}"
+              else
+                  continue
+              fi
+          elif [[ "$line" == 11:* ]]; then
+              # JDK 11+ specific option
+              if [[ "$JAVA_VERSION" -ge 11 ]]; then
+                  line="${line#11:}"
+              else
+                  continue
+              fi
+          fi
+          JAVA_OPTS="$JAVA_OPTS $(expand_env_vars "$line")"
       fi
   done < ${APP_DIR}/config/jvm_options
   if [ -z $HAZELCAST_CONFIG ]; then
@@ -146,8 +255,8 @@ JAVA_OPTS="${JAVA_OPTS} -Dhazelcast.config=${HAZELCAST_CONFIG}"
 for i in "$@"
 do
   if [[ "${i}" == *"JvmOption"* ]]; then
-    JVM_OPTION="${i}"
-    JAVA_OPTS="${JAVA_OPTS} ${JVM_OPTION#*=}"
+    JVM_OPTION="${i#*=}"
+    JAVA_OPTS="${JAVA_OPTS} $(expand_env_vars "${JVM_OPTION}")"
   fi
 done
 
@@ -175,10 +284,14 @@ if [[ -n "$HEAP_DUMP_PATH" ]]; then
 fi
 
 # Ensure Xloggc directory exists to avoid GC logging failures.
+# Support both JDK 8 (-Xloggc:) and JDK 11+ (-Xlog:gc*:file=) formats
 GC_LOG_PATH=""
 for opt in $JAVA_OPTS; do
   if [[ "$opt" == -Xloggc:* ]]; then
     GC_LOG_PATH="${opt#-Xloggc:}"
+  elif [[ "$opt" == -Xlog:* ]] && [[ "$opt" == *:file=* ]]; then
+    # Extract file path from -Xlog:gc*:file=/path/to/gc.log:...
+    GC_LOG_PATH=$(echo "$opt" | sed -E 's/.*:file=([^:]+).*/\1/')
   fi
 done
 if [[ -n "$GC_LOG_PATH" ]]; then

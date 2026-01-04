@@ -33,7 +33,11 @@ set "CONF_DIR=%APP_DIR%\config"
 set "APP_JAR=%APP_DIR%\starter\seatunnel-starter.jar"
 set "APP_MAIN=org.apache.seatunnel.core.starter.seatunnel.SeaTunnelClient"
 
+if not defined SEATUNNEL_HOME set "SEATUNNEL_HOME=%APP_DIR%"
+
 if exist "%CONF_DIR%\seatunnel-env.cmd" call "%CONF_DIR%\seatunnel-env.cmd"
+
+if not defined SEATUNNEL_HOME set "SEATUNNEL_HOME=%APP_DIR%"
 
 if "%~1"=="" (
     set "args=-h"
@@ -55,7 +59,9 @@ if not defined SEATUNNEL_CONFIG (
 )
 
 if defined JvmOption (
-    set "JAVA_OPTS=%JAVA_OPTS% %JvmOption%"
+    set "EXTRA_JVM_OPTS=%JvmOption%"
+    call :expand_env_vars EXTRA_JVM_OPTS
+    set "JAVA_OPTS=%JAVA_OPTS% !EXTRA_JVM_OPTS!"
 )
 
 set "JAVA_OPTS=%JAVA_OPTS% -Dhazelcast.client.config=%HAZELCAST_CLIENT_CONFIG%"
@@ -86,12 +92,45 @@ if exist "%CONF_DIR%\log4j2_client.properties" (
     )
 )
 
+REM Detect JDK major version
+for /f "tokens=3" %%a in ('java -version 2^>^&1 ^| findstr /i "version"') do (
+    set "JAVA_VERSION_STRING=%%a"
+)
+set "JAVA_VERSION_STRING=%JAVA_VERSION_STRING:"=%"
+for /f "tokens=1 delims=." %%a in ("%JAVA_VERSION_STRING%") do (
+    set "JAVA_MAJOR_VERSION=%%a"
+)
+REM For JDK 8, version is like 1.8.0_xxx, so major is 1
+if "%JAVA_MAJOR_VERSION%"=="1" (
+    for /f "tokens=2 delims=." %%a in ("%JAVA_VERSION_STRING%") do (
+        set "JAVA_MAJOR_VERSION=%%a"
+    )
+)
+
 set "CLASS_PATH=%CONF_DIR%;%APP_DIR%\lib\*;%APP_JAR%"
 
 for /f "usebackq delims=" %%a in ("%APP_DIR%\config\jvm_client_options") do (
     set "line=%%a"
     if not "!line:~0,1!"=="#" if "!line!" neq "" (
-        set "JAVA_OPTS=!JAVA_OPTS! !line!"
+        REM Check for version-specific prefixes
+        if "!line:~0,2!"=="8:" (
+            REM JDK 8 specific option
+            if "!JAVA_MAJOR_VERSION!"=="8" (
+                set "line=!line:~2!"
+                call :expand_env_vars line
+                set "JAVA_OPTS=!JAVA_OPTS! !line!"
+            )
+        ) else if "!line:~0,3!"=="11:" (
+            REM JDK 11+ specific option
+            if !JAVA_MAJOR_VERSION! GEQ 11 (
+                set "line=!line:~3!"
+                call :expand_env_vars line
+                set "JAVA_OPTS=!JAVA_OPTS! !line!"
+            )
+        ) else (
+            call :expand_env_vars line
+            set "JAVA_OPTS=!JAVA_OPTS! !line!"
+        )
     )
 )
 
@@ -104,6 +143,7 @@ for %%I in (!JAVA_OPTS!) do (
     )
 )
 if defined HEAP_DUMP_PATH (
+    set "HEAP_DUMP_PATH=!HEAP_DUMP_PATH:/=\!"
     set "HEAP_DUMP_DIR=!HEAP_DUMP_PATH!"
     if "!HEAP_DUMP_PATH:~-1!"=="/" set "HEAP_DUMP_DIR=!HEAP_DUMP_PATH:~0,-1!"
     if "!HEAP_DUMP_PATH:~-1!"=="\\" set "HEAP_DUMP_DIR=!HEAP_DUMP_PATH:~0,-1!"
@@ -124,6 +164,8 @@ for %%i in (%*) do (
     set "arg=%%i"
     if "!arg:~0,9!"=="JvmOption" (
         set "JVM_OPTION=!arg:~9!"
+        if "!JVM_OPTION:~0,1!"=="=" set "JVM_OPTION=!JVM_OPTION:~1!"
+        call :expand_env_vars JVM_OPTION
         set "JAVA_OPTS=!JAVA_OPTS! !JVM_OPTION!"
         goto :break_loop
     )
@@ -131,16 +173,37 @@ for %%i in (%*) do (
 :break_loop
 
 REM Ensure Xloggc directory exists to avoid GC logging failures.
+REM Support both JDK 8 (-Xloggc:) and JDK 11+ (-Xlog:gc*:file=) formats
 set "GC_LOG_PATH="
 for %%I in (!JAVA_OPTS!) do (
     set "opt=%%I"
     if "!opt:~0,8!"=="-Xloggc:" (
         set "GC_LOG_PATH=!opt:~8!"
+    ) else if "!opt:~0,5!"=="-Xlog" (
+        REM Extract file path from -Xlog:gc*:file=/path/to/gc.log:...
+        set "xlog_after_file=!opt:*:file=!"
+        if "!xlog_after_file:~1,1!"==":" (
+            set "xlog_drive=!xlog_after_file:~0,1!"
+            set "xlog_rest=!xlog_after_file:~2!"
+            for /f "tokens=1 delims=:" %%P in ("!xlog_rest!") do set "GC_LOG_PATH=!xlog_drive!:%%P"
+        ) else (
+            for /f "tokens=1 delims=:" %%P in ("!xlog_after_file!") do set "GC_LOG_PATH=%%P"
+        )
     )
 )
 if defined GC_LOG_PATH (
+    set "GC_LOG_PATH=!GC_LOG_PATH:/=\!"
     for %%D in ("!GC_LOG_PATH!") do set "GC_LOG_DIR=%%~dpD"
     if defined GC_LOG_DIR if not exist "!GC_LOG_DIR!" mkdir "!GC_LOG_DIR!"
 )
 
 java %JAVA_OPTS% -cp %CLASS_PATH% %APP_MAIN% %args%
+goto :eof
+
+:expand_env_vars
+set "value=!%~1!"
+if not defined value goto :eof
+set "value=!value:${SEATUNNEL_HOME}=!SEATUNNEL_HOME!!"
+set "value=!value:$SEATUNNEL_HOME=!SEATUNNEL_HOME!!"
+set "%~1=!value!"
+goto :eof
