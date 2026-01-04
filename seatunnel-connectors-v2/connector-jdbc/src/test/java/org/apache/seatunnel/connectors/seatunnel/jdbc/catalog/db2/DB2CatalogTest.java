@@ -21,6 +21,7 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.db2;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
@@ -92,11 +93,96 @@ public class DB2CatalogTest {
         String sql = catalog.getCreateTableSql(TablePath.of("test.test.test"), CATALOG_TABLE, true);
         Assertions.assertEquals(
                 "CREATE TABLE IF NOT EXISTS \"test\".\"test\" (\n"
-                        + "\"test\" VARCHAR(32672),\n"
-                        + "\"test2\" VARCHAR(32672),\n"
+                        + "\"test\" VARCHAR(32672) NOT NULL,\n"
+                        + "\"test2\" VARCHAR(32672) NOT NULL,\n"
                         + "\"test3\" VARCHAR(32672),\n"
                         + "PRIMARY KEY ( \"test\", \"test2\" )\n"
                         + ");",
                 sql);
+    }
+
+    @Test
+    void testSplitSqlStatementsWithSemicolonInComment() {
+        String sql =
+                "CREATE TABLE IF NOT EXISTS \"QA_SINK\".\"mysql_all_type_has_key_cdcasdf\" ("
+                        + "\"int_col\" INT NOT NULL"
+                        + ");\n"
+                        + "COMMENT ON COLUMN \"QA_SINK\".\"mysql_all_type_has_key_cdcasdf\"."
+                        + "\"timestamp_col\" IS '‘单引号’,;“双引号”';";
+
+        java.util.List<String> statements = DB2Catalog.splitSqlStatements(sql);
+
+        Assertions.assertEquals(2, statements.size());
+        Assertions.assertEquals(
+                "CREATE TABLE IF NOT EXISTS \"QA_SINK\".\"mysql_all_type_has_key_cdcasdf\" ("
+                        + "\"int_col\" INT NOT NULL"
+                        + ")",
+                statements.get(0));
+        Assertions.assertEquals(
+                "COMMENT ON COLUMN \"QA_SINK\".\"mysql_all_type_has_key_cdcasdf\"."
+                        + "\"timestamp_col\" IS '‘单引号’,;“双引号”'",
+                statements.get(1));
+    }
+
+    @Test
+    void testUniqueKeyColumnsAreNotNull() {
+        CatalogTable catalogTable =
+                CatalogTable.of(
+                        TableIdentifier.of("catalog", "database", "uk_table"),
+                        TableSchema.builder()
+                                .columns(
+                                        Arrays.asList(
+                                                PhysicalColumn.of(
+                                                        "id",
+                                                        BasicType.INT_TYPE,
+                                                        (Long) null,
+                                                        true,
+                                                        null,
+                                                        ""),
+                                                PhysicalColumn.of(
+                                                        "unique_col",
+                                                        BasicType.INT_TYPE,
+                                                        (Long) null,
+                                                        true,
+                                                        null,
+                                                        "")))
+                                .constraintKey(
+                                        Collections.singletonList(
+                                                ConstraintKey.of(
+                                                        ConstraintKey.ConstraintType.UNIQUE_KEY,
+                                                        "uk_unique_col",
+                                                        Collections.singletonList(
+                                                                ConstraintKey.ConstraintKeyColumn
+                                                                        .of(
+                                                                                "unique_col",
+                                                                                ConstraintKey
+                                                                                        .ColumnSortType
+                                                                                        .ASC)))))
+                                .build(),
+                        Collections.emptyMap(),
+                        Collections.emptyList(),
+                        "comment");
+
+        DB2CatalogFactory factory = new DB2CatalogFactory();
+        DB2Catalog catalog =
+                (DB2Catalog)
+                        factory.createCatalog(
+                                "test",
+                                ReadonlyConfig.fromMap(
+                                        new HashMap<String, Object>() {
+                                            {
+                                                put(
+                                                        "base-url",
+                                                        "jdbc:kingbase://localhost:5432/test");
+                                                put("username", "test");
+                                                put("password", "test");
+                                            }
+                                        }));
+
+        String sql =
+                catalog.getCreateTableSql(TablePath.of("test.test.uk_table"), catalogTable, true);
+
+        Assertions.assertTrue(sql.contains("\"unique_col\" INT NOT NULL"));
+        Assertions.assertTrue(sql.contains("CONSTRAINT uk_unique_col_"));
     }
 }

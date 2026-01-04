@@ -213,4 +213,70 @@ public class DB2Catalog extends AbstractJdbcCatalog {
                 sqlQuery,
                 new DB2TypeMapper());
     }
+
+    @Override
+    protected boolean executeInternal(String url, String sql) throws SQLException {
+        try (Statement statement = getConnection(url).createStatement()) {
+            List<String> statements = splitSqlStatements(sql);
+            boolean result = false;
+            for (String stmt : statements) {
+                String trimmed = stmt.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                result = statement.execute(trimmed);
+            }
+            return result;
+        }
+    }
+
+    static List<String> splitSqlStatements(String sql) {
+        List<String> statements = new ArrayList<>();
+        if (sql == null) {
+            return statements;
+        }
+
+        StringBuilder current = new StringBuilder();
+        boolean inSingleQuote = false;
+        boolean inDoubleQuote = false;
+
+        for (int i = 0; i < sql.length(); i++) {
+            char c = sql.charAt(i);
+
+            if (c == '\'' && !inDoubleQuote) {
+                if (inSingleQuote && i + 1 < sql.length() && sql.charAt(i + 1) == '\'') {
+                    current.append(c).append(sql.charAt(i + 1));
+                    i++;
+                    continue;
+                } else {
+                    inSingleQuote = !inSingleQuote;
+                }
+            } else if (c == '"' && !inSingleQuote) {
+                if (inDoubleQuote && i + 1 < sql.length() && sql.charAt(i + 1) == '"') {
+                    current.append(c).append(sql.charAt(i + 1));
+                    i++;
+                    continue;
+                } else {
+                    inDoubleQuote = !inDoubleQuote;
+                }
+            }
+
+            if (c == ';' && !inSingleQuote && !inDoubleQuote) {
+                String statement = current.toString().trim();
+                if (!statement.isEmpty()) {
+                    statements.add(statement);
+                }
+                current.setLength(0);
+            } else {
+                current.append(c);
+            }
+        }
+
+        String last = current.toString().trim();
+        if (!last.isEmpty()) {
+            statements.add(last);
+        }
+
+        return statements;
+    }
 }
