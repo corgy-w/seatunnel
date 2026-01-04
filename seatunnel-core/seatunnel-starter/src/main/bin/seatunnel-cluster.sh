@@ -41,9 +41,15 @@ APP_MAIN="org.apache.seatunnel.core.starter.seatunnel.SeaTunnelServer"
 OUT="${APP_DIR}/logs/seatunnel-server.out"
 HELP=false
 
+SEATUNNEL_HOME="${SEATUNNEL_HOME:-$APP_DIR}"
+export SEATUNNEL_HOME
+
 if [ -f "${CONF_DIR}/seatunnel-env.sh" ]; then
     . "${CONF_DIR}/seatunnel-env.sh"
 fi
+
+SEATUNNEL_HOME="${SEATUNNEL_HOME:-$APP_DIR}"
+export SEATUNNEL_HOME
 
 if [ $# == 0 ]
 then
@@ -102,9 +108,32 @@ fi
 
 CLASS_PATH=${CONF_DIR}:${APP_DIR}/lib/*:${APP_JAR}
 
+# Detect JDK major version
+JAVA_VERSION=$(java -version 2>&1 | head -n 1 | sed -E 's/.*"([0-9]+)\..*/\1/')
+if [[ "$JAVA_VERSION" == "1" ]]; then
+    # For JDK 8, version string is like "1.8.0_xxx"
+    JAVA_VERSION=$(java -version 2>&1 | head -n 1 | sed -E 's/.*"1\.([0-9]+)\..*/\1/')
+fi
+
 while read -r line
 do
     if [[ ! $line == \#* ]] && [ -n "$line" ]; then
+        # Check for version-specific prefixes (8: or 11:)
+        if [[ "$line" == 8:* ]]; then
+            # JDK 8 specific option
+            if [[ "$JAVA_VERSION" == "8" ]]; then
+                line="${line#8:}"
+            else
+                continue
+            fi
+        elif [[ "$line" == 11:* ]]; then
+            # JDK 11+ specific option
+            if [[ "$JAVA_VERSION" -ge 11 ]]; then
+                line="${line#11:}"
+            else
+                continue
+            fi
+        fi
         escaped_line=${line//\\/\\\\}
         escaped_line=${escaped_line//\"/\\\"}
         escaped_line=${escaped_line//\$\(\(/\\\$\(\(}
@@ -140,10 +169,14 @@ if [[ -n "$HEAP_DUMP_PATH" ]]; then
 fi
 
 # Ensure Xloggc directory exists to avoid GC logging failures.
+# Support both JDK 8 (-Xloggc:) and JDK 11+ (-Xlog:gc*:file=) formats
 GC_LOG_PATH=""
 for opt in $JAVA_OPTS; do
   if [[ "$opt" == -Xloggc:* ]]; then
     GC_LOG_PATH="${opt#-Xloggc:}"
+  elif [[ "$opt" == -Xlog:* ]] && [[ "$opt" == *:file=* ]]; then
+    # Extract file path from -Xlog:gc*:file=/path/to/gc.log:...
+    GC_LOG_PATH=$(echo "$opt" | sed -E 's/.*:file=([^:]+).*/\1/')
   fi
 done
 if [[ -n "$GC_LOG_PATH" ]]; then

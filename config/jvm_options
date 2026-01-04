@@ -24,7 +24,7 @@
 
 # JVM Dump
 -XX:+HeapDumpOnOutOfMemoryError
--XX:HeapDumpPath=/tmp/seatunnel/dump/zeta-server
+-XX:HeapDumpPath=${SEATUNNEL_HOME}/logs/dump/zeta-server
 
 # Metaspace
 -XX:MaxMetaspaceSize=2g
@@ -36,11 +36,15 @@
 -XX:ConcGCThreads=6
 
 # GC Logging
--XX:+PrintGCDetails
--XX:+PrintGCDateStamps
--XX:+PrintGCTimeStamps
--Xloggc:/tmp/seatunnel/gc/gc.log
--XX:+UseGCLogFileRotation
--XX:NumberOfGCLogFiles=10
--XX:GCLogFileSize=200M
--XX:+PrintGCApplicationStoppedTime
+# Use "8:" prefix for JDK 8 only, "11:" prefix for JDK 11+
+# JDK 8 GC Logging
+8:-XX:+PrintGCDetails
+8:-XX:+PrintGCDateStamps
+8:-XX:+PrintGCTimeStamps
+8:-Xloggc:${SEATUNNEL_HOME}/logs/gc/gc.log
+8:-XX:+UseGCLogFileRotation
+8:-XX:NumberOfGCLogFiles=10
+8:-XX:GCLogFileSize=200M
+8:-XX:+PrintGCApplicationStoppedTime
+# JDK 11+ GC Logging (Unified Logging)
+11:-Xlog:gc*,safepoint:file=${SEATUNNEL_HOME}/logs/gc/gc.log:time,uptime,tags:filecount=10,filesize=200m
