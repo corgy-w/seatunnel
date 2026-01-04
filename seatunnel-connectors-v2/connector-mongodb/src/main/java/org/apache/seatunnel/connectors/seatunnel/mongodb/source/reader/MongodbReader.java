@@ -117,7 +117,7 @@ public class MongodbReader implements SourceReader<SeaTunnelRow, MongoSplit> {
                         .projection(split.getProjection())
                         .batchSize(readOptions.getFetchSize())
                         .noCursorTimeout(readOptions.isNoCursorTimeout())
-                        .maxTime(readOptions.getMaxTimeMS(), TimeUnit.MINUTES)
+                        .maxTime(readOptions.getMaxTimeMin(), TimeUnit.MINUTES)
                         .iterator();
     }
 
