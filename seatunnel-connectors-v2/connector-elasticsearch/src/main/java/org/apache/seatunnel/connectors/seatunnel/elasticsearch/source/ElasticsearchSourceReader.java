@@ -29,6 +29,8 @@ import org.apache.seatunnel.connectors.seatunnel.elasticsearch.serialize.source.
 import org.apache.seatunnel.connectors.seatunnel.elasticsearch.serialize.source.ElasticsearchRecord;
 import org.apache.seatunnel.connectors.seatunnel.elasticsearch.serialize.source.SeaTunnelRowDeserializer;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -77,19 +79,33 @@ public class ElasticsearchSourceReader
                 SeaTunnelRowDeserializer deserializer =
                         new DefaultSeaTunnelRowDeserializer(seaTunnelRowType);
                 SourceConfig sourceIndexInfo = split.getSourceConfig();
-                ScrollResult scrollResult =
-                        esRestClient.searchByScroll(
-                                sourceIndexInfo.getIndex(),
-                                sourceIndexInfo.getSource(),
-                                sourceIndexInfo.getQuery(),
-                                sourceIndexInfo.getScrollTime(),
-                                sourceIndexInfo.getScrollSize());
-                outputFromScrollResult(scrollResult, sourceIndexInfo, output, deserializer);
-                while (scrollResult.getDocs() != null && scrollResult.getDocs().size() > 0) {
-                    scrollResult =
-                            esRestClient.searchWithScrollId(
-                                    scrollResult.getScrollId(), sourceIndexInfo.getScrollTime());
+                String scrollId = null;
+                try {
+                    ScrollResult scrollResult =
+                            esRestClient.searchByScroll(
+                                    sourceIndexInfo.getIndex(),
+                                    sourceIndexInfo.getSource(),
+                                    sourceIndexInfo.getQuery(),
+                                    sourceIndexInfo.getScrollTime(),
+                                    sourceIndexInfo.getScrollSize());
+                    scrollId = scrollResult.getScrollId();
                     outputFromScrollResult(scrollResult, sourceIndexInfo, output, deserializer);
+                    while (scrollResult.getDocs() != null && scrollResult.getDocs().size() > 0) {
+                        scrollResult =
+                                esRestClient.searchWithScrollId(
+                                        scrollResult.getScrollId(),
+                                        sourceIndexInfo.getScrollTime());
+                        scrollId = scrollResult.getScrollId();
+                        outputFromScrollResult(scrollResult, sourceIndexInfo, output, deserializer);
+                    }
+                } finally {
+                    if (StringUtils.isNotEmpty(scrollId)) {
+                        try {
+                            esRestClient.clearScroll(scrollId);
+                        } catch (Exception e) {
+                            log.warn("Failed to clear scroll ID: " + scrollId, e);
+                        }
+                    }
                 }
             } else if (noMoreSplit) {
                 // signal to the source that we have reached the end of the data.
