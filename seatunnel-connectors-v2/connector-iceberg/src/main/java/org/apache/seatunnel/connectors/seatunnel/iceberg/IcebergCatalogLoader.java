@@ -40,7 +40,9 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 public class IcebergCatalogLoader implements Serializable {
@@ -57,6 +59,10 @@ public class IcebergCatalogLoader implements Serializable {
     public Catalog loadCatalog() {
         // When using the SeaTunnel engine, set the current class loader to prevent loading failures
         Thread.currentThread().setContextClassLoader(IcebergCatalogLoader.class.getClassLoader());
+
+        // Build catalog properties with AWS credentials if provided
+        Map<String, String> catalogProps = buildCatalogProperties();
+
         try {
             if (enableKerberos(config)) {
                 Configuration configuration = new Configuration();
@@ -66,9 +72,7 @@ public class IcebergCatalogLoader implements Serializable {
                         config.getKerberosPrincipal(),
                         config.getKerberosKeytabPath());
                 return CatalogUtil.buildIcebergCatalog(
-                        config.getCatalogName(),
-                        config.getCatalogProps(),
-                        loadHadoopConfig(config));
+                        config.getCatalogName(), catalogProps, loadHadoopConfig(config));
             }
             if (enableRemoteUser(config)) {
                 Catalog catalog =
@@ -78,7 +82,7 @@ public class IcebergCatalogLoader implements Serializable {
                                 (configuration, userGroupInformation) ->
                                         CatalogUtil.buildIcebergCatalog(
                                                 config.getCatalogName(),
-                                                config.getCatalogProps(),
+                                                catalogProps,
                                                 loadHadoopConfig(config)));
                 return catalog;
             }
@@ -86,7 +90,38 @@ public class IcebergCatalogLoader implements Serializable {
             throw new IcebergConnectorException(IcebergConnectorErrorCode.KERBEROS_LOGIN_FAILED, e);
         }
         return CatalogUtil.buildIcebergCatalog(
-                config.getCatalogName(), config.getCatalogProps(), loadHadoopConfig(config));
+                config.getCatalogName(), catalogProps, loadHadoopConfig(config));
+    }
+
+    /**
+     * Build catalog properties with AWS credentials if provided. This method merges user-provided
+     * catalog props with AWS configuration.
+     */
+    private Map<String, String> buildCatalogProperties() {
+        Map<String, String> props = new HashMap<>(config.getCatalogProps());
+
+        // Add AWS credentials if provided
+        if (StringUtils.isNotBlank(config.getAwsRegion())) {
+            props.put("client.region", config.getAwsRegion());
+            props.put("s3.region", config.getAwsRegion());
+            props.put("glue.region", config.getAwsRegion());
+        }
+        if (StringUtils.isNotBlank(config.getAwsAccessKeyId())) {
+            props.put("client.credentials-provider.access-key-id", config.getAwsAccessKeyId());
+            props.put("s3.access-key-id", config.getAwsAccessKeyId());
+        }
+        if (StringUtils.isNotBlank(config.getAwsSecretAccessKey())) {
+            props.put(
+                    "client.credentials-provider.secret-access-key",
+                    config.getAwsSecretAccessKey());
+            props.put("s3.secret-access-key", config.getAwsSecretAccessKey());
+        }
+        if (StringUtils.isNotBlank(config.getAwsSessionToken())) {
+            props.put("client.credentials-provider.session-token", config.getAwsSessionToken());
+            props.put("s3.session-token", config.getAwsSessionToken());
+        }
+
+        return props;
     }
 
     /** Loading Hadoop configuration through reflection */
