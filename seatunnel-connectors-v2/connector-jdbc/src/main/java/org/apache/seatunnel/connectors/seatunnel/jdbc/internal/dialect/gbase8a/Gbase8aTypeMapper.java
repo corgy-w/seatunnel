@@ -50,6 +50,10 @@ public class Gbase8aTypeMapper implements JdbcDialectTypeMapper {
     // -------------------------string----------------------------
     private static final String GBASE8A_CHAR = "CHAR";
     private static final String GBASE8A_VARCHAR = "VARCHAR";
+    private static final String GBASE8A_TINYTEXT = "TINYTEXT";
+    private static final String GBASE8A_TEXT = "TEXT";
+    private static final String GBASE8A_MEDIUMTEXT = "MEDIUMTEXT";
+    private static final String GBASE8A_LONGTEXT = "LONGTEXT";
 
     // ------------------------------time-------------------------
     private static final String GBASE8A_DATE = "DATE";
@@ -58,8 +62,10 @@ public class Gbase8aTypeMapper implements JdbcDialectTypeMapper {
     private static final String GBASE8A_DATETIME = "DATETIME";
 
     // ------------------------------blob-------------------------
+    private static final String GBASE8A_TINYBLOB = "TINYBLOB";
     private static final String GBASE8A_BLOB = "BLOB";
-    private static final String GBASE8A_TEXT = "TEXT";
+    private static final String GBASE8A_MEDIUMBLOB = "MEDIUMBLOB";
+    private static final String GBASE8A_LONGBLOB = "LONGBLOB";
 
     @Override
     public SeaTunnelDataType<?> mapping(ResultSetMetaData metadata, int colIndex)
@@ -87,6 +93,10 @@ public class Gbase8aTypeMapper implements JdbcDialectTypeMapper {
                 return BasicType.FLOAT_TYPE;
             case GBASE8A_CHAR:
             case GBASE8A_VARCHAR:
+            case GBASE8A_TINYTEXT:
+            case GBASE8A_TEXT:
+            case GBASE8A_MEDIUMTEXT:
+            case GBASE8A_LONGTEXT:
                 return BasicType.STRING_TYPE;
             case GBASE8A_DATE:
                 return LocalTimeType.LOCAL_DATE_TYPE;
@@ -95,8 +105,10 @@ public class Gbase8aTypeMapper implements JdbcDialectTypeMapper {
             case GBASE8A_TIMESTAMP:
             case GBASE8A_DATETIME:
                 return LocalTimeType.LOCAL_DATE_TIME_TYPE;
+            case GBASE8A_TINYBLOB:
             case GBASE8A_BLOB:
-            case GBASE8A_TEXT:
+            case GBASE8A_MEDIUMBLOB:
+            case GBASE8A_LONGBLOB:
                 return PrimitiveByteArrayType.INSTANCE;
                 // Doesn't support yet
             case GBASE8A_UNKNOWN:
