@@ -146,6 +146,13 @@ public class SQLTransform extends AbstractCatalogSupportTransform {
 
         builder.constraintKey(outputConstraintKeys);
 
+        // Get primary key column names for nullable inference
+        List<String> primaryKeyColumnNames = null;
+        if (inputCatalogTable.getTableSchema().getPrimaryKey() != null) {
+            primaryKeyColumnNames =
+                    inputCatalogTable.getTableSchema().getPrimaryKey().getColumnNames();
+        }
+
         String[] fieldNames = outRowType.getFieldNames();
         SeaTunnelDataType<?>[] fieldTypes = outRowType.getFieldTypes();
         List<Column> columns = new ArrayList<>(fieldNames.length);
@@ -174,7 +181,13 @@ public class SQLTransform extends AbstractCatalogSupportTransform {
                                 simpleColumn.getSourceType(),
                                 simpleColumn.getOptions());
             } else {
-                column = PhysicalColumn.of(fieldNames[i], fieldTypes[i], 0, true, null, null);
+                // Only infer NOT NULL for columns with primary key names
+                boolean nullable = true;
+                if (primaryKeyColumnNames != null
+                        && primaryKeyColumnNames.contains(fieldNames[i])) {
+                    nullable = false;
+                }
+                column = PhysicalColumn.of(fieldNames[i], fieldTypes[i], 0, nullable, null, null);
             }
             columns.add(column);
         }

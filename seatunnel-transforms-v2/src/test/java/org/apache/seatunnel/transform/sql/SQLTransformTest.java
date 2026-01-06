@@ -415,4 +415,163 @@ public class SQLTransformTest {
         Assertions.assertEquals(100, result.get(0).getField(1));
         Assertions.assertEquals(12345L, result.get(0).getField(2));
     }
+
+    @Test
+    public void testFunctionFieldNullableWithNullableInput() {
+        String tableName = "test";
+        String[] fields = new String[] {"id", "name"};
+        TableSchema.Builder schemaBuilder = TableSchema.builder();
+        schemaBuilder.column(PhysicalColumn.of("id", BasicType.INT_TYPE, 10L, false, null, null));
+        schemaBuilder.column(
+                PhysicalColumn.of("name", BasicType.STRING_TYPE, 50L, true, null, null));
+        CatalogTable table =
+                CatalogTable.of(
+                        TableIdentifier.of(tableName, tableName, null, tableName),
+                        schemaBuilder.build(),
+                        new HashMap<>(),
+                        new ArrayList<>(),
+                        "Test table");
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery("select UPPER(name) as upper_name from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        TableSchema outputSchema = sqlTransform.transformTableSchema();
+        Assertions.assertEquals(1, outputSchema.getColumns().size());
+        Assertions.assertEquals("upper_name", outputSchema.getColumns().get(0).getName());
+        Assertions.assertTrue(
+                outputSchema.getColumns().get(0).isNullable(),
+                "Function field with nullable input should be nullable");
+    }
+
+    @Test
+    public void testIfNullFunctionNullableWhenBothArgumentsNullable() {
+        String tableName = "test";
+        TableSchema.Builder schemaBuilder = TableSchema.builder();
+        schemaBuilder.column(
+                PhysicalColumn.of("name", BasicType.STRING_TYPE, 50L, true, null, null));
+        schemaBuilder.column(
+                PhysicalColumn.of("fallback_name", BasicType.STRING_TYPE, 50L, true, null, null));
+        CatalogTable table =
+                CatalogTable.of(
+                        TableIdentifier.of(tableName, tableName, null, tableName),
+                        schemaBuilder.build(),
+                        new HashMap<>(),
+                        new ArrayList<>(),
+                        "Test table");
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery(
+                                        "select IFNULL(name, fallback_name) as final_value from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        TableSchema outputSchema = sqlTransform.transformTableSchema();
+        Assertions.assertEquals(1, outputSchema.getColumns().size());
+        Assertions.assertTrue(
+                outputSchema.getColumns().get(0).isNullable(),
+                "IFNULL should remain nullable when all arguments might be NULL");
+    }
+
+    @Test
+    public void testColumnReferencePreservesNullable() {
+        String tableName = "test";
+        String[] fields = new String[] {"id", "name"};
+        TableSchema.Builder schemaBuilder = TableSchema.builder();
+        schemaBuilder.column(PhysicalColumn.of("id", BasicType.INT_TYPE, 10L, false, null, null));
+        schemaBuilder.column(
+                PhysicalColumn.of("name", BasicType.STRING_TYPE, 50L, true, null, null));
+        CatalogTable table =
+                CatalogTable.of(
+                        TableIdentifier.of(tableName, tableName, null, tableName),
+                        schemaBuilder.build(),
+                        new HashMap<>(),
+                        new ArrayList<>(),
+                        "Test table");
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery("select id, name from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        TableSchema outputSchema = sqlTransform.transformTableSchema();
+        Assertions.assertEquals(2, outputSchema.getColumns().size());
+        Assertions.assertFalse(
+                outputSchema.getColumns().get(0).isNullable(), "Column 'id' should be NOT NULL");
+        Assertions.assertTrue(
+                outputSchema.getColumns().get(1).isNullable(), "Column 'name' should be nullable");
+    }
+
+    @Test
+    public void testNullIfShouldBeNullableEvenWithNotNullInput() {
+        String tableName = "test";
+        TableSchema.Builder schemaBuilder = TableSchema.builder();
+        schemaBuilder.column(
+                PhysicalColumn.of("name", BasicType.STRING_TYPE, 50L, false, null, null));
+        CatalogTable table =
+                CatalogTable.of(
+                        TableIdentifier.of(tableName, tableName, null, tableName),
+                        schemaBuilder.build(),
+                        new HashMap<>(),
+                        new ArrayList<>(),
+                        "Test table");
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery("select NULLIF(name, 'a') as maybe_null from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        TableSchema outputSchema = sqlTransform.transformTableSchema();
+        Assertions.assertEquals(1, outputSchema.getColumns().size());
+        Assertions.assertTrue(
+                outputSchema.getColumns().get(0).isNullable(),
+                "NULLIF can return NULL even with NOT NULL input");
+    }
+
+    @Test
+    public void testTryCastShouldBeNullableEvenWithNotNullInput() {
+        String tableName = "test";
+        TableSchema.Builder schemaBuilder = TableSchema.builder();
+        schemaBuilder.column(
+                PhysicalColumn.of("name", BasicType.STRING_TYPE, 50L, false, null, null));
+        CatalogTable table =
+                CatalogTable.of(
+                        TableIdentifier.of(tableName, tableName, null, tableName),
+                        schemaBuilder.build(),
+                        new HashMap<>(),
+                        new ArrayList<>(),
+                        "Test table");
+        SQLTransform sqlTransform =
+                new SQLTransform(
+                        new SQLTransformConfig() {
+                            {
+                                setQuery("select TRY_CAST(name AS INT) as maybe_int from dual");
+                                setEngineType(SQLEngineFactory.EngineType.ZETA);
+                            }
+                        },
+                        READONLY_CONFIG,
+                        table);
+        TableSchema outputSchema = sqlTransform.transformTableSchema();
+        Assertions.assertEquals(1, outputSchema.getColumns().size());
+        Assertions.assertTrue(
+                outputSchema.getColumns().get(0).isNullable(),
+                "TRY_CAST can return NULL when cast fails");
+    }
 }
