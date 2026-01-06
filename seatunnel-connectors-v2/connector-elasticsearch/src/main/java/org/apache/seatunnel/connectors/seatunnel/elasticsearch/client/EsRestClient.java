@@ -387,6 +387,38 @@ public class EsRestClient implements Closeable {
         }
     }
 
+    private ScrollResult getDocsFromSqlResponse(ObjectNode responseJson, JsonNode columnNodes) {
+        ScrollResult scrollResult = new ScrollResult();
+        if (responseJson.get("cursor") != null) {
+            scrollResult.setScrollId(responseJson.get("cursor").asText());
+        }
+        if (columnNodes == null) {
+            columnNodes = responseJson.get("columns");
+        }
+        JsonNode valueNodes = responseJson.get("rows");
+        List<Map<String, Object>> docs = new ArrayList<>();
+        if (valueNodes != null) {
+
+            for (int i = 0; i < valueNodes.size(); i++) {
+                JsonNode valueNode = valueNodes.get(i);
+                Map<String, Object> doc = new HashMap<>();
+                for (int j = 0; j < columnNodes.size(); j++) {
+                    String fieldName = columnNodes.get(j).get("name").asText();
+                    if (valueNode.get(j) instanceof TextNode) {
+                        doc.put(fieldName, valueNode.get(j).textValue());
+                    } else {
+                        doc.put(fieldName, valueNode.get(j));
+                    }
+                }
+                docs.add(doc);
+            }
+        }
+        scrollResult.setDocs(docs);
+        scrollResult.setColumnNodes(columnNodes);
+
+        return scrollResult;
+    }
+
     private ScrollResult getDocsFromScrollRequest(String endpoint, String requestBody) {
         Request request = new Request("POST", endpoint);
         request.setJsonEntity(requestBody);
