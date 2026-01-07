@@ -22,6 +22,47 @@ import org.apache.seatunnel.api.configuration.Options;
 
 import java.util.List;
 
+/**
+ * SAP BW Source Configuration Options.
+ *
+ * <p>category = "MY_CATALOG":
+ *
+ * <ul>
+ *   <li>Meaning: The name of the InfoProvider collection or catalog.
+ *   <li>Corresponding SAP Concept: Usually corresponds to InfoArea in SAP BW or CATALOG_NAME in
+ *       ODBO interface.
+ * </ul>
+ *
+ * <p>query = "MY_CUBE":
+ *
+ * <ul>
+ *   <li>Meaning: The name of the specific data source object.
+ *   <li>Corresponding SAP Concept: Can be an InfoCube (e.g., 0D_DECU) or a BEx Query (usually
+ *       starting with a letter). This is the FROM [MY_CUBE] part in MDX query.
+ * </ul>
+ *
+ * <p>dimensions_and_measures = ["Product", "Year", "Amount"]:
+ *
+ * <ul>
+ *   <li>Meaning: The list of fields you want to query.
+ *   <li>Corresponding SAP Concepts:
+ *       <ul>
+ *         <li>Dimensions: Such as Product, Year. Corresponds to ON ROWS in MDX query.
+ *         <li>Measures: Such as Amount, Quantity. Corresponds to ON COLUMNS in MDX query.
+ *       </ul>
+ *   <li>Note: The values here must be the internal technical names in SAP BW, such as 0MATERIAL
+ *       instead of "Material".
+ * </ul>
+ *
+ * <p>variables = "VAR_YEAR=2023":
+ *
+ * <ul>
+ *   <li>Meaning: Query variables (optional).
+ *   <li>Purpose: Used to filter data. For example, query only data from 2023.
+ *   <li>Implementation: SeaTunnel will append these variables to the MDX query statement as SAP
+ *       VARIABLES part and send to the server.
+ * </ul>
+ */
 public class SAPBWSourceOption extends SAPCommonOption {
     public static final Option<String> CATEGORY =
             Options.key("category")
