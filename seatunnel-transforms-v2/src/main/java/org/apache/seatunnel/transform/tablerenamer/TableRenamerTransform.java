@@ -92,7 +92,7 @@ public class TableRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
 
         List<CatalogTable> outputCatalogTable = new ArrayList<>();
         for (CatalogTable table : inputCatalogTable) {
-            String oldTableName = table.getTablePath().getTableName();
+            String oldTableName = table.getTablePath().getSchemaAndTableName();
             String newTableName = convertName(oldTableName);
             TablePath newTablePath =
                     TablePath.of(
@@ -132,7 +132,7 @@ public class TableRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
         if (tablePath == null) {
             return event;
         }
-        String oldTableName = tablePath.getTableName();
+        String oldTableName = tablePath.getSchemaAndTableName();
         String newTableName = tableNameMapping.get(oldTableName);
         if (newTableName == null || newTableName.equals(oldTableName)) {
             return event;
@@ -164,7 +164,7 @@ public class TableRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
         if (tablePath == null) {
             return event;
         }
-        String oldTableName = tablePath.getTableName();
+        String oldTableName = tablePath.getSchemaAndTableName();
         String newTableName = tableNameMapping.get(oldTableName);
         if (newTableName == null || newTableName.equals(oldTableName)) {
             return event;
@@ -302,7 +302,7 @@ public class TableRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
 
         Set<String> upstreamInputTableNames =
                 inputCatalogTable.stream()
-                        .map(e -> e.getTablePath().getTableName())
+                        .map(e -> e.getTablePath().getSchemaAndTableName())
                         .collect(Collectors.toSet());
 
         List<String> notExistTables =
