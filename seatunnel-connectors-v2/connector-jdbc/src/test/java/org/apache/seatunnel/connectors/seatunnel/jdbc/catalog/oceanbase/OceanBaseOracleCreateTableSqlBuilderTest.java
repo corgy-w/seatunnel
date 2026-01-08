@@ -84,4 +84,35 @@ public class OceanBaseOracleCreateTableSqlBuilderTest {
         result = sqlBuilder.buildColumnSql(column);
         Assertions.assertEquals("\"col1\" OTHERTYPE NOT NULL", result);
     }
+
+    @Test
+    public void testColumnWithOceanBaseSource() {
+        CatalogTable catalogTable =
+                CatalogTableUtil.getCatalogTable(
+                        "OceanBase",
+                        "test_database",
+                        "test_schema",
+                        "test_table",
+                        new SeaTunnelRowType(
+                                new String[] {"field"},
+                                new SeaTunnelDataType[] {BasicType.STRING_TYPE}));
+        OceanBaseOracleCreateTableSqlBuilder sqlBuilder =
+                new OceanBaseOracleCreateTableSqlBuilder(catalogTable,false);
+
+        Column column = mock(Column.class);
+
+        // Test DOUBLE -> BINARY_DOUBLE mapping
+        when(column.getSourceType()).thenReturn("DOUBLE");
+        when(column.getDataType()).thenReturn((SeaTunnelDataType) BasicType.DOUBLE_TYPE);
+        when(column.getName()).thenReturn("col_double");
+        String result = sqlBuilder.buildColumnSql(column);
+        Assertions.assertEquals("\"col_double\" BINARY_DOUBLE NOT NULL", result);
+
+        // Test other types pass through
+        when(column.getSourceType()).thenReturn("VARCHAR(100)");
+        when(column.getDataType()).thenReturn((SeaTunnelDataType) BasicType.STRING_TYPE);
+        when(column.getName()).thenReturn("col_varchar");
+        result = sqlBuilder.buildColumnSql(column);
+        Assertions.assertEquals("\"col_varchar\" VARCHAR(100) NOT NULL", result);
+    }
 }

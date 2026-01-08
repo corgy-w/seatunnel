@@ -42,6 +42,9 @@ public class OceanBaseOracleCreateTableSqlBuilder extends OracleCreateTableSqlBu
         } else if (StringUtils.isNotBlank(column.getSourceType())) {
             if (StringUtils.equalsIgnoreCase(DatabaseIdentifier.OCENABASE, sourceCatalogName)) {
                 columnType = column.getSourceType();
+                if (StringUtils.equalsIgnoreCase("DOUBLE", columnType)) {
+                    columnType = OracleTypeConverter.ORACLE_BINARY_DOUBLE;
+                }
             } else if (StringUtils.equalsIgnoreCase(DatabaseIdentifier.ORACLE, sourceCatalogName)) {
                 // handle OceanBase Oracle compatible mode unsupported types, please refer
                 // https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000355002
