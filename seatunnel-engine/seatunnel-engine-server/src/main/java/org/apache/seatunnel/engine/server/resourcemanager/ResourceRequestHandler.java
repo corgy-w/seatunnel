@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 import static com.hazelcast.jet.impl.util.ExceptionUtil.withTryCatch;
 
@@ -268,12 +269,32 @@ public class ResourceRequestHandler {
     }
 
     private void releaseAllResourceInternal() {
-        LOGGER.warning("apply resource not success, release all already applied resource");
+        int appliedCount = resultSlotProfiles.size();
+        int requiredCount = resourceProfile.size();
+
+        String slotIds =
+                resultSlotProfiles.values().stream()
+                        .map(
+                                slot ->
+                                        String.format(
+                                                "Slot-%d@%s", slot.getSlotID(), slot.getWorker()))
+                        .collect(Collectors.joining(", "));
+
+        LOGGER.warning(
+                String.format(
+                        "Apply resource not success for job: %d, required: %d slots, applied: %d slots, "
+                                + "releasing slots: [%s], remaining: %d slots not assigned",
+                        jobId, requiredCount, appliedCount, slotIds, requiredCount - appliedCount));
+
         new ArrayList<>(resultSlotProfiles.keySet())
                 .forEach(
                         index -> {
                             SlotProfile profile = resultSlotProfiles.remove(index);
                             if (profile != null) {
+                                LOGGER.fine(
+                                        String.format(
+                                                "Releasing slot %d for job %d from worker %s",
+                                                profile.getSlotID(), jobId, profile.getWorker()));
                                 resourceManager.releaseResource(jobId, profile);
                             }
                         });
