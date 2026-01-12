@@ -401,10 +401,7 @@ public class SQLTransformTest {
         List<SeaTunnelRow> result =
                 Collections.singletonList(
                         sqlTransform.transformRow(
-                                new SeaTunnelRow(
-                                        new Object[] {
-                                            Integer.valueOf(1), Double.valueOf(313.06), "999.99"
-                                        })));
+                                new SeaTunnelRow(new Object[] {Integer.valueOf(1), 313, "999"})));
         Assertions.assertEquals(1, result.get(0).getField(0));
         Assertions.assertEquals(313, result.get(0).getField(1));
         Assertions.assertEquals(999L, result.get(0).getField(2));
@@ -413,10 +410,7 @@ public class SQLTransformTest {
         result =
                 Collections.singletonList(
                         sqlTransform.transformRow(
-                                new SeaTunnelRow(
-                                        new Object[] {
-                                            Integer.valueOf(2), Double.valueOf(100.5), "12345.67"
-                                        })));
+                                new SeaTunnelRow(new Object[] {Integer.valueOf(2), 100, "12345"})));
         Assertions.assertEquals(2, result.get(0).getField(0));
         Assertions.assertEquals(100, result.get(0).getField(1));
         Assertions.assertEquals(12345L, result.get(0).getField(2));
