@@ -51,6 +51,12 @@ public class GaussDBDialect extends PostgresDialect {
             String[] fieldNames,
             String[] uniqueKeyFields,
             boolean isPrimaryKeyUpdated) {
+
+        String uniqueColumns =
+                Arrays.stream(uniqueKeyFields)
+                        .map(this::quoteIdentifier)
+                        .collect(Collectors.joining(", "));
+
         String updateClause =
                 Arrays.stream(fieldNames)
                         .filter(
@@ -64,10 +70,13 @@ public class GaussDBDialect extends PostgresDialect {
                                                 + "=EXCLUDED."
                                                 + quoteIdentifier(fieldName))
                         .collect(Collectors.joining(", "));
+
         String upsertSQL =
                 String.format(
-                        "%s ON DUPLICATE KEY UPDATE %s",
-                        getInsertIntoStatement(database, tableName, fieldNames), updateClause);
+                        "%s ON CONFLICT (%s) DO UPDATE SET %s",
+                        getInsertIntoStatement(database, tableName, fieldNames),
+                        uniqueColumns,
+                        updateClause);
         return Optional.of(upsertSQL);
     }
 }

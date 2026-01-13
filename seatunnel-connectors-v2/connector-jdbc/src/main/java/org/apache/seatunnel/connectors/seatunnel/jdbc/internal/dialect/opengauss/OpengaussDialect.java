@@ -32,18 +32,26 @@ public class OpengaussDialect extends PostgresDialect {
             String[] fieldNames,
             String[] uniqueKeyFields,
             boolean isPrimaryKeyUpdated) {
+
         String updateClause =
                 Arrays.stream(fieldNames)
-                        .filter(fieldName -> !Arrays.asList(uniqueKeyFields).contains(fieldName))
+                        .filter(
+                                fieldName ->
+                                        isPrimaryKeyUpdated
+                                                || !Arrays.asList(uniqueKeyFields)
+                                                        .contains(fieldName))
                         .map(
                                 fieldName ->
                                         quoteIdentifier(fieldName)
-                                                + "=EXCLUDED."
-                                                + quoteIdentifier(fieldName))
+                                                + "=VALUES("
+                                                + quoteIdentifier(fieldName)
+                                                + ")")
                         .collect(Collectors.joining(", "));
+
         if (updateClause.isEmpty()) {
             return Optional.empty();
         }
+
         String upsertSQL =
                 String.format(
                         "%s ON DUPLICATE KEY UPDATE %s",
