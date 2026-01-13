@@ -166,6 +166,26 @@ public class TableRenamerTest {
     }
 
     @Test
+    public void testConvertWithSchemaSplit() {
+        List<CatalogTable> inputCatalogTable = Arrays.asList(DEFAULT_TABLE);
+        TableRenamerConfig config =
+                new TableRenamerConfig()
+                        .setSpecific(
+                                Arrays.asList(
+                                        new TableRenamerConfig.SpecificModify(
+                                                "Table-x", "new_schema.new_table")));
+        TableRenamerTransform transform = new TableRenamerTransform(inputCatalogTable, config);
+        List<CatalogTable> outputCatalogTable = transform.getProducedCatalogTables();
+
+        Assertions.assertEquals(
+                "database-x.new_schema.new_table",
+                outputCatalogTable.get(0).getTableId().toTablePath().getFullName());
+        Assertions.assertEquals(
+                "new_schema", outputCatalogTable.get(0).getTableId().getSchemaName());
+        Assertions.assertEquals("new_table", outputCatalogTable.get(0).getTableId().getTableName());
+    }
+
+    @Test
     public void testTableNotFound() {
         List<CatalogTable> inputCatalogTable = Arrays.asList(DEFAULT_TABLE);
         TableRenamerConfig config =
