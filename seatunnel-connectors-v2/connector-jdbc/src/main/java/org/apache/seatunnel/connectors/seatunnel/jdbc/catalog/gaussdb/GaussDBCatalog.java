@@ -107,19 +107,48 @@ public class GaussDBCatalog extends PostgresCatalog {
         try {
             List<String> createTableSqls =
                     gaussDBCreateTableSqlBuilder.buildGaussDBCreateTableSql(tablePath);
-            for (String sql : createTableSqls) {
-                executeInternal(dbUrl, sql);
-            }
 
-            // Execute index creation statements
-            if (CollectionUtils.isNotEmpty(gaussDBCreateTableSqlBuilder.getCreateIndexSqls())) {
-                for (String createIndexSql : gaussDBCreateTableSqlBuilder.getCreateIndexSqls()) {
-                    executeInternal(dbUrl, createIndexSql);
+            for (int i = 0; i < createTableSqls.size(); i++) {
+                String sql = createTableSqls.get(i);
+                try {
+                    executeInternal(dbUrl, sql);
+                } catch (Exception e) {
+                    throw new CatalogException(
+                            String.format(
+                                    "Failed executing table creation SQL %d/%d for table %s: %s",
+                                    i + 1,
+                                    createTableSqls.size(),
+                                    tablePath.getFullName(),
+                                    sql.replace("\n", " ")),
+                            e);
                 }
             }
+
+            if (CollectionUtils.isNotEmpty(gaussDBCreateTableSqlBuilder.getCreateIndexSqls())) {
+                List<String> indexSqls = gaussDBCreateTableSqlBuilder.getCreateIndexSqls();
+
+                for (String createIndexSql : indexSqls) {
+                    try {
+                        executeInternal(dbUrl, createIndexSql);
+                    } catch (Exception e) {
+                        log.warn(
+                                "Failed to create index for table {}: {}",
+                                tablePath.getFullName(),
+                                e.getMessage());
+                    }
+                }
+            }
+
+            log.info("Successfully created table {}", tablePath.getFullName());
+
+        } catch (CatalogException e) {
+            throw e;
         } catch (Exception e) {
             throw new CatalogException(
-                    String.format("Failed creating table %s", tablePath.getFullName()), e);
+                    String.format(
+                            "Failed creating table %s: %s",
+                            tablePath.getFullName(), e.getMessage()),
+                    e);
         }
     }
 

@@ -91,19 +91,36 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
 
         if (createIndex && CollectionUtils.isNotEmpty(constraintKeys)) {
             for (ConstraintKey constraintKey : constraintKeys) {
-                if (StringUtils.isBlank(constraintKey.getConstraintName())
-                        || (primaryKey != null
-                                && primaryKey
-                                        .getColumnNames()
-                                        .equals(constraintKey.getColumnNames()))) {
-                    continue;
-                }
-                if (constraintKey.getConstraintType() == ConstraintKey.ConstraintType.UNIQUE_KEY) {
-                    isHaveConstraintKey = true;
-                    columnSqls.add("\t" + buildUniqueKeySql(constraintKey));
-                } else if (constraintKey.getConstraintType()
-                        == ConstraintKey.ConstraintType.INDEX_KEY) {
-                    createIndexSqls.add(buildIndexKeySql(constraintKey, tablePath));
+                try {
+                    if (StringUtils.isBlank(constraintKey.getConstraintName())) {
+                        log.warn(
+                                "Skipping constraint with blank name for table {}",
+                                tablePath.getFullName());
+                        continue;
+                    }
+
+                    if (primaryKey != null
+                            && primaryKey.getColumnNames().equals(constraintKey.getColumnNames())) {
+                        continue;
+                    }
+
+                    if (constraintKey.getConstraintType()
+                            == ConstraintKey.ConstraintType.UNIQUE_KEY) {
+                        isHaveConstraintKey = true;
+                        String uniqueKeySql = buildUniqueKeySql(constraintKey, tablePath);
+                        columnSqls.add("\t" + uniqueKeySql);
+                    } else if (constraintKey.getConstraintType()
+                            == ConstraintKey.ConstraintType.INDEX_KEY) {
+                        String indexSql = buildIndexKeySql(constraintKey, tablePath);
+                        createIndexSqls.add(indexSql);
+                    }
+                } catch (Exception e) {
+                    log.error(
+                            "Failed to process constraint {} for table {}: {}",
+                            constraintKey.getConstraintName(),
+                            tablePath.getFullName(),
+                            e.getMessage(),
+                            e);
                 }
             }
         }
@@ -244,14 +261,31 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
         return String.format("PRIMARY KEY (%s)", columnNamesString);
     }
 
-    private String buildUniqueKeySql(ConstraintKey constraintKey) {
+    private String buildUniqueKeySql(ConstraintKey constraintKey, TablePath tablePath) {
         String columnNamesString =
                 constraintKey.getColumnNames().stream()
                         .map(column -> "\"" + column.getColumnName() + "\"")
                         .collect(Collectors.joining(", "));
-        return String.format(
-                "CONSTRAINT \"%s\" UNIQUE (%s)",
-                constraintKey.getConstraintName(), columnNamesString);
+
+        String constraintName = constraintKey.getConstraintName();
+        if (StringUtils.isBlank(constraintName)) {
+            String columnNamesPart =
+                    constraintKey.getColumnNames().stream()
+                            .map(column -> column.getColumnName())
+                            .collect(Collectors.joining("_"));
+            constraintName = "uk_" + tablePath.getTableName() + "_" + columnNamesPart;
+        } else {
+            constraintName = "uk_" + tablePath.getTableName() + "_" + constraintName;
+        }
+
+        constraintName = validateAndCleanConstraintName(constraintName);
+
+        if (constraintName.length() > 60) {
+            String hash = String.valueOf(Math.abs(constraintName.hashCode())).substring(0, 6);
+            constraintName = constraintName.substring(0, 54) + "_" + hash;
+        }
+
+        return String.format("CONSTRAINT \"%s\" UNIQUE (%s)", constraintName, columnNamesString);
     }
 
     private String buildIndexKeySql(ConstraintKey constraintKey, TablePath tablePath) {
@@ -259,12 +293,113 @@ public class GaussDBCreateTableSqlBuilder extends PostgresCreateTableSqlBuilder 
                 constraintKey.getColumnNames().stream()
                         .map(column -> "\"" + column.getColumnName() + "\"")
                         .collect(Collectors.joining(", "));
+
         String indexName = constraintKey.getConstraintName();
         if (StringUtils.isBlank(indexName)) {
-            indexName = "idx_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+            String columnNamesPart =
+                    constraintKey.getColumnNames().stream()
+                            .map(column -> column.getColumnName())
+                            .collect(Collectors.joining("_"));
+            indexName = "idx_" + tablePath.getTableName() + "_" + columnNamesPart;
+        } else {
+            indexName = "idx_" + tablePath.getTableName() + "_" + indexName;
         }
+
+        indexName = validateAndCleanConstraintName(indexName);
+
+        if (indexName.length() > 60) {
+            String hash = String.valueOf(Math.abs(indexName.hashCode())).substring(0, 6);
+            indexName = indexName.substring(0, 54) + "_" + hash;
+        }
+
         return String.format(
                 "CREATE INDEX \"%s\" ON %s (%s)",
                 indexName, tablePath.getSchemaAndTableName("\""), columnNamesString);
+    }
+
+    /**
+     * Validates and cleans constraint/index names for GaussDB compatibility.
+     *
+     * @param name the original constraint/index name
+     * @return cleaned and validated name
+     */
+    private String validateAndCleanConstraintName(String name) {
+        if (StringUtils.isBlank(name)) {
+            return "constraint_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        }
+
+        String cleanedName = name.trim();
+
+        cleanedName = cleanedName.replaceAll("[^a-zA-Z0-9_]", "_");
+
+        if (!cleanedName.matches("^[a-zA-Z_].*")) {
+            cleanedName = "c_" + cleanedName;
+        }
+
+        if (cleanedName.length() > 60) {
+            cleanedName = cleanedName.substring(0, 60);
+        }
+
+        if (isReservedWord(cleanedName.toUpperCase())) {
+            cleanedName = cleanedName + "_c";
+        }
+
+        return cleanedName;
+    }
+
+    /** Checks if a name is a SQL reserved word that might cause issues in GaussDB. */
+    private boolean isReservedWord(String name) {
+        // Common SQL reserved words that might cause issues
+        String[] reservedWords = {
+            "SELECT",
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "CREATE",
+            "DROP",
+            "ALTER",
+            "TABLE",
+            "INDEX",
+            "CONSTRAINT",
+            "PRIMARY",
+            "FOREIGN",
+            "KEY",
+            "UNIQUE",
+            "NOT",
+            "NULL",
+            "DEFAULT",
+            "CHECK",
+            "REFERENCES",
+            "ON",
+            "CASCADE",
+            "RESTRICT",
+            "SET",
+            "ACTION",
+            "COLUMN",
+            "ADD",
+            "MODIFY",
+            "RENAME",
+            "TO",
+            "FROM",
+            "WHERE",
+            "ORDER",
+            "BY",
+            "GROUP",
+            "HAVING",
+            "UNION",
+            "JOIN",
+            "INNER",
+            "LEFT",
+            "RIGHT",
+            "OUTER",
+            "FULL"
+        };
+
+        for (String reserved : reservedWords) {
+            if (reserved.equals(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
