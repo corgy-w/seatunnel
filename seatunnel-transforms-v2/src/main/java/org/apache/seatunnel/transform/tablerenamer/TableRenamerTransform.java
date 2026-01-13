@@ -93,12 +93,16 @@ public class TableRenamerTransform implements SeaTunnelTransform<SeaTunnelRow> {
         List<CatalogTable> outputCatalogTable = new ArrayList<>();
         for (CatalogTable table : inputCatalogTable) {
             String oldTableName = table.getTablePath().getSchemaAndTableName();
-            String newTableName = convertName(oldTableName);
+            String newName = convertName(oldTableName);
+            String schemaName = table.getTablePath().getSchemaName();
+            String newTableName = newName;
+            if (newName.contains(".")) {
+                String[] split = newName.split("\\.", 2);
+                schemaName = split[0];
+                newTableName = split[1];
+            }
             TablePath newTablePath =
-                    TablePath.of(
-                            table.getTableId().getDatabaseName(),
-                            table.getTableId().getSchemaName(),
-                            newTableName);
+                    TablePath.of(table.getTableId().getDatabaseName(), schemaName, newTableName);
             CatalogTable newCatalogTable =
                     CatalogTable.of(
                             TableIdentifier.of(table.getTableId().getCatalogName(), newTablePath),
