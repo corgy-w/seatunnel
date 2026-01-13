@@ -119,15 +119,49 @@ public class StarRocksSaveModeUtil {
 
     public static String columnToStarrocksType(Column column) {
         checkNotNull(column, "The column is required.");
-        String columnType;
+
+        String columnType = determineColumnType(column);
+        return buildColumnDefinition(column, columnType);
+    }
+
+    private static String determineColumnType(Column column) {
+        // Use sinkType if explicitly set
         if (column.getSinkType() != null) {
-            columnType = column.getSinkType();
-        } else {
-            columnType =
-                    dataTypeToStarrocksType(
-                            column.getDataType(),
-                            column.getColumnLength() == null ? 0 : column.getColumnLength());
+            return column.getSinkType();
         }
+
+        // Handle special source types
+        String convertedType = convertSpecialSourceType(column.getSourceType());
+        if (convertedType != null) {
+            return convertedType;
+        }
+
+        // Convert from SeaTunnel internal type
+        return dataTypeToStarrocksType(
+                column.getDataType(),
+                column.getColumnLength() == null ? 0 : column.getColumnLength());
+    }
+
+    /**
+     * Convert special source types to StarRocks types. Returns null if no special conversion is
+     * needed.
+     */
+    private static String convertSpecialSourceType(String sourceType) {
+        if (sourceType == null) {
+            return null;
+        }
+
+        String upperSourceType = sourceType.toUpperCase();
+        // MySQL BIGINT UNSIGNED and StarRocks LARGEINT should be mapped to LARGEINT
+        if ("BIGINT UNSIGNED".equals(upperSourceType) || "LARGEINT".equals(upperSourceType)) {
+            return "LARGEINT";
+        }
+
+        return null;
+    }
+
+    /** Build the complete column definition SQL. */
+    private static String buildColumnDefinition(Column column, String columnType) {
         return String.format(
                 "`%s` %s %s %s",
                 column.getName(),

@@ -57,6 +57,7 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
     public static final String STARROCKS_INT_UNSIGNED = "INT UNSIGNED";
     public static final String STARROCKS_INTEGER = "INTEGER";
     public static final String STARROCKS_BIGINT = "BIGINT";
+    public static final String STARROCKS_BIGINT_UNSIGNED = "BIGINT UNSIGNED";
     public static final String STARROCKS_DECIMAL = "DECIMAL";
     public static final String STARROCKS_FLOAT = "FLOAT";
     public static final String STARROCKS_DOUBLE = "DOUBLE";
@@ -304,7 +305,9 @@ public class JdbcStarRocksTypeConverter implements TypeConverter<BasicTypeDefine
                 break;
             case DECIMAL:
                 if (column.getSourceType() != null
-                        && column.getSourceType().equalsIgnoreCase(STARROCKS_LARGEINT)) {
+                        && (column.getSourceType().equalsIgnoreCase(STARROCKS_LARGEINT)
+                                || column.getSourceType()
+                                        .equalsIgnoreCase(STARROCKS_BIGINT_UNSIGNED))) {
                     builder.dataType(STARROCKS_LARGEINT);
                     builder.columnType(STARROCKS_LARGEINT);
                     break;
