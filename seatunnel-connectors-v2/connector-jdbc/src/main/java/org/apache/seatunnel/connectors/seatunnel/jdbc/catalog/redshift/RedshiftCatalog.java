@@ -37,8 +37,37 @@ import java.sql.SQLException;
 @Slf4j
 public class RedshiftCatalog extends AbstractJdbcCatalog {
 
-    private final String SELECT_COLUMNS =
-            "SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME ='%s' ORDER BY ordinal_position ASC";
+    private static final String SELECT_COLUMNS_SQL_TEMPLATE =
+            "SELECT \n"
+                    + "    a.attname AS column_name, \n"
+                    + "    t.typname AS type_name, \n"
+                    + "    pg_catalog.format_type(a.atttypid, a.atttypmod) AS full_type_name, \n"
+                    + "    CASE \n"
+                    + "        WHEN a.atttypmod = -1 THEN NULL \n"
+                    + "        WHEN t.typname IN ('varchar', 'bpchar', 'bit', 'bit varying') THEN a.atttypmod - 4 \n"
+                    + "        WHEN t.typname IN ('numeric', 'decimal') THEN (a.atttypmod - 4) >> 16 \n"
+                    + "        ELSE NULL \n"
+                    + "    END AS column_length, \n"
+                    + "    CASE \n"
+                    + "        WHEN a.atttypmod = -1 THEN NULL \n"
+                    + "        WHEN t.typname IN ('numeric', 'decimal') THEN (a.atttypmod - 4) & 65535 \n"
+                    + "        ELSE NULL \n"
+                    + "    END AS column_scale, \n"
+                    + "    pg_catalog.col_description(a.attrelid, a.attnum) AS column_comment, \n"
+                    + "    pg_get_expr(ad.adbin, ad.adrelid) AS default_value, \n"
+                    + "    CASE WHEN a.attnotnull THEN 'NO' ELSE 'YES' END AS is_nullable \n"
+                    + "FROM \n"
+                    + "    pg_class c \n"
+                    + "    JOIN pg_namespace n ON c.relnamespace = n.oid \n"
+                    + "    JOIN pg_attribute a ON a.attrelid = c.oid \n"
+                    + "    JOIN pg_type t ON a.atttypid = t.oid \n"
+                    + "    LEFT JOIN pg_attrdef ad ON a.attnum = ad.adnum AND a.attrelid = ad.adrelid \n"
+                    + "WHERE \n"
+                    + "    n.nspname = '%s' \n"
+                    + "    AND c.relname = '%s' \n"
+                    + "    AND a.attnum > 0 \n"
+                    + "ORDER BY \n"
+                    + "    a.attnum";
 
     public RedshiftCatalog(
             String catalogName,
@@ -118,7 +147,7 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
     @Override
     protected String getSelectColumnsSql(TablePath tablePath) {
         return String.format(
-                SELECT_COLUMNS,
+                SELECT_COLUMNS_SQL_TEMPLATE,
                 tablePath.getSchemaName().toLowerCase(),
                 tablePath.getTableName().toLowerCase());
     }
@@ -134,27 +163,40 @@ public class RedshiftCatalog extends AbstractJdbcCatalog {
 
     @Override
     protected Column buildColumn(ResultSet resultSet) throws SQLException {
-        String columnName = resultSet.getString("COLUMN_NAME");
-        String typeName = resultSet.getString("DATA_TYPE").toUpperCase();
-        long precision = resultSet.getLong("NUMERIC_PRECISION");
-        int scale = resultSet.getInt("NUMERIC_SCALE");
-        long columnLength = resultSet.getLong("CHARACTER_MAXIMUM_LENGTH");
-        Object defaultValue = resultSet.getObject("COLUMN_DEFAULT");
-        String isNullableStr = resultSet.getString("IS_NULLABLE");
+        String columnName = resultSet.getString("column_name");
+        String typeName = resultSet.getString("type_name");
+        String fullTypeName = resultSet.getString("full_type_name");
+        long columnLength = resultSet.getLong("column_length");
+        int columnScale = resultSet.getInt("column_scale");
+        String columnComment = resultSet.getString("column_comment");
+        Object defaultValue = resultSet.getObject("default_value");
+        String isNullableStr = resultSet.getString("is_nullable");
         boolean isNullable = isNullableStr.equals("YES");
+
+        log.info(
+                "Redshift buildColumn - columnName: {}, typeName: {}, fullTypeName: {}, columnComment: '{}', defaultValue: {}",
+                columnName,
+                typeName,
+                fullTypeName,
+                columnComment,
+                defaultValue);
 
         BasicTypeDefine typeDefine =
                 BasicTypeDefine.builder()
                         .name(columnName)
-                        .columnType(typeName)
+                        .columnType(fullTypeName)
                         .dataType(typeName)
                         .length(columnLength)
-                        .precision(precision)
-                        .scale(scale)
+                        .precision(columnLength)
+                        .scale(columnScale)
                         .nullable(isNullable)
                         .defaultValue(defaultValue)
+                        .comment(columnComment)
                         .build();
-        return RedshiftTypeConverter.INSTANCE.convert(typeDefine);
+
+        Column column = RedshiftTypeConverter.INSTANCE.convert(typeDefine);
+
+        return column;
     }
 
     @Override
