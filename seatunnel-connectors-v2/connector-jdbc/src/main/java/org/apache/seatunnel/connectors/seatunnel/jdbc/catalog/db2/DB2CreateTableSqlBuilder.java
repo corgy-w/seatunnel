@@ -131,8 +131,8 @@ public class DB2CreateTableSqlBuilder {
         }
         columnSql.append(columnType);
 
-        // Add NOT NULL if column is not nullable
-        if (!column.isNullable()) {
+        // Add NOT NULL if column is not nullable or is part of primary/unique key
+        if (!column.isNullable() || isColumnInPrimaryOrUniqueKey(column.getName())) {
             columnSql.append(" NOT NULL");
         }
 
@@ -151,6 +151,32 @@ public class DB2CreateTableSqlBuilder {
                 .append(column.getComment().replace("'", "''").replace("\\", "\\\\"))
                 .append("'");
         return columnCommentSql.toString();
+    }
+
+    private boolean isColumnInPrimaryOrUniqueKey(String columnName) {
+        if (primaryKey != null
+                && primaryKey.getColumnNames() != null
+                && primaryKey.getColumnNames().contains(columnName)) {
+            return true;
+        }
+
+        if (CollectionUtils.isEmpty(constraintKeys)) {
+            return false;
+        }
+
+        return constraintKeys.stream()
+                .filter(
+                        constraintKey ->
+                                constraintKey.getConstraintType()
+                                        == ConstraintKey.ConstraintType.UNIQUE_KEY)
+                .anyMatch(
+                        constraintKey ->
+                                constraintKey.getColumnNames().stream()
+                                        .anyMatch(
+                                                keyColumn ->
+                                                        StringUtils.equals(
+                                                                keyColumn.getColumnName(),
+                                                                columnName)));
     }
 
     private String buildConstraintKeySql(ConstraintKey constraintKey) {
