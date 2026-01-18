@@ -176,13 +176,42 @@ public class SeaTunnelServer
     private void startMaster() {
         List<URL> jars;
         try {
-            jars = FileUtils.searchJarFiles(Common.appStarterDir().resolve("zeta"));
+            String storageType =
+                    seaTunnelConfig
+                            .getEngineConfig()
+                            .getCheckpointConfig()
+                            .getStorage()
+                            .getStoragePluginConfig()
+                            .get("storage.type");
+
+            if (storageType != null && !storageType.trim().isEmpty()) {
+                jars =
+                        FileUtils.searchJarFilesForStorage(
+                                Common.appStarterDir().resolve("zeta"), storageType);
+                if (!jars.isEmpty()) {
+                    LOGGER.info(
+                            "Loaded "
+                                    + jars.size()
+                                    + " JAR(s) for storage type '"
+                                    + storageType
+                                    + "' from starter/zeta");
+                }
+            } else {
+                // load all jars
+                jars = FileUtils.searchJarFiles(Common.appStarterDir().resolve("zeta"));
+                if (!jars.isEmpty()) {
+                    LOGGER.info(
+                            "Loaded all "
+                                    + jars.size()
+                                    + " JAR(s) from starter/zeta (no storage type specified)");
+                }
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         ClassLoader appClassLoader = Thread.currentThread().getContextClassLoader();
         ClassLoader classLoader = new URLClassLoader(jars.toArray(new URL[0]));
-        LOGGER.info("init seatunnel server with jars: " + jars);
+        LOGGER.info("init seatunnel server with " + jars.size() + " jars");
 
         Thread.currentThread().setContextClassLoader(classLoader);
 
