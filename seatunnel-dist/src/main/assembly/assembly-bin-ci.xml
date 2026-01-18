@@ -197,22 +197,65 @@
             <scope>provided</scope>
         </dependencySet>
 
-        <!-- ============ SeaTunnel Zeta Jars  ============  -->
+        <!-- ============ SeaTunnel Zeta Common Jars  ============  -->
         <dependencySet>
             <useProjectArtifact>false</useProjectArtifact>
             <useTransitiveDependencies>true</useTransitiveDependencies>
             <unpack>false</unpack>
             <includes>
-                <!--Add hadoop jar -->
-                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
+                <!-- Common checkpoint storage jars -->
                 <include>org.apache.seatunnel:checkpoint-storage-hdfs:jar</include>
                 <include>org.apache.seatunnel:imap-storage-file:jar</include>
-                <include>org.apache.hadoop:hadoop-aws:jar</include>
-                <include>com.amazonaws:aws-java-sdk-bundle:jar</include>
-
             </includes>
             <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
-            <outputDirectory>/starter/zeta</outputDirectory>
+            <outputDirectory>/starter/zeta/common</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <!-- ============ SeaTunnel Zeta HDFS Storage Jars  ============  -->
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <!-- HDFS storage dependencies -->
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/starter/zeta/hdfs</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <!-- ============ SeaTunnel Zeta S3 Storage Jars  ============  -->
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <!-- S3 storage dependencies -->
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
+                <include>org.apache.hadoop:hadoop-aws:jar</include>
+                <include>com.amazonaws:aws-java-sdk-bundle:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/starter/zeta/s3</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <!-- ============ SeaTunnel Zeta OSS Storage Jars  ============  -->
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <!-- OSS storage dependencies -->
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
+                <include>org.apache.hadoop:hadoop-aliyun:jar</include>
+                <include>com.aliyun.oss:aliyun-sdk-oss:jar</include>
+                <include>org.jdom:jdom2:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/starter/zeta/oss</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
 

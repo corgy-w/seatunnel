@@ -20,6 +20,8 @@ package org.apache.seatunnel.engine.server.persistence;
 import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.FileUtils;
+import org.apache.seatunnel.engine.common.config.ConfigProvider;
+import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
 import org.apache.seatunnel.engine.common.utils.FactoryUtil;
 import org.apache.seatunnel.engine.imap.storage.api.IMapStorage;
 import org.apache.seatunnel.engine.imap.storage.api.IMapStorageFactory;
@@ -50,12 +52,45 @@ public class FileMapStore implements MapStore<Object, Object>, MapLoaderLifecycl
     static {
         List<URL> jars;
         try {
-            jars = FileUtils.searchJarFiles(Common.appStarterDir().resolve("zeta"));
+            String storageType = null;
+            try {
+                SeaTunnelConfig seaTunnelConfig = ConfigProvider.locateAndGetSeaTunnelConfig();
+                Map<String, String> storagePluginConfig =
+                        seaTunnelConfig
+                                .getEngineConfig()
+                                .getCheckpointConfig()
+                                .getStorage()
+                                .getStoragePluginConfig();
+                storageType = storagePluginConfig.get("storage.type");
+                logger.info("Detected storage type from config: {}", storageType);
+            } catch (Exception e) {
+                logger.warn(
+                        "Failed to get storage type from config, will load all jars: {}",
+                        e.getMessage());
+            }
+
+            if (storageType != null && !storageType.trim().isEmpty()) {
+                jars =
+                        FileUtils.searchJarFilesForStorage(
+                                Common.appStarterDir().resolve("zeta"), storageType);
+                if (!jars.isEmpty()) {
+                    logger.info(
+                            "Loaded {} JAR(s) for storage type '{}' from starter/zeta",
+                            jars.size(),
+                            storageType);
+                }
+            } else {
+                jars = FileUtils.searchJarFiles(Common.appStarterDir().resolve("zeta"));
+                if (!jars.isEmpty()) {
+                    logger.info(
+                            "Loaded all {} JAR(s) from starter/zeta (no storage type specified)",
+                            jars.size());
+                }
+            }
         } catch (IOException e) {
             logger.error(ExceptionUtils.getMessage(e));
             throw new RuntimeException(e);
         }
-        logger.info("init imap file storage factory with jars: {}", jars);
         zetaClassLoader = new URLClassLoader(jars.toArray(new URL[0]));
     }
 

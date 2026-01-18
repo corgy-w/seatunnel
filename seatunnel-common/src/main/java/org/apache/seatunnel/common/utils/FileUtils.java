@@ -66,6 +66,59 @@ public class FileUtils {
         }
     }
 
+    /**
+     * Search JAR files from specific subdirectories based on storage type. This method loads JARs
+     * from: 1. common/ subdirectory (always loaded) 2. Storage-type specific subdirectory (e.g.,
+     * oss/, hdfs/, s3/)
+     *
+     * @param zetaDirectory The starter/zeta directory
+     * @param storageType The storage type (e.g., "oss", "hdfs", "s3"), can be null
+     * @return List of URLs pointing to JAR files
+     * @throws IOException if there's an error reading JAR files
+     */
+    public static List<URL> searchJarFilesForStorage(
+            @NonNull Path zetaDirectory, String storageType) throws IOException {
+        List<URL> jars = new ArrayList<>();
+
+        // Check if zeta directory exists
+        if (!zetaDirectory.toFile().exists()) {
+            log.debug("Zeta directory does not exist: {}.", zetaDirectory);
+            return jars;
+        }
+
+        Path commonDir = zetaDirectory.resolve("common");
+        if (commonDir.toFile().exists()) {
+            List<URL> commonJars = searchJarFiles(commonDir);
+            jars.addAll(commonJars);
+            log.info("Loaded {} JAR(s) from common directory: {}", commonJars.size(), commonDir);
+        } else {
+            log.warn("Common directory does not exist: {}.", commonDir);
+        }
+
+        if (storageType != null && !storageType.trim().isEmpty()) {
+            String normalizedStorageType = storageType.trim().toLowerCase();
+            Path storageDir = zetaDirectory.resolve(normalizedStorageType);
+
+            if (storageDir.toFile().exists()) {
+                List<URL> storageJars = searchJarFiles(storageDir);
+                jars.addAll(storageJars);
+                log.info(
+                        "Loaded {} JAR(s) from {} storage directory: {}",
+                        storageJars.size(),
+                        normalizedStorageType,
+                        storageDir);
+            } else {
+                log.warn(
+                        "Storage directory does not exist for type '{}': {}.",
+                        normalizedStorageType,
+                        storageDir);
+            }
+        }
+
+        log.info("Total {} JAR(s) loaded for checkpoint storage", jars.size());
+        return jars;
+    }
+
     public static String readFileToStr(Path path) {
         try {
             byte[] bytes = Files.readAllBytes(path);
