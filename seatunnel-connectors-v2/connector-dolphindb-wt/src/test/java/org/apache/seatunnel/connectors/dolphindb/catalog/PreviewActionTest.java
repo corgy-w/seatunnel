@@ -167,7 +167,8 @@ public class PreviewActionTest {
                         "dfs://whalescheduler",
                         "user",
                         DolphinDBConfig.SAVE_MODE_CREATE_TEMPLATE.defaultValue(),
-                        false);
+                        false,
+                        null);
         String sql =
                 ((SQLPreviewResult)
                                 catalog.previewAction(

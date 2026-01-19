@@ -47,7 +47,17 @@ public class MultithreadedTableWriterFactory {
         String partitionColumn = null;
         if (pluginConfig.get(DolphinDBConfig.PARTITION_COLUMN) != null) {
             partitionColumn = pluginConfig.get(DolphinDBConfig.PARTITION_COLUMN);
+        } else if (pluginConfig.get(KEY_COL_NAMES) != null
+                && !pluginConfig.get(KEY_COL_NAMES).isEmpty()) {
+            partitionColumn = pluginConfig.get(KEY_COL_NAMES).get(0);
         }
+
+        if (partitionColumn != null
+                && partitionColumn.startsWith("`")
+                && partitionColumn.endsWith("`")) {
+            partitionColumn = partitionColumn.substring(1, partitionColumn.length() - 1);
+        }
+
         String[] pModelOption = null;
         if (pluginConfig.get(KEY_COL_NAMES) != null) {
             pModelOption = pluginConfig.get(KEY_COL_NAMES).toArray(new String[0]);

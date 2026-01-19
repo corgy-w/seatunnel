@@ -17,7 +17,6 @@
 
 package org.apache.seatunnel.connectors.dolphindb.catalog;
 
-import org.apache.seatunnel.api.configuration.util.ConfigUtil;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
@@ -31,6 +30,7 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseAlreadyExistExce
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
+import org.apache.seatunnel.common.utils.JsonUtils;
 import org.apache.seatunnel.connectors.dolphindb.datatyle.DolphinDBDataTypeConvertor;
 import org.apache.seatunnel.connectors.dolphindb.exception.DolphinDBConnectorException;
 import org.apache.seatunnel.connectors.dolphindb.utils.DolphinDBSaveModeUtil;
@@ -67,6 +67,7 @@ public class DolphinDBCatalog implements Catalog {
     private final String template;
     private final String tableName;
     private final boolean useSSL;
+    private final List<String> keyColNames;
 
     private DBConnection dbConnection;
 
@@ -78,7 +79,8 @@ public class DolphinDBCatalog implements Catalog {
             String databaseName,
             String tableName,
             String template,
-            boolean useSSL) {
+            boolean useSSL,
+            List<String> keyColNames) {
         if (catalogName == null) {
             log.warn("The catalogName is null");
         }
@@ -90,6 +92,7 @@ public class DolphinDBCatalog implements Catalog {
         this.tableName = tableName;
         this.template = template;
         this.useSSL = useSSL;
+        this.keyColNames = keyColNames;
     }
 
     @Override
@@ -336,14 +339,15 @@ public class DolphinDBCatalog implements Catalog {
                 template,
                 tablePath.getDatabaseName(),
                 tablePath.getTableName(),
-                table.getTableSchema());
+                table.getTableSchema(),
+                keyColNames);
     }
 
     private Map<String, String> buildTableOptions(TablePath tablePath) {
         Map<String, String> options = new HashMap<>();
         // todo: do we need to add connect info here?
         options.put("connector", "dolphindb");
-        options.put("config", ConfigUtil.convertToJsonString(tablePath));
+        options.put("config", JsonUtils.toJsonString(tablePath));
         return options;
     }
 

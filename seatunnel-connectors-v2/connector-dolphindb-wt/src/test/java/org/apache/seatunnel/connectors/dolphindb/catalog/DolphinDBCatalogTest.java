@@ -47,7 +47,8 @@ class DolphinDBCatalogTest {
                         "dfs://whalescheduler",
                         "user",
                         DolphinDBConfig.SAVE_MODE_CREATE_TEMPLATE.defaultValue(),
-                        false);
+                        false,
+                        null);
         dolphinDBCatalog.open();
     }
 

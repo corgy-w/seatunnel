@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -75,5 +76,84 @@ public class DolphinDBSaveModeUtilTest {
         String result = DolphinDBSaveModeUtil.columnToDolphinDBType(column);
 
         assertEquals("col1 String", result);
+    }
+
+    @Test
+    void fillingCreateSqlWithKeyColNames() {
+        List<Column> columns = new ArrayList<>();
+        columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("age", BasicType.INT_TYPE, (Long) null, true, null, ""));
+
+        String result =
+                DolphinDBSaveModeUtil.fillingCreateSql(
+                        "CREATE TABLE '${database}'.'${table}' ( ${rowtype_primary_key}, ${rowtype_fields} )",
+                        "dfs://test_db",
+                        "test_table",
+                        TableSchema.builder().columns(columns).build(),
+                        Arrays.asList("id", "name"));
+
+        String normalized = result.replaceAll("\\s+", " ").trim();
+        assertTrue(
+                normalized.contains("id LONG")
+                        && normalized.contains("name STRING")
+                        && normalized.contains("age INT"));
+    }
+
+    @Test
+    void fillingCreateSqlWithKeyColNamesTakesPrecedenceWhenNoPrimaryKey() {
+        List<Column> columns = new ArrayList<>();
+        columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, (Long) null, true, null, ""));
+
+        String result =
+                DolphinDBSaveModeUtil.fillingCreateSql(
+                        "CREATE TABLE '${database}'.'${table}' ( ${rowtype_primary_key}, ${rowtype_fields} )",
+                        "dfs://test_db",
+                        "test_table",
+                        TableSchema.builder().columns(columns).build(),
+                        Arrays.asList("id"));
+
+        assertTrue(
+                result.contains("id")
+                        && result.contains("dfs://test_db")
+                        && result.contains("test_table"));
+    }
+
+    @Test
+    void fillingCreateSqlWithEmptyKeyColNames() {
+        List<Column> columns = new ArrayList<>();
+        columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, (Long) null, true, null, ""));
+
+        String result =
+                DolphinDBSaveModeUtil.fillingCreateSql(
+                        "CREATE TABLE '${database}'.'${table}' ( ${rowtype_fields} )",
+                        "dfs://test_db",
+                        "test_table",
+                        TableSchema.builder().columns(columns).build(),
+                        new ArrayList<>());
+
+        assertTrue(result.contains("id LONG") && result.contains("name STRING"));
+    }
+
+    @Test
+    void fillingCreateSqlPrimaryKeyTakesPrecedenceOverKeyColNames() {
+        List<Column> columns = new ArrayList<>();
+        columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, (Long) null, true, null, ""));
+        columns.add(PhysicalColumn.of("name", BasicType.STRING_TYPE, (Long) null, true, null, ""));
+
+        String result =
+                DolphinDBSaveModeUtil.fillingCreateSql(
+                        "CREATE TABLE '${database}'.'${table}' ( ${rowtype_primary_key}, ${rowtype_fields} )",
+                        "dfs://test_db",
+                        "test_table",
+                        TableSchema.builder()
+                                .primaryKey(PrimaryKey.of("", Arrays.asList("id")))
+                                .columns(columns)
+                                .build(),
+                        Arrays.asList("name"));
+
+        assertTrue(result.contains("id"));
     }
 }
