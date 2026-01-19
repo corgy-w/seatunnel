@@ -18,6 +18,8 @@
 package org.apache.seatunnel.connectors.seatunnel.clickhouse.util;
 
 import org.apache.seatunnel.api.common.SeaTunnelAPIErrorCode;
+import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.ConstraintKey;
 import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
@@ -40,6 +42,10 @@ import com.clickhouse.client.ClickHouseRecord;
 import com.clickhouse.client.ClickHouseRequest;
 import com.clickhouse.client.ClickHouseResponse;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -51,6 +57,8 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -177,6 +185,39 @@ public class ClickhouseProxy implements AutoCloseable {
         return schema;
     }
 
+    /**
+     * Get ClickHouse column comments, the key is column name, value is column comment.
+     *
+     * @param table table name.
+     * @return column comment map.
+     */
+    public Map<String, String> getClickhouseColumnComments(String table) {
+        ClickHouseRequest<?> request = getClickhouseConnection();
+        return getClickhouseColumnComments(request, table);
+    }
+
+    public Map<String, String> getClickhouseColumnComments(
+            ClickHouseRequest<?> request, String table) {
+        String sql = "desc " + table;
+        Map<String, String> comments = new LinkedHashMap<>();
+        try (ClickHouseResponse response = request.query(sql).executeAndWait()) {
+            response.records()
+                    .forEach(
+                            r -> {
+                                if (!"MATERIALIZED".equals(r.getValue(2).asString())) {
+                                    comments.put(
+                                            r.getValue(0).asString(), r.getValue(4).asString());
+                                }
+                            });
+        } catch (ClickHouseException e) {
+            throw new ClickhouseConnectorException(
+                    CommonErrorCodeDeprecated.TABLE_SCHEMA_GET_FAILED,
+                    "Cannot get table column comments from clickhouse",
+                    e);
+        }
+        return comments;
+    }
+
     public List<ClickHouseColumn> getClickHouseColumns(String table) {
         String sql = "SELECT * FROM " + table + " WHERE 1 = 0";
         try (ClickHouseResponse response = this.clickhouseRequest.query(sql).executeAndWait()) {
@@ -187,6 +228,34 @@ public class ClickhouseProxy implements AutoCloseable {
                     CommonErrorCodeDeprecated.TABLE_SCHEMA_GET_FAILED,
                     "Cannot get table schema from clickhouse",
                     e);
+        }
+    }
+
+    /**
+     * Get table comment from ClickHouse.
+     *
+     * @param database database of the table.
+     * @param table table name.
+     * @return table comment, or null if not set.
+     */
+    public String getTableComment(String database, String table) {
+        String sql =
+                String.format(
+                        "select comment from system.tables where database = '%s' and name = '%s'",
+                        database, table);
+        try (ClickHouseResponse response = clickhouseRequest.query(sql).executeAndWait()) {
+            Iterable<ClickHouseRecord> records = response.records();
+            return StreamSupport.stream(records.spliterator(), false)
+                    .map(r -> r.getValue(0).asString())
+                    .findFirst()
+                    .orElse(null);
+        } catch (ClickHouseException e) {
+            log.warn(
+                    "Cannot get table comment from clickhouse for {}.{}: {}",
+                    database,
+                    table,
+                    e.getMessage());
+            return null;
         }
     }
 
@@ -382,6 +451,21 @@ public class ClickhouseProxy implements AutoCloseable {
         executeSql(createTableSql);
     }
 
+    public void createTable(
+            String database, String table, String template, CatalogTable catalogTable) {
+        String createTableSql =
+                ClickhouseCatalogUtil.INSTANCE.getCreateTableSql(
+                        template,
+                        database,
+                        table,
+                        catalogTable.getTableSchema(),
+                        catalogTable.getComment(),
+                        catalogTable.getOptions(),
+                        ClickhouseSinkOptions.SAVE_MODE_CREATE_TEMPLATE.key());
+        log.debug("Create Clickhouse table sql: {}", createTableSql);
+        executeSql(createTableSql);
+    }
+
     public Optional<PrimaryKey> getPrimaryKey(String schema, String table) throws SQLException {
 
         List<String> pkFields;
@@ -415,6 +499,172 @@ public class ClickhouseProxy implements AutoCloseable {
             return Optional.of(PrimaryKey.of(pkName, pkFields));
         }
         return Optional.empty();
+    }
+
+    public List<ClickhouseIndexInfo> getIndexInfos(String schema, String table) {
+        String sql =
+                "SELECT name, expr, type_full, granularity FROM system.data_skipping_indices "
+                        + "WHERE table = '"
+                        + table
+                        + "' AND database = '"
+                        + schema
+                        + "'";
+
+        List<ClickhouseIndexInfo> indexInfos = new ArrayList<>();
+        try (ClickHouseResponse response = clickhouseRequest.query(sql).executeAndWait()) {
+            Iterable<ClickHouseRecord> records = response.records();
+            for (ClickHouseRecord record : records) {
+                String indexName = record.getValue(0).asString();
+                String expr = record.getValue(1).asString();
+                if (indexName == null
+                        || indexName.isEmpty()
+                        || expr == null
+                        || expr.trim().isEmpty()) {
+                    continue;
+                }
+
+                String typeFull = null;
+                try {
+                    typeFull = record.getValue(2).asString();
+                } catch (Exception ignored) {
+                    // type_full may be missing in some ClickHouse versions.
+                }
+                long granularity = 0L;
+                try {
+                    granularity = record.getValue(3).asInteger();
+                } catch (Exception ignored) {
+                    // granularity may be missing; keep default 0.
+                }
+
+                List<String> columnNames = parseIndexExprToColumnNames(expr);
+                indexInfos.add(
+                        new ClickhouseIndexInfo(
+                                indexName, expr, typeFull, granularity, columnNames));
+            }
+        } catch (ClickHouseException e) {
+            log.warn(
+                    "Cannot get data skipping indexes from clickhouse for {}.{}: {}",
+                    schema,
+                    table,
+                    e.getMessage());
+        }
+
+        return indexInfos;
+    }
+
+    public List<ConstraintKey> getIndexConstraintKeys(String schema, String table) {
+        List<ClickhouseIndexInfo> indexInfos = getIndexInfos(schema, table);
+        List<ConstraintKey> indexKeys = new ArrayList<>();
+        for (ClickhouseIndexInfo indexInfo : indexInfos) {
+            if (indexInfo.getColumnNames() == null || indexInfo.getColumnNames().isEmpty()) {
+                continue;
+            }
+            List<ConstraintKey.ConstraintKeyColumn> columns =
+                    indexInfo.getColumnNames().stream()
+                            .map(
+                                    name ->
+                                            ConstraintKey.ConstraintKeyColumn.of(
+                                                    name, ConstraintKey.ColumnSortType.ASC))
+                            .collect(Collectors.toList());
+            indexKeys.add(
+                    ConstraintKey.of(
+                            ConstraintKey.ConstraintType.INDEX_KEY, indexInfo.getName(), columns));
+        }
+        return indexKeys;
+    }
+
+    private List<String> parseIndexExprToColumnNames(String expr) {
+        List<String> columns = new ArrayList<>();
+        if (expr == null || expr.trim().isEmpty()) {
+            return columns;
+        }
+
+        // 1. Try JSqlParser first
+        try {
+            Expression expression = CCJSqlParserUtil.parseExpression(expr);
+            expression.accept(
+                    new ExpressionDeParser() {
+                        @Override
+                        public void visit(Column tableColumn) {
+                            String colName = tableColumn.getColumnName();
+                            if (colName.startsWith("`") && colName.endsWith("`")) {
+                                colName = colName.substring(1, colName.length() - 1);
+                            }
+                            columns.add(colName);
+                            super.visit(tableColumn);
+                        }
+                    });
+            return columns;
+        } catch (Throwable e) {
+            log.warn(
+                    "JSqlParser parsing failed for expr: {}, fallback to regex. Error: {}",
+                    expr,
+                    e.getMessage());
+        }
+
+        // 2. Fallback Regex
+        // Matches identifiers (quoted or unquoted) that are NOT followed by '(' (which would
+        // indicate a function)
+        Pattern pattern = Pattern.compile("(`[^`]+`|[a-zA-Z_][a-zA-Z0-9_]*)(\\s*\\()?");
+        Matcher matcher = pattern.matcher(expr);
+        while (matcher.find()) {
+            String identifier = matcher.group(1);
+            String paren = matcher.group(2);
+
+            if (paren != null && !paren.isEmpty()) {
+                continue;
+            }
+
+            if (identifier != null) {
+                if (identifier.startsWith("`") && identifier.endsWith("`")) {
+                    identifier = identifier.substring(1, identifier.length() - 1);
+                }
+                columns.add(identifier);
+            }
+        }
+        return columns;
+    }
+
+    public static final class ClickhouseIndexInfo {
+
+        private final String name;
+        private final String expr;
+        private final String typeFull;
+        private final long granularity;
+        private final List<String> columnNames;
+
+        public ClickhouseIndexInfo(
+                String name,
+                String expr,
+                String typeFull,
+                long granularity,
+                List<String> columnNames) {
+            this.name = name;
+            this.expr = expr;
+            this.typeFull = typeFull;
+            this.granularity = granularity;
+            this.columnNames = columnNames;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getExpr() {
+            return expr;
+        }
+
+        public String getTypeFull() {
+            return typeFull;
+        }
+
+        public long getGranularity() {
+            return granularity;
+        }
+
+        public List<String> getColumnNames() {
+            return columnNames;
+        }
     }
 
     public boolean isExistsData(String tableName) throws ExecutionException, InterruptedException {

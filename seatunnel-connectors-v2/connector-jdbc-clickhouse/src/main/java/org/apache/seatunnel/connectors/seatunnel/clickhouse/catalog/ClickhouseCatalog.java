@@ -34,6 +34,7 @@ import org.apache.seatunnel.api.table.catalog.exception.DatabaseAlreadyExistExce
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableAlreadyExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.config.ClickhouseSinkOptions;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.util.ClickhouseCatalogUtil;
 import org.apache.seatunnel.connectors.seatunnel.clickhouse.util.ClickhouseProxy;
@@ -105,6 +106,10 @@ public class ClickhouseCatalog implements Catalog {
         Map<String, String> sourceTypeMap =
                 proxy.getClickhouseTableSchema(tablePath.getFullNameWithQuoted());
 
+        // Get column comments from DESC query
+        Map<String, String> columnComments =
+                proxy.getClickhouseColumnComments(tablePath.getFullNameWithQuoted());
+
         try {
             Optional<PrimaryKey> primaryKey =
                     proxy.getPrimaryKey(tablePath.getDatabaseName(), tablePath.getTableName());
@@ -115,27 +120,38 @@ public class ClickhouseCatalog implements Catalog {
                     tablePath,
                     builder,
                     clickHouseColumns.iterator(),
-                    column ->
-                            PhysicalColumn.of(
-                                    column.getColumnName(),
-                                    TypeConvertUtil.convert(column),
-                                    (long) column.getEstimatedLength(),
-                                    column.getScale(),
-                                    column.isNullable(),
-                                    null,
-                                    null,
-                                    null,
-                                    sourceTypeMap.get(column.getColumnName())));
+                    column -> {
+                        SeaTunnelDataType<?> dataType = TypeConvertUtil.convert(column);
+
+                        Long columnLength = TypeConvertUtil.getColumnLength(column, dataType);
+
+                        String columnComment = columnComments.get(column.getColumnName());
+
+                        return PhysicalColumn.of(
+                                column.getColumnName(),
+                                dataType,
+                                columnLength,
+                                column.getScale(),
+                                column.isNullable(),
+                                null,
+                                columnComment,
+                                null,
+                                sourceTypeMap.get(column.getColumnName()));
+                    });
 
             TableIdentifier tableIdentifier =
                     TableIdentifier.of(
                             catalogName, tablePath.getDatabaseName(), tablePath.getTableName());
+
+            String tableComment =
+                    proxy.getTableComment(tablePath.getDatabaseName(), tablePath.getTableName());
+
             return CatalogTable.of(
                     tableIdentifier,
                     builder.build(),
                     buildConnectorOptions(tablePath),
                     Collections.emptyList(),
-                    "");
+                    tableComment);
         } catch (Exception e) {
             throw new CatalogException(
                     String.format("Failed getting table %s", tablePath.getFullName()), e);
@@ -146,12 +162,7 @@ public class ClickhouseCatalog implements Catalog {
     public void createTable(TablePath tablePath, CatalogTable table, boolean ignoreIfExists)
             throws TableAlreadyExistException, DatabaseNotExistException, CatalogException {
         log.debug("Create table :{}.{}", tablePath.getDatabaseName(), tablePath.getTableName());
-        proxy.createTable(
-                tablePath.getDatabaseName(),
-                tablePath.getTableName(),
-                template,
-                table.getComment(),
-                table.getTableSchema());
+        proxy.createTable(tablePath.getDatabaseName(), tablePath.getTableName(), template, table);
     }
 
     @Override
@@ -260,6 +271,7 @@ public class ClickhouseCatalog implements Catalog {
                             tablePath.getTableName(),
                             catalogTable.get().getTableSchema(),
                             catalogTable.get().getComment(),
+                            catalogTable.get().getOptions(),
                             ClickhouseSinkOptions.SAVE_MODE_CREATE_TEMPLATE.key()));
         } else if (actionType == ActionType.DROP_TABLE) {
             return new SQLPreviewResult(

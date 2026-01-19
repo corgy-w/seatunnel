@@ -46,9 +46,6 @@ public class StringInjectFunction implements ClickhouseFieldInjectFunction {
             } else if ("MultiPolygon".equals(fieldType)) {
                 statement.setObject(
                         index, MAPPER.readValue(replace(value.toString()), double[][][][].class));
-            } else if (value instanceof byte[]) {
-                // Handle BYTES type: ClickHouse String can store binary data
-                statement.setBytes(index, (byte[]) value);
             } else {
                 statement.setString(index, value.toString());
             }
