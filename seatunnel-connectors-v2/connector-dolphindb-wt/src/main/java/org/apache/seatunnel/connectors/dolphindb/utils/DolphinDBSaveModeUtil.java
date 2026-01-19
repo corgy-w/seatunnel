@@ -43,10 +43,25 @@ public class DolphinDBSaveModeUtil {
 
     public static String fillingCreateSql(
             String template, String database, String table, TableSchema tableSchema) {
+        return fillingCreateSql(template, database, table, tableSchema, null);
+    }
+
+    public static String fillingCreateSql(
+            String template,
+            String database,
+            String table,
+            TableSchema tableSchema,
+            List<String> keyColNames) {
         String primaryKey = "";
+        String tablePath = database + "." + table;
         if (tableSchema.getPrimaryKey() != null) {
             primaryKey = String.join(",", tableSchema.getPrimaryKey().getColumnNames());
         }
+
+        if (StringUtils.isEmpty(primaryKey) && keyColNames != null && !keyColNames.isEmpty()) {
+            primaryKey = String.join(",", keyColNames);
+        }
+
         template =
                 template.replaceAll(
                         String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_PRIMARY_KEY),

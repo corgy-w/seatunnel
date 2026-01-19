@@ -28,6 +28,7 @@ import com.google.auto.service.AutoService;
 
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.ADDRESS;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.DATABASE;
+import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.KEY_COL_NAMES;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.PASSWORD;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.TABLE;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.USER;
@@ -45,7 +46,8 @@ public class DolphinDBCatalogFactory implements CatalogFactory {
                 options.get(DATABASE),
                 options.get(TABLE),
                 options.get(DolphinDBConfig.SAVE_MODE_CREATE_TEMPLATE),
-                options.get(USE_SSL));
+                options.get(USE_SSL),
+                options.get(KEY_COL_NAMES));
     }
 
     @Override
