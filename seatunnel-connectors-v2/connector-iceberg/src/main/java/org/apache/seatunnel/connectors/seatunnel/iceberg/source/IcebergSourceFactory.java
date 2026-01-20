@@ -43,6 +43,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.AWS_ACCESS_KEY_ID;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.AWS_REGION;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.AWS_SECRET_ACCESS_KEY;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.AWS_SESSION_TOKEN;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HADOOP_CONF_PATH_PROP;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HADOOP_PROPS;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.KERBEROS_KEYTAB_PATH;
@@ -90,7 +94,12 @@ public class IcebergSourceFactory implements TableSourceFactory {
                         KERBEROS_PRINCIPAL,
                         KERBEROS_KEYTAB_PATH,
                         REMOTE_USER,
-                        KEY_INCREMENT_SCAN_INTERVAL)
+                        KEY_INCREMENT_SCAN_INTERVAL,
+                        // AWS configuration
+                        AWS_REGION,
+                        AWS_ACCESS_KEY_ID,
+                        AWS_SECRET_ACCESS_KEY,
+                        AWS_SESSION_TOKEN)
                 .build();
     }
 

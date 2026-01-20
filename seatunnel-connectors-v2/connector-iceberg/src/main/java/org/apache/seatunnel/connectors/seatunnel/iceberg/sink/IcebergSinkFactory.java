@@ -34,6 +34,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
 
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.AWS_ACCESS_KEY_ID;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.AWS_REGION;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.AWS_SECRET_ACCESS_KEY;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.AWS_SESSION_TOKEN;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.HADOOP_CONF_PATH_PROP;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.CommonConfig.REMOTE_USER;
 
@@ -70,7 +74,12 @@ public class IcebergSinkFactory implements TableSinkFactory {
                         HADOOP_CONF_PATH_PROP,
                         REMOTE_USER,
                         SinkCommonOptions.MULTI_TABLE_SINK_REPLICA,
-                        SinkCommonOptions.MULTI_TABLE_SINK_TTL_SEC)
+                        SinkCommonOptions.MULTI_TABLE_SINK_TTL_SEC,
+                        // AWS configuration
+                        AWS_REGION,
+                        AWS_ACCESS_KEY_ID,
+                        AWS_SECRET_ACCESS_KEY,
+                        AWS_SESSION_TOKEN)
                 .conditional(
                         SinkConfig.DATA_SAVE_MODE,
                         DataSaveMode.CUSTOM_PROCESSING,

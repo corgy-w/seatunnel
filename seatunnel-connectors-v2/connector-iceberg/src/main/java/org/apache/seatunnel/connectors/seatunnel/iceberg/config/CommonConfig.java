@@ -106,6 +106,31 @@ public class CommonConfig extends KerberosConfig implements Serializable {
                     .noDefaultValue()
                     .withDescription("The remote user name of hdfs");
 
+    // AWS Glue Catalog configuration
+    public static final Option<String> AWS_REGION =
+            Options.key("aws.region")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("AWS region for Glue catalog");
+
+    public static final Option<String> AWS_ACCESS_KEY_ID =
+            Options.key("aws.access-key-id")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("AWS access key ID for authentication");
+
+    public static final Option<String> AWS_SECRET_ACCESS_KEY =
+            Options.key("aws.secret-access-key")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("AWS secret access key for authentication");
+
+    public static final Option<String> AWS_SESSION_TOKEN =
+            Options.key("aws.session-token")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("AWS session token for temporary credentials");
+
     private String catalogName;
     private String namespace;
     private String table;
@@ -119,6 +144,11 @@ public class CommonConfig extends KerberosConfig implements Serializable {
     private String kerberosKeytabPath;
     private String kerberosKrb5ConfPath;
     private String remoteUser;
+    // AWS credentials
+    private String awsRegion;
+    private String awsAccessKeyId;
+    private String awsSecretAccessKey;
+    private String awsSessionToken;
 
     public CommonConfig(ReadonlyConfig pluginConfig) {
         this.catalogName = checkArgumentNotNull(pluginConfig.get(KEY_CATALOG_NAME));
@@ -141,6 +171,19 @@ public class CommonConfig extends KerberosConfig implements Serializable {
         }
         if (pluginConfig.getOptional(REMOTE_USER).isPresent()) {
             this.remoteUser = pluginConfig.getOptional(REMOTE_USER).get();
+        }
+        // AWS credentials
+        if (pluginConfig.getOptional(AWS_REGION).isPresent()) {
+            this.awsRegion = pluginConfig.getOptional(AWS_REGION).get();
+        }
+        if (pluginConfig.getOptional(AWS_ACCESS_KEY_ID).isPresent()) {
+            this.awsAccessKeyId = pluginConfig.getOptional(AWS_ACCESS_KEY_ID).get();
+        }
+        if (pluginConfig.getOptional(AWS_SECRET_ACCESS_KEY).isPresent()) {
+            this.awsSecretAccessKey = pluginConfig.getOptional(AWS_SECRET_ACCESS_KEY).get();
+        }
+        if (pluginConfig.getOptional(AWS_SESSION_TOKEN).isPresent()) {
+            this.awsSessionToken = pluginConfig.getOptional(AWS_SESSION_TOKEN).get();
         }
         validate();
     }
