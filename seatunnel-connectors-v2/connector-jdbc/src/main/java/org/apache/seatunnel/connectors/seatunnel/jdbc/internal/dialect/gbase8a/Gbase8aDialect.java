@@ -17,6 +17,8 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a;
 
+import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.api.table.converter.TypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
@@ -35,6 +37,12 @@ public class Gbase8aDialect implements JdbcDialect {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
+    public TypeConverter typeConverter() {
+        return Gbase8aTypeConverter.INSTANCE;
+    }
+
+    @Override
     public JdbcRowConverter getRowConverter() {
         return new Gbase8aJdbcRowConverter();
     }
@@ -45,12 +53,25 @@ public class Gbase8aDialect implements JdbcDialect {
     }
 
     @Override
+    public String quoteIdentifier(String identifier) {
+        return "`" + identifier + "`";
+    }
+
+    @Override
+    public String quoteDatabaseIdentifier(String identifier) {
+        return "`" + identifier + "`";
+    }
+
+    @Override
     public Optional<String> getUpsertStatement(
             String database,
             String tableName,
             String[] fieldNames,
             String[] uniqueKeyFields,
             boolean isPrimaryKeyUpdated) {
+        // Gbase8a does NOT support MySQL's ON DUPLICATE KEY UPDATE syntax
+        // Testing shows that Gbase8a treats this as a normal INSERT and creates duplicate rows
+        // instead of updating existing rows
         return Optional.empty();
     }
 
@@ -61,5 +82,21 @@ public class Gbase8aDialect implements JdbcDialect {
         try (PreparedStatement preparedStatement = conn.prepareStatement(metadataQuery)) {
             return preparedStatement.getMetaData();
         }
+    }
+
+    @Override
+    public String tableIdentifier(TablePath tablePath) {
+        return tablePath.getDatabaseName() != null
+                ? quoteDatabaseIdentifier(tablePath.getDatabaseName())
+                        + "."
+                        + quoteIdentifier(tablePath.getTableName())
+                : quoteIdentifier(tablePath.getTableName());
+    }
+
+    @Override
+    public String getExistTableSql(TablePath tablePath) {
+        return String.format(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '%s' AND TABLE_NAME = '%s'",
+                tablePath.getDatabaseName(), tablePath.getTableName());
     }
 }
