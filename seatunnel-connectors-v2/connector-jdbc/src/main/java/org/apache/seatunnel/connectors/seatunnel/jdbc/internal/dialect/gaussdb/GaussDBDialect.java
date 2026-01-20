@@ -22,12 +22,33 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseI
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectTypeMapper;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresDialect;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GaussDBDialect extends PostgresDialect {
     private static final long serialVersionUID = -5834746193472465210L;
+
+    /** e.g. "mysql" / "postgres" / null */
+    private final String compatibleMode;
+
+    public GaussDBDialect() {
+        super();
+        this.compatibleMode = null;
+    }
+
+    public GaussDBDialect(String compatibleMode) {
+        super();
+        this.compatibleMode = compatibleMode;
+    }
+
+    private boolean isMySqlMode() {
+        return "mysql".equalsIgnoreCase(compatibleMode);
+    }
 
     @Override
     public String dialectName() {
@@ -45,12 +66,47 @@ public class GaussDBDialect extends PostgresDialect {
     }
 
     @Override
+    public String hashModForField(String nativeType, String fieldName, int mod) {
+        String quoteFieldName = quoteIdentifier(fieldName);
+        if (StringUtils.isNotBlank(nativeType)) {
+            quoteFieldName = convertType(quoteFieldName, nativeType);
+        }
+
+        if (isMySqlMode()) {
+            return "(ABS(CRC32(" + quoteFieldName + ")) % " + mod + ")";
+        }
+
+        return "(ABS(HASHTEXT(" + quoteFieldName + ")) % " + mod + ")";
+    }
+
+    @Override
     public Optional<String> getUpsertStatement(
             String database,
             String tableName,
             String[] fieldNames,
             String[] uniqueKeyFields,
             boolean isPrimaryKeyUpdated) {
+
+        final String insertSql = getInsertIntoStatement(database, tableName, fieldNames);
+
+        final Set<String> uniqueKeys = new HashSet<>(Arrays.asList(uniqueKeyFields));
+
+        if (isMySqlMode()) {
+            String updateClause =
+                    Arrays.stream(fieldNames)
+                            .filter(f -> isPrimaryKeyUpdated || !uniqueKeys.contains(f))
+                            .map(f -> quoteIdentifier(f) + "=VALUES(" + quoteIdentifier(f) + ")")
+                            .collect(Collectors.joining(", "));
+
+            if (StringUtils.isBlank(updateClause)) {
+                String noOpField = uniqueKeyFields.length > 0 ? uniqueKeyFields[0] : fieldNames[0];
+                updateClause = quoteIdentifier(noOpField) + "=" + quoteIdentifier(noOpField);
+            }
+
+            String upsertSql =
+                    String.format("%s ON DUPLICATE KEY UPDATE %s", insertSql, updateClause);
+            return Optional.of(upsertSql);
+        }
 
         String uniqueColumns =
                 Arrays.stream(uniqueKeyFields)
@@ -59,24 +115,20 @@ public class GaussDBDialect extends PostgresDialect {
 
         String updateClause =
                 Arrays.stream(fieldNames)
-                        .filter(
-                                fieldName ->
-                                        isPrimaryKeyUpdated
-                                                || !Arrays.asList(uniqueKeyFields)
-                                                        .contains(fieldName))
-                        .map(
-                                fieldName ->
-                                        quoteIdentifier(fieldName)
-                                                + "=EXCLUDED."
-                                                + quoteIdentifier(fieldName))
+                        .filter(f -> isPrimaryKeyUpdated || !uniqueKeys.contains(f))
+                        .map(f -> quoteIdentifier(f) + "=EXCLUDED." + quoteIdentifier(f))
                         .collect(Collectors.joining(", "));
 
-        String upsertSQL =
-                String.format(
-                        "%s ON CONFLICT (%s) DO UPDATE SET %s",
-                        getInsertIntoStatement(database, tableName, fieldNames),
-                        uniqueColumns,
-                        updateClause);
-        return Optional.of(upsertSQL);
+        String upsertSql;
+        if (StringUtils.isBlank(updateClause)) {
+            upsertSql = String.format("%s ON CONFLICT (%s) DO NOTHING", insertSql, uniqueColumns);
+        } else {
+            upsertSql =
+                    String.format(
+                            "%s ON CONFLICT (%s) DO UPDATE SET %s",
+                            insertSql, uniqueColumns, updateClause);
+        }
+
+        return Optional.of(upsertSql);
     }
 }

@@ -40,4 +40,12 @@ public class GaussDBDialectFactory implements JdbcDialectFactory {
     public JdbcDialect create() {
         return new GaussDBDialect();
     }
+
+    @Override
+    public JdbcDialect create(String compatibleMode, String fieldIde) {
+        if (compatibleMode == null) {
+            return new GaussDBDialect();
+        }
+        return new GaussDBDialect(compatibleMode);
+    }
 }
