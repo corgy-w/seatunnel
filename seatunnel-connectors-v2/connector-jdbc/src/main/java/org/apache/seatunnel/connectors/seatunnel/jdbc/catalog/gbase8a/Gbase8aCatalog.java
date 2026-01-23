@@ -160,9 +160,10 @@ public class Gbase8aCatalog extends AbstractJdbcCatalog {
     }
 
     @Override
-    protected String getCreateTableSql(TablePath tablePath, CatalogTable table) {
+    protected String getCreateTableSql(
+            TablePath tablePath, CatalogTable table, boolean createIndex) {
         return Gbase8aCreateTableSqlBuilder.builder(
-                        tablePath, table, Gbase8aTypeConverter.INSTANCE, null)
+                        tablePath, table, Gbase8aTypeConverter.INSTANCE, createIndex, null)
                 .build(catalogName);
     }
 
