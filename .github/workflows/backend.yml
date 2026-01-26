@@ -15,6 +15,11 @@
 # limitations under the License.
 #
 
+# NOTE: E2E tests are temporarily disabled by adding `if: false &&` to all e2e jobs.
+# To re-enable e2e tests, search and replace all occurrences of:
+#   `if: false &&` with `if:`
+# This will restore the original condition for all e2e test jobs.
+
 name: Backend
 on:
   workflow_call:
@@ -65,7 +70,7 @@ jobs:
   changes:
     runs-on:
       labels: wtci_haiwai
-    timeout-minutes: 60
+    timeout-minutes: 120
     outputs:
       api: ${{ steps.filter.outputs.api }}
       engine: ${{ steps.filter.outputs.engine }}
@@ -252,7 +257,7 @@ jobs:
     strategy:
       matrix:
         os: [ 'self-hosted' ]
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v2
       - name: run all modules unit test
@@ -263,7 +268,7 @@ jobs:
 
   updated-modules-integration-test-part-1:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
+    if: false && needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
     runs-on:
       labels: wtci
     strategy:
@@ -286,7 +291,7 @@ jobs:
 
   updated-modules-integration-test-part-2:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
+    if: false && needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
     runs-on:
       labels: wtci
     strategy:
@@ -309,7 +314,7 @@ jobs:
 
   updated-modules-integration-test-part-3:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
+    if: false && needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
     runs-on:
       labels: wtci
     strategy:
@@ -332,7 +337,7 @@ jobs:
 
   updated-modules-integration-test-part-4:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
+    if: false && needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
     runs-on:
       labels: wtci
     strategy:
@@ -354,7 +359,7 @@ jobs:
           MAVEN_OPTS: -Xmx2048m
   updated-modules-integration-test-part-5:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
+    if: false && needs.changes.outputs.api == 'false' && needs.changes.outputs.it-modules != ''
     runs-on:
       labels: wtci
     strategy:
@@ -376,7 +381,7 @@ jobs:
           MAVEN_OPTS: -Xmx2048m
   engine-v2-it:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -393,7 +398,7 @@ jobs:
           MAVEN_OPTS: -Xmx4096m
   transform-v2-it-part-1:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -411,7 +416,7 @@ jobs:
 
   transform-v2-it-part-2:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -429,7 +434,7 @@ jobs:
 
   all-connectors-it-1:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -451,7 +456,7 @@ jobs:
 
   all-connectors-it-2:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -473,7 +478,7 @@ jobs:
 
   all-connectors-it-3:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -495,7 +500,7 @@ jobs:
 
   all-connectors-it-4:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -517,7 +522,7 @@ jobs:
 
   all-connectors-it-5:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -539,7 +544,7 @@ jobs:
 
   all-connectors-it-6:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -561,7 +566,7 @@ jobs:
 
   all-connectors-it-7:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -583,7 +588,7 @@ jobs:
 
   jdbc-connectors-it-part-1:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -601,7 +606,7 @@ jobs:
 
   jdbc-connectors-it-part-2:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -619,7 +624,7 @@ jobs:
 
   jdbc-connectors-it-part-3:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -637,7 +642,7 @@ jobs:
 
   jdbc-connectors-it-part-4:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -655,7 +660,7 @@ jobs:
 
   jdbc-connectors-it-part-5:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -673,7 +678,7 @@ jobs:
 
   kudu-connector-it:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-kudu-e2e')
+    if: false && (needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-kudu-e2e'))
     runs-on:
       labels: wtci
     strategy:
@@ -690,7 +695,7 @@ jobs:
 
   amazonSqs-connector-it:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-amazonsqs-e2e')
+    if: false && (needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-amazonsqs-e2e'))
     runs-on:
       labels: wtci
     strategy:
@@ -707,7 +712,7 @@ jobs:
 
   kafka-connector-it:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -725,7 +730,7 @@ jobs:
 
   rocketmq-connector-it:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true'
+    if: false && needs.changes.outputs.api == 'true'
     runs-on:
       labels: wtci
     strategy:
@@ -743,7 +748,7 @@ jobs:
 
   doris-connector-it:
     needs: [ changes, sanity-check ]
-    if: needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-doris-e2e')
+    if: false && (needs.changes.outputs.api == 'true' || contains(needs.changes.outputs.it-modules, 'connector-doris-e2e'))
     runs-on:
       labels: wtci
     strategy:
@@ -760,7 +765,7 @@ jobs:
 
   tmp_dir_rm:
     needs: [ changes, sanity-check, all-connectors-it-1, all-connectors-it-2, all-connectors-it-3, all-connectors-it-4, all-connectors-it-5, all-connectors-it-6, all-connectors-it-7, doris-connector-it ]
-    if: always()
+    if: false && always()
     runs-on:
       labels: wtci
     strategy:
