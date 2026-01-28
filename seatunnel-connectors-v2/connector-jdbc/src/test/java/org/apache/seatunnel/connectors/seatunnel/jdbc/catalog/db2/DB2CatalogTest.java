@@ -179,8 +179,7 @@ public class DB2CatalogTest {
                                             }
                                         }));
 
-        String sql =
-                catalog.getCreateTableSql(TablePath.of("test.test.uk_table"), catalogTable, true);
+        String sql = catalog.getCreateTableSql(TablePath.of("test.test.uk_table"), catalogTable);
 
         Assertions.assertTrue(sql.contains("\"unique_col\" INT NOT NULL"));
         Assertions.assertTrue(sql.contains("CONSTRAINT uk_unique_col_"));

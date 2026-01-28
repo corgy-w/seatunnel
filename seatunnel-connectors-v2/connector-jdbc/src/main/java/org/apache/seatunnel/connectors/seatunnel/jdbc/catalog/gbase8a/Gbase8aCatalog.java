@@ -21,10 +21,8 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.gbase8a;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.ConstraintKey;
-import org.apache.seatunnel.api.table.catalog.PrimaryKey;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
-import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.catalog.exception.CatalogException;
 import org.apache.seatunnel.api.table.catalog.exception.DatabaseNotExistException;
 import org.apache.seatunnel.api.table.catalog.exception.TableNotExistException;
@@ -45,10 +43,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 public class Gbase8aCatalog extends AbstractJdbcCatalog {
@@ -132,17 +128,61 @@ public class Gbase8aCatalog extends AbstractJdbcCatalog {
     @Override
     protected Column buildColumn(ResultSet resultSet) throws SQLException {
         String columnName = resultSet.getString("COLUMN_NAME");
-        String dataType = resultSet.getString("DATA_TYPE");
-        String columnType = resultSet.getString("COLUMN_TYPE");
-        long columnLength = resultSet.getLong("CHARACTER_MAXIMUM_LENGTH");
-        if (resultSet.wasNull()) {
-            columnLength = resultSet.getLong("NUMERIC_PRECISION");
+
+        // INFORMATION_SCHEMA.COLUMNS style
+        String dataType = getStringOrNull(resultSet, "DATA_TYPE");
+        String columnType = getStringOrNull(resultSet, "COLUMN_TYPE");
+        Long columnLength = getLongOrNull(resultSet, "CHARACTER_MAXIMUM_LENGTH");
+        Long numericPrecision = getLongOrNull(resultSet, "NUMERIC_PRECISION");
+        Integer columnScale = getIntOrNull(resultSet, "NUMERIC_SCALE");
+        String columnComment = getStringOrNull(resultSet, "COLUMN_COMMENT");
+        Object defaultValue = getObjectOrNull(resultSet, "COLUMN_DEFAULT");
+        String isNullableStr = getStringOrNull(resultSet, "IS_NULLABLE");
+
+        // DatabaseMetaData#getColumns style fallback (some JDBC drivers don't expose COLUMN_TYPE,
+        // etc.)
+        if (columnType == null) {
+            columnType = getStringOrNull(resultSet, "TYPE_NAME");
         }
-        int columnScale = resultSet.getInt("NUMERIC_SCALE");
-        String columnComment = resultSet.getString("COLUMN_COMMENT");
-        Object defaultValue = resultSet.getObject("COLUMN_DEFAULT");
-        String isNullableStr = resultSet.getString("IS_NULLABLE");
-        boolean isNullable = "YES".equalsIgnoreCase(isNullableStr);
+        if (dataType == null || dataType.matches("\\d+")) {
+            String typeName = getStringOrNull(resultSet, "TYPE_NAME");
+            if (typeName != null) {
+                dataType = typeName;
+            }
+        }
+        if (columnLength == null) {
+            columnLength = getLongOrNull(resultSet, "COLUMN_SIZE");
+        }
+        if (columnLength == null) {
+            columnLength = numericPrecision;
+        }
+        if (columnScale == null) {
+            columnScale = getIntOrNull(resultSet, "DECIMAL_DIGITS");
+        }
+        if (columnComment == null) {
+            columnComment = getStringOrNull(resultSet, "REMARKS");
+        }
+        if (defaultValue == null) {
+            defaultValue = getObjectOrNull(resultSet, "COLUMN_DEF");
+        }
+        if (dataType == null) {
+            dataType = columnType;
+        }
+        if (columnType == null) {
+            columnType = dataType;
+        }
+        if (dataType == null) {
+            throw new SQLException(
+                    String.format("Failed to resolve column type for column '%s'.", columnName));
+        }
+
+        boolean isNullable;
+        if (isNullableStr != null) {
+            isNullable = "YES".equalsIgnoreCase(isNullableStr);
+        } else {
+            Integer nullable = getIntOrNull(resultSet, "NULLABLE");
+            isNullable = nullable == null || nullable != DatabaseMetaData.columnNoNulls;
+        }
 
         BasicTypeDefine typeDefine =
                 BasicTypeDefine.builder()
@@ -151,12 +191,46 @@ public class Gbase8aCatalog extends AbstractJdbcCatalog {
                         .dataType(dataType)
                         .length(columnLength)
                         .precision(columnLength)
-                        .scale(columnScale)
+                        .scale(columnScale == null ? 0 : columnScale)
                         .nullable(isNullable)
                         .defaultValue(defaultValue)
                         .comment(columnComment)
                         .build();
         return Gbase8aTypeConverter.INSTANCE.convert(typeDefine);
+    }
+
+    private static String getStringOrNull(ResultSet resultSet, String columnLabel) {
+        try {
+            return resultSet.getString(columnLabel);
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    private static Long getLongOrNull(ResultSet resultSet, String columnLabel) {
+        try {
+            long value = resultSet.getLong(columnLabel);
+            return resultSet.wasNull() ? null : value;
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    private static Integer getIntOrNull(ResultSet resultSet, String columnLabel) {
+        try {
+            int value = resultSet.getInt(columnLabel);
+            return resultSet.wasNull() ? null : value;
+        } catch (SQLException e) {
+            return null;
+        }
+    }
+
+    private static Object getObjectOrNull(ResultSet resultSet, String columnLabel) {
+        try {
+            return resultSet.getObject(columnLabel);
+        } catch (SQLException e) {
+            return null;
+        }
     }
 
     @Override
@@ -262,67 +336,28 @@ public class Gbase8aCatalog extends AbstractJdbcCatalog {
     @Override
     public CatalogTable getTable(TablePath tablePath)
             throws CatalogException, TableNotExistException {
-        TablePath gbaseTablePath =
-                TablePath.of(tablePath.getDatabaseName(), null, tablePath.getTableName());
+        return super.getTable(normalizeTablePath(tablePath));
+    }
 
-        if (!tableExists(gbaseTablePath)) {
-            throw new TableNotExistException(catalogName, tablePath);
-        }
+    @Override
+    public CatalogTable getTableIgnoreUnSupportColumn(TablePath tablePath)
+            throws CatalogException, TableNotExistException {
+        return super.getTableIgnoreUnSupportColumn(normalizeTablePath(tablePath));
+    }
 
-        String dbUrl;
-        if (tablePath.getDatabaseName() != null) {
-            dbUrl = getUrlFromDatabaseName(tablePath.getDatabaseName());
-        } else {
-            dbUrl = getUrlFromDatabaseName(defaultDatabase);
-        }
-        Connection conn = getConnection(dbUrl);
-        try {
-            DatabaseMetaData metaData = conn.getMetaData();
-            Optional<PrimaryKey> primaryKey =
-                    getPrimaryKey(
-                            metaData,
-                            gbaseTablePath.getDatabaseName(),
-                            gbaseTablePath.getSchemaName(),
-                            gbaseTablePath.getTableName());
-            List<ConstraintKey> constraintKeys =
-                    getConstraintKeys(
-                            metaData,
-                            gbaseTablePath.getDatabaseName(),
-                            gbaseTablePath.getSchemaName(),
-                            gbaseTablePath.getTableName());
-            constraintKeys = filterDuplicateConstraintKeys(constraintKeys, primaryKey);
-            String tableComment = getTableComment(metaData, gbaseTablePath);
-            try (ResultSet resultSet =
-                    metaData.getColumns(
-                            gbaseTablePath.getDatabaseName(),
-                            gbaseTablePath.getSchemaName(),
-                            gbaseTablePath.getTableName(),
-                            null)) {
-                TableSchema.Builder builder = TableSchema.builder();
-                buildColumnsWithErrorCheck(tablePath, resultSet, builder);
-                // add primary key
-                primaryKey.ifPresent(builder::primaryKey);
-                // add constraint key
-                constraintKeys.forEach(builder::constraintKey);
-                TableIdentifier tableIdentifier =
-                        TableIdentifier.of(
-                                catalogName,
-                                tablePath.getDatabaseName(),
-                                null,
-                                tablePath.getTableName());
-                return CatalogTable.of(
-                        tableIdentifier,
-                        builder.build(),
-                        buildConnectorOptions(tablePath),
-                        Collections.emptyList(),
-                        tableComment,
-                        catalogName);
-            }
+    @Override
+    public CatalogTable getTable(TablePath tablePath, List<String> fieldNames)
+            throws CatalogException, TableNotExistException {
+        return super.getTable(normalizeTablePath(tablePath), fieldNames);
+    }
 
-        } catch (Exception e) {
-            throw new CatalogException(
-                    String.format("Failed getting table %s", tablePath.getFullName()), e);
+    private TablePath normalizeTablePath(TablePath tablePath) {
+        String databaseName = tablePath.getDatabaseName();
+        if (databaseName == null || databaseName.trim().isEmpty()) {
+            databaseName = defaultDatabase;
         }
+        // GBase 8a doesn't have schema concept like MySQL; always query by database + table.
+        return TablePath.of(databaseName, null, tablePath.getTableName());
     }
 
     @Override
