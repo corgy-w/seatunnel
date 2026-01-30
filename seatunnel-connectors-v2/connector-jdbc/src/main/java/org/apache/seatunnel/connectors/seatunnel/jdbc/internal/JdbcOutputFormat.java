@@ -145,48 +145,121 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
             return;
         }
         if (batchCount == 0) {
-            LOG.debug("No data to flush.");
+            LOG.debug("Skip flush: no buffered records.");
             return;
         }
+
+        // keep original behavior
         testOnBorrow();
 
-        final int sleepMs = 1000;
-        for (int i = 0; i <= jdbcConnectionConfig.getMaxRetries(); i++) {
+        final int maxRetries = jdbcConnectionConfig.getMaxRetries();
+        final long baseBackoffMs = 1000L;
+        final long maxBackoffMs = 10_000L;
+
+        for (int attempt = 0; attempt <= maxRetries; attempt++) {
             try {
+                LOG.debug(
+                        "Start flush. batchCount={}, attempt={}/{}",
+                        batchCount,
+                        attempt,
+                        maxRetries);
                 attemptFlush();
                 batchCount = 0;
-                break;
+                LOG.debug("Flush success. attempt={}/{}", attempt, maxRetries);
+                return;
             } catch (Exception e) {
-                if (!(Throwables.getRootCause(e) instanceof SQLException)) {
-                    throw new JdbcConnectorException(
-                            CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
-                }
-                LOG.error("JDBC executeBatch error, retry times = {}", i, e);
-                if (i >= jdbcConnectionConfig.getMaxRetries()) {
-                    throw new JdbcConnectorException(
-                            CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
-                }
-                try {
-                    if (!connectionProvider.isConnectionValid()) {
-                        updateExecutor(true);
-                    }
-                } catch (Exception exception) {
+                final Throwable root = Throwables.getRootCause(e);
+
+                // keep original behavior: non-SQL root cause -> no retry
+                if (!(root instanceof SQLException)) {
                     LOG.error(
-                            "JDBC connection is not valid, and reestablish connection failed.",
-                            exception);
+                            "Flush failed (non-SQL). batchCount={}, attempt={}/{}",
+                            batchCount,
+                            attempt,
+                            maxRetries,
+                            e);
                     throw new JdbcConnectorException(
-                            JdbcConnectorErrorCode.CONNECT_DATABASE_FAILED,
-                            "Reestablish JDBC connection failed",
-                            exception);
+                            CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
                 }
+
+                final SQLException sqlEx = (SQLException) root;
+                final String sqlState = sqlEx.getSQLState();
+                final boolean sqlStateConnError = sqlState != null && sqlState.startsWith("08");
+
+                boolean connValid = true;
                 try {
-                    Thread.sleep(sleepMs * i);
-                } catch (InterruptedException ex) {
+                    connValid = connectionProvider.isConnectionValid();
+                } catch (Exception validCheckEx) {
+                    // validity check itself failed -> treat as invalid
+                    connValid = false;
+                    LOG.warn(
+                            "Connection validity check failed, treat as invalid. attempt={}/{}",
+                            attempt,
+                            maxRetries,
+                            validCheckEx);
+                }
+
+                final boolean needReconnect = sqlStateConnError || !connValid;
+
+                if (attempt >= maxRetries) {
+                    LOG.error(
+                            "Flush failed after retries. batchCount={}, attempts={}, sqlState={}, connValid={}, needReconnect={}",
+                            batchCount,
+                            attempt,
+                            sqlState,
+                            connValid,
+                            needReconnect,
+                            e);
+                    throw new JdbcConnectorException(
+                            CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
+                }
+
+                long backoffMs = Math.min(baseBackoffMs * (attempt + 1L), maxBackoffMs);
+
+                LOG.debug(
+                        "Flush failed, will retry. batchCount={}, attempt={}/{}, sqlState={}, connValid={}, needReconnect={}, backoffMs={}",
+                        batchCount,
+                        attempt,
+                        maxRetries,
+                        sqlState,
+                        connValid,
+                        needReconnect,
+                        backoffMs,
+                        e);
+
+                if (needReconnect) {
+                    try {
+                        LOG.info(
+                                "Reconnecting JDBC. attempt={}/{}, sqlState={}, connValid={}",
+                                attempt,
+                                maxRetries,
+                                sqlState,
+                                connValid);
+                        updateExecutor(true);
+                        LOG.info("Reconnect JDBC success. attempt={}/{}", attempt, maxRetries);
+                    } catch (Exception reconnectEx) {
+                        LOG.error(
+                                "Reconnect JDBC failed. attempt={}/{}, sqlState={}, connValid={}",
+                                attempt,
+                                maxRetries,
+                                sqlState,
+                                connValid,
+                                reconnectEx);
+                        throw new JdbcConnectorException(
+                                JdbcConnectorErrorCode.CONNECT_DATABASE_FAILED,
+                                "Reestablish JDBC connection failed",
+                                reconnectEx);
+                    }
+                }
+
+                try {
+                    Thread.sleep(backoffMs);
+                } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new JdbcConnectorException(
                             CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
-                            "unable to flush; interrupted while doing another attempt",
-                            e);
+                            "unable to flush; interrupted while backing off for retry",
+                            ie);
                 }
             }
         }
@@ -229,18 +302,32 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
     }
 
     public void updateExecutor(boolean reconnect) throws SQLException, ClassNotFoundException {
+        SQLException closeEx = null;
+
         try {
             jdbcStatementExecutor.closeStatements();
         } catch (SQLException e) {
+            closeEx = e;
             if (!reconnect) {
                 throw e;
             }
-            LOG.error("Close JDBC statement failed on reconnect.", e);
+            LOG.warn(
+                    "Close JDBC statements failed during reconnect, will continue. cause={}",
+                    e.getMessage(),
+                    e);
         }
-        jdbcStatementExecutor.prepareStatements(
-                reconnect
-                        ? connectionProvider.reestablishConnection()
-                        : connectionProvider.getConnection());
+
+        try {
+            jdbcStatementExecutor.prepareStatements(
+                    reconnect
+                            ? connectionProvider.reestablishConnection()
+                            : connectionProvider.getConnection());
+        } catch (SQLException | ClassNotFoundException e) {
+            if (closeEx != null) {
+                e.addSuppressed(closeEx);
+            }
+            throw e;
+        }
     }
 
     /**
