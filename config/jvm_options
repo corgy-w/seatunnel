@@ -48,3 +48,4 @@
 8:-XX:+PrintGCApplicationStoppedTime
 # JDK 11+ GC Logging (Unified Logging)
 11:-Xlog:gc*,safepoint:file=${SEATUNNEL_HOME}/logs/gc/gc.log:time,uptime,tags:filecount=10,filesize=200m
+# Since the deployment script will remove the last empty line, please add a placeholder here and do not delete it
