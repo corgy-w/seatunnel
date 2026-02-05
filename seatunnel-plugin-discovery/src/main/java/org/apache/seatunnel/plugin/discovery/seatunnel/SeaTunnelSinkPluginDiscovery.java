@@ -64,7 +64,7 @@ public class SeaTunnelSinkPluginDiscovery extends AbstractPluginDiscovery<SeaTun
         return plugins;
     }
 
-    public SeaTunnelSinkPluginDiscovery(BiConsumer<ClassLoader, URL> addURLToClassLoader) {
+    public SeaTunnelSinkPluginDiscovery(BiConsumer<ClassLoader, List<URL>> addURLToClassLoader) {
         super(addURLToClassLoader);
     }
 
