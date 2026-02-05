@@ -59,6 +59,17 @@
             <artifactId>jsqlparser</artifactId>
             <version>${jsqlparser.version}</version>
         </dependency>
+        <!-- Auzre Unity Catalog Support -->
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-azure</artifactId>
+            <version>${iceberg.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-storage-file-datalake</artifactId>
+            <version>12.18.1</version>
+        </dependency>
 
         <!-- AWS Glue Catalog Support -->
         <dependency>
