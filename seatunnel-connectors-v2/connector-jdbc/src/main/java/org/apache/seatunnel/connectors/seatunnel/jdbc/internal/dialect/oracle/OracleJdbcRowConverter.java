@@ -50,7 +50,9 @@ public class OracleJdbcRowConverter extends AbstractJdbcRowConverter {
             throws SQLException {
         if (seaTunnelDataType.getSqlType().equals(SqlType.BYTES)) {
             if (ORACLE_BLOB.equals(sourceType)) {
-                statement.setBinaryStream(statementIndex, new ByteArrayInputStream((byte[]) value));
+                byte[] bytes = (byte[]) value;
+                statement.setBinaryStream(
+                        statementIndex, new ByteArrayInputStream(bytes), bytes.length);
             } else {
                 statement.setBytes(statementIndex, (byte[]) value);
             }
@@ -60,7 +62,9 @@ public class OracleJdbcRowConverter extends AbstractJdbcRowConverter {
             // which causes "can bind a LONG value only for insert into a LONG column" error
             if (ORACLE_CLOB.equals(sourceType) || ORACLE_NCLOB.equals(sourceType)) {
                 // Use setCharacterStream for CLOB/NCLOB columns to ensure correct binding
-                statement.setCharacterStream(statementIndex, new StringReader((String) value));
+                String strValue = (String) value;
+                statement.setCharacterStream(
+                        statementIndex, new StringReader(strValue), strValue.length());
             } else {
                 statement.setString(statementIndex, (String) value);
             }
