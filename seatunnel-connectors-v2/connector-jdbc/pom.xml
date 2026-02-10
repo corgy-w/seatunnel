@@ -225,6 +225,7 @@
                 <groupId>org.tikv</groupId>
                 <artifactId>tikv-client-java</artifactId>
                 <version>${tikv.version}</version>
+                <scope>provided</scope>
             </dependency>
             <!-- dependency by phoenix -->
             <dependency>
@@ -244,6 +245,7 @@
                 <groupId>com.gbasedbt</groupId>
                 <artifactId>jdbc</artifactId>
                 <version>${gbase8s.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.gbase.jdbc</groupId>
