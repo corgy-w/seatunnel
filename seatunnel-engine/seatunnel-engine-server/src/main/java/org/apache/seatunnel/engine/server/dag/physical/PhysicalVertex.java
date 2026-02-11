@@ -530,6 +530,17 @@ public class PhysicalVertex {
         updateTaskState(taskExecutionState.getExecutionState());
     }
 
+    public synchronized void forceStop() {
+        ExecutionState executionState = getExecutionState();
+        if (executionState == null || executionState.isEndState()) {
+            return;
+        }
+        noticeTaskExecutionServiceCancel();
+        if (!taskFuture.isDone()) {
+            updateTaskState(ExecutionState.CANCELED);
+        }
+    }
+
     public Address getCurrentExecutionAddress() {
         SlotProfile ownedSlotProfiles = jobMaster.getOwnedSlotProfiles(taskGroupLocation);
         if (ownedSlotProfiles == null) {

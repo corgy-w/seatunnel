@@ -29,6 +29,7 @@ import org.apache.seatunnel.engine.server.operation.GetRunningJobMetricsOperatio
 import org.apache.seatunnel.engine.server.operation.PrintMessageOperation;
 import org.apache.seatunnel.engine.server.operation.RefreshLicenseOperation;
 import org.apache.seatunnel.engine.server.operation.SavePointJobOperation;
+import org.apache.seatunnel.engine.server.operation.StopJobOperation;
 import org.apache.seatunnel.engine.server.operation.SubmitJobOperation;
 import org.apache.seatunnel.engine.server.operation.UploadConnectorJarOperation;
 import org.apache.seatunnel.engine.server.operation.WaitForJobCompleteOperation;
@@ -75,6 +76,8 @@ public final class ClientToServerOperationDataSerializerHook implements DataSeri
     public static final int PACKAGE_JOB_LOGS_OPERATION = 13;
 
     public static final int PACKAGE_ZETA_LOGS_OPERATION = 14;
+
+    public static final int STOP_JOB_OPERATOR = 15;
 
     public static final int REFRESH_LICENSE_OPERATION = 100;
 
@@ -127,6 +130,8 @@ public final class ClientToServerOperationDataSerializerHook implements DataSeri
                     return new PackageJobLogsOperation();
                 case PACKAGE_ZETA_LOGS_OPERATION:
                     return new PackageZetaLogsOperation();
+                case STOP_JOB_OPERATOR:
+                    return new StopJobOperation();
                 case REFRESH_LICENSE_OPERATION:
                     return new RefreshLicenseOperation();
                 default:

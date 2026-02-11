@@ -35,6 +35,7 @@ import org.apache.seatunnel.engine.server.SeaTunnelServer;
 import org.apache.seatunnel.engine.server.log.Log4j2HttpPostCommandProcessor;
 import org.apache.seatunnel.engine.server.operation.CancelJobOperation;
 import org.apache.seatunnel.engine.server.operation.SavePointJobOperation;
+import org.apache.seatunnel.engine.server.operation.StopJobOperation;
 import org.apache.seatunnel.engine.server.operation.SubmitJobOperation;
 import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
 import org.apache.seatunnel.engine.server.utils.RestUtil;
@@ -171,10 +172,18 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
             isStopWithSavePoint =
                     Boolean.parseBoolean(map.get(RestConstant.IS_STOP_WITH_SAVE_POINT).toString());
         }
+        boolean forceStop = false;
+        if (map.get(RestConstant.FORCE) != null) {
+            forceStop = Boolean.parseBoolean(map.get(RestConstant.FORCE).toString());
+        }
 
         SeaTunnelServer seaTunnelServer = getSeaTunnelServer();
         if (seaTunnelServer == null) {
-            if (isStopWithSavePoint) {
+            if (forceStop) {
+                NodeEngineUtil.sendOperationToMasterNode(
+                                getNode().nodeEngine, new StopJobOperation(jobId))
+                        .join();
+            } else if (isStopWithSavePoint) {
                 NodeEngineUtil.sendOperationToMasterNode(
                                 getNode().nodeEngine, new SavePointJobOperation(jobId))
                         .join();
@@ -187,7 +196,9 @@ public class RestHttpPostCommandProcessor extends HttpCommandProcessor<HttpPostC
         } else {
             CoordinatorService coordinatorService = getSeaTunnelServer().getCoordinatorService();
 
-            if (isStopWithSavePoint) {
+            if (forceStop) {
+                coordinatorService.stopJob(jobId);
+            } else if (isStopWithSavePoint) {
                 coordinatorService.savePoint(jobId);
             } else {
                 coordinatorService.cancelJob(jobId);

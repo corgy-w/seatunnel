@@ -51,6 +51,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -110,9 +111,15 @@ public class ClientExecuteCommand implements Command<ClientCommandArgs> {
                                 .getJobDetailStatus(Long.parseLong(clientCommandArgs.getJobId()));
                 System.out.println(jobState);
             } else if (null != clientCommandArgs.getCancelJobId()) {
-                engineClient
-                        .getJobClient()
-                        .cancelJob(Long.parseLong(clientCommandArgs.getCancelJobId()));
+                List<String> cancelJobIds = clientCommandArgs.getCancelJobId();
+                for (String cancelJobId : cancelJobIds) {
+                    engineClient.getJobClient().cancelJob(Long.parseLong(cancelJobId));
+                }
+            } else if (null != clientCommandArgs.getForceCancelJobId()) {
+                List<String> forceCancelJobIds = clientCommandArgs.getForceCancelJobId();
+                for (String forceCancelJobId : forceCancelJobIds) {
+                    engineClient.getJobClient().cancelJob(Long.parseLong(forceCancelJobId), true);
+                }
             } else if (null != clientCommandArgs.getMetricsJobId()) {
                 String jobMetrics =
                         engineClient

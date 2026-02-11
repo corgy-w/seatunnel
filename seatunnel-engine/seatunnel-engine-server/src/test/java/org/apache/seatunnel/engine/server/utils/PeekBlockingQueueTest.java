@@ -33,7 +33,7 @@ public class PeekBlockingQueueTest {
 
     @BeforeEach
     void setUp() {
-        queue = new PeekBlockingQueue<>();
+        queue = new PeekBlockingQueue<>(Long::parseLong);
     }
 
     @Test

@@ -23,6 +23,7 @@ import org.apache.seatunnel.core.starter.seatunnel.args.ClientCommandArgs;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Collections;
 
 public class SeaTunnelEngineClusterClientExample {
 
@@ -74,7 +75,7 @@ public class SeaTunnelEngineClusterClientExample {
 
     public static void cancel(String id) {
         ClientCommandArgs clientCommandArgs = new ClientCommandArgs();
-        clientCommandArgs.setCancelJobId(id);
+        clientCommandArgs.setCancelJobId(Collections.singletonList(id));
         SeaTunnel.run(clientCommandArgs.buildCommand());
     }
 }
