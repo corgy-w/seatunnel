@@ -46,12 +46,12 @@ fi
 SEATUNNEL_HOME="${SEATUNNEL_HOME:-$APP_DIR}"
 export SEATUNNEL_HOME
 
-if [ $# == 0 ]
-then
-    args="-h"
-else
-    args=$@
+if [ $# == 0 ]; then
+    set -- -h
 fi
+
+args=("$@")
+args_str=" $* "
 
 set +u
 
@@ -137,7 +137,7 @@ JAVA_OPTS="${JAVA_OPTS} -Dhazelcast.config=${HAZELCAST_CONFIG}"
 if [ -e "${CONF_DIR}/log4j2_client.properties" ]; then
   JAVA_OPTS="${JAVA_OPTS} -Dhazelcast.logging.type=log4j2 -Dlog4j2.configurationFile=${CONF_DIR}/log4j2_client.properties"
   JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.path=${APP_DIR}/logs"
-  if [[ $args == *" -m local"* || $args == *" --master local"* || $args == *" -e local"* || $args == *" --deploy-mode local"* ]]; then
+  if [[ $args_str == *" -m local "* || $args_str == *" --master local "* || $args_str == *" -e local "* || $args_str == *" --deploy-mode local "* ]]; then
     ntime=$(echo `date "+%N"`|sed -r 's/^0+//')
     JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.file_name=seatunnel-starter-client-$((`date '+%s'`*1000+$ntime/1000000))"
   else
@@ -228,4 +228,4 @@ if [[ -n "$GC_LOG_PATH" ]]; then
   fi
 fi
 
-java ${JAVA_OPTS} -cp ${CLASS_PATH} ${APP_MAIN} ${args}
+java ${JAVA_OPTS} -cp ${CLASS_PATH} ${APP_MAIN} "${args[@]}"
