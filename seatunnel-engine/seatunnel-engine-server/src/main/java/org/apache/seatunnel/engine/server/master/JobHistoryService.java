@@ -32,7 +32,7 @@ import org.apache.seatunnel.engine.core.job.JobStatusData;
 import org.apache.seatunnel.engine.core.job.PipelineStatus;
 import org.apache.seatunnel.engine.server.dag.physical.PipelineLocation;
 import org.apache.seatunnel.engine.server.execution.ExecutionState;
-import org.apache.seatunnel.engine.server.execution.PendingSourceState;
+import org.apache.seatunnel.engine.server.execution.PendingJobInfo;
 import org.apache.seatunnel.engine.server.execution.TaskGroupLocation;
 import org.apache.seatunnel.engine.server.telemetry.log.operation.CleanLogOperation;
 import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
@@ -46,7 +46,6 @@ import com.hazelcast.spi.impl.NodeEngine;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
-import scala.Tuple2;
 
 import java.io.Serializable;
 import java.net.UnknownHostException;
@@ -84,7 +83,7 @@ public class JobHistoryService {
      */
     private final Map<Long, JobMaster> runningJobMasterMap;
 
-    private final Map<Long, Tuple2<PendingSourceState, JobMaster>> pendingJobMasterMap;
+    private final Map<Long, PendingJobInfo> pendingJobMasterMap;
 
     /** finishedJobVertexInfoImap key is jobId and value is JobDAGInfo */
     private final IMap<Long, JobDAGInfo> finishedJobDAGInfoImap;
@@ -105,7 +104,7 @@ public class JobHistoryService {
             NodeEngine nodeEngine,
             IMap<Object, Object> runningJobStateIMap,
             ILogger logger,
-            Map<Long, Tuple2<PendingSourceState, JobMaster>> pendingJobMasterMap,
+            Map<Long, PendingJobInfo> pendingJobMasterMap,
             Map<Long, JobMaster> runningJobMasterMap,
             IMap<Long, JobState> finishedJobStateImap,
             IMap<Long, JobMetrics> finishedJobMetricsImap,
@@ -158,7 +157,9 @@ public class JobHistoryService {
                                 entry -> {
                                     Long jobId = entry.getKey();
                                     JobImmutableInformation jobImmutableInformation =
-                                            entry.getValue()._2.getJobImmutableInformation();
+                                            entry.getValue()
+                                                    .getJobMaster()
+                                                    .getJobImmutableInformation();
                                     return new JobState(
                                             jobId,
                                             jobImmutableInformation.getJobName(),
@@ -195,10 +196,11 @@ public class JobHistoryService {
 
     // Get detailed status of a single job
     public JobState getJobDetailState(Long jobId) {
-        if (pendingJobMasterMap.containsKey(jobId)) {
+        PendingJobInfo pendingJobInfo = pendingJobMasterMap.get(jobId);
+        if (pendingJobInfo != null) {
             // return pending job state
             JobImmutableInformation jobImmutableInformation =
-                    pendingJobMasterMap.get(jobId)._2.getJobImmutableInformation();
+                    pendingJobInfo.getJobMaster().getJobImmutableInformation();
             return new JobState(
                     jobId,
                     jobImmutableInformation.getJobName(),

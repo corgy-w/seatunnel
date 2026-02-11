@@ -29,7 +29,9 @@ import static com.hazelcast.client.impl.protocol.ClientMessage.UNFRAGMENTED_MESS
 import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCodec.BYTE_SIZE_IN_BYTES;
 import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCodec.INT_SIZE_IN_BYTES;
 import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCodec.LONG_SIZE_IN_BYTES;
+import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCodec.decodeBoolean;
 import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCodec.decodeLong;
+import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCodec.encodeBoolean;
 import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCodec.encodeInt;
 import static com.hazelcast.client.impl.protocol.codec.builtin.FixedSizeTypesCodec.encodeLong;
 
@@ -46,14 +48,16 @@ public final class SeaTunnelCancelJobCodec {
     public static final int RESPONSE_MESSAGE_TYPE = 14550017;
     private static final int REQUEST_JOB_ID_FIELD_OFFSET =
             PARTITION_ID_FIELD_OFFSET + INT_SIZE_IN_BYTES;
-    private static final int REQUEST_INITIAL_FRAME_SIZE =
+    private static final int REQUEST_FORCE_FIELD_OFFSET =
             REQUEST_JOB_ID_FIELD_OFFSET + LONG_SIZE_IN_BYTES;
+    private static final int REQUEST_INITIAL_FRAME_SIZE =
+            REQUEST_FORCE_FIELD_OFFSET + BYTE_SIZE_IN_BYTES;
     private static final int RESPONSE_INITIAL_FRAME_SIZE =
             RESPONSE_BACKUP_ACKS_FIELD_OFFSET + BYTE_SIZE_IN_BYTES;
 
     private SeaTunnelCancelJobCodec() {}
 
-    public static ClientMessage encodeRequest(long jobId) {
+    public static ClientMessage encodeRequest(long jobId, boolean force) {
         ClientMessage clientMessage = ClientMessage.createForEncode();
         clientMessage.setRetryable(true);
         clientMessage.setOperationName("SeaTunnel.CancelJob");
@@ -61,14 +65,23 @@ public final class SeaTunnelCancelJobCodec {
         encodeInt(initialFrame.content, TYPE_FIELD_OFFSET, REQUEST_MESSAGE_TYPE);
         encodeInt(initialFrame.content, PARTITION_ID_FIELD_OFFSET, -1);
         encodeLong(initialFrame.content, REQUEST_JOB_ID_FIELD_OFFSET, jobId);
+        encodeBoolean(initialFrame.content, REQUEST_FORCE_FIELD_OFFSET, force);
         clientMessage.add(initialFrame);
         return clientMessage;
     }
 
-    public static long decodeRequest(ClientMessage clientMessage) {
+    public static RequestParameters decodeRequest(ClientMessage clientMessage) {
         ForwardFrameIterator iterator = clientMessage.frameIterator();
         Frame initialFrame = iterator.next();
-        return decodeLong(initialFrame.content, REQUEST_JOB_ID_FIELD_OFFSET);
+        RequestParameters parameters = new RequestParameters();
+        parameters.jobId = decodeLong(initialFrame.content, REQUEST_JOB_ID_FIELD_OFFSET);
+        parameters.force = decodeBoolean(initialFrame.content, REQUEST_FORCE_FIELD_OFFSET);
+        return parameters;
+    }
+
+    public static class RequestParameters {
+        public long jobId;
+        public boolean force;
     }
 
     public static ClientMessage encodeResponse() {

@@ -199,10 +199,11 @@ public class PhysicalPlan {
             return;
         }
 
-        if (runningJobStateIMap.get(jobId) == JobStatus.PENDING) {
-            // The pending task needs to be directly set to 'cancelled' status because it has not
-            // started running yet
+        if (((JobStatus) runningJobStateIMap.get(jobId)).ordinal() <= JobStatus.PENDING.ordinal()) {
+            // Tasks with the status 'INITIALIZING', 'CREATED', 'PENDING' need to be set directly to
+            // the 'CANCELLED' state because it has not yet started running
             updateJobState(JobStatus.CANCELED);
+            completeJobEndFuture(new JobResult(JobStatus.CANCELED, null));
         } else {
             updateJobState(JobStatus.CANCELING);
         }
@@ -217,6 +218,25 @@ public class PhysicalPlan {
             return;
         }
         updateJobState(JobStatus.DOING_SAVEPOINT);
+    }
+
+    public void stopJob() {
+        JobStatus jobStatus = getJobStatus();
+        if (jobStatus.isEndState()) {
+            log.warn("{} is in end state {}, can not be stop", jobFullName, jobStatus);
+            return;
+        }
+
+        if (jobStatus.ordinal() <= JobStatus.PENDING.ordinal()) {
+            // Tasks with the status 'INITIALIZING', 'CREATED', 'PENDING' need to be set directly to
+            // the 'CANCELLED' state because it has not yet started running
+            updateJobState(JobStatus.CANCELED);
+        } else if (jobStatus == JobStatus.DOING_SAVEPOINT) {
+            this.pipelineList.forEach(SubPlan::stopPipelineWithCheckpointFallback);
+        } else {
+            updateJobState(JobStatus.CANCELING);
+            this.pipelineList.forEach(SubPlan::forceStopPipeline);
+        }
     }
 
     public List<SubPlan> getPipelineList() {
@@ -235,9 +255,7 @@ public class PhysicalPlan {
         try {
             JobStatus current = (JobStatus) runningJobStateIMap.get(jobId);
             log.debug(
-                    String.format(
-                            "Try to update the %s state from %s to %s",
-                            jobFullName, current, targetState));
+                    "Try to update the {} state from {} to {}", jobFullName, current, targetState);
 
             if (current.equals(targetState)) {
                 log.info(
@@ -251,11 +269,8 @@ public class PhysicalPlan {
                 throw new SeaTunnelEngineException(message);
             }
 
-            // now do the actual state transition
-            // we must update runningJobStateTimestampsIMap first and then can update
-            // runningJobStateIMap
-            // we must update runningJobStateTimestampsIMap first and then can update
-            // runningJobStateIMap
+            // Now do the actual state transition, we must update runningJobStateTimestampsIMap
+            // first and then can update runningJobStateIMap
             RetryUtils.retryWithException(
                     () -> {
                         updateStateTimestamps(targetState);

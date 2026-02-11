@@ -157,9 +157,13 @@ public class JobClient {
     }
 
     public void cancelJob(Long jobId) {
+        this.cancelJob(jobId, false);
+    }
+
+    public void cancelJob(Long jobId, boolean force) {
         PassiveCompletableFuture<Void> cancelFuture =
                 hazelcastClient.requestOnMasterAndGetCompletableFuture(
-                        SeaTunnelCancelJobCodec.encodeRequest(jobId));
+                        SeaTunnelCancelJobCodec.encodeRequest(jobId, force));
 
         cancelFuture.join();
     }

@@ -48,6 +48,7 @@ import org.apache.seatunnel.engine.server.dag.physical.SubPlan;
 import org.apache.seatunnel.engine.server.event.JobEventHttpReportHandler;
 import org.apache.seatunnel.engine.server.event.JobEventProcessor;
 import org.apache.seatunnel.engine.server.execution.ExecutionState;
+import org.apache.seatunnel.engine.server.execution.PendingJobInfo;
 import org.apache.seatunnel.engine.server.execution.PendingSourceState;
 import org.apache.seatunnel.engine.server.execution.TaskExecutionState;
 import org.apache.seatunnel.engine.server.execution.TaskGroupLocation;
@@ -67,6 +68,7 @@ import org.apache.seatunnel.engine.server.telemetry.metrics.entity.ThreadPoolSta
 import org.apache.seatunnel.engine.server.utils.NodeEngineUtil;
 import org.apache.seatunnel.engine.server.utils.PeekBlockingQueue;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.hazelcast.cluster.Address;
 import com.hazelcast.config.Config;
@@ -81,7 +83,6 @@ import com.hazelcast.map.IMap;
 import com.hazelcast.ringbuffer.Ringbuffer;
 import com.hazelcast.spi.impl.NodeEngineImpl;
 import lombok.NonNull;
-import scala.Tuple2;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -90,7 +91,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -158,12 +158,8 @@ public class CoordinatorService implements DynamicMetricsProvider {
      */
     private final Map<Long, JobMaster> runningJobMasterMap = new ConcurrentHashMap<>();
 
-    /**
-     * key: job id; <br>
-     * value: job master;
-     */
-    protected final Map<Long, Tuple2<PendingSourceState, JobMaster>> pendingJobMasterMap =
-            new ConcurrentHashMap<>();
+    private final PeekBlockingQueue<PendingJobInfo> pendingJobQueue =
+            new PeekBlockingQueue<>(PendingJobInfo::getJobId);
 
     /**
      * IMap key is {@link PipelineLocation}
@@ -193,8 +189,6 @@ public class CoordinatorService implements DynamicMetricsProvider {
     private EventProcessor eventProcessor;
 
     private PassiveCompletableFuture restoreAllJobFromMasterNodeSwitchFuture;
-
-    private PeekBlockingQueue<JobMaster> pendingJob = new PeekBlockingQueue<>();
 
     private final boolean isWaitStrategy;
 
@@ -238,10 +232,16 @@ public class CoordinatorService implements DynamicMetricsProvider {
                     while (true) {
                         try {
                             pendingJobSchedule();
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        } finally {
-                            pendingJob.release();
+                        } catch (InterruptedException interrupted) {
+                            throw new RuntimeException(interrupted);
+                        } catch (Throwable e) {
+                            logger.severe("Error in pending job schedule thread", e);
+                            try {
+                                Thread.sleep(3000L);
+                            } catch (InterruptedException ex) {
+                                logger.severe("Pending job schedule thread interrupted", ex);
+                                Thread.currentThread().interrupt();
+                            }
                         }
                     }
                 };
@@ -249,26 +249,19 @@ public class CoordinatorService implements DynamicMetricsProvider {
     }
 
     private void pendingJobSchedule() throws InterruptedException {
-        JobMaster jobMaster = pendingJob.peekBlocking();
-        if (Objects.isNull(jobMaster)) {
+        PendingJobInfo pendingJobInfo = pendingJobQueue.peekBlocking();
+        if (Objects.isNull(pendingJobInfo)) {
             // This situation almost never happens because pendingJobSchedule is single-threaded
-            logger.warning("The peek job master is null");
+            logger.warning("The peek job info is null");
             Thread.sleep(3000);
             return;
         }
-
-        Long jobId = jobMaster.getJobId();
-
-        if (!pendingJobMasterMap.containsKey(jobId)) {
-            logger.fine(String.format("Job ID : %s already cancelled", jobId));
-            queueRemove(jobMaster);
-            return;
-        }
-
+        Long jobId = pendingJobInfo.getJobId();
+        final JobMaster jobMaster = pendingJobInfo.getJobMaster();
         logger.fine(
                 String.format(
-                        "Start pending job schedule, pendingJob Size : %s", pendingJob.size()));
-
+                        "Start pending job schedule, pendingJob Size : %s",
+                        pendingJobQueue.size()));
         logger.fine(
                 String.format(
                         "Start calculating whether pending task resources are enough: %s", jobId));
@@ -287,26 +280,26 @@ public class CoordinatorService implements DynamicMetricsProvider {
                 }
                 return;
             } else {
-                queueRemove(jobMaster);
                 completeFailJob(jobMaster);
+                queueRemove(jobMaster);
                 return;
             }
         }
-
         logger.info(String.format("Resources enough, start running: %s", jobId));
-
-        queueRemove(jobMaster);
-
-        PendingSourceState pendingSourceState = pendingJobMasterMap.get(jobId)._1;
-
+        // When deleting jobmaster from pendingJobQueue, make sure that there is a corresponding
+        // jobMaster in the runningJobMasterMap
+        runningJobMasterMap.put(jobId, jobMaster);
+        final PendingJobInfo finalPendingJobInfo = pendingJobQueue.take();
+        final JobMaster finalJobMaster = finalPendingJobInfo.getJobMaster();
+        PendingSourceState pendingSourceState = finalPendingJobInfo.getPendingSourceState();
         MDCExecutorService mdcExecutorService = MDCTracer.tracing(jobId, executorService);
         mdcExecutorService.submit(
                 () -> {
                     try {
-                        String jobFullName = jobMaster.getPhysicalPlan().getJobFullName();
+                        String jobFullName = finalJobMaster.getPhysicalPlan().getJobFullName();
                         JobStatus jobStatus = (JobStatus) runningJobStateIMap.get(jobId);
                         if (pendingSourceState == PendingSourceState.RESTORE) {
-                            jobMaster
+                            finalJobMaster
                                     .getPhysicalPlan()
                                     .getPipelineList()
                                     .forEach(SubPlan::restorePipelineState);
@@ -315,23 +308,17 @@ public class CoordinatorService implements DynamicMetricsProvider {
                                 String.format(
                                         "The %s %s is in %s state, restore pipeline and take over this job running",
                                         pendingSourceState, jobFullName, jobStatus));
-
-                        pendingJobMasterMap.remove(jobId);
-                        runningJobMasterMap.put(jobId, jobMaster);
-                        jobMaster.run();
+                        finalJobMaster.run();
                     } finally {
-                        if (jobMasterCompletedSuccessfully(jobMaster, pendingSourceState)) {
+                        if (jobMasterCompletedSuccessfully(finalJobMaster, pendingSourceState)) {
                             runningJobMasterMap.remove(jobId);
                         }
                     }
                 });
     }
 
-    private void queueRemove(JobMaster jobMaster) throws InterruptedException {
-        JobMaster take = pendingJob.take();
-        if (take != jobMaster) {
-            logger.severe("The job master is not equal to the peek job master");
-        }
+    private void queueRemove(JobMaster jobMaster) {
+        pendingJobQueue.removeById(jobMaster.getJobId());
     }
 
     private void completeFailJob(JobMaster jobMaster) {
@@ -343,7 +330,8 @@ public class CoordinatorService implements DynamicMetricsProvider {
                         ExceptionUtils.getMessage(new NoEnoughResourceException()));
         jobMaster.getPhysicalPlan().updateJobState(JobStatus.FAILED);
         jobMaster.getPhysicalPlan().completeJobEndFuture(jobResult);
-
+        // wait job complete
+        jobMaster.getJobMasterCompleteFuture().join();
         logger.info(
                 String.format(
                         "The job %s is not running because the resources is not enough insufficient",
@@ -397,9 +385,11 @@ public class CoordinatorService implements DynamicMetricsProvider {
     }
 
     public JobMaster getJobMaster(Long jobId) {
-        return Optional.ofNullable(pendingJobMasterMap.get(jobId))
-                .map(t -> t._2)
-                .orElse(runningJobMasterMap.get(jobId));
+        PendingJobInfo pendingJobInfo = pendingJobQueue.getById(jobId);
+        if (pendingJobInfo != null) {
+            return pendingJobInfo.getJobMaster();
+        }
+        return runningJobMasterMap.get(jobId);
     }
 
     public EventProcessor getEventProcessor() {
@@ -421,7 +411,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
                         nodeEngine,
                         runningJobStateIMap,
                         logger,
-                        pendingJobMasterMap,
+                        pendingJobQueue.getJobIdMap(),
                         runningJobMasterMap,
                         nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_FINISHED_JOB_STATE),
                         nodeEngine
@@ -454,9 +444,9 @@ public class CoordinatorService implements DynamicMetricsProvider {
     private void restoreAllRunningJobFromMasterNodeSwitch() {
         List<Map.Entry<Long, JobInfo>> needRestoreFromMasterNodeSwitchJobs =
                 runningJobInfoIMap.entrySet().stream()
-                        .filter(entry -> !runningJobMasterMap.keySet().contains(entry.getKey()))
+                        .filter(entry -> !runningJobMasterMap.containsKey(entry.getKey()))
                         .collect(Collectors.toList());
-        if (needRestoreFromMasterNodeSwitchJobs.size() == 0) {
+        if (needRestoreFromMasterNodeSwitchJobs.isEmpty()) {
             return;
         }
         // waiting have worker registered
@@ -481,9 +471,8 @@ public class CoordinatorService implements DynamicMetricsProvider {
                                                                     entry.getKey()));
                                                     try {
                                                         // skip the job new submit
-                                                        if (!runningJobMasterMap
-                                                                .keySet()
-                                                                .contains(entry.getKey())) {
+                                                        if (!runningJobMasterMap.containsKey(
+                                                                entry.getKey())) {
                                                             restoreJobFromMasterActiveSwitch(
                                                                     entry.getKey(),
                                                                     entry.getValue());
@@ -538,8 +527,8 @@ public class CoordinatorService implements DynamicMetricsProvider {
             throw new SeaTunnelEngineException(String.format("Job id %s init failed", jobId), e);
         }
 
-        pendingJobMasterMap.put(jobId, new Tuple2<>(PendingSourceState.RESTORE, jobMaster));
-        pendingJob.put(jobMaster);
+        PendingJobInfo pendingJobInfo = new PendingJobInfo(PendingSourceState.RESTORE, jobMaster);
+        pendingJobQueue.put(pendingJobInfo);
         jobMaster.getPhysicalPlan().updateJobState(JobStatus.PENDING);
         logger.info(String.format("The restore job enter pending queue, JobId: %s", jobId));
     }
@@ -576,11 +565,15 @@ public class CoordinatorService implements DynamicMetricsProvider {
         // interrupt all JobMaster
         runningJobMasterMap.values().forEach(JobMaster::interrupt);
         if (isWaitStrategy) {
-            pendingJobMasterMap.values().stream()
-                    .filter(Objects::nonNull)
-                    .map(Tuple2::_2)
-                    .forEach(JobMaster::interrupt);
-            pendingJobMasterMap.clear();
+            pendingJobQueue
+                    .getJobIdMap()
+                    .values()
+                    .forEach(
+                            pendingJobInfo -> {
+                                JobMaster jobMaster = pendingJobInfo.getJobMaster();
+                                jobMaster.interrupt();
+                            });
+            pendingJobQueue.clear();
         }
         executorService.shutdownNow();
         runningJobMasterMap.clear();
@@ -662,8 +655,6 @@ public class CoordinatorService implements DynamicMetricsProvider {
                                             "The job id %s has already been submitted and is not starting with a savepoint.",
                                             jobId));
                         }
-                        pendingJobMasterMap.put(
-                                jobId, new Tuple2<>(PendingSourceState.SUBMIT, jobMaster));
                         runningJobInfoIMap.put(
                                 jobId,
                                 new JobInfo(System.currentTimeMillis(), jobImmutableInformation));
@@ -671,7 +662,13 @@ public class CoordinatorService implements DynamicMetricsProvider {
                                 runningJobInfoIMap.get(jobId).getInitializationTimestamp(),
                                 false,
                                 classLoader);
-                        // We specify that when init is complete, the submitJob is complete
+                        // Initialize the JobMaster and add it to the pendingJobQueue, ensuring that
+                        // calling the getJobMaster method does not return NULL when the
+                        // jobSubmitFuture is still running.
+                        PendingJobInfo pendingJobInfo =
+                                new PendingJobInfo(PendingSourceState.SUBMIT, jobMaster);
+                        pendingJobQueue.put(pendingJobInfo);
+                        // We specify that when init is complete, the submitJob is complete.
                         jobSubmitFuture.complete(null);
                     } catch (Throwable e) {
                         String errorMsg = ExceptionUtils.getMessage(e);
@@ -679,7 +676,6 @@ public class CoordinatorService implements DynamicMetricsProvider {
                         jobSubmitFuture.completeExceptionally(new JobException(errorMsg));
                     }
                     if (!jobSubmitFuture.isCompletedExceptionally()) {
-                        pendingJob.put(jobMaster);
                         jobMaster.getPhysicalPlan().updateJobState(JobStatus.PENDING);
                         logger.info(
                                 String.format(
@@ -689,6 +685,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
                     } else {
                         runningJobInfoIMap.remove(jobId);
                         runningJobMasterMap.remove(jobId);
+                        pendingJobQueue.removeById(jobId);
                     }
                 });
         return new PassiveCompletableFuture<>(jobSubmitFuture);
@@ -759,15 +756,45 @@ public class CoordinatorService implements DynamicMetricsProvider {
             future.complete(null);
             return new PassiveCompletableFuture<>(future);
         } else {
+            boolean isPendingJob = pendingJobQueue.contains(jobId);
             // Cancel pending tasks
-            if (pendingJobMasterMap.containsKey(jobId)) {
-                pendingJobMasterMap.remove(jobId);
+            if (isPendingJob) {
+                pendingJobQueue.removeById(jobId);
                 logger.fine(String.format("Cancel pending tasks : %s", jobId));
             }
             return new PassiveCompletableFuture<>(
                     CompletableFuture.supplyAsync(
                             () -> {
                                 runningJobMaster.cancelJob();
+                                // The pending task "JobMaster.init" has not been executed, so the
+                                // job status (JobStatus) will not be stored in the
+                                // jobHistoryService. Here, storeJobEndState is called to store the
+                                // `CANCELED` status in the jobHistoryService.
+                                if (isPendingJob) {
+                                    runningJobMaster.storeJobEndState();
+                                }
+                                return null;
+                            },
+                            executorService));
+        }
+    }
+
+    public PassiveCompletableFuture<Void> stopJob(long jobId) {
+        JobMaster runningJobMaster = getJobMaster(jobId);
+        if (runningJobMaster == null) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            future.complete(null);
+            return new PassiveCompletableFuture<>(future);
+        } else {
+            boolean isPendingJob = pendingJobQueue.contains(jobId);
+            if (isPendingJob) {
+                pendingJobQueue.removeById(jobId);
+                logger.fine(String.format("Stop pending tasks : %s", jobId));
+            }
+            return new PassiveCompletableFuture<>(
+                    CompletableFuture.supplyAsync(
+                            () -> {
+                                runningJobMaster.stopJob();
                                 return null;
                             },
                             executorService));
@@ -775,7 +802,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
     }
 
     public JobStatus getJobStatus(long jobId) {
-        if (pendingJobMasterMap.containsKey(jobId)) {
+        if (pendingJobQueue.contains(jobId)) {
             return JobStatus.PENDING;
         }
         JobMaster runningJobMaster = runningJobMasterMap.get(jobId);
@@ -791,7 +818,7 @@ public class CoordinatorService implements DynamicMetricsProvider {
     }
 
     public JobMetrics getJobMetrics(long jobId) {
-        if (pendingJobMasterMap.containsKey(jobId)) {
+        if (pendingJobQueue.contains(jobId)) {
             // Tasks in pending, metric data is empty
             return JobMetrics.empty();
         }
@@ -866,8 +893,9 @@ public class CoordinatorService implements DynamicMetricsProvider {
         if (jobInfo != null) {
             return jobInfo;
         }
-        if (pendingJobMasterMap.containsKey(jobId)) {
-            return pendingJobMasterMap.get(jobId)._2().getJobDAGInfo();
+        PendingJobInfo pendingJobInfo = pendingJobQueue.getById(jobId);
+        if (pendingJobInfo != null) {
+            return pendingJobInfo.getJobMaster().getJobDAGInfo();
         }
         JobMaster jobMaster = runningJobMasterMap.get(jobId);
         if (jobMaster == null) {
@@ -1102,5 +1130,10 @@ public class CoordinatorService implements DynamicMetricsProvider {
             logger.warning("Dynamic metric collection failed", t);
             throw t;
         }
+    }
+
+    @VisibleForTesting
+    public PeekBlockingQueue<PendingJobInfo> getPendingJobQueue() {
+        return pendingJobQueue;
     }
 }
