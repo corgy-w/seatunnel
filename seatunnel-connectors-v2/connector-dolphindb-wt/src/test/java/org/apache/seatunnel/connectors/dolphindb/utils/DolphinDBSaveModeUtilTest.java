@@ -79,6 +79,59 @@ public class DolphinDBSaveModeUtilTest {
     }
 
     @Test
+    void columnToDolphinDBTypeAppendsCommentWhenPresent() {
+        Column column =
+                PhysicalColumn.of(
+                        "name", BasicType.STRING_TYPE, (Long) null, true, null, "User Name");
+
+        String result = DolphinDBSaveModeUtil.columnToDolphinDBType(column);
+
+        assertEquals("name STRING[comment=\"User Name\"]", result);
+    }
+
+    @Test
+    void columnToDolphinDBTypeEscapesComment() {
+        Column column =
+                PhysicalColumn.of(
+                        "c1", BasicType.STRING_TYPE, (Long) null, true, null, "a\"b\\c\n");
+
+        String result = DolphinDBSaveModeUtil.columnToDolphinDBType(column);
+
+        assertEquals("c1 STRING[comment=\"a\\\"b\\\\c\\n\"]", result);
+    }
+
+    @Test
+    void columnToDolphinDBTypeMergesCommentIntoExistingColumnDesc() {
+        Column column = mock(Column.class);
+        when(column.getName()).thenReturn("col1");
+        when(column.getDataType()).thenReturn((SeaTunnelDataType) BasicType.INT_TYPE);
+        when(column.getSinkType()).thenReturn("INT[compress=\"LZ4\"]");
+        when(column.getComment()).thenReturn("id column");
+
+        String result = DolphinDBSaveModeUtil.columnToDolphinDBType(column);
+
+        assertEquals("col1 INT[compress=\"LZ4\", comment=\"id column\"]", result);
+    }
+
+    @Test
+    void fillingCreateSqlDoesNotFailWhenCommentContainsDollarSign() {
+        List<Column> columns = new ArrayList<>();
+        columns.add(
+                PhysicalColumn.of(
+                        "c1", BasicType.STRING_TYPE, (Long) null, true, null, "price $1 ${x}"));
+
+        String result =
+                DolphinDBSaveModeUtil.fillingCreateSql(
+                        "CREATE TABLE '${database}'.'${table}' ( ${rowtype_fields} )",
+                        "dfs://test_db",
+                        "t1",
+                        TableSchema.builder().columns(columns).build());
+
+        assertTrue(result.contains("$1"));
+        assertTrue(result.contains("${x}"));
+    }
+
+    @Test
     void fillingCreateSqlWithKeyColNames() {
         List<Column> columns = new ArrayList<>();
         columns.add(PhysicalColumn.of("id", BasicType.LONG_TYPE, (Long) null, true, null, ""));

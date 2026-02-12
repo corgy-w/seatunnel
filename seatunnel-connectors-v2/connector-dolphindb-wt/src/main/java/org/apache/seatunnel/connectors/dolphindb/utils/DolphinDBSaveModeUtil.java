@@ -34,6 +34,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -65,7 +66,7 @@ public class DolphinDBSaveModeUtil {
         template =
                 template.replaceAll(
                         String.format("\\$\\{%s\\}", SaveModeConstants.ROWTYPE_PRIMARY_KEY),
-                        primaryKey);
+                        Matcher.quoteReplacement(primaryKey));
         Map<String, CreateTableParser.ColumnInfo> columnInTemplate =
                 CreateTableParser.getColumnList(template);
         template = mergeColumnInTemplate(columnInTemplate, tableSchema, template);
@@ -80,15 +81,21 @@ public class DolphinDBSaveModeUtil {
             // TODO: Remove this compatibility config
             template =
                     template.replaceAll(
-                            SaveModePlaceHolder.TABLE_NAME.getReplacePlaceHolder(), table);
+                            SaveModePlaceHolder.TABLE_NAME.getReplacePlaceHolder(),
+                            Matcher.quoteReplacement(table));
             log.warn(
                     "The variable placeholder `${table_name}` has been marked as deprecated and will be removed soon, please use `${table}`");
         }
 
-        return template.replaceAll(SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(), database)
-                .replaceAll(SaveModePlaceHolder.TABLE.getReplacePlaceHolder(), table)
+        return template.replaceAll(
+                        SaveModePlaceHolder.DATABASE.getReplacePlaceHolder(),
+                        Matcher.quoteReplacement(database))
                 .replaceAll(
-                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(), rowTypeFields);
+                        SaveModePlaceHolder.TABLE.getReplacePlaceHolder(),
+                        Matcher.quoteReplacement(table))
+                .replaceAll(
+                        SaveModePlaceHolder.ROWTYPE_FIELDS.getReplacePlaceHolder(),
+                        Matcher.quoteReplacement(rowTypeFields));
     }
 
     static String columnToDolphinDBType(Column column) {
@@ -99,7 +106,45 @@ public class DolphinDBSaveModeUtil {
         } else {
             columnType = dataTypeToDolphinDBType(column.getDataType());
         }
+        columnType = appendColumnCommentIfPresent(columnType, column.getComment());
         return String.format("%s %s", column.getName(), columnType);
+    }
+
+    private static String appendColumnCommentIfPresent(String columnType, String comment) {
+        if (StringUtils.isBlank(comment) || StringUtils.isBlank(columnType)) {
+            return columnType;
+        }
+
+        // Avoid duplicate comment when user already provides it via sinkType/template.
+        if (columnType.toLowerCase().contains("comment=")) {
+            return columnType;
+        }
+
+        String escapedComment = escapeDolphinDBString(comment);
+        if (columnType.endsWith("]") && columnType.contains("[")) {
+            int bracketStart = columnType.lastIndexOf('[');
+            if (bracketStart < columnType.length() - 1) {
+                String inside = columnType.substring(bracketStart + 1, columnType.length() - 1);
+                String sep = StringUtils.isBlank(inside) ? "" : ", ";
+                return columnType.substring(0, columnType.length() - 1)
+                        + sep
+                        + "comment=\""
+                        + escapedComment
+                        + "\"]";
+            }
+        }
+        return columnType + "[comment=\"" + escapedComment + "\"]";
+    }
+
+    private static String escapeDolphinDBString(String input) {
+        if (input == null) {
+            return null;
+        }
+        return input.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n")
+                .replace("\t", "\\t");
     }
 
     private static String mergeColumnInTemplate(
