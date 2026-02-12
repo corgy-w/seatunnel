@@ -61,6 +61,8 @@ public class ElasticsearchSource
                 SupportParallelism,
                 SupportColumnProjection {
 
+    private static final String DEFAULT_DATABASE = "default";
+
     private final List<SourceConfig> sourceConfigList;
     private final ReadonlyConfig connectionConfig;
 
@@ -110,6 +112,7 @@ public class ElasticsearchSource
             log.warn(
                     "The schema config in ElasticSearch source/sink is deprecated, please use source config instead!");
             catalogTable = CatalogTableUtil.buildWithConfig(readonlyConfig);
+            catalogTable = ensureDefaultDatabase(catalogTable, index);
             source = Arrays.asList(catalogTable.getSeaTunnelRowType().getFieldNames());
         } else {
             source = readonlyConfig.get(SourceConfig.SOURCE);
@@ -147,7 +150,7 @@ public class ElasticsearchSource
             }
             catalogTable =
                     CatalogTable.of(
-                            TableIdentifier.of("elasticsearch", null, index),
+                            TableIdentifier.of("elasticsearch", DEFAULT_DATABASE, index),
                             builder.build(),
                             Collections.emptyMap(),
                             Collections.emptyList(),
@@ -165,6 +168,21 @@ public class ElasticsearchSource
         sourceConfig.setIndex(index);
         sourceConfig.setCatalogTable(catalogTable);
         return sourceConfig;
+    }
+
+    private CatalogTable ensureDefaultDatabase(CatalogTable catalogTable, String index) {
+        TableIdentifier tableId = catalogTable.getTableId();
+        if (tableId.getDatabaseName() != null) {
+            return catalogTable;
+        }
+        String tableName = tableId.getTableName() != null ? tableId.getTableName() : index;
+        TableIdentifier newTableId =
+                TableIdentifier.of(
+                        tableId.getCatalogName(),
+                        DEFAULT_DATABASE,
+                        tableId.getSchemaName(),
+                        tableName);
+        return CatalogTable.of(newTableId, catalogTable);
     }
 
     @Override
