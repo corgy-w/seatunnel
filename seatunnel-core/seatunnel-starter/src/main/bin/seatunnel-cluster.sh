@@ -311,6 +311,7 @@ if [[ $DAEMON == true && $HELP == false ]]; then
   fi
   touch $OUT
   nohup java ${JAVA_OPTS} -cp ${CLASS_PATH} ${APP_MAIN} ${args} > "$OUT" 200<&- 2>&1 < /dev/null &
+  echo $! > "${OUT%.out}.pid"
   else
   java ${JAVA_OPTS} -cp ${CLASS_PATH} ${APP_MAIN} ${args}
 fi
