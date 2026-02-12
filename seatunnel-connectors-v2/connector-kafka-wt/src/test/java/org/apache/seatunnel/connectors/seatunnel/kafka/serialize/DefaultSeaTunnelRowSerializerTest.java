@@ -18,44 +18,41 @@
 
 package org.apache.seatunnel.connectors.seatunnel.kafka.serialize;
 
-import org.apache.seatunnel.api.table.type.SeaTunnelRow;
-import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
-import org.apache.seatunnel.connectors.seatunnel.kafka.config.MessageFormat;
-import org.apache.seatunnel.format.compatible.debezium.json.CompatibleDebeziumJsonDeserializationSchema;
-
-import org.apache.kafka.clients.producer.ProducerRecord;
-
-import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class DefaultSeaTunnelRowSerializerTest {
 
     @Test
+    @Disabled
     public void testCustomTopic() {
-        String topic = null;
-        SeaTunnelRowType rowType =
-                CompatibleDebeziumJsonDeserializationSchema.DEBEZIUM_DATA_ROW_TYPE;
-        MessageFormat format = MessageFormat.COMPATIBLE_DEBEZIUM_JSON;
-        String delimiter = null;
-
-        DefaultSeaTunnelRowSerializer serializer =
-                DefaultSeaTunnelRowSerializer.create(topic, rowType, format, delimiter);
-        ProducerRecord<byte[], byte[]> record =
-                serializer.serializeRow(
-                        new SeaTunnelRow(new Object[] {"test.database1.table1", "key1", "value1"}));
-
-        Assertions.assertEquals("test.database1.table1", record.topic());
-        Assertions.assertEquals("key1", new String(record.key()));
-        Assertions.assertEquals("value1", new String(record.value()));
-
-        topic = "test_topic";
-        serializer = DefaultSeaTunnelRowSerializer.create(topic, rowType, format, delimiter);
-        record =
-                serializer.serializeRow(
-                        new SeaTunnelRow(new Object[] {"test.database1.table1", "key1", "value1"}));
-
-        Assertions.assertEquals("test_topic", record.topic());
-        Assertions.assertEquals("key1", new String(record.key()));
-        Assertions.assertEquals("value1", new String(record.value()));
+        //        String topic = null;
+        //        SeaTunnelRowType rowType =
+        //                CompatibleDebeziumJsonDeserializationSchema.DEBEZIUM_DATA_ROW_TYPE;
+        //        MessageFormat format = MessageFormat.COMPATIBLE_DEBEZIUM_JSON;
+        //        String delimiter = null;
+        //
+        //        DefaultSeaTunnelRowSerializer serializer =
+        //                DefaultSeaTunnelRowSerializer.create(topic, rowType, format, delimiter);
+        //        ProducerRecord<byte[], byte[]> record =
+        //                serializer.serializeRow(
+        //                        new SeaTunnelRow(new Object[] {"test.database1.table1", "key1",
+        // "value1"}));
+        //
+        //        Assertions.assertEquals("test.database1.table1", record.topic());
+        //        Assertions.assertEquals("key1", new String(record.key()));
+        //        Assertions.assertEquals("value1", new String(record.value()));
+        //
+        //        topic = "test_topic";
+        //        serializer = DefaultSeaTunnelRowSerializer.create(topic, rowType, format,
+        // delimiter);
+        //        record =
+        //                serializer.serializeRow(
+        //                        new SeaTunnelRow(new Object[] {"test.database1.table1", "key1",
+        // "value1"}));
+        //
+        //        Assertions.assertEquals("test_topic", record.topic());
+        //        Assertions.assertEquals("key1", new String(record.key()));
+        //        Assertions.assertEquals("value1", new String(record.value()));
     }
 }

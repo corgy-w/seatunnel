@@ -222,7 +222,8 @@ public class Gbase8aCatalogTest {
     @Order(9)
     void testCreateTableSql() {
         // Test the SQL generation for create table
-        String createTableSql = catalog.getCreateTableSql(sourceTablePath, sourceCatalogTable);
+        String createTableSql =
+                catalog.getCreateTableSql(sourceTablePath, sourceCatalogTable, false);
 
         Assertions.assertNotNull(createTableSql, "Create table SQL should not be null");
         Assertions.assertTrue(
@@ -241,7 +242,7 @@ public class Gbase8aCatalogTest {
     void testCreateTableSqlWithStringType() {
         // Test that STRING type (without length) generates LONGTEXT instead of VARCHAR
         CatalogTable stringTable = createStringTestCatalogTable();
-        String createTableSql = catalog.getCreateTableSql(sourceTablePath, stringTable);
+        String createTableSql = catalog.getCreateTableSql(sourceTablePath, stringTable, false);
 
         Assertions.assertNotNull(createTableSql, "Create table SQL should not be null");
 
@@ -265,7 +266,8 @@ public class Gbase8aCatalogTest {
         // Test that source type is ignored and reconvert is used
         // This simulates the case where source table has VARCHAR without length
         CatalogTable tableWithSourceType = createTableWithSourceType();
-        String createTableSql = catalog.getCreateTableSql(sourceTablePath, tableWithSourceType);
+        String createTableSql =
+                catalog.getCreateTableSql(sourceTablePath, tableWithSourceType, false);
 
         Assertions.assertNotNull(createTableSql, "Create table SQL should not be null");
 
