@@ -59,53 +59,71 @@ public class JdbcOutputFormatBuilder {
     @Nullable private final TableSchema databaseTableSchema;
 
     public JdbcOutputFormat build() {
+        final JdbcDialect buildDialect = dialect;
+        final JdbcSinkConfig buildJdbcSinkConfig = jdbcSinkConfig;
+        final TableSchema buildTableSchema = tableSchema;
+        final TableSchema buildDatabaseTableSchema = databaseTableSchema;
+
         JdbcOutputFormat.StatementExecutorFactory statementExecutorFactory;
 
-        final String database = jdbcSinkConfig.getDatabase();
-        final String table = jdbcSinkConfig.getTable();
-        final List<String> primaryKeys = jdbcSinkConfig.getPrimaryKeys();
-
-        if ((JdbcSinkConfig.WriteMode.COPY.equals(jdbcSinkConfig.getWriteMode())
-                || JdbcSinkConfig.WriteMode.MERGE.equals(jdbcSinkConfig.getWriteMode())
-                || JdbcSinkConfig.WriteMode.COPY_MERGE.equals(jdbcSinkConfig.getWriteMode())
-                || JdbcSinkConfig.WriteMode.COPY_SQL.equals(jdbcSinkConfig.getWriteMode()))) {
-            statementExecutorFactory = this::createDynamicBufferedExecutor;
-        } else if (StringUtils.isNotBlank(jdbcSinkConfig.getSimpleSql())) {
+        final String database = buildJdbcSinkConfig.getDatabase();
+        final String table = buildJdbcSinkConfig.getTable();
+        final List<String> primaryKeys = buildJdbcSinkConfig.getPrimaryKeys();
+        if ((JdbcSinkConfig.WriteMode.COPY.equals(buildJdbcSinkConfig.getWriteMode())
+                || JdbcSinkConfig.WriteMode.MERGE.equals(buildJdbcSinkConfig.getWriteMode())
+                || JdbcSinkConfig.WriteMode.COPY_MERGE.equals(buildJdbcSinkConfig.getWriteMode())
+                || JdbcSinkConfig.WriteMode.COPY_SQL.equals(buildJdbcSinkConfig.getWriteMode()))) {
+            statementExecutorFactory =
+                    () ->
+                            createDynamicBufferedExecutor(
+                                    buildDialect,
+                                    buildJdbcSinkConfig,
+                                    buildTableSchema,
+                                    buildDatabaseTableSchema);
+        } else if (StringUtils.isNotBlank(buildJdbcSinkConfig.getSimpleSql())) {
             statementExecutorFactory =
                     () ->
                             createSimpleBufferedExecutor(
-                                    jdbcSinkConfig.getSimpleSql(),
-                                    tableSchema,
-                                    databaseTableSchema,
-                                    dialect.getRowConverter());
+                                    buildJdbcSinkConfig.getSimpleSql(),
+                                    buildTableSchema,
+                                    buildDatabaseTableSchema,
+                                    buildDialect.getRowConverter());
         } else if (primaryKeys == null || primaryKeys.isEmpty()) {
             statementExecutorFactory =
                     () ->
                             createSimpleBufferedExecutor(
-                                    dialect, database, table, tableSchema, databaseTableSchema);
+                                    buildDialect,
+                                    database,
+                                    table,
+                                    buildTableSchema,
+                                    buildDatabaseTableSchema);
         } else {
             statementExecutorFactory =
                     () ->
                             createUpsertBufferedExecutor(
-                                    dialect,
+                                    buildDialect,
                                     database,
                                     table,
-                                    tableSchema,
-                                    databaseTableSchema,
+                                    buildTableSchema,
+                                    buildDatabaseTableSchema,
                                     primaryKeys.toArray(new String[0]),
-                                    jdbcSinkConfig.isEnableUpsert(),
-                                    jdbcSinkConfig.isEnableUpsertBySelectExist(),
-                                    jdbcSinkConfig.isPrimaryKeyUpdated(),
-                                    jdbcSinkConfig.isSupportUpsertByInsertOnly());
+                                    buildJdbcSinkConfig.isEnableUpsert(),
+                                    buildJdbcSinkConfig.isEnableUpsertBySelectExist(),
+                                    buildJdbcSinkConfig.isPrimaryKeyUpdated(),
+                                    buildJdbcSinkConfig.isSupportUpsertByInsertOnly());
         }
 
         return new JdbcOutputFormat(
                 connectionProvider,
-                jdbcSinkConfig.getJdbcConnectionConfig(),
+                buildJdbcSinkConfig.getJdbcConnectionConfig(),
                 statementExecutorFactory);
     }
 
-    private JdbcBatchStatementExecutor<SeaTunnelRow> createDynamicBufferedExecutor() {
+    private static JdbcBatchStatementExecutor<SeaTunnelRow> createDynamicBufferedExecutor(
+            JdbcDialect dialect,
+            JdbcSinkConfig jdbcSinkConfig,
+            TableSchema tableSchema,
+            TableSchema databaseTableSchema) {
         final String database = jdbcSinkConfig.getDatabase();
         final TablePath tablePath =
                 TablePath.of(jdbcSinkConfig.getDatabase() + "." + jdbcSinkConfig.getTable());
@@ -241,7 +259,7 @@ public class JdbcOutputFormatBuilder {
                     isPrimaryKeyUpdated);
         }
         if (enableUpsert) {
-            List<? extends SeaTunnelDataType<?>> columnTypeList =
+            List<? extends SeaTunnelDataType<?>> fieldTypes =
                     tableSchema.getColumns().stream()
                             .map(Column::getDataType)
                             .collect(Collectors.toList());
@@ -252,7 +270,7 @@ public class JdbcOutputFormatBuilder {
                             tableSchema.getFieldNames(),
                             pkNames,
                             isPrimaryKeyUpdated,
-                            columnTypeList);
+                            fieldTypes);
             if (upsertSQL.isPresent()) {
                 return createSimpleExecutor(
                         upsertSQL.get(),
@@ -287,7 +305,7 @@ public class JdbcOutputFormatBuilder {
             String table,
             TableSchema tableSchema,
             TableSchema databaseTableSchema) {
-        List<? extends SeaTunnelDataType<?>> columnTypeList =
+        List<? extends SeaTunnelDataType<?>> fieldTypes =
                 tableSchema.getColumns().stream()
                         .map(Column::getDataType)
                         .collect(Collectors.toList());
@@ -296,10 +314,7 @@ public class JdbcOutputFormatBuilder {
                         FieldNamedPreparedStatement.prepareStatement(
                                 connection,
                                 dialect.getInsertIntoStatement(
-                                        database,
-                                        table,
-                                        tableSchema.getFieldNames(),
-                                        columnTypeList),
+                                        database, table, tableSchema.getFieldNames(), fieldTypes),
                                 tableSchema.getFieldNames()),
                 tableSchema,
                 databaseTableSchema,

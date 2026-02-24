@@ -33,6 +33,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDiale
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.CopyBatchStatementExecutor;
 
 import org.postgresql.PGConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 import lombok.Getter;
@@ -52,6 +54,8 @@ import java.util.stream.Collectors;
 
 @AutoService(CopyBatchStatementExecutor.class)
 public class PostgresCopyBatchStatementExecutor implements CopyBatchStatementExecutor {
+    private static final Logger LOG =
+            LoggerFactory.getLogger(PostgresCopyBatchStatementExecutor.class);
 
     protected String copySql;
     @Getter protected TableSchema tableSchema;
@@ -116,7 +120,7 @@ public class PostgresCopyBatchStatementExecutor implements CopyBatchStatementExe
                 case FLOAT:
                 case DOUBLE:
                 case DECIMAL:
-                    csvRecord.add(record.getField(fieldIndex));
+                    csvRecord.add(fieldValue);
                     break;
                 case DATE:
                     LocalDate localDate = (LocalDate) record.getField(fieldIndex);
@@ -173,15 +177,44 @@ public class PostgresCopyBatchStatementExecutor implements CopyBatchStatementExe
             this.csvPrinter.flush();
             doCopy(copySql, new StringReader(this.csvPrinter.getOut().toString()));
         } catch (SQLException | IOException e) {
+            flushed = false;
             throw new JdbcConnectorException(
                     CommonErrorCodeDeprecated.SQL_OPERATION_FAILED, "Sql command: " + copySql, e);
-        } finally {
-            try {
-                this.csvPrinter.close();
-                this.csvPrinter = new CSVPrinter(new StringBuilder(), csvFormat);
-                flushed = true;
-            } catch (Exception ignore) {
+        }
+
+        resetCsvBufferAfterCopySuccess();
+    }
+
+    private void resetCsvBufferAfterCopySuccess() {
+        // Only reset internal CSV buffer through flush operation after COPY succeeds.
+        // If we reset on failure, the next retry in JdbcOutputFormat.flush() would send an
+        // empty payload and may "succeed" with 0 rows, leading to silent data loss while the
+        // job still reports FINISHED.
+        Exception closeException = null;
+        try {
+            this.csvPrinter.close();
+        } catch (Exception e) {
+            closeException = e;
+        }
+
+        try {
+            this.csvPrinter = new CSVPrinter(new StringBuilder(), csvFormat);
+            flushed = true;
+            if (closeException != null) {
+                LOG.warn(
+                        "Close old CSV printer failed after successful COPY, but buffer reset succeeded.",
+                        closeException);
             }
+        } catch (IOException e) {
+            flushed = false;
+            if (closeException != null) {
+                e.addSuppressed(closeException);
+            }
+            throw new JdbcConnectorException(
+                    CommonErrorCodeDeprecated.SQL_OPERATION_FAILED,
+                    "Failed to reset COPY buffer after successful execution. "
+                            + "Stop writing to avoid unsafe retries.",
+                    e);
         }
     }
 

@@ -342,4 +342,16 @@ public class DynamicBufferedBatchStatementExecutor
             bufferReducedBatchStatementExecutor.closeStatements();
         }
     }
+
+    /**
+     * Returns whether any COPY executor still holds buffered rows that have not been flushed.
+     *
+     * <p>This is used by upper retry/reconnect logic to avoid reconnecting in an unsafe state where
+     * buffered COPY payload could be lost.
+     */
+    public boolean hasPendingCopyBuffer() {
+        return !copyBatchStatementExecutor.isFlushed()
+                || (tmpCopyBatchStatementExecutor != null
+                        && !tmpCopyBatchStatementExecutor.isFlushed());
+    }
 }

@@ -51,14 +51,39 @@ public class SimpleBatchStatementExecutor implements JdbcBatchStatementExecutor<
 
     @Override
     public void executeBatch() throws SQLException {
-        statement.executeBatch();
-        statement.clearBatch();
+        executeAndClearBatch(statement);
     }
 
     @Override
     public void closeStatements() throws SQLException {
         if (statement != null) {
             statement.close();
+        }
+    }
+
+    /**
+     * Always clears JDBC driver-side batched parameters after an execution attempt.
+     *
+     * <p>Without this, a failed executeBatch() can leave dirty rows in PreparedStatement, and upper
+     * retry logic may add the same rows again, causing duplicate writes.
+     */
+    private static void executeAndClearBatch(PreparedStatement statement) throws SQLException {
+        SQLException executeException = null;
+        try {
+            statement.executeBatch();
+        } catch (SQLException e) {
+            executeException = e;
+            throw e;
+        } finally {
+            try {
+                statement.clearBatch();
+            } catch (SQLException clearException) {
+                if (executeException != null) {
+                    executeException.addSuppressed(clearException);
+                } else {
+                    throw clearException;
+                }
+            }
         }
     }
 }

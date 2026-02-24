@@ -17,14 +17,27 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql;
 
+import org.apache.seatunnel.shade.org.apache.commons.csv.CSVPrinter;
+
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.postgresql.PGConnection;
+import org.postgresql.copy.CopyManager;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.Reader;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class PostgresCopyBatchStatementExecutorTest {
 
@@ -49,7 +62,6 @@ public class PostgresCopyBatchStatementExecutorTest {
     @Test
     public void testCsvEscapingForQuotedStringValue() throws Exception {
         String out = renderSingleStringColumn("\"zhangsan\"");
-        System.out.println("\"\"\"zhangsan\"\"\"\n");
         Assertions.assertEquals("\"\"\"zhangsan\"\"\"\n", out);
     }
 
@@ -207,6 +219,123 @@ public class PostgresCopyBatchStatementExecutorTest {
                 out);
     }
 
+    @Test
+    public void testShouldNotFailFastWhenStringCannotCastToBigint() throws Exception {
+        TableSchema schema =
+                new TableSchema(
+                        java.util.Collections.singletonList(
+                                new PhysicalColumn(
+                                        "t2", BasicType.LONG_TYPE, null, null, true, null, null)),
+                        null,
+                        null);
+        PostgresCopyBatchStatementExecutor executor = new PostgresCopyBatchStatementExecutor();
+        executor.init(TablePath.of("db", "public", "t"), schema);
+        executor.prepareStatements(null);
+
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"AA"}));
+        executor.csvPrinter.flush();
+        String out = normalizeLineEndings(executor.csvPrinter.getOut().toString());
+        Assertions.assertEquals("\"AA\"\n", out);
+    }
+
+    @Test
+    public void testShouldNotFailFastWhenBlankStringCannotCastToBigint() throws Exception {
+        TableSchema schema =
+                new TableSchema(
+                        java.util.Collections.singletonList(
+                                new PhysicalColumn(
+                                        "t2", BasicType.LONG_TYPE, null, null, true, null, null)),
+                        null,
+                        null);
+        PostgresCopyBatchStatementExecutor executor = new PostgresCopyBatchStatementExecutor();
+        executor.init(TablePath.of("db", "public", "t"), schema);
+        executor.prepareStatements(null);
+
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"  "}));
+        executor.csvPrinter.flush();
+        String out = normalizeLineEndings(executor.csvPrinter.getOut().toString());
+        Assertions.assertEquals("\"  \"\n", out);
+    }
+
+    @Test
+    public void testPreserveOriginalStringWhenCopyNumericString() throws Exception {
+        TableSchema schema =
+                new TableSchema(
+                        java.util.Collections.singletonList(
+                                new PhysicalColumn(
+                                        "t2", BasicType.LONG_TYPE, null, null, true, null, null)),
+                        null,
+                        null);
+        PostgresCopyBatchStatementExecutor executor = new PostgresCopyBatchStatementExecutor();
+        executor.init(TablePath.of("db", "public", "t"), schema);
+        executor.prepareStatements(null);
+
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"  12  "}));
+        executor.csvPrinter.flush();
+        String out = normalizeLineEndings(executor.csvPrinter.getOut().toString());
+        Assertions.assertEquals("\"  12  \"\n", out);
+    }
+
+    @Test
+    public void testPreserveDoubleStringWithoutScientificNotation() throws Exception {
+        TableSchema schema =
+                TableSchema.builder()
+                        .column(
+                                new PhysicalColumn(
+                                        "d", BasicType.DOUBLE_TYPE, null, null, true, null, null))
+                        .build();
+        PostgresCopyBatchStatementExecutor executor = new PostgresCopyBatchStatementExecutor();
+        executor.init(TablePath.of("db", "public", "t"), schema);
+        executor.prepareStatements(null);
+
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"0.0000001"}));
+        executor.csvPrinter.flush();
+        String out = normalizeLineEndings(executor.csvPrinter.getOut().toString());
+
+        // validate that we keep the original representation, not Java's Double#toString formatting
+        Assertions.assertEquals("\"0.0000001\"\n", out);
+    }
+
+    @Test
+    public void testBooleanStringAcceptedByPostgres() throws Exception {
+        TableSchema schema =
+                TableSchema.builder()
+                        .column(
+                                new PhysicalColumn(
+                                        "b1", BasicType.BOOLEAN_TYPE, null, null, true, null, null))
+                        .column(
+                                new PhysicalColumn(
+                                        "b2", BasicType.BOOLEAN_TYPE, null, null, true, null, null))
+                        .build();
+        PostgresCopyBatchStatementExecutor executor = new PostgresCopyBatchStatementExecutor();
+        executor.init(TablePath.of("db", "public", "t"), schema);
+        executor.prepareStatements(null);
+
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"  yes  ", "off"}));
+        executor.csvPrinter.flush();
+        String out = normalizeLineEndings(executor.csvPrinter.getOut().toString());
+
+        Assertions.assertEquals("\"  yes  \",\"off\"\n", out);
+    }
+
+    @Test
+    public void testShouldNotFailFastWhenStringCannotCastToBoolean() throws Exception {
+        TableSchema schema =
+                TableSchema.builder()
+                        .column(
+                                new PhysicalColumn(
+                                        "b", BasicType.BOOLEAN_TYPE, null, null, true, null, null))
+                        .build();
+        PostgresCopyBatchStatementExecutor executor = new PostgresCopyBatchStatementExecutor();
+        executor.init(TablePath.of("db", "public", "t"), schema);
+        executor.prepareStatements(null);
+
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"maybe"}));
+        executor.csvPrinter.flush();
+        String out = normalizeLineEndings(executor.csvPrinter.getOut().toString());
+        Assertions.assertEquals("\"maybe\"\n", out);
+    }
+
     /*
      * Test batch with multiple rows to ensure CSV consistency.
      * CSVFormat.POSTGRESQL_CSV wraps all fields with quotes.
@@ -243,6 +372,98 @@ public class PostgresCopyBatchStatementExecutorTest {
 
         // If double escaping occurred, it would be: "a""""b" (wrong!)
         Assertions.assertNotEquals("\"a\"\"\"\"b\"\n", out);
+    }
+
+    /**
+     * Validates that a COPY failure does not clear the buffered CSV payload.
+     *
+     * <p>This protects the upper-level retry in {@code JdbcOutputFormat.flush()} from "succeeding"
+     * with an empty payload (0 rows written), which would otherwise lead to silent data loss while
+     * the job can still end in FINISHED.
+     */
+    @Test
+    public void testExecuteBatchShouldNotDropBufferWhenCopyFails() throws Exception {
+        CopyManager copyManager = Mockito.mock(CopyManager.class);
+        PGConnection pgConnection = Mockito.mock(PGConnection.class);
+        Connection connection = Mockito.mock(Connection.class);
+        Mockito.when(connection.unwrap(PGConnection.class)).thenReturn(pgConnection);
+        Mockito.when(pgConnection.getCopyAPI()).thenReturn(copyManager);
+
+        AtomicReference<String> firstCopyPayload = new AtomicReference<>();
+        AtomicReference<String> secondCopyPayload = new AtomicReference<>();
+
+        // Simulate a retriable flush flow:
+        // 1) First COPY fails with a data error (e.g. 22P02) and must NOT clear the buffered CSV.
+        // 2) Second COPY is invoked by the retry mechanism and must receive the SAME payload.
+        Mockito.when(copyManager.copyIn(Mockito.anyString(), Mockito.any(Reader.class)))
+                .thenAnswer(
+                        invocation -> {
+                            firstCopyPayload.set(readAll(invocation.getArgument(1)));
+                            throw new SQLException("invalid input syntax", "22P02");
+                        })
+                .thenAnswer(
+                        invocation -> {
+                            secondCopyPayload.set(readAll(invocation.getArgument(1)));
+                            return 1L;
+                        });
+
+        PostgresCopyBatchStatementExecutor executor = new PostgresCopyBatchStatementExecutor();
+        executor.init(TablePath.of("db", "public", "t"), buildSingleStringSchema());
+        executor.prepareStatements(connection);
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"AA"}));
+
+        // First try: COPY fails, executor must keep the buffer so that upper-level retry can
+        // resend.
+        Assertions.assertThrows(JdbcConnectorException.class, executor::executeBatch);
+        Assertions.assertFalse(executor.isFlushed());
+
+        // Second try: COPY succeeds, payload should be identical to the first try (no silent drop).
+        executor.executeBatch();
+        Assertions.assertTrue(executor.isFlushed());
+
+        Assertions.assertEquals(firstCopyPayload.get(), secondCopyPayload.get());
+        Assertions.assertTrue(secondCopyPayload.get().contains("AA"));
+    }
+
+    @Test
+    public void testExecuteBatchShouldResetBufferWhenCloseOldPrinterFails() throws Exception {
+        CopyManager copyManager = Mockito.mock(CopyManager.class);
+        PGConnection pgConnection = Mockito.mock(PGConnection.class);
+        Connection connection = Mockito.mock(Connection.class);
+        Mockito.when(connection.unwrap(PGConnection.class)).thenReturn(pgConnection);
+        Mockito.when(pgConnection.getCopyAPI()).thenReturn(copyManager);
+
+        AtomicReference<String> firstCopyPayload = new AtomicReference<>();
+        AtomicReference<String> secondCopyPayload = new AtomicReference<>();
+
+        Mockito.when(copyManager.copyIn(Mockito.anyString(), Mockito.any(Reader.class)))
+                .thenAnswer(
+                        invocation -> {
+                            firstCopyPayload.set(readAll(invocation.getArgument(1)));
+                            return 1L;
+                        })
+                .thenAnswer(
+                        invocation -> {
+                            secondCopyPayload.set(readAll(invocation.getArgument(1)));
+                            return 1L;
+                        });
+
+        PostgresCopyBatchStatementExecutor executor = new PostgresCopyBatchStatementExecutor();
+        executor.init(TablePath.of("db", "public", "t"), buildSingleStringSchema());
+        executor.prepareStatements(connection);
+
+        executor.csvPrinter = new CSVPrinter(new FailingCloseableAppendable(), executor.csvFormat);
+
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"first"}));
+        executor.executeBatch();
+        Assertions.assertTrue(executor.isFlushed());
+
+        executor.addToBatch(new SeaTunnelRow(new Object[] {"second"}));
+        executor.executeBatch();
+        Assertions.assertTrue(executor.isFlushed());
+
+        Assertions.assertEquals("\"first\"\n", firstCopyPayload.get());
+        Assertions.assertEquals("\"second\"\n", secondCopyPayload.get());
     }
 
     private String renderSingleStringColumn(String value) throws Exception {
@@ -282,5 +503,52 @@ public class PostgresCopyBatchStatementExecutorTest {
 
     private String normalizeLineEndings(String value) {
         return value.replace("\r\n", "\n");
+    }
+
+    /** Reads the full content from a {@link Reader} and normalizes line endings for assertions. */
+    private String readAll(Reader reader) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        char[] buf = new char[1024];
+        int n;
+        while ((n = reader.read(buf)) != -1) {
+            sb.append(buf, 0, n);
+        }
+        return normalizeLineEndings(sb.toString());
+    }
+
+    private static final class FailingCloseableAppendable implements Appendable, Closeable {
+        private final StringBuilder delegate = new StringBuilder();
+        private boolean failOnFirstClose = true;
+
+        @Override
+        public Appendable append(CharSequence csq) {
+            delegate.append(csq);
+            return this;
+        }
+
+        @Override
+        public Appendable append(CharSequence csq, int start, int end) {
+            delegate.append(csq, start, end);
+            return this;
+        }
+
+        @Override
+        public Appendable append(char c) {
+            delegate.append(c);
+            return this;
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (failOnFirstClose) {
+                failOnFirstClose = false;
+                throw new IOException("mock close failure");
+            }
+        }
+
+        @Override
+        public String toString() {
+            return delegate.toString();
+        }
     }
 }

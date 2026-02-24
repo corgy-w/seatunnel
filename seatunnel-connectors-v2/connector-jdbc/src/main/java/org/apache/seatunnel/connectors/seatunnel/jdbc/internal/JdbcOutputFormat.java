@@ -23,6 +23,8 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfi
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.CopyBatchStatementExecutor;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.DynamicBufferedBatchStatementExecutor;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.JdbcBatchStatementExecutor;
 
 import org.slf4j.Logger;
@@ -126,6 +128,7 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
             }
             if (!connectionProvider.isConnectionValid()) {
                 LOG.debug("Connection is invalid, try to reconnect.");
+                throwIfUnsafeToReconnect(0, jdbcConnectionConfig.getMaxRetries(), null, false);
                 updateExecutor(true);
             }
         } catch (Exception e) {
@@ -228,6 +231,7 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                         e);
 
                 if (needReconnect) {
+                    throwIfUnsafeToReconnect(attempt, maxRetries, sqlState, connValid);
                     try {
                         LOG.info(
                                 "Reconnecting JDBC. attempt={}/{}, sqlState={}, connValid={}",
@@ -263,6 +267,40 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                 }
             }
         }
+    }
+
+    /**
+     * Block reconnect when COPY payload is still buffered locally. Reconnect in this state may lose
+     * in-memory data that has not been persisted yet.
+     */
+    private void throwIfUnsafeToReconnect(
+            int attempt, int maxRetries, String sqlState, boolean connValid) {
+        if (!hasPendingCopyBuffer()) {
+            return;
+        }
+        throw new JdbcConnectorException(
+                CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
+                String.format(
+                        "Unsafe reconnect is blocked because COPY payload is still buffered. "
+                                + "attempt=%d/%d, sqlState=%s, connValid=%s. "
+                                + "Fail fast to avoid silent data loss.",
+                        attempt, maxRetries, sqlState, connValid));
+    }
+
+    /**
+     * Check if there is pending COPY buffer that has not been flushed to database yet.
+     *
+     * @return
+     */
+    private boolean hasPendingCopyBuffer() {
+        if (jdbcStatementExecutor instanceof DynamicBufferedBatchStatementExecutor) {
+            return ((DynamicBufferedBatchStatementExecutor) jdbcStatementExecutor)
+                    .hasPendingCopyBuffer();
+        }
+        if (jdbcStatementExecutor instanceof CopyBatchStatementExecutor) {
+            return !((CopyBatchStatementExecutor) jdbcStatementExecutor).isFlushed();
+        }
+        return false;
     }
 
     protected void attemptFlush() throws SQLException {
