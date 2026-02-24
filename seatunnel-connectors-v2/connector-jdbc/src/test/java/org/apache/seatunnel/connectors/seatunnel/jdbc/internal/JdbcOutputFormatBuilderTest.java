@@ -17,16 +17,25 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal;
 
+import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
+import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.BasicType;
 import org.apache.seatunnel.api.table.type.RowKind;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRow;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSinkConfig;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.JdbcConnectionProvider;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionProvider;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.psql.PostgresDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.FieldNamedPreparedStatement;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -99,5 +108,46 @@ public class JdbcOutputFormatBuilderTest {
                 parsedSQL.contains(":mateid"), "Parsed SQL should not contain named parameters");
         Assertions.assertFalse(
                 parsedSQL.contains(":col1"), "Parsed SQL should not contain named parameters");
+    }
+
+    @Test
+    public void testOutputFormatShouldBeSerializableForCopyMode() throws Exception {
+        JdbcConnectionConfig jdbcConnectionConfig =
+                JdbcConnectionConfig.builder()
+                        .url("jdbc:postgresql://localhost:5432/test")
+                        .driverName("org.postgresql.Driver")
+                        .build();
+        JdbcSinkConfig jdbcSinkConfig =
+                JdbcSinkConfig.builder()
+                        .jdbcConnectionConfig(jdbcConnectionConfig)
+                        .database("db")
+                        .table("t")
+                        .writeMode(JdbcSinkConfig.WriteMode.COPY)
+                        .useCopyStatement(true)
+                        .build();
+        TableSchema tableSchema =
+                TableSchema.builder()
+                        .column(
+                                new PhysicalColumn(
+                                        "id", BasicType.INT_TYPE, null, null, true, null, null))
+                        .build();
+        JdbcConnectionProvider connectionProvider =
+                new SimpleJdbcConnectionProvider(jdbcConnectionConfig);
+
+        JdbcOutputFormat<SeaTunnelRow, ?> outputFormat =
+                new JdbcOutputFormatBuilder(
+                                new PostgresDialect(),
+                                connectionProvider,
+                                jdbcSinkConfig,
+                                tableSchema,
+                                null)
+                        .build();
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (ObjectOutputStream oos = new ObjectOutputStream(bos)) {
+            oos.writeObject(outputFormat);
+        }
+
+        Assertions.assertTrue(bos.size() > 0);
     }
 }

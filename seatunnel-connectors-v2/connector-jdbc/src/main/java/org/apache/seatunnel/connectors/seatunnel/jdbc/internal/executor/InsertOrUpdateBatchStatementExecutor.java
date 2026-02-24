@@ -83,15 +83,13 @@ public class InsertOrUpdateBatchStatementExecutor
         boolean exist = existRow(record);
         if (exist) {
             if (preExistFlag != null && !preExistFlag) {
-                insertStatement.executeBatch();
-                insertStatement.clearBatch();
+                executeAndClearBatch(insertStatement);
             }
             rowConverter.toExternal(valueTableSchema, databaseTableSchema, record, updateStatement);
             updateStatement.addBatch();
         } else {
             if (preExistFlag != null && preExistFlag) {
-                updateStatement.executeBatch();
-                updateStatement.clearBatch();
+                executeAndClearBatch(updateStatement);
             }
             rowConverter.toExternal(valueTableSchema, databaseTableSchema, record, insertStatement);
             insertStatement.addBatch();
@@ -105,11 +103,9 @@ public class InsertOrUpdateBatchStatementExecutor
     public void executeBatch() throws SQLException {
         if (preExistFlag != null) {
             if (preExistFlag) {
-                updateStatement.executeBatch();
-                updateStatement.clearBatch();
+                executeAndClearBatch(updateStatement);
             } else {
-                insertStatement.executeBatch();
-                insertStatement.clearBatch();
+                executeAndClearBatch(insertStatement);
             }
         }
         submitted = true;
@@ -156,6 +152,30 @@ public class InsertOrUpdateBatchStatementExecutor
         rowConverter.toExternal(keyTableSchema, databaseTableSchema, pk, existStatement);
         try (ResultSet resultSet = existStatement.executeQuery()) {
             return resultSet.next();
+        }
+    }
+
+    /**
+     * Always clears JDBC driver-side batch entries even if executeBatch fails, preventing stale
+     * parameters from being re-executed by upper retry logic.
+     */
+    private static void executeAndClearBatch(PreparedStatement statement) throws SQLException {
+        SQLException executeException = null;
+        try {
+            statement.executeBatch();
+        } catch (SQLException e) {
+            executeException = e;
+            throw e;
+        } finally {
+            try {
+                statement.clearBatch();
+            } catch (SQLException clearException) {
+                if (executeException != null) {
+                    executeException.addSuppressed(clearException);
+                } else {
+                    throw clearException;
+                }
+            }
         }
     }
 }
