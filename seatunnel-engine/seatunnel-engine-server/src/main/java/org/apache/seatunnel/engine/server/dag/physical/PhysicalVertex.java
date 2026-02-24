@@ -365,6 +365,23 @@ public class PhysicalVertex {
     public synchronized void updateTaskState(@NonNull ExecutionState targetState) {
         try {
             ExecutionState current = (ExecutionState) runningJobStateIMap.get(taskGroupLocation);
+
+            /*
+             * Defensive null check for current state.
+             * During node scaling down or member removal, the task state might be removed
+             * from the distributed map before we can update it. This is expected behavior
+             * when a node leaves the cluster.
+             */
+            if (current == null) {
+                log.warn(
+                        "{} current state is null (possibly due to node removal during scaling down), "
+                                + "cannot transition to {}. Task execution location: {}",
+                        taskFullName,
+                        targetState,
+                        taskGroupLocation);
+                return;
+            }
+
             log.debug(
                     String.format(
                             "Try to update the task %s state from %s to %s",
