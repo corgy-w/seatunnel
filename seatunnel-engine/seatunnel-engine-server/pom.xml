@@ -71,6 +71,20 @@
             <artifactId>whale-license-sdk</artifactId>
         </dependency>
 
+        <!-- Prometheus dependencies for telemetry metrics -->
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.prometheus</groupId>
+            <artifactId>simpleclient_hotspot</artifactId>
+        </dependency>
+
         <!-- test -->
         <dependency>
             <groupId>org.apache.seatunnel</groupId>

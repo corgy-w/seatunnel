@@ -30,6 +30,7 @@ import org.apache.seatunnel.engine.core.job.JobDAGInfo;
 import org.apache.seatunnel.engine.core.job.JobImmutableInformation;
 import org.apache.seatunnel.engine.core.job.JobInfo;
 import org.apache.seatunnel.engine.core.job.JobStatus;
+import org.apache.seatunnel.engine.server.NodeExtension;
 import org.apache.seatunnel.engine.server.SeaTunnelServer;
 import org.apache.seatunnel.engine.server.log.Log4j2HttpGetCommandProcessor;
 import org.apache.seatunnel.engine.server.master.JobHistoryService.JobState;
@@ -56,7 +57,10 @@ import com.hazelcast.internal.util.StringUtil;
 import com.hazelcast.jet.impl.execution.init.CustomClassLoadedObject;
 import com.hazelcast.map.IMap;
 import com.hazelcast.spi.impl.NodeEngine;
+import io.prometheus.client.exporter.common.TextFormat;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -76,6 +80,8 @@ import static org.apache.seatunnel.engine.server.rest.RestConstant.PACKAGE_JOB_L
 import static org.apache.seatunnel.engine.server.rest.RestConstant.RUNNING_JOBS_URL;
 import static org.apache.seatunnel.engine.server.rest.RestConstant.RUNNING_JOB_URL;
 import static org.apache.seatunnel.engine.server.rest.RestConstant.SYSTEM_MONITORING_INFORMATION;
+import static org.apache.seatunnel.engine.server.rest.RestConstant.TELEMETRY_METRICS_URL;
+import static org.apache.seatunnel.engine.server.rest.RestConstant.TELEMETRY_OPEN_METRICS_URL;
 
 public class RestHttpGetCommandProcessor extends HttpCommandProcessor<HttpGetCommand> {
 
@@ -116,6 +122,10 @@ public class RestHttpGetCommandProcessor extends HttpCommandProcessor<HttpGetCom
                 handlePackageJobLogs(httpGetCommand, uri);
             } else if (uri.startsWith(PACKAGE_ALL_LOGS_URL)) {
                 handlePackageZetaLogs(httpGetCommand, uri);
+            } else if (uri.equals(TELEMETRY_METRICS_URL)) {
+                handleMetrics(httpGetCommand, TextFormat.CONTENT_TYPE_004);
+            } else if (uri.equals(TELEMETRY_OPEN_METRICS_URL)) {
+                handleMetrics(httpGetCommand, TextFormat.CONTENT_TYPE_OPENMETRICS_100);
             } else {
                 original.handle(httpGetCommand);
             }
@@ -543,6 +553,45 @@ public class RestHttpGetCommandProcessor extends HttpCommandProcessor<HttpGetCom
             logger.severe("Failed to package all logs", e);
             prepareResponse(SC_500, command, "Failed to package all logs: " + e.getMessage());
             textCommandService.sendResponse(command);
+        }
+    }
+
+    /**
+     * Handles metrics export requests for Prometheus/OpenMetrics format.
+     *
+     * <p>This method retrieves all registered metrics from the Prometheus CollectorRegistry and
+     * serializes them into the requested text format (Prometheus or OpenMetrics). The metrics
+     * include JVM metrics, cluster metrics, job metrics, and custom application metrics.
+     *
+     * @param httpGetCommand the HTTP GET command containing the request details
+     * @param contentType the desired output format, either {@link TextFormat#CONTENT_TYPE_004} for
+     *     Prometheus format or {@link TextFormat#CONTENT_TYPE_OPENMETRICS_100} for OpenMetrics 1.0
+     *     format
+     */
+    private void handleMetrics(HttpGetCommand httpGetCommand, String contentType) {
+        NodeExtension nodeExtension =
+                (NodeExtension) textCommandService.getNode().getNodeExtension();
+        try {
+            try (StringWriter stringWriter = new StringWriter()) {
+                // Serialize all metric families to the requested text format
+                TextFormat.writeFormat(
+                        contentType,
+                        stringWriter,
+                        nodeExtension.getCollectorRegistry().metricFamilySamples());
+                this.prepareResponse(httpGetCommand, stringWriter.toString());
+            }
+        } catch (IOException e) {
+            logger.warning(
+                    "Failed to write metrics response, contentType: "
+                            + contentType
+                            + ", request: "
+                            + httpGetCommand,
+                    e);
+            prepareResponse(SC_500, httpGetCommand, "Failed to collect metrics: " + e.getMessage());
+        } catch (Exception e) {
+            logger.warning(
+                    "Unexpected error during metrics collection, request: " + httpGetCommand, e);
+            prepareResponse(SC_500, httpGetCommand, "Unexpected error: " + e.getMessage());
         }
     }
 }

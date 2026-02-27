@@ -22,13 +22,12 @@ import org.apache.seatunnel.core.starter.seatunnel.args.ServerCommandArgs;
 import org.apache.seatunnel.engine.common.config.ConfigProvider;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
 import org.apache.seatunnel.engine.common.utils.concurrent.CompletableFuture;
-import org.apache.seatunnel.engine.server.SeaTunnelNodeContext;
+import org.apache.seatunnel.engine.server.SeaTunnelServerStarter;
 
 import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 
-import com.hazelcast.instance.impl.HazelcastInstanceFactory;
 import com.hazelcast.internal.util.ConcurrencyUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -55,10 +54,8 @@ public class ServerExecuteCommand implements Command<ServerCommandArgs> {
         // set the default async executor for Hazelcast InvocationFuture
         ConcurrencyUtil.setDefaultAsyncExecutor(CompletableFuture.EXECUTOR);
 
-        HazelcastInstanceFactory.newHazelcastInstance(
-                seaTunnelConfig.getHazelcastConfig(),
-                Thread.currentThread().getName(),
-                new SeaTunnelNodeContext(seaTunnelConfig));
+        SeaTunnelServerStarter.createHazelcastInstance(
+                seaTunnelConfig, Thread.currentThread().getName());
     }
 
     private void checkEnvironment() {

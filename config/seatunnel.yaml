@@ -34,6 +34,9 @@ seatunnel:
     print-execution-info-interval: 60
     print-job-metrics-info-interval: 60
     job-schedule-strategy: WAIT
+    telemetry:
+      metric:
+        enabled: true
     slot-service:
       dynamic-slot: false
     checkpoint:

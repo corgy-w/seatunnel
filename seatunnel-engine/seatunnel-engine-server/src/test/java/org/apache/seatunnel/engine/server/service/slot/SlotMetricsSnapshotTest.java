@@ -17,30 +17,19 @@
 
 package org.apache.seatunnel.engine.server.service.slot;
 
-import org.apache.seatunnel.engine.server.resourcemanager.resource.ResourceProfile;
-import org.apache.seatunnel.engine.server.resourcemanager.resource.SlotProfile;
-import org.apache.seatunnel.engine.server.resourcemanager.worker.WorkerProfile;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-public interface SlotService {
+/** SlotMetricsSnapshotTest verifies {@link SlotMetricsSnapshot} field accessors. */
+public class SlotMetricsSnapshotTest {
 
-    void init();
-
-    void reset();
-
-    SlotAndWorkerProfile requestSlot(long jobID, ResourceProfile resourceProfile);
-
-    SlotContext getSlotContext(SlotProfile slotProfile);
-
-    void releaseSlot(long jobId, SlotProfile slotProfile);
-
-    void close();
-
-    WorkerProfile getWorkerProfile();
-
-    /**
-     * Returns a point-in-time snapshot of slot related metrics.
-     *
-     * <p>Implementations should provide an internally consistent snapshot.
-     */
-    SlotMetricsSnapshot getSlotMetrics();
+    @Test
+    public void testSnapshotReturnsProvidedValues() {
+        SlotMetricsSnapshot snapshot = new SlotMetricsSnapshot(3, 7, 11L, 13L, 17L);
+        Assertions.assertEquals(3, snapshot.getAssignedSlotCount());
+        Assertions.assertEquals(7, snapshot.getUnassignedSlotCount());
+        Assertions.assertEquals(11L, snapshot.getSlotRequestSuccessTotal());
+        Assertions.assertEquals(13L, snapshot.getSlotRequestFailureTotal());
+        Assertions.assertEquals(17L, snapshot.getSlotReleaseTotal());
+    }
 }

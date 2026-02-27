@@ -28,6 +28,8 @@ import com.hazelcast.instance.impl.DefaultNodeExtension;
 import com.hazelcast.instance.impl.Node;
 import com.hazelcast.internal.ascii.TextCommandService;
 import com.hazelcast.internal.ascii.TextCommandServiceImpl;
+import io.prometheus.client.CollectorRegistry;
+import lombok.Getter;
 import lombok.NonNull;
 
 import java.util.Map;
@@ -38,9 +40,17 @@ import static com.hazelcast.internal.ascii.TextCommandConstants.TextCommandType.
 public class NodeExtension extends DefaultNodeExtension {
     private final NodeExtensionCommon extCommon;
 
+    /**
+     * Prometheus metrics collector registry for exposing telemetry metrics. This registry contains
+     * all registered collectors including JVM metrics, cluster metrics, job metrics, and node
+     * metrics.
+     */
+    @Getter private final CollectorRegistry collectorRegistry;
+
     public NodeExtension(@NonNull Node node, @NonNull SeaTunnelConfig seaTunnelConfig) {
         super(node);
         extCommon = new NodeExtensionCommon(node, new SeaTunnelServer(seaTunnelConfig));
+        collectorRegistry = new CollectorRegistry();
     }
 
     @Override

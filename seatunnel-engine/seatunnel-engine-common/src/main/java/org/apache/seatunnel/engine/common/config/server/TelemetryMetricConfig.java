@@ -22,9 +22,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class TelemetryConfig implements Serializable {
+public class TelemetryMetricConfig implements Serializable {
 
-    private TelemetryLogsConfig logs = ServerConfigOptions.TELEMETRY_LOGS.defaultValue();
-
-    private TelemetryMetricConfig metric = ServerConfigOptions.TELEMETRY_METRIC.defaultValue();
+    private boolean enabled = ServerConfigOptions.TELEMETRY_METRIC_ENABLED.defaultValue();
 }

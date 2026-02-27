@@ -63,4 +63,8 @@ public class RestConstant {
     public static final String PACKAGE_JOB_LOGS_URL = "/hazelcast/rest/maps/package-job-logs";
 
     public static final String PACKAGE_ALL_LOGS_URL = "/hazelcast/rest/maps/package-zeta-logs";
+
+    // metrics
+    public static final String TELEMETRY_METRICS_URL = "/hazelcast/rest/instance/metrics";
+    public static final String TELEMETRY_OPEN_METRICS_URL = "/hazelcast/rest/instance/openmetrics";
 }
