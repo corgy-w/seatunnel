@@ -27,6 +27,11 @@ import io.prometheus.client.GaugeMetricFamily;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Exports the job metrics of the SeaTunnel cluster.
+ *
+ * <p>These metrics are collected on the master node only to avoid duplicated time series.
+ */
 public class JobMetricExports extends AbstractCollector {
 
     public JobMetricExports(Node node) {
@@ -35,30 +40,49 @@ public class JobMetricExports extends AbstractCollector {
 
     @Override
     public List<MetricFamilySamples> collect() {
-        List<MetricFamilySamples> mfs = new ArrayList();
+        List<MetricFamilySamples> mfs = new ArrayList<>();
         // Only the master can get job metrics
         if (isMaster()) {
-            CoordinatorService coordinatorService = getCoordinatorService();
-            JobCounter jobCountMetrics = coordinatorService.getJobCountMetrics();
+            try {
+                CoordinatorService coordinatorService = getCoordinatorService();
+                if (coordinatorService == null) {
+                    getLogger(JobMetricExports.class)
+                            .warning("CoordinatorService is not available, skipping job metrics");
+                    return mfs;
+                }
+                JobCounter jobCountMetrics = coordinatorService.getJobCountMetrics();
+                if (jobCountMetrics == null) {
+                    getLogger(JobMetricExports.class)
+                            .warning("JobCounter is not available, skipping job metrics");
+                    return mfs;
+                }
 
-            GaugeMetricFamily metricFamily =
-                    new GaugeMetricFamily(
-                            "job_count",
-                            "All job counts of seatunnel cluster ",
-                            clusterLabelNames("type"));
+                GaugeMetricFamily metricFamily =
+                        new GaugeMetricFamily(
+                                "job_count",
+                                "Job count by status in SeaTunnel cluster",
+                                clusterLabelNames("type"));
 
-            metricFamily.addMetric(labelValues("canceled"), jobCountMetrics.getCanceledJobCount());
-            metricFamily.addMetric(
-                    labelValues("cancelling"), jobCountMetrics.getCancellingJobCount());
-            metricFamily.addMetric(labelValues("created"), jobCountMetrics.getCreatedJobCount());
-            metricFamily.addMetric(labelValues("failed"), jobCountMetrics.getFailedJobCount());
-            metricFamily.addMetric(labelValues("failing"), jobCountMetrics.getFailingJobCount());
-            metricFamily.addMetric(labelValues("finished"), jobCountMetrics.getFinishedJobCount());
-            metricFamily.addMetric(labelValues("running"), jobCountMetrics.getRunningJobCount());
-            metricFamily.addMetric(
-                    labelValues("scheduled"), jobCountMetrics.getScheduledJobCount());
+                metricFamily.addMetric(
+                        labelValues("canceled"), jobCountMetrics.getCanceledJobCount());
+                metricFamily.addMetric(
+                        labelValues("cancelling"), jobCountMetrics.getCancellingJobCount());
+                metricFamily.addMetric(
+                        labelValues("created"), jobCountMetrics.getCreatedJobCount());
+                metricFamily.addMetric(labelValues("failed"), jobCountMetrics.getFailedJobCount());
+                metricFamily.addMetric(
+                        labelValues("failing"), jobCountMetrics.getFailingJobCount());
+                metricFamily.addMetric(
+                        labelValues("finished"), jobCountMetrics.getFinishedJobCount());
+                metricFamily.addMetric(
+                        labelValues("running"), jobCountMetrics.getRunningJobCount());
+                metricFamily.addMetric(
+                        labelValues("scheduled"), jobCountMetrics.getScheduledJobCount());
 
-            mfs.add(metricFamily);
+                mfs.add(metricFamily);
+            } catch (Exception e) {
+                getLogger(JobMetricExports.class).warning("Failed to collect job metrics", e);
+            }
         }
         return mfs;
     }

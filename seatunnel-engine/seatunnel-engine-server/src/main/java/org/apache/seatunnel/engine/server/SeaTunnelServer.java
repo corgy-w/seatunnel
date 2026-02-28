@@ -395,6 +395,9 @@ public class SeaTunnelServer
     }
 
     public ThreadPoolStatus getThreadPoolStatusMetrics() {
+        if (coordinatorService == null) {
+            return new ThreadPoolStatus(0, 0, 0, 0, 0L, 0L, 0L, 0L);
+        }
         return coordinatorService.getThreadPoolStatusMetrics();
     }
 }

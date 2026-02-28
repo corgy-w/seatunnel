@@ -40,7 +40,7 @@ seatunnel:
             connector-jar-expiry-time: 600
         telemetry:
             metric:
-                enabled: false
+                enabled: true
         http:
             port: 8080
             context-path: /seatunnel

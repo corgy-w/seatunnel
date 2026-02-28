@@ -27,10 +27,12 @@ import io.prometheus.client.GaugeMetricFamily;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Exports the job thread pool status metrics of the SeaTunnel coordinator.
+ *
+ * <p>These metrics describe the coordinator executor thread pool utilization and workload.
+ */
 public class JobThreadPoolStatusExports extends AbstractCollector {
-
-    private static String HELP =
-            "The %s of seatunnel coordinator job's executor cached thread pool";
 
     public JobThreadPoolStatusExports(Node node) {
         super(node);
@@ -38,84 +40,85 @@ public class JobThreadPoolStatusExports extends AbstractCollector {
 
     @Override
     public List<MetricFamilySamples> collect() {
-        List<MetricFamilySamples> mfs = new ArrayList();
+        List<MetricFamilySamples> mfs = new ArrayList<>();
+
+        // Coordinator thread-pool metrics are meaningful on the master node only.
+        // In separated clusters (master/worker split), worker nodes don't have coordinator service.
+        if (!isMaster() || getServer() == null) {
+            return mfs;
+        }
+
+        List<String> labelValues = labelValues(localAddress());
 
         ThreadPoolStatus threadPoolStatusMetrics = getServer().getThreadPoolStatusMetrics();
-        List<String> labelNames = clusterLabelNames(ADDRESS, "type");
+        if (threadPoolStatusMetrics == null) {
+            return mfs;
+        }
+        List<String> labelNames = clusterLabelNames(ADDRESS);
 
         GaugeMetricFamily activeCount =
                 new GaugeMetricFamily(
                         "job_thread_pool_activeCount",
-                        String.format(HELP, "activeCount"),
+                        "Active thread count of coordinator job executor thread pool",
                         labelNames);
-        activeCount.addMetric(
-                labelValues(localAddress(), "activeCount"),
-                threadPoolStatusMetrics.getActiveCount());
+        activeCount.addMetric(labelValues, threadPoolStatusMetrics.getActiveCount());
         mfs.add(activeCount);
 
         CounterMetricFamily completedTask =
                 new CounterMetricFamily(
                         "job_thread_pool_completedTask",
-                        String.format(HELP, "completedTask"),
+                        "Total completed task count of coordinator job executor thread pool",
                         labelNames);
-        completedTask.addMetric(
-                labelValues(localAddress(), "completedTask"),
-                threadPoolStatusMetrics.getCompletedTaskCount());
+        completedTask.addMetric(labelValues, threadPoolStatusMetrics.getCompletedTaskCount());
         mfs.add(completedTask);
 
         GaugeMetricFamily corePoolSize =
                 new GaugeMetricFamily(
                         "job_thread_pool_corePoolSize",
-                        String.format(HELP, "corePoolSize"),
+                        "Configured core pool size of coordinator job executor thread pool (threads)",
                         labelNames);
-        corePoolSize.addMetric(
-                labelValues(localAddress(), "corePoolSize"),
-                threadPoolStatusMetrics.getCorePoolSize());
+        corePoolSize.addMetric(labelValues, threadPoolStatusMetrics.getCorePoolSize());
         mfs.add(corePoolSize);
 
         GaugeMetricFamily maximumPoolSize =
                 new GaugeMetricFamily(
                         "job_thread_pool_maximumPoolSize",
-                        String.format(HELP, "maximumPoolSize"),
+                        "Configured maximum pool size of coordinator job executor thread pool (threads)",
                         labelNames);
-        maximumPoolSize.addMetric(
-                labelValues(localAddress(), "maximumPoolSize"),
-                threadPoolStatusMetrics.getMaximumPoolSize());
+        maximumPoolSize.addMetric(labelValues, threadPoolStatusMetrics.getMaximumPoolSize());
         mfs.add(maximumPoolSize);
 
         GaugeMetricFamily poolSize =
                 new GaugeMetricFamily(
-                        "job_thread_pool_poolSize", String.format(HELP, "poolSize"), labelNames);
-        poolSize.addMetric(
-                labelValues(localAddress(), "poolSize"), threadPoolStatusMetrics.getPoolSize());
+                        "job_thread_pool_poolSize",
+                        "Current pool size of coordinator job executor thread pool (threads)",
+                        labelNames);
+        poolSize.addMetric(labelValues, threadPoolStatusMetrics.getPoolSize());
         mfs.add(poolSize);
 
         CounterMetricFamily taskCount =
                 new CounterMetricFamily(
-                        "job_thread_pool_task", String.format(HELP, "taskCount"), labelNames);
-        taskCount.addMetric(
-                labelValues(localAddress(), "taskCount"), threadPoolStatusMetrics.getTaskCount());
+                        "job_thread_pool_task",
+                        "Total task count of coordinator job executor thread pool",
+                        labelNames);
+        taskCount.addMetric(labelValues, threadPoolStatusMetrics.getTaskCount());
         mfs.add(taskCount);
 
         GaugeMetricFamily queueTaskCount =
                 new GaugeMetricFamily(
                         "job_thread_pool_queueTaskCount",
-                        String.format(HELP, "queueTaskCount"),
+                        "Current queued task count of coordinator job executor thread pool",
                         labelNames);
-        queueTaskCount.addMetric(
-                labelValues(localAddress(), "queueTaskCount"),
-                threadPoolStatusMetrics.getQueueTaskCount());
+        queueTaskCount.addMetric(labelValues, threadPoolStatusMetrics.getQueueTaskCount());
         mfs.add(queueTaskCount);
 
-        CounterMetricFamily rejectedTaskCount =
+        CounterMetricFamily rejectionCount =
                 new CounterMetricFamily(
                         "job_thread_pool_rejection",
-                        String.format(HELP, "rejectionCount"),
+                        "Total rejected task count of coordinator job executor thread pool",
                         labelNames);
-        rejectedTaskCount.addMetric(
-                labelValues(localAddress(), "rejectionCount"),
-                threadPoolStatusMetrics.getRejectionCount());
-        mfs.add(rejectedTaskCount);
+        rejectionCount.addMetric(labelValues, threadPoolStatusMetrics.getRejectionCount());
+        mfs.add(rejectionCount);
 
         return mfs;
     }

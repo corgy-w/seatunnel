@@ -48,11 +48,10 @@ seatunnel:
           fs.defaultFS: file:///tmp/ # Ensure that the directory has written permission
     telemetry:
       metric:
-        enabled: false
+        enabled: true
       log:
         scheduled-deletion-enable: true
     http:
       enable-http: false
       port: 8080
       context-path: /seatunnel
-

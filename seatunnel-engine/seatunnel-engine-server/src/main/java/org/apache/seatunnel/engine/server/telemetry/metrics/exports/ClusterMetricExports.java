@@ -28,6 +28,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Exports the cluster metrics of the SeaTunnel cluster.
+ *
+ * <p>These metrics represent cluster-wide state, for example node count and cluster start time.
+ */
 public class ClusterMetricExports extends AbstractCollector {
 
     public ClusterMetricExports(Node node) {
@@ -36,15 +41,17 @@ public class ClusterMetricExports extends AbstractCollector {
 
     @Override
     public List<MetricFamilySamples> collect() {
-        List<MetricFamilySamples> mfs = new ArrayList();
-
-        // cluster_info
-        clusterInfo(mfs);
-        // cluster_time
-        clusterTime(mfs);
-        // instance count
-        nodeCount(mfs);
-
+        List<MetricFamilySamples> mfs = new ArrayList<>();
+        try {
+            // cluster_info
+            clusterInfo(mfs);
+            // cluster_time
+            clusterTime(mfs);
+            // instance count
+            nodeCount(mfs);
+        } catch (Exception e) {
+            getLogger(ClusterMetricExports.class).warning("Failed to collect cluster metrics", e);
+        }
         return mfs;
     }
 
@@ -64,18 +71,20 @@ public class ClusterMetricExports extends AbstractCollector {
         GaugeMetricFamily metricFamily =
                 new GaugeMetricFamily(
                         "cluster_info",
-                        "Cluster info",
+                        "Cluster info probe (1 = ok, 0 = failed to collect)",
                         clusterLabelNames("hazelcastVersion", "master"));
-        List<String> labelValues = null;
         try {
-            labelValues =
+            List<String> labelValues =
                     labelValues(
                             getClusterService().getClusterVersion().toString(), masterAddress());
+            metricFamily.addMetric(labelValues, 1);
         } catch (UnknownHostException e) {
-            e.printStackTrace();
+            getLogger(ClusterMetricExports.class)
+                    .warning("Failed to collect cluster info metrics", e);
+            // Add metric with default/empty values on failure to ensure metrics endpoint remains
+            // stable
+            metricFamily.addMetric(labelValues("unknown", "unknown"), 0);
         }
-
-        metricFamily.addMetric(labelValues, 1.0);
         mfs.add(metricFamily);
     }
 
@@ -84,10 +93,10 @@ public class ClusterMetricExports extends AbstractCollector {
 
         GaugeMetricFamily metricFamily =
                 new GaugeMetricFamily(
-                        "node_count", "Cluster node total count ", clusterLabelNames());
+                        "node_count", "Total node count of SeaTunnel cluster", clusterLabelNames());
         List<String> labelValues = labelValues();
 
-        metricFamily.addMetric(labelValues, memberImpls.size());
+        metricFamily.addMetric(labelValues, memberImpls == null ? 0 : memberImpls.size());
         mfs.add(metricFamily);
     }
 }

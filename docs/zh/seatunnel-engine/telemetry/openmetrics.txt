@@ -96,28 +96,28 @@ jvm_memory_pool_collection_init_bytes{pool="G1 Eden Space"} 2.7262976E7
 jvm_memory_pool_collection_init_bytes{pool="G1 Old Gen"} 5.09607936E8
 jvm_memory_pool_collection_init_bytes{pool="G1 Survivor Space"} 0.0
 # TYPE job_thread_pool_activeCount gauge
-# HELP job_thread_pool_activeCount The activeCount of seatunnel coordinator job's executor cached thread pool
+# HELP job_thread_pool_activeCount Active thread count of coordinator job executor thread pool
 job_thread_pool_activeCount{cluster="seatunnel",address="127.0.0.1:5801"} 0.0
 # TYPE job_thread_pool_completedTask counter
-# HELP job_thread_pool_completedTask The completedTask of seatunnel coordinator job's executor cached thread pool
+# HELP job_thread_pool_completedTask Total completed task count of coordinator job executor thread pool
 job_thread_pool_completedTask_total{cluster="seatunnel",address="127.0.0.1:5801"} 1.0
 # TYPE job_thread_pool_corePoolSize gauge
-# HELP job_thread_pool_corePoolSize The corePoolSize of seatunnel coordinator job's executor cached thread pool
+# HELP job_thread_pool_corePoolSize Configured core pool size of coordinator job executor thread pool (threads)
 job_thread_pool_corePoolSize{cluster="seatunnel",address="127.0.0.1:5801"} 0.0
 # TYPE job_thread_pool_maximumPoolSize gauge
-# HELP job_thread_pool_maximumPoolSize The maximumPoolSize of seatunnel coordinator job's executor cached thread pool
+# HELP job_thread_pool_maximumPoolSize Configured maximum pool size of coordinator job executor thread pool (threads)
 job_thread_pool_maximumPoolSize{cluster="seatunnel",address="127.0.0.1:5801"} 2.147483647E9
 # TYPE job_thread_pool_poolSize gauge
-# HELP job_thread_pool_poolSize The poolSize of seatunnel coordinator job's executor cached thread pool
+# HELP job_thread_pool_poolSize Current pool size of coordinator job executor thread pool (threads)
 job_thread_pool_poolSize{cluster="seatunnel",address="127.0.0.1:5801"} 0.0
 # TYPE job_thread_pool_task counter
-# HELP job_thread_pool_task The taskCount of seatunnel coordinator job's executor cached thread pool
+# HELP job_thread_pool_task Total task count of coordinator job executor thread pool
 job_thread_pool_task_total{cluster="seatunnel",address="127.0.0.1:5801"} 1.0
 # TYPE job_thread_pool_queueTaskCount gauge
-# HELP job_thread_pool_queueTaskCount The queueTaskCount of seatunnel coordinator job's executor cached thread pool
+# HELP job_thread_pool_queueTaskCount Current queued task count of coordinator job executor thread pool
 job_thread_pool_queueTaskCount{cluster="seatunnel",address="127.0.0.1:5801"} 0.0
 # TYPE job_thread_pool_rejection counter
-# HELP job_thread_pool_rejection The rejectionCount of seatunnel coordinator job's executor cached thread pool
+# HELP job_thread_pool_rejection Total rejected task count of coordinator job executor thread pool
 job_thread_pool_rejection_total{cluster="seatunnel",address="127.0.0.1:5801"} 0.0
 # TYPE jvm_memory_pool_allocated_bytes counter
 # HELP jvm_memory_pool_allocated_bytes Total bytes allocated in a given JVM memory pool. Only updated after GC, not continuously.
@@ -165,13 +165,13 @@ jvm_threads_state{state="WAITING"} 80.0
 jvm_threads_state{state="TIMED_WAITING"} 22.0
 jvm_threads_state{state="UNKNOWN"} 0.0
 # TYPE cluster_info gauge
-# HELP cluster_info Cluster info
+# HELP cluster_info Cluster info probe (1 = ok, 0 = failed to collect)
 cluster_info{cluster="seatunnel",hazelcastVersion="5.1",master="127.0.0.1:5801"} 1.0
 # TYPE cluster_time gauge
-# HELP cluster_time Cluster start time
+# HELP cluster_time Cluster time in epoch milliseconds
 cluster_time{cluster="seatunnel",hazelcastVersion="5.1"} 1.725364506292E12
 # TYPE node_count gauge
-# HELP node_count Cluster node total count
+# HELP node_count Total node count of SeaTunnel cluster
 node_count{cluster="seatunnel"} 1.0
 # TYPE process_cpu_seconds counter
 # HELP process_cpu_seconds Total user and system CPU time spent in seconds.
@@ -186,7 +186,7 @@ process_open_fds 162.0
 # HELP process_max_fds Maximum number of open file descriptors.
 process_max_fds 10240.0
 # TYPE job_count gauge
-# HELP job_count All job counts of seatunnel cluster
+# HELP job_count Job count by status in SeaTunnel cluster
 job_count{cluster="seatunnel",type="canceled"} 0.0
 job_count{cluster="seatunnel",type="cancelling"} 0.0
 job_count{cluster="seatunnel",type="created"} 0.0
@@ -196,10 +196,10 @@ job_count{cluster="seatunnel",type="finished"} 0.0
 job_count{cluster="seatunnel",type="running"} 0.0
 job_count{cluster="seatunnel",type="scheduled"} 0.0
 # TYPE node_state gauge
-# HELP node_state Whether is up of seatunnel node
+# HELP node_state Node up probe (1 = up, 0 = down)
 node_state{cluster="seatunnel",address="127.0.0.1:5801"} 1.0
 # TYPE hazelcast_executor_executedCount gauge
-# HELP hazelcast_executor_executedCount The hazelcast executor executedCount of seatunnel cluster node
+# HELP hazelcast_executor_executedCount Total executed task count of Hazelcast executor on local member
 hazelcast_executor_executedCount{cluster="seatunnel",address="127.0.0.1:5801",type="async"} 0.0
 hazelcast_executor_executedCount{cluster="seatunnel",address="127.0.0.1:5801",type="client"} 0.0
 hazelcast_executor_executedCount{cluster="seatunnel",address="127.0.0.1:5801",type="clientBlocking"} 0.0
@@ -209,7 +209,7 @@ hazelcast_executor_executedCount{cluster="seatunnel",address="127.0.0.1:5801",ty
 hazelcast_executor_executedCount{cluster="seatunnel",address="127.0.0.1:5801",type="scheduled"} 16133.0
 hazelcast_executor_executedCount{cluster="seatunnel",address="127.0.0.1:5801",type="system"} 0.0
 # TYPE hazelcast_executor_isShutdown gauge
-# HELP hazelcast_executor_isShutdown The hazelcast executor isShutdown of seatunnel cluster node
+# HELP hazelcast_executor_isShutdown Whether the Hazelcast executor is shutdown (1) or not (0) on local member
 hazelcast_executor_isShutdown{cluster="seatunnel",address="127.0.0.1:5801",type="async"} 0.0
 hazelcast_executor_isShutdown{cluster="seatunnel",address="127.0.0.1:5801",type="client"} 0.0
 hazelcast_executor_isShutdown{cluster="seatunnel",address="127.0.0.1:5801",type="clientBlocking"} 0.0
@@ -219,7 +219,7 @@ hazelcast_executor_isShutdown{cluster="seatunnel",address="127.0.0.1:5801",type=
 hazelcast_executor_isShutdown{cluster="seatunnel",address="127.0.0.1:5801",type="scheduled"} 0.0
 hazelcast_executor_isShutdown{cluster="seatunnel",address="127.0.0.1:5801",type="system"} 0.0
 # TYPE hazelcast_executor_isTerminated gauge
-# HELP hazelcast_executor_isTerminated The hazelcast executor isTerminated of seatunnel cluster node
+# HELP hazelcast_executor_isTerminated Whether the Hazelcast executor is terminated (1) or not (0) on local member
 hazelcast_executor_isTerminated{cluster="seatunnel",address="127.0.0.1:5801",type="async"} 0.0
 hazelcast_executor_isTerminated{cluster="seatunnel",address="127.0.0.1:5801",type="client"} 0.0
 hazelcast_executor_isTerminated{cluster="seatunnel",address="127.0.0.1:5801",type="clientBlocking"} 0.0
@@ -229,7 +229,7 @@ hazelcast_executor_isTerminated{cluster="seatunnel",address="127.0.0.1:5801",typ
 hazelcast_executor_isTerminated{cluster="seatunnel",address="127.0.0.1:5801",type="scheduled"} 0.0
 hazelcast_executor_isTerminated{cluster="seatunnel",address="127.0.0.1:5801",type="system"} 0.0
 # TYPE hazelcast_executor_maxPoolSize gauge
-# HELP hazelcast_executor_maxPoolSize The hazelcast executor maxPoolSize of seatunnel cluster node
+# HELP hazelcast_executor_maxPoolSize Configured maximum pool size of Hazelcast executor on local member (threads)
 hazelcast_executor_maxPoolSize{cluster="seatunnel",address="127.0.0.1:5801",type="async"} 10.0
 hazelcast_executor_maxPoolSize{cluster="seatunnel",address="127.0.0.1:5801",type="client"} 10.0
 hazelcast_executor_maxPoolSize{cluster="seatunnel",address="127.0.0.1:5801",type="clientBlocking"} 200.0
@@ -239,7 +239,7 @@ hazelcast_executor_maxPoolSize{cluster="seatunnel",address="127.0.0.1:5801",type
 hazelcast_executor_maxPoolSize{cluster="seatunnel",address="127.0.0.1:5801",type="scheduled"} 20.0
 hazelcast_executor_maxPoolSize{cluster="seatunnel",address="127.0.0.1:5801",type="system"} 10.0
 # TYPE hazelcast_executor_poolSize gauge
-# HELP hazelcast_executor_poolSize The hazelcast executor poolSize of seatunnel cluster node
+# HELP hazelcast_executor_poolSize Current pool size of Hazelcast executor on local member (threads)
 hazelcast_executor_poolSize{cluster="seatunnel",address="127.0.0.1:5801",type="async"} 0.0
 hazelcast_executor_poolSize{cluster="seatunnel",address="127.0.0.1:5801",type="client"} 0.0
 hazelcast_executor_poolSize{cluster="seatunnel",address="127.0.0.1:5801",type="clientBlocking"} 0.0
@@ -249,7 +249,7 @@ hazelcast_executor_poolSize{cluster="seatunnel",address="127.0.0.1:5801",type="o
 hazelcast_executor_poolSize{cluster="seatunnel",address="127.0.0.1:5801",type="scheduled"} 0.0
 hazelcast_executor_poolSize{cluster="seatunnel",address="127.0.0.1:5801",type="system"} 0.0
 # TYPE hazelcast_executor_queueRemainingCapacity gauge
-# HELP hazelcast_executor_queueRemainingCapacity The hazelcast executor queueRemainingCapacity of seatunnel cluster
+# HELP hazelcast_executor_queueRemainingCapacity Remaining queue capacity of Hazelcast executor on local member
 hazelcast_executor_queueRemainingCapacity{cluster="seatunnel",address="127.0.0.1:5801",type="async"} 100000.0
 hazelcast_executor_queueRemainingCapacity{cluster="seatunnel",address="127.0.0.1:5801",type="client"} 1000000.0
 hazelcast_executor_queueRemainingCapacity{cluster="seatunnel",address="127.0.0.1:5801",type="clientBlocking"} 1000000.0
@@ -259,7 +259,7 @@ hazelcast_executor_queueRemainingCapacity{cluster="seatunnel",address="127.0.0.1
 hazelcast_executor_queueRemainingCapacity{cluster="seatunnel",address="127.0.0.1:5801",type="scheduled"} 1000000.0
 hazelcast_executor_queueRemainingCapacity{cluster="seatunnel",address="127.0.0.1:5801",type="system"} 2.147483647E9
 # TYPE hazelcast_executor_queueSize gauge
-# HELP hazelcast_executor_queueSize The hazelcast executor queueSize of seatunnel cluster node
+# HELP hazelcast_executor_queueSize Current queue size of Hazelcast executor on local member
 hazelcast_executor_queueSize{cluster="seatunnel",address="127.0.0.1:5801",type="async"} 0.0
 hazelcast_executor_queueSize{cluster="seatunnel",address="127.0.0.1:5801",type="client"} 0.0
 hazelcast_executor_queueSize{cluster="seatunnel",address="127.0.0.1:5801",type="clientBlocking"} 0.0
@@ -269,19 +269,19 @@ hazelcast_executor_queueSize{cluster="seatunnel",address="127.0.0.1:5801",type="
 hazelcast_executor_queueSize{cluster="seatunnel",address="127.0.0.1:5801",type="scheduled"} 0.0
 hazelcast_executor_queueSize{cluster="seatunnel",address="127.0.0.1:5801",type="system"} 0.0
 # TYPE hazelcast_partition_partitionCount gauge
-# HELP hazelcast_partition_partitionCount The partitionCount of seatunnel cluster node
+# HELP hazelcast_partition_partitionCount Total partition count of SeaTunnel cluster
 hazelcast_partition_partitionCount{cluster="seatunnel",address="127.0.0.1:5801"} 271.0
 # TYPE hazelcast_partition_activePartition gauge
-# HELP hazelcast_partition_activePartition The activePartition of seatunnel cluster node
+# HELP hazelcast_partition_activePartition Active partition count of local member
 hazelcast_partition_activePartition{cluster="seatunnel",address="127.0.0.1:5801"} 271.0
 # TYPE hazelcast_partition_isClusterSafe gauge
-# HELP hazelcast_partition_isClusterSafe Whether is cluster safe of partition
+# HELP hazelcast_partition_isClusterSafe Whether the cluster is in a safe state (1) or not (0)
 hazelcast_partition_isClusterSafe{cluster="seatunnel",address="127.0.0.1:5801"} 1.0
 # TYPE hazelcast_partition_isLocalMemberSafe gauge
-# HELP hazelcast_partition_isLocalMemberSafe Whether is local member safe of partition
+# HELP hazelcast_partition_isLocalMemberSafe Whether the local member is safe to shutdown (1) or not (0)
 hazelcast_partition_isLocalMemberSafe{cluster="seatunnel",address="127.0.0.1:5801"} 1.0
-# TYPE jvm info
-# HELP jvm VM version info
+# TYPE jvm_info gauge
+# HELP jvm_info VM version info
 jvm_info{runtime="OpenJDK Runtime Environment",vendor="Azul Systems, Inc.",version="11.0.13+8-LTS"} 1.0
 # TYPE jvm_classes_currently_loaded gauge
 # HELP jvm_classes_currently_loaded The number of classes that are currently loaded in the JVM
@@ -292,4 +292,23 @@ jvm_classes_loaded_total 9168.0
 # TYPE jvm_classes_unloaded counter
 # HELP jvm_classes_unloaded The total number of classes that have been unloaded since the JVM has started execution
 jvm_classes_unloaded_total 0.0
+# TYPE slot_total gauge
+# HELP slot_total Configured slot capacity of current worker
+slot_total{cluster="seatunnel",address="127.0.0.1:5801"} 6.0
+# TYPE slot_assigned gauge
+# HELP slot_assigned Assigned slots of current worker
+slot_assigned{cluster="seatunnel",address="127.0.0.1:5801"} 0.0
+# TYPE slot_unassigned gauge
+# HELP slot_unassigned Free slot capacity of current worker
+slot_unassigned{cluster="seatunnel",address="127.0.0.1:5801"} 6.0
+# TYPE slot_utilization_ratio gauge
+# HELP slot_utilization_ratio Slot utilization ratio of current worker (assigned/configured_total)
+slot_utilization_ratio{cluster="seatunnel",address="127.0.0.1:5801"} 0.0
+# TYPE slot_request counter
+# HELP slot_request Slot request total of current worker
+slot_request_total{cluster="seatunnel",address="127.0.0.1:5801",result="success"} 0.0
+slot_request_total{cluster="seatunnel",address="127.0.0.1:5801",result="failure"} 0.0
+# TYPE slot_release counter
+# HELP slot_release Slot release total of current worker
+slot_release_total{cluster="seatunnel",address="127.0.0.1:5801"} 0.0
 # EOF

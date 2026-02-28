@@ -26,28 +26,31 @@ import com.hazelcast.instance.impl.Node;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.hotspot.DefaultExports;
 
+/**
+ * Initialize and register Prometheus metric exporters.
+ *
+ * <p>This initializer wires SeaTunnel Engine custom exporters and JVM/Process default exports.
+ */
 public final class ExportsInstanceInitializer {
-
-    private static boolean initialized = false;
 
     private ExportsInstanceInitializer() {}
 
-    public static synchronized void init(Node node) {
-        if (!initialized) {
-            // initialize jvm collector
-            DefaultExports.initialize();
-
-            // register collectors
-            CollectorRegistry collectorRegistry = CollectorRegistry.defaultRegistry;
-            // Job info detail
+    public static void init(Node node, CollectorRegistry collectorRegistry) {
+        if (node == null || collectorRegistry == null) {
+            return;
+        }
+        try {
+            collectorRegistry.clear();
+            DefaultExports.register(collectorRegistry);
             new JobMetricExports(node).register(collectorRegistry);
-            // Thread pool status
             new JobThreadPoolStatusExports(node).register(collectorRegistry);
-            // Node metrics
             new NodeMetricExports(node).register(collectorRegistry);
-            // Cluster metrics
             new ClusterMetricExports(node).register(collectorRegistry);
-            initialized = true;
+            node.getLogger(ExportsInstanceInitializer.class)
+                    .info("Prometheus metrics collectors initialized successfully");
+        } catch (Exception e) {
+            node.getLogger(ExportsInstanceInitializer.class)
+                    .warning("Failed to initialize Prometheus metrics collectors", e);
         }
     }
 }

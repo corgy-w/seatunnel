@@ -126,7 +126,8 @@ public class SeaTunnelServerStarter {
     }
 
     public static void initTelemetryInstance(@NonNull Node node) {
-        ExportsInstanceInitializer.init(node);
+        NodeExtension nodeExtension = (NodeExtension) node.getNodeExtension();
+        ExportsInstanceInitializer.init(node, nodeExtension.getCollectorRegistry());
     }
 
     private static boolean checkTelemetryConfig(SeaTunnelConfig seaTunnelConfig) {

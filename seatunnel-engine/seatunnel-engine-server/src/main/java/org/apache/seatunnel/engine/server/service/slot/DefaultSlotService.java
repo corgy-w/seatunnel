@@ -42,6 +42,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 
 /** The slot service of seatunnel server, used for manage slot in worker. */
 public class DefaultSlotService implements SlotService {
@@ -64,6 +65,15 @@ public class DefaultSlotService implements SlotService {
     private final TaskExecutionService taskExecutionService;
     private ConcurrentMap<Integer, SlotContext> contexts;
     private String slotServiceSequence;
+
+    // Metrics: Total successful requestSlot calls since process start
+    private final LongAdder slotRequestSuccessTotal = new LongAdder();
+
+    // Metrics: Total failed requestSlot calls since process start
+    private final LongAdder slotRequestFailureTotal = new LongAdder();
+
+    // Metrics: Total successful releaseSlot calls since process start
+    private final LongAdder slotReleaseTotal = new LongAdder();
 
     public DefaultSlotService(
             NodeEngineImpl nodeEngine,
@@ -132,6 +142,7 @@ public class DefaultSlotService implements SlotService {
         initStatus = false;
         SlotProfile profile = selectBestMatchSlot(resourceProfile);
         if (profile != null) {
+            slotRequestSuccessTotal.increment();
             profile.assign(jobId);
             assignedResource.accumulateAndGet(profile.getResourceProfile(), ResourceProfile::merge);
             unassignedResource.accumulateAndGet(
@@ -141,6 +152,8 @@ public class DefaultSlotService implements SlotService {
             contexts.computeIfAbsent(
                     profile.getSlotID(),
                     p -> new SlotContext(profile.getSlotID(), taskExecutionService));
+        } else {
+            slotRequestFailureTotal.increment();
         }
         LOGGER.fine(
                 String.format(
@@ -188,6 +201,7 @@ public class DefaultSlotService implements SlotService {
         }
         assignedSlots.remove(profile.getSlotID());
         contexts.remove(profile.getSlotID());
+        slotReleaseTotal.increment();
     }
 
     @Override
@@ -275,5 +289,36 @@ public class DefaultSlotService implements SlotService {
 
     public <E> InvocationFuture<E> sendToMaster(Operation operation) {
         return NodeEngineUtil.sendOperationToMasterNode(nodeEngine, operation);
+    }
+
+    @Override
+    public SlotMetricsSnapshot getSlotMetrics() {
+        int assignedSlotCount = assignedSlots == null ? 0 : assignedSlots.size();
+        int unassignedSlotCount = unassignedSlots == null ? 0 : unassignedSlots.size();
+        long slotRequestSuccess = slotRequestSuccessTotal.sum();
+        long slotRequestFailure = slotRequestFailureTotal.sum();
+        long slotRelease = slotReleaseTotal.sum();
+        return new SlotMetricsSnapshot(
+                assignedSlotCount,
+                unassignedSlotCount,
+                slotRequestSuccess,
+                slotRequestFailure,
+                slotRelease);
+    }
+
+    public ResourceProfile getAssignedResource() {
+        if (assignedResource == null) {
+            return new ResourceProfile();
+        }
+        ResourceProfile profile = assignedResource.get();
+        return profile == null ? new ResourceProfile() : profile;
+    }
+
+    public ResourceProfile getUnassignedResource() {
+        if (unassignedResource == null) {
+            return new ResourceProfile();
+        }
+        ResourceProfile profile = unassignedResource.get();
+        return profile == null ? new ResourceProfile() : profile;
     }
 }

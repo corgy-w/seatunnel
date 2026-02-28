@@ -228,7 +228,7 @@ public class ServerConfigOptions {
     public static final Option<Boolean> TELEMETRY_METRIC_ENABLED =
             Options.key("enabled")
                     .booleanType()
-                    .defaultValue(false)
+                    .defaultValue(true)
                     .withDescription("Whether open metrics export.");
 
     public static final Option<TelemetryMetricConfig> TELEMETRY_METRIC =
