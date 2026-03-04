@@ -30,8 +30,8 @@ import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a.Gbase8aDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a.Gbase8aTypeConverter;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a.Gbase8aTypeMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -299,8 +299,11 @@ public class Gbase8aCatalog extends AbstractJdbcCatalog {
 
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
+        Gbase8aDialect gbase8aDialect = new Gbase8aDialect();
         return CatalogUtils.getCatalogTable(
-                getConnection(defaultUrl), sqlQuery, new Gbase8aTypeMapper());
+                gbase8aDialect.getResultSetMetaData(getConnection(defaultUrl), sqlQuery),
+                gbase8aDialect.getJdbcDialectTypeMapper(),
+                sqlQuery);
     }
 
     @Override
