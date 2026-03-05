@@ -78,6 +78,7 @@ public class CdcJsonEnhancerManager implements Serializable {
     private void initializeEnhancers() {
         // Register fully implemented enhancers
         enhancers.add(new DebeziumJsonEnhancer());
+        enhancers.add(new DebeziumSimpleJsonEnhancer());
         enhancers.add(new CompatibleDebeziumJsonEnhancer());
         enhancers.add(new OggJsonEnhancer());
         enhancers.add(new CanalJsonEnhancer());

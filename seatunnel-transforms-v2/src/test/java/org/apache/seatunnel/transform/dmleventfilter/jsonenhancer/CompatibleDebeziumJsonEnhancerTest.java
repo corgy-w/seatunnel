@@ -155,9 +155,17 @@ public class CompatibleDebeziumJsonEnhancerTest {
         // Check op changed from "d" to "u"
         Assertions.assertEquals("u", enhancedValue.get("payload").get("op").asText());
 
-        // Check field added to before
+        // Check field added to after (when converting DELETE to UPDATE_AFTER)
+        JsonNode after = enhancedValue.get("payload").get("after");
+        Assertions.assertNotNull(
+                after, "After should not be null when converting DELETE to UPDATE_AFTER");
+        Assertions.assertEquals(1, after.get("is_deleted").asInt());
+
+        // Verify before is still present with original data
         JsonNode before = enhancedValue.get("payload").get("before");
-        Assertions.assertEquals(1, before.get("is_deleted").asInt());
+        Assertions.assertNotNull(before, "Before should not be null");
+        Assertions.assertEquals(1, before.get("id").asInt());
+        Assertions.assertEquals("Alice", before.get("name").asText());
     }
 
     @Test
