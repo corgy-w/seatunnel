@@ -50,11 +50,10 @@ public class AvroDeserializationSchema implements DeserializationSchema<SeaTunne
         BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(message, null);
         GenericRecord record = this.converter.getReader().read(null, decoder);
         SeaTunnelRow seaTunnelRow = converter.converter(record, rowType);
-        Optional<TablePath> tablePath =
-                Optional.ofNullable(catalogTable).map(CatalogTable::getTablePath);
-        if (tablePath.isPresent()) {
-            seaTunnelRow.setTableId(tablePath.toString());
-        }
+        Optional.ofNullable(catalogTable)
+                .map(CatalogTable::getTablePath)
+                .map(TablePath::toString)
+                .ifPresent(seaTunnelRow::setTableId);
         return seaTunnelRow;
     }
 

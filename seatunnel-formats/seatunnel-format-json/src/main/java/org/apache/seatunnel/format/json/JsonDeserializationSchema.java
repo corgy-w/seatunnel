@@ -156,11 +156,10 @@ public class JsonDeserializationSchema implements DeserializationSchema<SeaTunne
     }
 
     public void setCollectorTablePath(SeaTunnelRow deserialize, CatalogTable catalogTable) {
-        Optional<TablePath> tablePath =
-                Optional.ofNullable(catalogTable).map(CatalogTable::getTablePath);
-        if (tablePath.isPresent()) {
-            deserialize.setTableId(tablePath.toString());
-        }
+        Optional.ofNullable(catalogTable)
+                .map(CatalogTable::getTablePath)
+                .map(TablePath::toString)
+                .ifPresent(deserialize::setTableId);
     }
 
     private SeaTunnelRow convertJsonNode(JsonNode jsonNode) {
