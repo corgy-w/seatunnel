@@ -43,15 +43,16 @@ public class CdcJsonEnhancerManagerTest {
     @Test
     public void testGetEnhancers() {
         List<ICdcJsonEnhancer> enhancers = manager.getEnhancers();
-        Assertions.assertEquals(6, enhancers.size());
+        Assertions.assertEquals(7, enhancers.size());
 
         // Verify formats
         Assertions.assertEquals("DEBEZIUM_JSON", enhancers.get(0).getFormatName());
         Assertions.assertEquals("COMPATIBLE_DEBEZIUM_JSON", enhancers.get(1).getFormatName());
-        Assertions.assertEquals("OGG_JSON", enhancers.get(2).getFormatName());
-        Assertions.assertEquals("KINGBASE_JSON", enhancers.get(3).getFormatName());
-        Assertions.assertEquals("CANAL_JSON", enhancers.get(4).getFormatName());
-        Assertions.assertEquals("CUSTOM_JSON", enhancers.get(5).getFormatName());
+        Assertions.assertEquals("DEBEZIUM_SIMPLE_JSON", enhancers.get(2).getFormatName());
+        Assertions.assertEquals("OGG_JSON", enhancers.get(3).getFormatName());
+        Assertions.assertEquals("KINGBASE_JSON", enhancers.get(4).getFormatName());
+        Assertions.assertEquals("CANAL_JSON", enhancers.get(5).getFormatName());
+        Assertions.assertEquals("CUSTOM_JSON", enhancers.get(6).getFormatName());
 
         // Verify priority order (lower number = higher priority)
         for (int i = 0; i < enhancers.size() - 1; i++) {

@@ -241,6 +241,92 @@ public class DMLEventFilterTransformCdcIntegrationTest {
         Assertions.assertEquals(RowKind.INSERT, output.getRowKind());
     }
 
+    // ==================== DEBEZIUM_SIMPLE_JSON (schemas.enable=false) Tests ====================
+
+    @Test
+    void testDebeziumSimpleJson_AddDmlMarker_Insert() {
+        CatalogTable table = createCdcTable();
+        Map<String, Object> config = new HashMap<>();
+        config.put("processing_mode", ProcessingMode.ADD_DML_MARKER.name());
+        config.put("dml_marker_enabled", true);
+        config.put("dml_marker_field_name", "op_type");
+
+        DMLEventFilterTransform transform = buildTransform(table, config);
+
+        String insertJson =
+                "{\"op\":\"c\",\"before\":null,\"after\":{\"id\":1,\"name\":\"Alice\"},\"source\":{\"db\":\"test\"},\"ts_ms\":1700000000000}";
+        SeaTunnelRow input = createRow("topic", "key1", insertJson);
+        SeaTunnelRow output = transform.map(input);
+
+        Assertions.assertNotNull(output);
+        Assertions.assertEquals(RowKind.INSERT, output.getRowKind());
+
+        String enhancedValue = (String) output.getField(2);
+        JsonNode node = JsonUtils.parseObject(enhancedValue);
+        Assertions.assertFalse(node.has("payload"));
+        Assertions.assertEquals("c", node.get("op").asText());
+        Assertions.assertEquals("test", node.get("source").get("db").asText());
+        Assertions.assertEquals(1700000000000L, node.get("ts_ms").asLong());
+        Assertions.assertEquals("I", node.get("after").get("op_type").asText());
+    }
+
+    @Test
+    void testDebeziumSimpleJson_AddDmlMarker_Update() {
+        CatalogTable table = createCdcTable();
+        Map<String, Object> config = new HashMap<>();
+        config.put("processing_mode", ProcessingMode.ADD_DML_MARKER.name());
+        config.put("dml_marker_enabled", true);
+        config.put("dml_marker_field_name", "op_type");
+
+        DMLEventFilterTransform transform = buildTransform(table, config);
+
+        String updateJson =
+                "{\"op\":\"u\",\"before\":{\"id\":1,\"name\":\"Alice\"},\"after\":{\"id\":1,\"name\":\"Bob\"},\"ts_ms\":1700000000001}";
+        SeaTunnelRow input = createRow("topic", "key1", updateJson);
+        SeaTunnelRow output = transform.map(input);
+
+        Assertions.assertNotNull(output);
+        Assertions.assertEquals(RowKind.UPDATE_AFTER, output.getRowKind());
+
+        String enhancedValue = (String) output.getField(2);
+        JsonNode node = JsonUtils.parseObject(enhancedValue);
+        Assertions.assertFalse(node.has("payload"));
+        Assertions.assertEquals("u", node.get("op").asText());
+        Assertions.assertEquals(1700000000001L, node.get("ts_ms").asLong());
+        Assertions.assertEquals("U", node.get("after").get("op_type").asText());
+        Assertions.assertFalse(node.get("before").has("op_type"));
+    }
+
+    @Test
+    void testDebeziumSimpleJson_AddDmlMarker_Delete() {
+        CatalogTable table = createCdcTable();
+        Map<String, Object> config = new HashMap<>();
+        config.put("processing_mode", ProcessingMode.ADD_DML_MARKER.name());
+        config.put("dml_marker_enabled", true);
+        config.put("dml_marker_field_name", "op_type");
+
+        DMLEventFilterTransform transform = buildTransform(table, config);
+
+        String deleteJson =
+                "{\"op\":\"d\",\"before\":{\"id\":1,\"name\":\"Alice\"},\"after\":null,\"ts_ms\":1700000000002}";
+        SeaTunnelRow input = createRow("topic", "key1", deleteJson);
+        SeaTunnelRow output = transform.map(input);
+
+        Assertions.assertNotNull(output);
+        Assertions.assertEquals(RowKind.UPDATE_AFTER, output.getRowKind());
+
+        String enhancedValue = (String) output.getField(2);
+        JsonNode node = JsonUtils.parseObject(enhancedValue);
+        Assertions.assertFalse(node.has("payload"));
+        // DELETE is converted to UPDATE_AFTER in ADD_DML_MARKER mode
+        Assertions.assertEquals("u", node.get("op").asText());
+        Assertions.assertEquals(1700000000002L, node.get("ts_ms").asLong());
+        Assertions.assertTrue(node.get("after").has("id"));
+        Assertions.assertTrue(node.get("after").has("name"));
+        Assertions.assertEquals("D", node.get("after").get("op_type").asText());
+        Assertions.assertFalse(node.get("before").has("op_type"));
+    }
+
     // ==================== COMPATIBLE_DEBEZIUM_JSON Tests ====================
 
     @Test

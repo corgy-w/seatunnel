@@ -39,6 +39,7 @@ public class CompatibleDebeziumJsonEnhancer extends AbstractCdcJsonEnhancer
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final DebeziumJsonEnhancer debeziumEnhancer = new DebeziumJsonEnhancer();
+    private final DebeziumSimpleJsonEnhancer simpleEnhancer = new DebeziumSimpleJsonEnhancer();
 
     @Override
     public String getFormatName() {
@@ -53,16 +54,14 @@ public class CompatibleDebeziumJsonEnhancer extends AbstractCdcJsonEnhancer
     @Override
     public boolean canHandle(JsonNode valueNode) {
         JsonNode innerJson = parseInnerDebeziumJsonIfCompatibleOrNull(valueNode);
-        return innerJson != null && debeziumEnhancer.canHandle(innerJson);
+        // Support both standard Debezium (with payload) and Debezium simple (no payload wrapper).
+        return innerJson != null
+                && (debeziumEnhancer.canHandle(innerJson) || simpleEnhancer.canHandle(innerJson));
     }
 
     @Override
     public RowKind parseRowKind(JsonNode valueNode) {
-        JsonNode innerJson = parseInnerDebeziumJsonIfCompatibleOrNull(valueNode);
-        if (innerJson == null || !debeziumEnhancer.canHandle(innerJson)) {
-            return null;
-        }
-        return debeziumEnhancer.parseRowKind(innerJson);
+        return delegateToEnhancer(valueNode, (enhancer, node) -> enhancer.parseRowKind(node), null);
     }
 
     @Override
@@ -73,36 +72,68 @@ public class CompatibleDebeziumJsonEnhancer extends AbstractCdcJsonEnhancer
             Map<String, Object> fieldsToAdd)
             throws CdcJsonEnhanceException {
         JsonNode innerJson = parseInnerDebeziumJsonIfCompatibleOrNull(valueNode);
-        if (innerJson == null || !debeziumEnhancer.canHandle(innerJson)) {
-            throw new CdcJsonEnhanceException(
-                    "Cannot enhance non-Compatible-Debezium JSON: " + valueNode);
+        if (innerJson != null) {
+            try {
+                ObjectNode root = (ObjectNode) valueNode;
+
+                JsonNode enhancedInner;
+                if (debeziumEnhancer.canHandle(innerJson)) {
+                    enhancedInner =
+                            debeziumEnhancer.enhance(
+                                    innerJson, originalRowKind, targetRowKind, fieldsToAdd);
+                } else if (simpleEnhancer.canHandle(innerJson)) {
+                    enhancedInner =
+                            simpleEnhancer.enhance(
+                                    innerJson, originalRowKind, targetRowKind, fieldsToAdd);
+                } else {
+                    throw new CdcJsonEnhanceException(
+                            "Inner JSON is neither standard nor simple Debezium format: "
+                                    + innerJson);
+                }
+
+                String enhancedValueStr = OBJECT_MAPPER.writeValueAsString(enhancedInner);
+                root.put("value", enhancedValueStr);
+                return root;
+            } catch (JsonProcessingException e) {
+                throw new CdcJsonEnhanceException("Failed to enhance Compatible Debezium JSON", e);
+            }
         }
 
-        try {
-            ObjectNode root = (ObjectNode) valueNode;
-
-            // Enhance inner Debezium JSON
-            JsonNode enhancedInner =
-                    debeziumEnhancer.enhance(
-                            innerJson, originalRowKind, targetRowKind, fieldsToAdd);
-
-            // Serialize back to string and update value field
-            String enhancedValueStr = OBJECT_MAPPER.writeValueAsString(enhancedInner);
-            root.put("value", enhancedValueStr);
-
-            return root;
-        } catch (JsonProcessingException e) {
-            throw new CdcJsonEnhanceException("Failed to enhance Compatible Debezium JSON", e);
+        // Some pipelines may pass the inner Debezium JSON directly (no topic/key/value wrapper).
+        if (debeziumEnhancer.canHandle(valueNode)) {
+            return debeziumEnhancer.enhance(valueNode, originalRowKind, targetRowKind, fieldsToAdd);
         }
+        if (simpleEnhancer.canHandle(valueNode)) {
+            return simpleEnhancer.enhance(valueNode, originalRowKind, targetRowKind, fieldsToAdd);
+        }
+
+        throw new CdcJsonEnhanceException(
+                "Cannot enhance non-Compatible-Debezium JSON: " + valueNode);
     }
 
     @Override
     public JsonNode getPayload(JsonNode valueNode) {
-        JsonNode inner = parseInnerDebeziumJsonIfCompatibleOrNull(valueNode);
-        if (inner == null || !inner.isObject()) {
-            return null;
+        // Try inner JSON first (wrapped format)
+        JsonNode innerJson = parseInnerDebeziumJsonIfCompatibleOrNull(valueNode);
+        if (innerJson != null) {
+            JsonNode result = tryGetPayload(innerJson);
+            if (result != null) {
+                return result;
+            }
         }
-        return inner.get("payload");
+
+        // Fallback: try direct valueNode (unwrapped format)
+        return tryGetPayload(valueNode);
+    }
+
+    private JsonNode tryGetPayload(JsonNode node) {
+        if (debeziumEnhancer.canHandle(node)) {
+            return debeziumEnhancer.getPayload(node);
+        }
+        if (simpleEnhancer.canHandle(node)) {
+            return simpleEnhancer.getPayload(node);
+        }
+        return null;
     }
 
     @Override
@@ -124,24 +155,44 @@ public class CompatibleDebeziumJsonEnhancer extends AbstractCdcJsonEnhancer
 
         ObjectNode result = ((ObjectNode) originalNode).deepCopy();
 
+        // Wrapper format: {"topic": "...", "key": "...", "value": "{...inner...}"}.
         JsonNode value = result.get("value");
-        if (value == null || !value.isTextual()) {
+        if (value != null && value.isTextual()) {
+            try {
+                JsonNode inner = OBJECT_MAPPER.readTree(value.asText());
+                if (inner == null || !inner.isObject()) {
+                    throw new CdcJsonEnhanceException(
+                            "Compatible Debezium JSON inner value is not an object: " + inner);
+                }
+                JsonNode updatedInner;
+                if (debeziumEnhancer.canHandle(inner)) {
+                    updatedInner = debeziumEnhancer.replacePayload(inner, newPayload);
+                } else if (simpleEnhancer.canHandle(inner)) {
+                    updatedInner = simpleEnhancer.replacePayload(inner, newPayload);
+                } else {
+                    throw new CdcJsonEnhanceException(
+                            "Inner JSON is neither standard nor simple Debezium format: " + inner);
+                }
+                result.put("value", OBJECT_MAPPER.writeValueAsString(updatedInner));
+                return result;
+            } catch (JsonProcessingException e) {
+                throw new CdcJsonEnhanceException("Failed to replace inner Debezium payload", e);
+            }
+        }
+
+        // Some pipelines may pass the inner Debezium JSON directly (no wrapper).
+        if (debeziumEnhancer.canHandle(result)) {
+            return debeziumEnhancer.replacePayload(result, newPayload);
+        }
+        if (simpleEnhancer.canHandle(result)) {
+            return simpleEnhancer.replacePayload(result, newPayload);
+        }
+        if (value != null) {
             throw new CdcJsonEnhanceException(
                     "Compatible Debezium JSON missing textual 'value' field: " + originalNode);
         }
-
-        try {
-            JsonNode inner = OBJECT_MAPPER.readTree(value.asText());
-            if (inner == null || !inner.isObject()) {
-                throw new CdcJsonEnhanceException(
-                        "Compatible Debezium JSON inner value is not an object: " + inner);
-            }
-            JsonNode updatedInner = debeziumEnhancer.replacePayload(inner, newPayload);
-            result.put("value", OBJECT_MAPPER.writeValueAsString(updatedInner));
-            return result;
-        } catch (JsonProcessingException e) {
-            throw new CdcJsonEnhanceException("Failed to replace inner Debezium payload", e);
-        }
+        throw new CdcJsonEnhanceException(
+                "Cannot replace payload for non-Debezium JSON: " + originalNode);
     }
 
     private JsonNode parseInnerDebeziumJsonIfCompatibleOrNull(JsonNode valueNode) {
@@ -160,5 +211,50 @@ public class CompatibleDebeziumJsonEnhancer extends AbstractCdcJsonEnhancer
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /** Functional interface for delegating operations to an enhancer. */
+    @FunctionalInterface
+    private interface EnhancerOperation<T> {
+        T apply(ICdcJsonEnhancer enhancer, JsonNode node) throws CdcJsonEnhanceException;
+    }
+
+    /**
+     * Delegates an operation to the appropriate enhancer (standard or simple Debezium). Tries
+     * innerJson first, then falls back to direct valueNode.
+     */
+    private <T> T delegateToEnhancer(
+            JsonNode valueNode, EnhancerOperation<T> operation, T defaultValue)
+            throws CdcJsonEnhanceException {
+
+        // Try inner JSON first (wrapped format)
+        JsonNode innerJson = parseInnerDebeziumJsonIfCompatibleOrNull(valueNode);
+        if (innerJson != null) {
+            T result = tryEnhancers(innerJson, operation);
+            if (result != null || defaultValue == null) {
+                return result;
+            }
+        }
+
+        // Fallback: try direct valueNode (unwrapped format)
+        return tryEnhancers(valueNode, operation, defaultValue);
+    }
+
+    /** Tries both debezium and simple enhancers in order. */
+    private <T> T tryEnhancers(JsonNode node, EnhancerOperation<T> operation)
+            throws CdcJsonEnhanceException {
+        return tryEnhancers(node, operation, null);
+    }
+
+    /** Tries both debezium and simple enhancers in order, with default value. */
+    private <T> T tryEnhancers(JsonNode node, EnhancerOperation<T> operation, T defaultValue)
+            throws CdcJsonEnhanceException {
+        if (debeziumEnhancer.canHandle(node)) {
+            return operation.apply(debeziumEnhancer, node);
+        }
+        if (simpleEnhancer.canHandle(node)) {
+            return operation.apply(simpleEnhancer, node);
+        }
+        return defaultValue;
     }
 }
