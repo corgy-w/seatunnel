@@ -207,11 +207,10 @@ public class CsvDeserializationSchema implements DeserializationSchema<SeaTunnel
                             seaTunnelRowType.getFieldNames()[i]);
         }
         SeaTunnelRow seaTunnelRow = new SeaTunnelRow(objects);
-        Optional<TablePath> tablePath =
-                Optional.ofNullable(catalogTable).map(CatalogTable::getTablePath);
-        if (tablePath.isPresent()) {
-            seaTunnelRow.setTableId(tablePath.toString());
-        }
+        Optional.ofNullable(catalogTable)
+                .map(CatalogTable::getTablePath)
+                .map(TablePath::toString)
+                .ifPresent(seaTunnelRow::setTableId);
         return seaTunnelRow;
     }
 
