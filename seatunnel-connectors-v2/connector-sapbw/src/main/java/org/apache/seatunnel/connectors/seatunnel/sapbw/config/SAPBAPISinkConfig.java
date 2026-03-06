@@ -21,6 +21,9 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 
 import lombok.Getter;
 
+import java.util.Collections;
+import java.util.Map;
+
 @Getter
 public class SAPBAPISinkConfig extends SAPCommonConfig {
 
@@ -28,10 +31,15 @@ public class SAPBAPISinkConfig extends SAPCommonConfig {
 
     private final String bapiName;
     private final String bapiReturnTableName;
+    private final Map<String, String> bapiParameters;
 
     public SAPBAPISinkConfig(ReadonlyConfig readonlyConfig) {
         super(readonlyConfig);
         this.bapiName = readonlyConfig.get(SAPBAPISinkOption.BAPI_NAME);
         this.bapiReturnTableName = readonlyConfig.get(SAPBAPISinkOption.BAPI_RETURN_TABLE_NAME);
+        this.bapiParameters =
+                readonlyConfig
+                        .getOptional(SAPBAPISinkOption.BAPI_PARAMETERS)
+                        .orElse(Collections.emptyMap());
     }
 }

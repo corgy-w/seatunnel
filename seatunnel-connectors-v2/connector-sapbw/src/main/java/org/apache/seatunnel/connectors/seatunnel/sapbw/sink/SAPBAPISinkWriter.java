@@ -28,6 +28,8 @@ import org.apache.seatunnel.connectors.seatunnel.sapbw.config.SAPBAPISinkConfig;
 
 import com.sap.conn.jco.JCoException;
 import com.sap.conn.jco.JCoFunction;
+import com.sap.conn.jco.JCoMetaData;
+import com.sap.conn.jco.JCoParameterList;
 import com.sap.conn.jco.JCoRecordMetaData;
 import com.sap.conn.jco.JCoTable;
 import lombok.SneakyThrows;
@@ -40,9 +42,11 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -70,6 +74,7 @@ public class SAPBAPISinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void> {
                 client.getDestination()
                         .getRepository()
                         .getFunction(sapbapiSinkConfig.getBapiName());
+        applyBapiParameters(bapi, sapbapiSinkConfig.getBapiParameters());
         this.jCoTableMap = new HashMap<>();
         for (CatalogTable table : tables) {
             String tablePath = table.getTablePath().toString();
@@ -80,6 +85,54 @@ public class SAPBAPISinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void> {
                         "JCoTable not found in table parameter list for table: " + tablePath);
             }
             jCoTableMap.put(tablePath, jCoTable);
+        }
+    }
+
+    private static Map<String, String> parameterNameMapping(JCoParameterList parameterList) {
+        if (parameterList == null) {
+            return Collections.emptyMap();
+        }
+        JCoMetaData metaData = parameterList.getMetaData();
+        int fieldCount = metaData.getFieldCount();
+        Map<String, String> mapping = new HashMap<>(fieldCount);
+        for (int i = 0; i < fieldCount; i++) {
+            String name = metaData.getName(i);
+            if (name != null) {
+                mapping.put(name.toUpperCase(Locale.ROOT), name);
+            }
+        }
+        return mapping;
+    }
+
+    private static void applyBapiParameters(JCoFunction bapi, Map<String, String> parameters) {
+        if (parameters == null || parameters.isEmpty()) {
+            return;
+        }
+        Map<String, String> importNameMapping = parameterNameMapping(bapi.getImportParameterList());
+        Map<String, String> changingNameMapping =
+                parameterNameMapping(bapi.getChangingParameterList());
+
+        for (Map.Entry<String, String> entry : parameters.entrySet()) {
+            String rawKey = entry.getKey();
+            if (rawKey == null) {
+                continue;
+            }
+            String key = rawKey.trim();
+            if (key.isEmpty()) {
+                continue;
+            }
+            String keyUpper = key.toUpperCase(Locale.ROOT);
+            String value = entry.getValue();
+            if (importNameMapping.containsKey(keyUpper)) {
+                bapi.getImportParameterList().setValue(importNameMapping.get(keyUpper), value);
+            } else if (changingNameMapping.containsKey(keyUpper)) {
+                bapi.getChangingParameterList().setValue(changingNameMapping.get(keyUpper), value);
+            } else {
+                log.warn(
+                        "Ignore unknown BAPI parameter: {}, it is not in import/changing parameters of {}",
+                        key,
+                        bapi.getName());
+            }
         }
     }
 
