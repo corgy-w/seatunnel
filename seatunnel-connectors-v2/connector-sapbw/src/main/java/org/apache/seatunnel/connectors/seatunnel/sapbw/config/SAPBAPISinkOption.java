@@ -20,6 +20,8 @@ package org.apache.seatunnel.connectors.seatunnel.sapbw.config;
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
 
+import java.util.Map;
+
 public class SAPBAPISinkOption extends SAPCommonOption {
 
     public static final Option<String> BAPI_NAME =
@@ -34,4 +36,11 @@ public class SAPBAPISinkOption extends SAPCommonOption {
                     .noDefaultValue()
                     .withDescription(
                             "The name of the BAPI return table to be used for error handling.");
+
+    public static final Option<Map<String, String>> BAPI_PARAMETERS =
+            Options.key("bapi_parameters")
+                    .mapType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "Additional BAPI parameters to pass through. Keys will be applied to import or changing parameters.");
 }

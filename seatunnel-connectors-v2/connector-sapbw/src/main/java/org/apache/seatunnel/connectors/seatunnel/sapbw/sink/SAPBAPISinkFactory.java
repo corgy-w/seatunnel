@@ -50,8 +50,9 @@ public class SAPBAPISinkFactory
                 .required(SAPBAPISinkOption.PASSWORD)
                 .optional(SAPBAPISinkOption.SYSTEM_NUMBER)
                 .optional(SAPBAPISinkOption.LANGUAGE)
-                .optional(SAPBAPISinkOption.BAPI_NAME)
-                .optional(SAPBAPISinkOption.BAPI_RETURN_TABLE_NAME)
+                .required(SAPBAPISinkOption.BAPI_NAME)
+                .required(SAPBAPISinkOption.BAPI_RETURN_TABLE_NAME)
+                .optional(SAPBAPISinkOption.BAPI_PARAMETERS)
                 .build();
     }
 
