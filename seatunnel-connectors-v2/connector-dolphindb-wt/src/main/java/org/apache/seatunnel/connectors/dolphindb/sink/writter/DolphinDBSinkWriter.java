@@ -47,7 +47,7 @@ public class DolphinDBSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void> 
     @Override
     public void write(SeaTunnelRow element) {
         RowKind rowKind = element.getRowKind();
-        if (rowKind == RowKind.DELETE) {
+        if (rowKind == RowKind.DELETE || rowKind == RowKind.UPDATE_BEFORE) {
             // delete the data
             dolphinDbDeleteWriter.write(element);
         } else {

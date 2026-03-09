@@ -24,18 +24,29 @@ public class DolphinDBSqlGenerator {
 
     public static String generateDeleteRowSql(
             String database, String table, SeaTunnelRowType seaTunnelRowType) {
-        String deleteSql = "delete from " + table + " where ";
         String[] fieldNames = seaTunnelRowType.getFieldNames();
+        int[] conditionFieldIndexes = new int[fieldNames.length];
         for (int i = 0; i < fieldNames.length; i++) {
-            if (seaTunnelRowType.getFieldType(i).equals(BasicType.FLOAT_TYPE)) {
-                deleteSql += fieldNames[i] + " = float(?)";
+            conditionFieldIndexes[i] = i;
+        }
+        return generateDeleteRowSql(table, seaTunnelRowType, conditionFieldIndexes);
+    }
+
+    public static String generateDeleteRowSql(
+            String table, SeaTunnelRowType seaTunnelRowType, int[] conditionFieldIndexes) {
+        StringBuilder deleteSql = new StringBuilder("delete from ").append(table).append(" where ");
+        String[] fieldNames = seaTunnelRowType.getFieldNames();
+        for (int i = 0; i < conditionFieldIndexes.length; i++) {
+            int fieldIndex = conditionFieldIndexes[i];
+            if (seaTunnelRowType.getFieldType(fieldIndex).equals(BasicType.FLOAT_TYPE)) {
+                deleteSql.append(fieldNames[fieldIndex]).append(" = float(?)");
             } else {
-                deleteSql += fieldNames[i] + " = ?";
+                deleteSql.append(fieldNames[fieldIndex]).append(" = ?");
             }
-            if (i != fieldNames.length - 1) {
-                deleteSql += " , ";
+            if (i != conditionFieldIndexes.length - 1) {
+                deleteSql.append(" , ");
             }
         }
-        return deleteSql;
+        return deleteSql.toString();
     }
 }

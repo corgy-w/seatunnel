@@ -29,11 +29,14 @@ import com.xxdb.comm.SqlStdEnum;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.ADDRESS;
+import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.KEY_COL_NAMES;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.PASSWORD;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.USER;
 
@@ -43,6 +46,7 @@ public class DolphinDbDeleteWriter implements DolphinDBWriter {
     private final ReadonlyConfig pluginConfig;
     private final SeaTunnelRowType seaTunnelRowType;
     private final JDBCConnection dbConnection;
+    private final int[] deleteConditionFieldIndexes;
     private final String deleteSql;
 
     public DolphinDbDeleteWriter(CatalogTable catalogTable, ReadonlyConfig pluginConfig)
@@ -51,6 +55,7 @@ public class DolphinDbDeleteWriter implements DolphinDBWriter {
         this.pluginConfig = pluginConfig;
         this.seaTunnelRowType = catalogTable.getTableSchema().toPhysicalRowDataType();
         this.dbConnection = createDbConnection();
+        this.deleteConditionFieldIndexes = resolveDeleteConditionFieldIndexes();
         this.dbConnection
                 .createStatement()
                 .execute(
@@ -62,20 +67,33 @@ public class DolphinDbDeleteWriter implements DolphinDBWriter {
                                 + "\")");
         this.deleteSql =
                 DolphinDBSqlGenerator.generateDeleteRowSql(
-                        catalogTable.getTableId().getDatabaseName(),
                         catalogTable.getTableId().getTableName(),
-                        seaTunnelRowType);
+                        seaTunnelRowType,
+                        deleteConditionFieldIndexes);
     }
 
     @Override
     public void write(SeaTunnelRow seaTunnelRow) {
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(deleteSql)) {
             Object[] fields = seaTunnelRow.getFields();
-            for (int i = 0; i < fields.length; i++) {
-                if (fields[i] != null && fields[i] instanceof BigDecimal) {
-                    preparedStatement.setObject(i + 1, ((BigDecimal) fields[i]).doubleValue());
+            int arity = fields.length;
+            for (int i = 0; i < deleteConditionFieldIndexes.length; i++) {
+                int fieldIndex = deleteConditionFieldIndexes[i];
+                if (fieldIndex >= arity) {
+                    throw new IllegalArgumentException(
+                            "DolphinDB delete requires key field index "
+                                    + fieldIndex
+                                    + " but row arity is "
+                                    + arity
+                                    + ". Please ensure CDC DELETE/UPDATE_BEFORE contains key columns.");
+                }
+                Object fieldValue = fields[fieldIndex];
+                if (fieldValue == null) {
+                    preparedStatement.setNull(i + 1, Types.NULL);
+                } else if (fieldValue instanceof BigDecimal) {
+                    preparedStatement.setObject(i + 1, ((BigDecimal) fieldValue).doubleValue());
                 } else {
-                    preparedStatement.setObject(i + 1, fields[i]);
+                    preparedStatement.setObject(i + 1, fieldValue);
                 }
             }
             preparedStatement.execute();
@@ -106,5 +124,59 @@ public class DolphinDbDeleteWriter implements DolphinDBWriter {
 
         String url = "jdbc:dolphindb://" + address;
         return new JDBCConnection(url, prop);
+    }
+
+    private int[] resolveDeleteConditionFieldIndexes() {
+        List<String> keyColNames =
+                pluginConfig.getOptional(KEY_COL_NAMES).orElse(Collections.emptyList());
+        if (keyColNames.isEmpty()
+                && catalogTable.getTableSchema().getPrimaryKey() != null
+                && catalogTable.getTableSchema().getPrimaryKey().getColumnNames() != null) {
+            keyColNames = catalogTable.getTableSchema().getPrimaryKey().getColumnNames();
+        }
+
+        String[] fieldNames = seaTunnelRowType.getFieldNames();
+        if (keyColNames == null || keyColNames.isEmpty()) {
+            int[] all = new int[fieldNames.length];
+            for (int i = 0; i < fieldNames.length; i++) {
+                all[i] = i;
+            }
+            return all;
+        }
+
+        int[] indexes = new int[keyColNames.size()];
+        for (int i = 0; i < keyColNames.size(); i++) {
+            String keyName =
+                    MultithreadedTableWriterFactory.normalizeColumnName(keyColNames.get(i));
+            if (keyName == null) {
+                keyName = "";
+            }
+            int idx = findFieldIndex(fieldNames, keyName);
+            if (idx < 0) {
+                throw new IllegalArgumentException(
+                        "Can't find key column '"
+                                + keyColNames.get(i)
+                                + "' (normalized: '"
+                                + keyName
+                                + "') in upstream row fields "
+                                + String.join(",", fieldNames));
+            }
+            indexes[i] = idx;
+        }
+        return indexes;
+    }
+
+    private static int findFieldIndex(String[] fieldNames, String name) {
+        for (int i = 0; i < fieldNames.length; i++) {
+            if (fieldNames[i].equals(name)) {
+                return i;
+            }
+        }
+        for (int i = 0; i < fieldNames.length; i++) {
+            if (fieldNames[i].equalsIgnoreCase(name)) {
+                return i;
+            }
+        }
+        return -1;
     }
 }
