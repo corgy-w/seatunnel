@@ -79,6 +79,13 @@ public class RedisConfig {
                     .noDefaultValue()
                     .withDescription("The value of key you want to write to redis.");
 
+    public static final Option<Boolean> SUPPORT_CUSTOM_KEY =
+            Options.key("support_custom_key")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription(
+                            "Support custom key, if true, the key in the user configuration will be used as the value of the key.");
+
     public static final Option<RedisDataType> DATA_TYPE =
             Options.key("data_type")
                     .enumType(RedisDataType.class)

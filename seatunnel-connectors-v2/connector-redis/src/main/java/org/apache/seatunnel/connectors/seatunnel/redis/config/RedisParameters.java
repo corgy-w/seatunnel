@@ -43,6 +43,7 @@ public class RedisParameters implements Serializable {
     private String user = "";
     private String keysPattern;
     private String keyField;
+    private Boolean supportCustomKey = RedisConfig.SUPPORT_CUSTOM_KEY.defaultValue();
     private RedisDataType redisDataType;
     private RedisConfig.RedisMode mode;
     private RedisConfig.HashKeyParseMode hashKeyParseMode;
@@ -77,6 +78,10 @@ public class RedisParameters implements Serializable {
         // set key
         if (config.getOptional(RedisConfig.KEY).isPresent()) {
             this.keyField = config.get(RedisConfig.KEY);
+        }
+        // set support custom key
+        if (config.getOptional(RedisConfig.SUPPORT_CUSTOM_KEY).isPresent()) {
+            this.supportCustomKey = config.get(RedisConfig.SUPPORT_CUSTOM_KEY);
         }
         // set keysPattern
         if (config.getOptional(RedisConfig.KEY_PATTERN).isPresent()) {
