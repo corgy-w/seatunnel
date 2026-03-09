@@ -23,6 +23,7 @@ import org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig;
 import com.xxdb.multithreadedtablewriter.MultithreadedTableWriter;
 
 import java.util.List;
+import java.util.Objects;
 
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.BATCH_SIZE;
 import static org.apache.seatunnel.connectors.dolphindb.config.DolphinDBConfig.KEY_COL_NAMES;
@@ -52,15 +53,18 @@ public class MultithreadedTableWriterFactory {
             partitionColumn = pluginConfig.get(KEY_COL_NAMES).get(0);
         }
 
-        if (partitionColumn != null
-                && partitionColumn.startsWith("`")
-                && partitionColumn.endsWith("`")) {
-            partitionColumn = partitionColumn.substring(1, partitionColumn.length() - 1);
+        partitionColumn = normalizeColumnName(partitionColumn);
+        if (partitionColumn == null) {
+            partitionColumn = "";
         }
 
         String[] pModelOption = null;
         if (pluginConfig.get(KEY_COL_NAMES) != null) {
-            pModelOption = pluginConfig.get(KEY_COL_NAMES).toArray(new String[0]);
+            pModelOption =
+                    pluginConfig.get(KEY_COL_NAMES).stream()
+                            .filter(Objects::nonNull)
+                            .map(MultithreadedTableWriterFactory::toDolphinDBSymbol)
+                            .toArray(String[]::new);
         }
 
         return new MultithreadedTableWriter(
@@ -71,7 +75,7 @@ public class MultithreadedTableWriterFactory {
                 pluginConfig.get(DolphinDBConfig.DATABASE),
                 pluginConfig.get(DolphinDBConfig.TABLE),
                 pluginConfig.get(USE_SSL),
-                address.length() > 1,
+                addresses.size() > 1,
                 addresses.toArray(new String[0]),
                 pluginConfig.get(BATCH_SIZE),
                 pluginConfig.get(THROTTLE),
@@ -80,5 +84,55 @@ public class MultithreadedTableWriterFactory {
                 compressType,
                 pluginConfig.get(WRITE_MODE),
                 pModelOption);
+    }
+
+    static String normalizeColumnName(String columnName) {
+        if (columnName == null) {
+            return null;
+        }
+        String name = columnName.trim();
+        if (name.isEmpty()) {
+            return name;
+        }
+        if (name.length() >= 2) {
+            char first = name.charAt(0);
+            char last = name.charAt(name.length() - 1);
+            if ((first == '`' && last == '`')
+                    || (first == '"' && last == '"')
+                    || (first == '\'' && last == '\'')) {
+                name = name.substring(1, name.length() - 1);
+            }
+        }
+        if (name.startsWith("`")) {
+            name = name.substring(1);
+        }
+        if (name.endsWith("`")) {
+            name = name.substring(0, name.length() - 1);
+        }
+        return name;
+    }
+
+    static String toDolphinDBSymbol(String columnName) {
+        if (columnName == null) {
+            return null;
+        }
+        String name = columnName.trim();
+        if (name.isEmpty()) {
+            return name;
+        }
+        if (name.length() >= 2) {
+            char first = name.charAt(0);
+            char last = name.charAt(name.length() - 1);
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
+                name = name.substring(1, name.length() - 1);
+            } else if (first == '`' && last == '`' && name.length() > 2) {
+                // Convert "`id`" style to DolphinDB symbol "`id"
+                name = name.substring(0, name.length() - 1);
+            }
+        }
+        if (name.startsWith("`")) {
+            return name;
+        }
+        return "`" + name;
     }
 }

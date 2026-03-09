@@ -18,31 +18,46 @@
 package org.apache.seatunnel.connectors.dolphindb.catalog;
 
 import org.apache.seatunnel.api.table.type.BasicType;
+import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import com.dolphindb.jdbc.Utils;
-import com.google.common.collect.Lists;
-
-import java.sql.SQLException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class DolphinDBSqlGeneratorTest {
 
     @Test
-    void generateDeleteRowSql() throws SQLException {
-        String[] fields = Lists.newArrayList("id", "name", "age").toArray(new String[0]);
-        BasicType[] seaTunnelRowTypes =
-                Lists.newArrayList(BasicType.INT_TYPE, BasicType.STRING_TYPE, BasicType.INT_TYPE)
-                        .toArray(new BasicType[0]);
-        SeaTunnelRowType seaTunnelRowType = new SeaTunnelRowType(fields, seaTunnelRowTypes);
-        String sql =
-                DolphinDBSqlGenerator.generateDeleteRowSql(
-                        "dfs://whalescheduler", "users", seaTunnelRowType);
-        Assertions.assertEquals("delete from users where id = ? , name = ? , age = ?", sql);
+    void generateDeleteRowSqlUsesOnlyKeyIndexes() {
+        SeaTunnelRowType rowType =
+                new SeaTunnelRowType(
+                        new String[] {"id", "json_col", "f"},
+                        new SeaTunnelDataType[] {
+                            BasicType.INT_TYPE, BasicType.STRING_TYPE, BasicType.FLOAT_TYPE
+                        });
 
-        String tableName = Utils.getTableName(sql, true);
-        Assertions.assertEquals("users", tableName);
+        assertEquals(
+                "delete from t where id = ?",
+                DolphinDBSqlGenerator.generateDeleteRowSql("t", rowType, new int[] {0}));
+
+        assertEquals(
+                "delete from t where f = float(?)",
+                DolphinDBSqlGenerator.generateDeleteRowSql("t", rowType, new int[] {2}));
+
+        assertEquals(
+                "delete from t where id = ? , f = float(?)",
+                DolphinDBSqlGenerator.generateDeleteRowSql("t", rowType, new int[] {0, 2}));
+    }
+
+    @Test
+    void generateDeleteRowSqlWithoutKeyFallsBackToAllFields() {
+        SeaTunnelRowType rowType =
+                new SeaTunnelRowType(
+                        new String[] {"id", "name"},
+                        new SeaTunnelDataType[] {BasicType.INT_TYPE, BasicType.STRING_TYPE});
+
+        assertEquals(
+                "delete from t where id = ? , name = ?",
+                DolphinDBSqlGenerator.generateDeleteRowSql("db", "t", rowType));
     }
 }
