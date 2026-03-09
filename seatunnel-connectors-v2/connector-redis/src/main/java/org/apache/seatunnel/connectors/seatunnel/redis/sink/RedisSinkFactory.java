@@ -51,6 +51,7 @@ public class RedisSinkFactory implements TableSinkFactory {
                         RedisConfig.AUTH,
                         RedisConfig.USER,
                         RedisConfig.KEY_PATTERN,
+                        RedisConfig.SUPPORT_CUSTOM_KEY,
                         RedisConfig.FORMAT,
                         RedisConfig.EXPIRE,
                         SinkCommonOptions.MULTI_TABLE_SINK_REPLICA,
