@@ -52,15 +52,6 @@
         <module>seatunnel-commons-csv</module>
     </modules>
 
-    <profiles>
-        <profile>
-            <id>inceptor-driver</id>
-            <modules>
-                <module>seatunnel-inceptor-driver</module>
-            </modules>
-        </profile>
-    </profiles>
-
     <build>
         <plugins>
             <plugin>
