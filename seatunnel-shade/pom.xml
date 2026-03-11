@@ -79,4 +79,13 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>inceptor-driver</id>
+            <modules>
+                <module>seatunnel-inceptor-driver</module>
+            </modules>
+        </profile>
+    </profiles>
+
 </project>
