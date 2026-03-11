@@ -77,6 +77,28 @@ public class DmdbTypeConverterTest {
     }
 
     @Test
+    public void testConvertBitWithNarrowingTrue() {
+        BasicTypeDefine<Object> typeDefine =
+                BasicTypeDefine.builder().name("test").columnType("bit").dataType("bit").build();
+        DmdbTypeConverter converter = new DmdbTypeConverter(true);
+        Column column = converter.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(BasicType.BOOLEAN_TYPE, column.getDataType());
+        Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
+    }
+
+    @Test
+    public void testConvertBitWithNarrowingFalse() {
+        BasicTypeDefine<Object> typeDefine =
+                BasicTypeDefine.builder().name("test").columnType("bit").dataType("bit").build();
+        DmdbTypeConverter converter = new DmdbTypeConverter(false);
+        Column column = converter.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(BasicType.BYTE_TYPE, column.getDataType());
+        Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
+    }
+
+    @Test
     public void testConvertTinyint() {
         BasicTypeDefine typeDefine =
                 BasicTypeDefine.builder()
@@ -668,7 +690,9 @@ public class DmdbTypeConverterTest {
 
         BasicTypeDefine typeDefine = DmdbTypeConverter.INSTANCE.reconvert(column);
         Assertions.assertEquals(column.getName(), typeDefine.getName());
-        Assertions.assertEquals(DmdbTypeConverter.DM_BIT, typeDefine.getColumnType());
+        Assertions.assertEquals("TINYINT(1)", typeDefine.getColumnType());
+        Assertions.assertEquals(DmdbTypeConverter.DM_TINYINT, typeDefine.getDataType());
+        Assertions.assertEquals(1L, typeDefine.getLength());
     }
 
     @Test

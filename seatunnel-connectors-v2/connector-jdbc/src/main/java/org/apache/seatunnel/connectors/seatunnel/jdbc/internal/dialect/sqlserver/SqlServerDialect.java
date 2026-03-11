@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.sqlserver;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
@@ -44,11 +46,17 @@ import java.util.stream.Collectors;
 public class SqlServerDialect implements JdbcDialect {
 
     public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
+    public ReadonlyConfig config;
 
     public SqlServerDialect() {}
 
     public SqlServerDialect(String fieldIde) {
         this.fieldIde = fieldIde;
+    }
+
+    public SqlServerDialect(String fieldIde, ReadonlyConfig config) {
+        this.fieldIde = fieldIde;
+        this.config = config;
     }
 
     @Override
@@ -63,7 +71,11 @@ public class SqlServerDialect implements JdbcDialect {
 
     @Override
     public JdbcDialectTypeMapper getJdbcDialectTypeMapper() {
-        return new SqlserverTypeMapper();
+        boolean bitTypeNarrowing =
+                config != null
+                        ? config.get(JdbcOptions.BIT_TYPE_NARROWING)
+                        : JdbcOptions.BIT_TYPE_NARROWING.defaultValue();
+        return new SqlserverTypeMapper(new SqlServerTypeConverter(bitTypeNarrowing));
     }
 
     @Override

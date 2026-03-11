@@ -30,9 +30,19 @@ import java.util.Arrays;
 @Slf4j
 public class SqlserverTypeMapper implements JdbcDialectTypeMapper {
 
+    private SqlServerTypeConverter typeConverter;
+
+    public SqlserverTypeMapper() {
+        this(SqlServerTypeConverter.INSTANCE);
+    }
+
+    public SqlserverTypeMapper(SqlServerTypeConverter typeConverter) {
+        this.typeConverter = typeConverter;
+    }
+
     @Override
     public Column mappingColumn(BasicTypeDefine typeDefine) {
-        return SqlServerTypeConverter.INSTANCE.convert(typeDefine);
+        return typeConverter.convert(typeDefine);
     }
 
     @Override

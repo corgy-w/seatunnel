@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.common.source.TypeDefineUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import com.google.auto.service.AutoService;
@@ -109,6 +110,16 @@ public class DmdbTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final long MAX_BINARY_LENGTH_FOR_PAGE_4K = 1900;
     public static final DmdbTypeConverter INSTANCE = new DmdbTypeConverter();
 
+    private final boolean bitTypeNarrowing;
+
+    public DmdbTypeConverter() {
+        this(JdbcOptions.BIT_TYPE_NARROWING.defaultValue());
+    }
+
+    public DmdbTypeConverter(boolean bitTypeNarrowing) {
+        this.bitTypeNarrowing = bitTypeNarrowing;
+    }
+
     @Override
     public String identifier() {
         return DatabaseIdentifier.DAMENG;
@@ -127,7 +138,11 @@ public class DmdbTypeConverter implements TypeConverter<BasicTypeDefine> {
         switch (dmType) {
             case DM_BIT:
                 builder.sourceType(DM_BIT);
-                builder.dataType(BasicType.BOOLEAN_TYPE);
+                if (bitTypeNarrowing) {
+                    builder.dataType(BasicType.BOOLEAN_TYPE);
+                } else {
+                    builder.dataType(BasicType.BYTE_TYPE);
+                }
                 break;
             case DM_TINYINT:
                 builder.sourceType(DM_TINYINT);
@@ -341,8 +356,9 @@ public class DmdbTypeConverter implements TypeConverter<BasicTypeDefine> {
                         .defaultValue(column.getDefaultValue());
         switch (column.getDataType().getSqlType()) {
             case BOOLEAN:
-                builder.columnType(DM_BIT);
-                builder.dataType(DM_BIT);
+                builder.columnType(String.format("%s(%s)", DM_TINYINT, 1));
+                builder.dataType(DM_TINYINT);
+                builder.length(1L);
                 break;
             case TINYINT:
                 builder.columnType(DM_TINYINT);

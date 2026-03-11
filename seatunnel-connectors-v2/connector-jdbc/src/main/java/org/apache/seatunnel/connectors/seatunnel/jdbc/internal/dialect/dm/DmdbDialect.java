@@ -76,7 +76,11 @@ public class DmdbDialect implements JdbcDialect {
 
     @Override
     public JdbcDialectTypeMapper getJdbcDialectTypeMapper() {
-        return new DmdbTypeMapper();
+        boolean bitTypeNarrowing =
+                config != null
+                        ? config.get(JdbcOptions.BIT_TYPE_NARROWING)
+                        : JdbcOptions.BIT_TYPE_NARROWING.defaultValue();
+        return new DmdbTypeMapper(new DmdbTypeConverter(bitTypeNarrowing));
     }
 
     @Override

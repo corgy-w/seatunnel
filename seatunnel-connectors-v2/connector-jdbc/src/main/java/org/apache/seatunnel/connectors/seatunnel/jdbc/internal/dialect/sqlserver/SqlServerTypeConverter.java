@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.PrimitiveByteArrayType;
 import org.apache.seatunnel.common.exception.CommonError;
 import org.apache.seatunnel.connectors.seatunnel.common.source.TypeDefineUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 
 import com.google.auto.service.AutoService;
@@ -96,6 +97,16 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final long POWER_2_31 = (long) Math.pow(2, 31);
     public static final SqlServerTypeConverter INSTANCE = new SqlServerTypeConverter();
 
+    private final boolean bitTypeNarrowing;
+
+    public SqlServerTypeConverter() {
+        this(JdbcOptions.BIT_TYPE_NARROWING.defaultValue());
+    }
+
+    public SqlServerTypeConverter(boolean bitTypeNarrowing) {
+        this.bitTypeNarrowing = bitTypeNarrowing;
+    }
+
     @Override
     public String identifier() {
         return DatabaseIdentifier.SQLSERVER;
@@ -117,7 +128,11 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
         switch (sqlServerType) {
             case SQLSERVER_BIT:
                 builder.sourceType(SQLSERVER_BIT);
-                builder.dataType(BasicType.BOOLEAN_TYPE);
+                if (bitTypeNarrowing) {
+                    builder.dataType(BasicType.BOOLEAN_TYPE);
+                } else {
+                    builder.dataType(BasicType.BYTE_TYPE);
+                }
                 break;
             case SQLSERVER_TINYINT:
             case SQLSERVER_TINYINT_IDENTITY:
@@ -320,8 +335,9 @@ public class SqlServerTypeConverter implements TypeConverter<BasicTypeDefine> {
                         .defaultValue(column.getDefaultValue());
         switch (column.getDataType().getSqlType()) {
             case BOOLEAN:
-                builder.columnType(SQLSERVER_BIT);
-                builder.dataType(SQLSERVER_BIT);
+                builder.columnType(String.format("%s(%s)", SQLSERVER_TINYINT, 1));
+                builder.dataType(SQLSERVER_TINYINT);
+                builder.length(1L);
                 break;
             case TINYINT:
                 builder.columnType(SQLSERVER_TINYINT);
