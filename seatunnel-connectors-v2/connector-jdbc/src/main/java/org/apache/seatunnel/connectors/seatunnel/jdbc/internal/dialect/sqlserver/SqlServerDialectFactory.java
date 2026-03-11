@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.sqlserver;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialectFactory;
@@ -47,5 +48,11 @@ public class SqlServerDialectFactory implements JdbcDialectFactory {
     @Override
     public JdbcDialect create(@Nonnull String compatibleMode, String fieldIde) {
         return new SqlServerDialect(fieldIde);
+    }
+
+    @Override
+    public JdbcDialect create(
+            String compatibleMode, String fieldIde, ReadonlyConfig readonlyConfig) {
+        return new SqlServerDialect(fieldIde, readonlyConfig);
     }
 }

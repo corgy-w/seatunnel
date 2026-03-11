@@ -26,9 +26,19 @@ import java.sql.SQLException;
 
 public class DmdbTypeMapper implements JdbcDialectTypeMapper {
 
+    private DmdbTypeConverter typeConverter;
+
+    public DmdbTypeMapper() {
+        this(DmdbTypeConverter.INSTANCE);
+    }
+
+    public DmdbTypeMapper(DmdbTypeConverter typeConverter) {
+        this.typeConverter = typeConverter;
+    }
+
     @Override
     public Column mappingColumn(BasicTypeDefine typeDefine) {
-        return DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        return typeConverter.convert(typeDefine);
     }
 
     @Override

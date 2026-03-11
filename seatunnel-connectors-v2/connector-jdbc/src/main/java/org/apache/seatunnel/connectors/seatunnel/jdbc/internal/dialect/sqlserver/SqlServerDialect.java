@@ -17,7 +17,9 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.sqlserver;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.TablePath;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.DatabaseIdentifier;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.JdbcDialect;
@@ -44,11 +46,17 @@ import java.util.stream.Collectors;
 public class SqlServerDialect implements JdbcDialect {
 
     public String fieldIde = FieldIdeEnum.ORIGINAL.getValue();
+    public ReadonlyConfig config;
 
     public SqlServerDialect() {}
 
     public SqlServerDialect(String fieldIde) {
         this.fieldIde = fieldIde;
+    }
+
+    public SqlServerDialect(String fieldIde, ReadonlyConfig config) {
+        this.fieldIde = fieldIde;
+        this.config = config;
     }
 
     @Override
@@ -63,7 +71,38 @@ public class SqlServerDialect implements JdbcDialect {
 
     @Override
     public JdbcDialectTypeMapper getJdbcDialectTypeMapper() {
-        return new SqlserverTypeMapper();
+        boolean bitTypeNarrowing =
+                config != null
+                        ? config.get(JdbcOptions.BIT_TYPE_NARROWING)
+                        : JdbcOptions.BIT_TYPE_NARROWING.defaultValue();
+        return new SqlserverTypeMapper(new SqlServerTypeConverter(bitTypeNarrowing));
+    }
+
+    @Override
+    public String quoteIdentifier(String identifier) {
+        if (identifier.contains(".")) {
+            String[] parts = identifier.split("\\.");
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < parts.length - 1; i++) {
+                sb.append("[").append(parts[i]).append("]").append(".");
+            }
+            return sb.append("[")
+                    .append(getFieldIde(parts[parts.length - 1], fieldIde))
+                    .append("]")
+                    .toString();
+        }
+
+        return "[" + getFieldIde(identifier, fieldIde) + "]";
+    }
+
+    @Override
+    public String quoteDatabaseIdentifier(String identifier) {
+        return "[" + identifier + "]";
+    }
+
+    @Override
+    public String tableIdentifier(TablePath tablePath) {
+        return quoteIdentifier(tablePath.getFullName());
     }
 
     @Override
@@ -132,33 +171,6 @@ public class SqlServerDialect implements JdbcDialect {
                         insertValues);
 
         return Optional.of(upsertSQL);
-    }
-
-    @Override
-    public String quoteIdentifier(String identifier) {
-        if (identifier.contains(".")) {
-            String[] parts = identifier.split("\\.");
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < parts.length - 1; i++) {
-                sb.append("[").append(parts[i]).append("]").append(".");
-            }
-            return sb.append("[")
-                    .append(getFieldIde(parts[parts.length - 1], fieldIde))
-                    .append("]")
-                    .toString();
-        }
-
-        return "[" + getFieldIde(identifier, fieldIde) + "]";
-    }
-
-    @Override
-    public String quoteDatabaseIdentifier(String identifier) {
-        return "[" + identifier + "]";
-    }
-
-    @Override
-    public String tableIdentifier(TablePath tablePath) {
-        return quoteIdentifier(tablePath.getFullName());
     }
 
     @Override

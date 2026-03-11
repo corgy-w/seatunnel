@@ -68,6 +68,48 @@ public class SqlServerTypeConverterTest {
     }
 
     @Test
+    public void testConvertBitWithNarrowingTrue() {
+        BasicTypeDefine<Object> typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("bit")
+                        .dataType("bit")
+                        .nullable(true)
+                        .defaultValue("1")
+                        .comment("test")
+                        .build();
+        SqlServerTypeConverter converter = new SqlServerTypeConverter(true);
+        Column column = converter.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(BasicType.BOOLEAN_TYPE, column.getDataType());
+        Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
+        Assertions.assertEquals(typeDefine.isNullable(), column.isNullable());
+        Assertions.assertEquals(typeDefine.getDefaultValue(), column.getDefaultValue());
+        Assertions.assertEquals(typeDefine.getComment(), column.getComment());
+    }
+
+    @Test
+    public void testConvertBitWithNarrowingFalse() {
+        BasicTypeDefine<Object> typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("bit")
+                        .dataType("bit")
+                        .nullable(true)
+                        .defaultValue("1")
+                        .comment("test")
+                        .build();
+        SqlServerTypeConverter converter = new SqlServerTypeConverter(false);
+        Column column = converter.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(BasicType.BYTE_TYPE, column.getDataType());
+        Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
+        Assertions.assertEquals(typeDefine.isNullable(), column.isNullable());
+        Assertions.assertEquals(typeDefine.getDefaultValue(), column.getDefaultValue());
+        Assertions.assertEquals(typeDefine.getComment(), column.getComment());
+    }
+
+    @Test
     public void testConvertTinyint() {
         BasicTypeDefine<Object> typeDefine =
                 BasicTypeDefine.builder()
@@ -591,8 +633,9 @@ public class SqlServerTypeConverterTest {
 
         BasicTypeDefine typeDefine = SqlServerTypeConverter.INSTANCE.reconvert(column);
         Assertions.assertEquals(column.getName(), typeDefine.getName());
-        Assertions.assertEquals(SqlServerTypeConverter.SQLSERVER_BIT, typeDefine.getColumnType());
-        Assertions.assertEquals(SqlServerTypeConverter.SQLSERVER_BIT, typeDefine.getDataType());
+        Assertions.assertEquals("TINYINT(1)", typeDefine.getColumnType());
+        Assertions.assertEquals(SqlServerTypeConverter.SQLSERVER_TINYINT, typeDefine.getDataType());
+        Assertions.assertEquals(1L, typeDefine.getLength());
         Assertions.assertEquals(column.isNullable(), typeDefine.isNullable());
         Assertions.assertEquals(column.getDefaultValue(), typeDefine.getDefaultValue());
         Assertions.assertEquals(column.getComment(), typeDefine.getComment());

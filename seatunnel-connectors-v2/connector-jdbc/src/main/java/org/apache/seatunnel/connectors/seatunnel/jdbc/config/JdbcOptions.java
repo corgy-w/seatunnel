@@ -126,6 +126,13 @@ public interface JdbcOptions {
                     .withDescription(
                             "int type narrowing, if true, the tinyint(1) type will be narrowed to the boolean type if without loss of precision. Support for MySQL at now.");
 
+    Option<Boolean> BIT_TYPE_NARROWING =
+            Options.key("bit_type_narrowing")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription(
+                            "bit type narrowing, if true, the bit type will be narrowed to the boolean type. If false, the bit type will be converted to tinyint type for better compatibility with numeric types. Support for SQL Server and DM at now.");
+
     Option<String> XA_DATA_SOURCE_CLASS_NAME =
             Options.key("xa_data_source_class_name")
                     .stringType()

@@ -76,7 +76,11 @@ public class DmdbDialect implements JdbcDialect {
 
     @Override
     public JdbcDialectTypeMapper getJdbcDialectTypeMapper() {
-        return new DmdbTypeMapper();
+        boolean bitTypeNarrowing =
+                config != null
+                        ? config.get(JdbcOptions.BIT_TYPE_NARROWING)
+                        : JdbcOptions.BIT_TYPE_NARROWING.defaultValue();
+        return new DmdbTypeMapper(new DmdbTypeConverter(bitTypeNarrowing));
     }
 
     @Override
@@ -94,7 +98,7 @@ public class DmdbDialect implements JdbcDialect {
             String database,
             String tableName,
             String[] fieldNames,
-            List<? extends SeaTunnelDataType<?>> fieldTypes) {
+            List<? extends SeaTunnelDataType<?>> columnTypeList) {
         String columns =
                 Arrays.stream(fieldNames)
                         .map(this::quoteIdentifier)
@@ -102,7 +106,7 @@ public class DmdbDialect implements JdbcDialect {
         StringBuilder stringBuilder = new StringBuilder();
         String dateFormat = config.get(JdbcOptions.DAMENG_WRAP_TIME_BY_TO_DATE_DATE_FORMAT);
         for (int i = 0; i < fieldNames.length; i++) {
-            final SeaTunnelDataType<?> seaTunnelDataType = fieldTypes.get(i);
+            final SeaTunnelDataType<?> seaTunnelDataType = columnTypeList.get(i);
             if (i != fieldNames.length - 1) {
                 if (useToDate(seaTunnelDataType)) {
                     stringBuilder.append("to_date( ? ,'").append(dateFormat).append("') ");
