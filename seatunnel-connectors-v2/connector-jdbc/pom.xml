@@ -376,6 +376,10 @@
             <artifactId>jdbc</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.gbase.jdbc</groupId>
+            <artifactId>gbase-connector-java</artifactId>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
@@ -383,6 +387,11 @@
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.gbase.jdbc</groupId>
+            <artifactId>gbase-connector-java</artifactId>
             <scope>test</scope>
         </dependency>
 

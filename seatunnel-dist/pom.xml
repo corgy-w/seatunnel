@@ -683,6 +683,12 @@
                     <version>${gbase8s.version}</version>
                     <scope>provided</scope>
                 </dependency>
+                <dependency>
+                    <groupId>com.gbase.jdbc</groupId>
+                    <artifactId>gbase-connector-java</artifactId>
+                    <version>${gbase8a.version}</version>
+                    <scope>provided</scope>
+                </dependency>
                 <!-- jdbc driver end -->
 
                 <dependency>
