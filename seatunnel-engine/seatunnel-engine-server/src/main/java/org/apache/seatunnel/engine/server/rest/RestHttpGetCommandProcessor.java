@@ -166,8 +166,15 @@ public class RestHttpGetCommandProcessor extends HttpCommandProcessor<HttpGetCom
                                     } catch (InterruptedException | ExecutionException e) {
                                         logger.severe("get system monitoring information fail", e);
                                     }
-                                    String[] parts = input.split(", ");
                                     JsonObject jobInfo = new JsonObject();
+                                    // Bind metrics to member address explicitly, so callers can map
+                                    // values to nodes.
+                                    jobInfo.add("host", address.getHost());
+                                    jobInfo.add("port", String.valueOf(address.getPort()));
+                                    if (input == null) {
+                                        return jobInfo;
+                                    }
+                                    String[] parts = input.split(", ");
                                     Arrays.stream(parts)
                                             .forEach(
                                                     part -> {
