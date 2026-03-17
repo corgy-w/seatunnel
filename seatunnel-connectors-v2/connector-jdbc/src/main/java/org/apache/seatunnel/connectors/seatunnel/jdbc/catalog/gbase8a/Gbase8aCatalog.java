@@ -31,7 +31,7 @@ import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a.Gbase8aTypeConverter;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a.Gbase8aTypeMapper;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.gbase8a.Gbase8aVcAwareConnectionHelper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,6 +45,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public class Gbase8aCatalog extends AbstractJdbcCatalog {
@@ -290,7 +291,7 @@ public class Gbase8aCatalog extends AbstractJdbcCatalog {
             }
         }
         try {
-            Connection connection = DriverManager.getConnection(url, username, pwd);
+            Connection connection = createConnection(url);
             connectionMap.put(url, connection);
             return connection;
         } catch (SQLException e) {
@@ -384,5 +385,41 @@ public class Gbase8aCatalog extends AbstractJdbcCatalog {
         } catch (SQLException e) {
             throw new CatalogException("Failed to check table exists", e);
         }
+    }
+
+    protected Connection openConnection(String url) throws SQLException {
+        return DriverManager.getConnection(url, username, pwd);
+    }
+
+    private Connection createConnection(String url) throws SQLException {
+        Optional<String> vcName = Gbase8aVcAwareConnectionHelper.extractVcName(url);
+        if (!vcName.isPresent()) {
+            return openConnection(url);
+        }
+        Optional<String> targetDatabase = Gbase8aVcAwareConnectionHelper.extractTargetDatabase(url);
+        SQLException lastConnectException = null;
+        for (String bootstrapUrl : Gbase8aVcAwareConnectionHelper.buildBootstrapUrls(url)) {
+            Connection connection = null;
+            try {
+                connection = openConnection(bootstrapUrl);
+                Gbase8aVcAwareConnectionHelper.initializeSession(
+                        connection, vcName.get(), targetDatabase.orElse(null));
+                return connection;
+            } catch (SQLException ex) {
+                if (connection != null) {
+                    try {
+                        connection.close();
+                    } catch (SQLException closeException) {
+                        ex.addSuppressed(closeException);
+                    }
+                    throw ex;
+                }
+                lastConnectException = ex;
+            }
+        }
+        if (lastConnectException != null) {
+            throw lastConnectException;
+        }
+        throw new SQLException("Failed to create GBase8a connection for url: " + url);
     }
 }
