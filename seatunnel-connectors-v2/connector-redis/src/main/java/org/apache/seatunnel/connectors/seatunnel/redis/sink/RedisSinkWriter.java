@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -207,6 +208,15 @@ public class RedisSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
         throw new RedisConnectorException(
                 CommonErrorCode.UNSUPPORTED_DATA_TYPE,
                 "UnSupport redisDataType,only support string,list,hash,set,zset");
+    }
+
+    @Override
+    public Optional<Void> prepareCommit() throws IOException {
+        if (!keyBuffer.isEmpty()) {
+            doBatchWrite();
+            clearBuffer();
+        }
+        return super.prepareCommit();
     }
 
     @Override
