@@ -105,4 +105,9 @@ public abstract class RedisClient extends Jedis {
 
     public abstract void batchWriteZset(
             List<String> keyBuffer, List<String> valueBuffer, long expireSeconds);
+
+    @Override
+    public void close() {
+        jedis.close();
+    }
 }

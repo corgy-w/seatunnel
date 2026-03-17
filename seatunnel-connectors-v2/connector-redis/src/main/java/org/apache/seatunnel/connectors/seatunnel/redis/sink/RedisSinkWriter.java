@@ -211,7 +211,7 @@ public class RedisSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
     }
 
     @Override
-    public Optional<Void> prepareCommit() throws IOException {
+    public Optional<Void> prepareCommit() {
         if (!keyBuffer.isEmpty()) {
             doBatchWrite();
             clearBuffer();
@@ -221,9 +221,13 @@ public class RedisSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
 
     @Override
     public void close() throws IOException {
-        if (!keyBuffer.isEmpty()) {
-            doBatchWrite();
-            clearBuffer();
+        try {
+            if (!keyBuffer.isEmpty()) {
+                doBatchWrite();
+                clearBuffer();
+            }
+        } finally {
+            redisClient.close();
         }
     }
 }
