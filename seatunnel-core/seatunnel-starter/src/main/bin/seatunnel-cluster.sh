@@ -38,9 +38,6 @@ APP_DIR=`cd "$PRG_DIR/.." >/dev/null; pwd`
 CONF_DIR=${APP_DIR}/config
 APP_JAR=${APP_DIR}/starter/seatunnel-starter.jar
 APP_MAIN="org.apache.seatunnel.core.starter.seatunnel.SeaTunnelServer"
-MASTER_OUT="${APP_DIR}/logs/seatunnel-engine-master.out"
-WORKER_OUT="${APP_DIR}/logs/seatunnel-engine-worker.out"
-OUT="${APP_DIR}/logs/seatunnel-server.out"
 HELP=false
 NODE_ROLE="master_and_worker"
 
@@ -50,6 +47,11 @@ fi
 
 SEATUNNEL_HOME="${SEATUNNEL_HOME:-$APP_DIR}"
 export SEATUNNEL_HOME
+
+SEATUNNEL_LOG_DIR=${SEATUNNEL_LOG_DIR:-${APP_DIR}/logs}
+OUT="${SEATUNNEL_LOG_DIR}/seatunnel-server.out"
+MASTER_OUT="${SEATUNNEL_LOG_DIR}/seatunnel-engine-master.out"
+WORKER_OUT="${SEATUNNEL_LOG_DIR}/seatunnel-engine-worker.out"
 
 if [ $# == 0 ]
 then
@@ -140,10 +142,12 @@ JAVA_OPTS="${JAVA_OPTS} -Dlog4j2.contextSelector=org.apache.logging.log4j.core.a
 JAVA_OPTS="${JAVA_OPTS} -Dlog4j2.isThreadContextMapInheritable=true -DAsyncLogger.ThreadNameStrategy=UNCACHED"
 if [ -n "${KUBERNETES_SERVICE_HOST:-}" ] && [ -e "${CONF_DIR}/log4j2_pod.properties" ]; then
   JAVA_OPTS="${JAVA_OPTS} -Dhazelcast.logging.type=log4j2 -Dlog4j2.configurationFile=${CONF_DIR}/log4j2_pod.properties"
-  JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.path=${APP_DIR}/logs"
+  JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.path=${SEATUNNEL_LOG_DIR}"
+  JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.file_name=seatunnel-engine-server"
 elif [ -e "${CONF_DIR}/log4j2.properties" ]; then
   JAVA_OPTS="${JAVA_OPTS} -Dhazelcast.logging.type=log4j2 -Dlog4j2.configurationFile=${CONF_DIR}/log4j2.properties"
-  JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.path=${APP_DIR}/logs"
+  JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.path=${SEATUNNEL_LOG_DIR}"
+  JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.file_name=seatunnel-engine-server"
 fi
 
 # Detect JDK major version
@@ -306,8 +310,8 @@ CLASS_PATH=${CONF_DIR}:${APP_DIR}/lib/*:${APP_JAR}
 echo "start ${NODE_ROLE} node"
 
 if [[ $DAEMON == true && $HELP == false ]]; then
-  if [[ ! -d ${APP_DIR}/logs ]]; then
-    mkdir -p ${APP_DIR}/logs
+  if [[ ! -d ${SEATUNNEL_LOG_DIR} ]]; then
+    mkdir -p ${SEATUNNEL_LOG_DIR}
   fi
   touch $OUT
   nohup java ${JAVA_OPTS} -cp ${CLASS_PATH} ${APP_MAIN} ${args} > "$OUT" 200<&- 2>&1 < /dev/null &
