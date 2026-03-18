@@ -46,6 +46,8 @@ fi
 SEATUNNEL_HOME="${SEATUNNEL_HOME:-$APP_DIR}"
 export SEATUNNEL_HOME
 
+SEATUNNEL_LOG_DIR=${SEATUNNEL_LOG_DIR:-${APP_DIR}/logs}
+
 if [ $# == 0 ]; then
     set -- -h
 fi
@@ -94,7 +96,7 @@ JAVA_OPTS="${JAVA_OPTS} -Dhazelcast.config=${HAZELCAST_CONFIG}"
 JAVA_OPTS="${JAVA_OPTS} -Dlog4j2.isThreadContextMapInheritable=true"
 if [ -e "${CONF_DIR}/log4j2_client.properties" ]; then
   JAVA_OPTS="${JAVA_OPTS} -Dlog4j2.configurationFile=${CONF_DIR}/log4j2_client.properties"
-  JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.path=${APP_DIR}/logs"
+  JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.path=${SEATUNNEL_LOG_DIR}"
   if [[ $args_str == *" -m local "* || $args_str == *" --master local "* || $args_str == *" -e local "* || $args_str == *" --deploy-mode local "* ]]; then
     ntime=$(echo `date "+%N"`|sed -r 's/^0+//')
     JAVA_OPTS="${JAVA_OPTS} -Dseatunnel.logs.file_name=seatunnel-starter-client-$((`date '+%s'`*1000+$ntime/1000000))"

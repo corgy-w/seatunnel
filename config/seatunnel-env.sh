@@ -20,3 +20,6 @@
 SPARK_HOME=${SPARK_HOME:-/opt/spark}
 # Home directory of flink distribution.
 FLINK_HOME=${FLINK_HOME:-/opt/flink}
+
+# Log directory for SeaTunnel. Defaults to ${APP_DIR}/logs if not set.
+# SEATUNNEL_LOG_DIR=/data/whalestudio/current/whaletunnel/logs
