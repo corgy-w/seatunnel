@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.dm;
 
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.shade.com.google.common.base.Preconditions;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
@@ -117,7 +118,8 @@ public class DamengCatalogFactory implements CatalogFactory {
                 options.get(JdbcCatalogOptions.USERNAME),
                 options.get(JdbcCatalogOptions.PASSWORD),
                 urlInfo,
-                options.get(JdbcCatalogOptions.SCHEMA));
+                options.get(JdbcCatalogOptions.SCHEMA),
+                options.get(JdbcOptions.BIT_TYPE_NARROWING));
     }
 
     @Override

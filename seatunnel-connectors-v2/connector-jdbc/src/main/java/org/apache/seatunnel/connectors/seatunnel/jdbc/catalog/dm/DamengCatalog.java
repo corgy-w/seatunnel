@@ -27,6 +27,7 @@ import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeMapper;
 
@@ -59,6 +60,9 @@ public class DamengCatalog extends AbstractJdbcCatalog {
                     + "AND COLUMNS.TABLE_NAME = '%s' "
                     + "ORDER BY COLUMNS.COLUMN_ID ASC";
 
+    private DmdbTypeConverter typeConverter;
+    private boolean bitTypeNarrowing = JdbcOptions.BIT_TYPE_NARROWING.defaultValue();
+
     public DamengCatalog(
             String catalogName,
             String username,
@@ -66,6 +70,19 @@ public class DamengCatalog extends AbstractJdbcCatalog {
             JdbcUrlUtil.UrlInfo urlInfo,
             String defaultSchema) {
         super(catalogName, username, pwd, urlInfo, defaultSchema);
+        this.typeConverter = new DmdbTypeConverter(bitTypeNarrowing);
+    }
+
+    public DamengCatalog(
+            String catalogName,
+            String username,
+            String pwd,
+            JdbcUrlUtil.UrlInfo urlInfo,
+            String defaultSchema,
+            boolean bitTypeNarrowing) {
+        super(catalogName, username, pwd, urlInfo, defaultSchema);
+        this.bitTypeNarrowing = bitTypeNarrowing;
+        this.typeConverter = new DmdbTypeConverter(bitTypeNarrowing);
     }
 
     @Override
@@ -172,7 +189,7 @@ public class DamengCatalog extends AbstractJdbcCatalog {
                         .defaultValue(defaultValue)
                         .comment(columnComment)
                         .build();
-        return DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        return typeConverter.convert(typeDefine);
     }
 
     @Override
@@ -212,6 +229,7 @@ public class DamengCatalog extends AbstractJdbcCatalog {
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new DmdbTypeMapper());
+        return CatalogUtils.getCatalogTable(
+                defaultConnection, sqlQuery, new DmdbTypeMapper(typeConverter));
     }
 }

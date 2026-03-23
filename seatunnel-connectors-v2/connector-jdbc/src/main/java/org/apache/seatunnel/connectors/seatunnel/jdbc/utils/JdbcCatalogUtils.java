@@ -405,6 +405,7 @@ public class JdbcCatalogUtils {
         catalogConfig.put(
                 JdbcOptions.DECIMAL_TYPE_NARROWING.key(), config.isDecimalTypeNarrowing());
         catalogConfig.put(JdbcOptions.INT_TYPE_NARROWING.key(), config.isIntTypeNarrowing());
+        catalogConfig.put(JdbcOptions.BIT_TYPE_NARROWING.key(), config.isBitTypeNarrowing());
         return ReadonlyConfig.fromMap(catalogConfig);
     }
 }
