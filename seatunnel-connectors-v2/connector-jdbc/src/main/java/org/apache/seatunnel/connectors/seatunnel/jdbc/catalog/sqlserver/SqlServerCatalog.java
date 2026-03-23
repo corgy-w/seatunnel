@@ -28,6 +28,7 @@ import org.apache.seatunnel.api.table.converter.BasicTypeDefine;
 import org.apache.seatunnel.common.utils.JdbcUrlUtil;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.AbstractJdbcCatalog;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.catalog.utils.CatalogUtils;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcOptions;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.sqlserver.SqlServerTypeConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.sqlserver.SqlserverTypeMapper;
 
@@ -80,6 +81,9 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
                     + "  and schema_name(t.schema_id) = ? \n"
                     + "  and t.name = ?";
 
+    private SqlServerTypeConverter sqlServerTypeConverter;
+    private boolean bitTypeNarrowing = JdbcOptions.BIT_TYPE_NARROWING.defaultValue();
+
     public SqlServerCatalog(
             String catalogName,
             String username,
@@ -87,6 +91,19 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
             JdbcUrlUtil.UrlInfo urlInfo,
             String defaultSchema) {
         super(catalogName, username, pwd, urlInfo, defaultSchema);
+        this.sqlServerTypeConverter = new SqlServerTypeConverter(bitTypeNarrowing);
+    }
+
+    public SqlServerCatalog(
+            String catalogName,
+            String username,
+            String pwd,
+            JdbcUrlUtil.UrlInfo urlInfo,
+            String defaultSchema,
+            boolean bitTypeNarrowing) {
+        super(catalogName, username, pwd, urlInfo, defaultSchema);
+        this.bitTypeNarrowing = bitTypeNarrowing;
+        this.sqlServerTypeConverter = new SqlServerTypeConverter(bitTypeNarrowing);
     }
 
     @Override
@@ -206,7 +223,7 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
                         .defaultValue(defaultValue)
                         .comment(comment)
                         .build();
-        return SqlServerTypeConverter.INSTANCE.convert(typeDefine);
+        return sqlServerTypeConverter.convert(typeDefine);
     }
 
     @Override
@@ -243,7 +260,8 @@ public class SqlServerCatalog extends AbstractJdbcCatalog {
     @Override
     public CatalogTable getTable(String sqlQuery) throws SQLException {
         Connection defaultConnection = getConnection(defaultUrl);
-        return CatalogUtils.getCatalogTable(defaultConnection, sqlQuery, new SqlserverTypeMapper());
+        return CatalogUtils.getCatalogTable(
+                defaultConnection, sqlQuery, new SqlserverTypeMapper(sqlServerTypeConverter));
     }
 
     @Override

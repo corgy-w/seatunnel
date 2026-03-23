@@ -48,6 +48,7 @@ public class JdbcConnectionConfig implements Serializable {
 
     private boolean decimalTypeNarrowing = JdbcOptions.DECIMAL_TYPE_NARROWING.defaultValue();
     private boolean intTypeNarrowing = JdbcOptions.INT_TYPE_NARROWING.defaultValue();
+    private boolean bitTypeNarrowing = JdbcOptions.BIT_TYPE_NARROWING.defaultValue();
 
     private int maxCommitAttempts = JdbcOptions.MAX_COMMIT_ATTEMPTS.defaultValue();
 
@@ -92,6 +93,7 @@ public class JdbcConnectionConfig implements Serializable {
         config.getOptional(JdbcOptions.DECIMAL_TYPE_NARROWING)
                 .ifPresent(builder::decimalTypeNarrowing);
         config.getOptional(JdbcOptions.INT_TYPE_NARROWING).ifPresent(builder::intTypeNarrowing);
+        config.getOptional(JdbcOptions.BIT_TYPE_NARROWING).ifPresent(builder::bitTypeNarrowing);
         config.getOptional(JdbcOptions.DIALECT).ifPresent(builder::dialect);
         return builder.build();
     }
@@ -127,6 +129,7 @@ public class JdbcConnectionConfig implements Serializable {
         private String xaDataSourceClassName;
         private boolean decimalTypeNarrowing = JdbcOptions.DECIMAL_TYPE_NARROWING.defaultValue();
         private boolean intTypeNarrowing = JdbcOptions.INT_TYPE_NARROWING.defaultValue();
+        private boolean bitTypeNarrowing = JdbcOptions.BIT_TYPE_NARROWING.defaultValue();
         private int maxCommitAttempts = JdbcOptions.MAX_COMMIT_ATTEMPTS.defaultValue();
         private int transactionTimeoutSec = JdbcOptions.TRANSACTION_TIMEOUT_SEC.defaultValue();
         private Map<String, String> properties;
@@ -165,6 +168,11 @@ public class JdbcConnectionConfig implements Serializable {
 
         public Builder intTypeNarrowing(boolean intTypeNarrowing) {
             this.intTypeNarrowing = intTypeNarrowing;
+            return this;
+        }
+
+        public Builder bitTypeNarrowing(boolean bitTypeNarrowing) {
+            this.bitTypeNarrowing = bitTypeNarrowing;
             return this;
         }
 
@@ -259,6 +267,7 @@ public class JdbcConnectionConfig implements Serializable {
             jdbcConnectionConfig.xaDataSourceClassName = this.xaDataSourceClassName;
             jdbcConnectionConfig.decimalTypeNarrowing = this.decimalTypeNarrowing;
             jdbcConnectionConfig.intTypeNarrowing = this.intTypeNarrowing;
+            jdbcConnectionConfig.bitTypeNarrowing = this.bitTypeNarrowing;
             jdbcConnectionConfig.useKerberos = this.useKerberos;
             jdbcConnectionConfig.kerberosPrincipal = this.kerberosPrincipal;
             jdbcConnectionConfig.kerberosKeytabPath = this.kerberosKeytabPath;
