@@ -86,7 +86,8 @@ public class Gbase8aDialect implements JdbcDialect {
     @Override
     public ResultSetMetaData getResultSetMetaData(Connection conn, String query)
             throws SQLException {
-        // Use LIMIT 0 instead of WHERE 1=0 to avoid full table scan on large tables
+        // Use LIMIT 0 instead of WHERE 1=0 to avoid full table scan on large tables.
+        // GBase 8a may not push down WHERE 1=0 into subqueries, causing hangs.
         String metadataQuery = String.format("SELECT * FROM (%s) AS temp LIMIT 0", query);
         try (PreparedStatement preparedStatement = conn.prepareStatement(metadataQuery)) {
             return preparedStatement.getMetaData();
