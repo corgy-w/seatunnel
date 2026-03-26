@@ -383,6 +383,9 @@ public class CoordinatorService {
     }
 
     private void initCoordinatorService() {
+        long initStart = System.currentTimeMillis();
+        long stepStart = initStart;
+
         runningJobInfoIMap =
                 nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_RUNNING_JOB_INFO);
         runningJobStateIMap =
@@ -392,6 +395,13 @@ public class CoordinatorService {
         ownedSlotProfilesIMap =
                 nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_OWNED_SLOT_PROFILES);
         metricsImap = nodeEngine.getHazelcastInstance().getMap(Constant.IMAP_RUNNING_JOB_METRICS);
+        long elapsed = System.currentTimeMillis() - stepStart;
+        logger.info(
+                "Init coordinator service, step 1/3: distributed IMaps initialized, cost "
+                        + elapsed
+                        + "ms");
+
+        stepStart = System.currentTimeMillis();
         jobHistoryService =
                 new JobHistoryService(
                         nodeEngine,
@@ -407,11 +417,23 @@ public class CoordinatorService {
                                 .getHazelcastInstance()
                                 .getMap(Constant.IMAP_FINISHED_JOB_VERTEX_INFO),
                         engineConfig.getHistoryJobExpireMinutes());
+        elapsed = System.currentTimeMillis() - stepStart;
+        logger.info(
+                "Init coordinator service, step 2/3: JobHistoryService created (includes EntryListener registration), cost "
+                        + elapsed
+                        + "ms");
+
+        stepStart = System.currentTimeMillis();
         eventProcessor =
                 createJobEventProcessor(
                         engineConfig.getEventReportHttpApi(),
                         engineConfig.getEventReportHttpHeaders(),
                         nodeEngine);
+        elapsed = System.currentTimeMillis() - stepStart;
+        logger.info(
+                "Init coordinator service, step 3/3: EventProcessor created (includes Ringbuffer initialization), cost "
+                        + elapsed
+                        + "ms");
 
         // If the user has configured the connector package service, create it  on the master node.
         ConnectorJarStorageConfig connectorJarStorageConfig =
@@ -424,6 +446,9 @@ public class CoordinatorService {
                 new PassiveCompletableFuture(
                         CompletableFuture.runAsync(
                                 this::restoreAllRunningJobFromMasterNodeSwitch, executorService));
+
+        long totalElapsed = System.currentTimeMillis() - initStart;
+        logger.info("Init coordinator service completed, total cost " + totalElapsed + "ms");
     }
 
     private void restoreAllRunningJobFromMasterNodeSwitch() {

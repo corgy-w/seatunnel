@@ -253,7 +253,13 @@ public class SeaTunnelServer
         int retryCount = 0;
         if (isMasterNode()) {
             int maxRetry = 3;
-            int retryPause = 500;
+            // Reduced from 500ms to 100ms to minimize operation thread blocking.
+            // With 500ms * 3 = 1.5s per call, high-concurrency failover scenarios
+            // can saturate the Hazelcast operation thread pool, blocking
+            // initCoordinatorService() from completing its distributed operations.
+            // With 100ms * 3 = 300ms per call, thread pressure stays low enough
+            // (~4.5 threads at 15 ops/s) for init to proceed normally.
+            int retryPause = 100;
             while (isRunning
                     && retryCount < maxRetry
                     && !coordinatorService.isCoordinatorActive()
@@ -274,8 +280,6 @@ public class SeaTunnelServer
             if (!isMasterNode()) {
                 throw new SeaTunnelEngineException("This is not a master node now.");
             }
-            // Return retryable exception to retry from the worker node, because the coordinator is
-            // not ready yet. By this way, we can release the operation thread and retry later.
             throw new SeaTunnelEngineRetryableException(
                     "Can not get coordinator service from an active master node.");
         } else {
