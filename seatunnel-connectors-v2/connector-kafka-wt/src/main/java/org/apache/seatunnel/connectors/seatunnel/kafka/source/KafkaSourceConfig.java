@@ -110,14 +110,20 @@ public class KafkaSourceConfig implements Serializable {
 
     private Map<TablePath, ConsumerMetadata> createMapConsumerMetadata(
             ReadonlyConfig readonlyConfig) {
-        List<ConsumerMetadata> consumerMetadataList;
         if (readonlyConfig.getOptional(Config.TABLE_LIST).isPresent()) {
-            consumerMetadataList =
-                    readonlyConfig.get(Config.TABLE_LIST).stream()
-                            .map(ReadonlyConfig::fromMap)
-                            .map(this::createConsumerMetadata)
-                            .collect(Collectors.toList());
-        } else if (readonlyConfig.get(FORMAT).equals(MessageFormat.KINGBASE_JSON)) {
+            return readonlyConfig.get(Config.TABLE_LIST).stream()
+                    .map(ReadonlyConfig::fromMap)
+                    .collect(
+                            Collectors.toMap(
+                                    tableReadonlyConfig ->
+                                            getTablePathFromSchema(
+                                                    tableReadonlyConfig,
+                                                    tableReadonlyConfig.get(TOPIC)),
+                                    this::createConsumerMetadata));
+        }
+
+        List<ConsumerMetadata> consumerMetadataList;
+        if (readonlyConfig.get(FORMAT).equals(MessageFormat.KINGBASE_JSON)) {
             try (Catalog catalog =
                     new KingbaseCatalogFactory().createCatalog("KafkaKingbase", readonlyConfig)) {
                 List<CatalogTable> catalogTables = catalog.getTables(readonlyConfig);
@@ -274,6 +280,7 @@ public class KafkaSourceConfig implements Serializable {
                 return TextDeserializationSchema.builder()
                         .seaTunnelRowType(seaTunnelRowType)
                         .delimiter(delimiter)
+                        .setCatalogTable(catalogTable)
                         .build();
             case CANAL_JSON:
                 return CanalJsonDeserializationSchema.builder(catalogTable)

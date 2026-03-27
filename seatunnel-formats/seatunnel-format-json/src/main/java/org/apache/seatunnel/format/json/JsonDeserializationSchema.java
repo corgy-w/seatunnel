@@ -129,14 +129,18 @@ public class JsonDeserializationSchema implements DeserializationSchema<SeaTunne
         if (message == null) {
             return null;
         }
-        return convertJsonNode(convertBytes(message));
+        SeaTunnelRow row = convertJsonNode(convertBytes(message));
+        setCollectorTablePath(row, catalogTable);
+        return row;
     }
 
     public SeaTunnelRow deserialize(String message) throws IOException {
         if (message == null) {
             return null;
         }
-        return convertJsonNode(convert(message));
+        SeaTunnelRow row = convertJsonNode(convert(message));
+        setCollectorTablePath(row, catalogTable);
+        return row;
     }
 
     public void collect(byte[] message, Collector<SeaTunnelRow> out) throws IOException {
@@ -156,6 +160,9 @@ public class JsonDeserializationSchema implements DeserializationSchema<SeaTunne
     }
 
     public void setCollectorTablePath(SeaTunnelRow deserialize, CatalogTable catalogTable) {
+        if (deserialize == null) {
+            return;
+        }
         Optional.ofNullable(catalogTable)
                 .map(CatalogTable::getTablePath)
                 .map(TablePath::toString)
