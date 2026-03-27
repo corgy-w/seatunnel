@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.engine.server.dag.physical;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.env.EnvCommonOptions;
 import org.apache.seatunnel.common.utils.ExceptionUtils;
 import org.apache.seatunnel.common.utils.RetryUtils;
@@ -126,26 +127,10 @@ public class SubPlan {
         this.physicalVertexList = physicalVertexList;
         this.coordinatorVertexList = coordinatorVertexList;
         pipelineRestoreNum = 0;
-        pipelineMaxRestoreNum =
-                Integer.parseInt(
-                        jobImmutableInformation
-                                .getJobConfig()
-                                .getEnvOptions()
-                                .computeIfAbsent(
-                                        EnvCommonOptions.JOB_RETRY_TIMES.key(),
-                                        key -> EnvCommonOptions.JOB_RETRY_TIMES.defaultValue())
-                                .toString());
-        pipelineRestoreIntervalSeconds =
-                Integer.parseInt(
-                        jobImmutableInformation
-                                .getJobConfig()
-                                .getEnvOptions()
-                                .computeIfAbsent(
-                                        EnvCommonOptions.JOB_RETRY_INTERVAL_SECONDS.key(),
-                                        key ->
-                                                EnvCommonOptions.JOB_RETRY_INTERVAL_SECONDS
-                                                        .defaultValue())
-                                .toString());
+        ReadonlyConfig envConfig =
+                ReadonlyConfig.fromMap(jobImmutableInformation.getJobConfig().getEnvOptions());
+        pipelineMaxRestoreNum = envConfig.get(EnvCommonOptions.JOB_RETRY_TIMES);
+        pipelineRestoreIntervalSeconds = envConfig.get(EnvCommonOptions.JOB_RETRY_INTERVAL_SECONDS);
         Long[] stateTimestamps = new Long[PipelineStatus.values().length];
         if (runningJobStateTimestampsIMap.get(pipelineLocation) == null) {
             stateTimestamps[PipelineStatus.INITIALIZING.ordinal()] = initializationTimestamp;
