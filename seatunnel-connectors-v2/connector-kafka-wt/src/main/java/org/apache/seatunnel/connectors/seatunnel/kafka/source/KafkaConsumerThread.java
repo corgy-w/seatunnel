@@ -24,6 +24,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 
+import java.time.Duration;
 import java.util.Properties;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +66,11 @@ public class KafkaConsumerThread implements Runnable {
         } finally {
             try {
                 if (consumer != null) {
-                    consumer.close();
+                    // The reader shuts down consumer threads via interrupt. Clear the interrupt
+                    // flag before closing so Kafka doesn't log a noisy close-coordinator
+                    // InterruptException during normal shutdown.
+                    Thread.interrupted();
+                    consumer.close(Duration.ZERO);
                 }
             } catch (Throwable t) {
                 throw new KafkaConnectorException(KafkaConnectorErrorCode.CONSUMER_CLOSE_FAILED, t);
