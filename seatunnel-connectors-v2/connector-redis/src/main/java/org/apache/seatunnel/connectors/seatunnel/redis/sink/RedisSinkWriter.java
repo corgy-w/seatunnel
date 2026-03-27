@@ -77,7 +77,7 @@ public class RedisSinkWriter extends AbstractSinkWriter<SeaTunnelRow, Void>
 
         if (RowKind.DELETE.equals(element.getRowKind())
                 || RowKind.UPDATE_BEFORE.equals(element.getRowKind())) {
-            redisDataType.del(redisClient, key, data);
+            redisClient.delete(redisDataType, key, data);
         } else {
             keyBuffer.add(key);
             valueBuffer.add(data);

@@ -106,6 +106,10 @@ public abstract class RedisClient extends Jedis {
     public abstract void batchWriteZset(
             List<String> keyBuffer, List<String> valueBuffer, long expireSeconds);
 
+    public void delete(RedisDataType redisDataType, String key, String value) {
+        redisDataType.del(jedis, key, value);
+    }
+
     @Override
     public void close() {
         jedis.close();
