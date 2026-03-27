@@ -190,7 +190,7 @@ jobs:
       - name: Build Project
         id: build-project
         run: |
-          ./mvnw -U --settings maven-settings.xml -T 1C clean install -DskipTests -D"maven.test.skip"=true -D"maven.javadoc.skip"=true
+          ./mvnw -U --settings maven-settings.xml -T 2 clean install -DskipTests -D"maven.test.skip"=true -D"maven.javadoc.skip"=true
 
       - name: Make unit test modules
         id: ut-modules
