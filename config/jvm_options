@@ -33,7 +33,6 @@
 -XX:+UseG1GC
 -XX:GCTimeRatio=4
 -XX:G1ReservePercent=15
--XX:ConcGCThreads=6
 
 # GC Logging
 # Use "8:" prefix for JDK 8 only, "11:" prefix for JDK 11+
