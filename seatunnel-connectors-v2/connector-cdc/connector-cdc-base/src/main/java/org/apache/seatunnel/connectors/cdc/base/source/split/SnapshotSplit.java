@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.cdc.base.source.split;
 
+import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 import org.apache.seatunnel.connectors.cdc.base.source.offset.Offset;
 
@@ -133,5 +134,13 @@ public class SnapshotSplit extends SourceSplitBase {
 
     public boolean isSnapshotReadFinished() {
         return lowWatermark != null && highWatermark != null;
+    }
+
+    @Override
+    public TablePath getTablePath() {
+        if (tableId == null) {
+            return null;
+        }
+        return TablePath.of(tableId.catalog(), tableId.schema(), tableId.table());
     }
 }
