@@ -86,7 +86,7 @@ public class Gbase8aDialect implements JdbcDialect {
     @Override
     public ResultSetMetaData getResultSetMetaData(Connection conn, String query)
             throws SQLException {
-        String metadataQuery = String.format("SELECT * FROM (%s) AS temp WHERE 1 = 0", query);
+        String metadataQuery = String.format("SELECT * FROM (%s) AS temp LIMIT 0", query);
         try (PreparedStatement preparedStatement = conn.prepareStatement(metadataQuery)) {
             return preparedStatement.getMetaData();
         }
