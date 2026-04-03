@@ -19,7 +19,6 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.mrshive;
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionProvider;
-import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.hive.HiveJdbcUtils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hive.jdbc.HiveDriver;
@@ -38,9 +37,6 @@ public class MrsHiveJdbcConnectionProvider extends SimpleJdbcConnectionProvider 
 
     @Override
     public Connection getOrEstablishConnection() throws SQLException, ClassNotFoundException {
-        if (jdbcConfig.isUseKerberos()) {
-            HiveJdbcUtils.doKerberosAuthentication(jdbcConfig);
-        }
         Class.forName("org.apache.seatunnel.shade.mrs.org.apache.hive.jdbc.HiveDriver");
         if (isConnectionValid()) {
             return super.getConnection();

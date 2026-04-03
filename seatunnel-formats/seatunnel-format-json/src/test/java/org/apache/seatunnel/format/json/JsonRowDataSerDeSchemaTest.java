@@ -165,6 +165,7 @@ public class JsonRowDataSerDeSchemaTest {
                 new JsonDeserializationSchema(catalogTables, false, false);
 
         SeaTunnelRow expected = new SeaTunnelRow(13);
+        expected.setTableId(catalogTables.getTablePath().toString());
         expected.setField(0, true);
         expected.setField(1, intValue);
         expected.setField(2, longValue);
@@ -356,6 +357,7 @@ public class JsonRowDataSerDeSchemaTest {
                 new JsonDeserializationSchema(catalogTables, false, false);
 
         SeaTunnelRow expected = new SeaTunnelRow(1);
+        expected.setTableId(catalogTables.getTablePath().toString());
         SeaTunnelRow actual = deser.deserialize(serializedJson);
         assertEquals(expected, actual);
     }
@@ -409,6 +411,7 @@ public class JsonRowDataSerDeSchemaTest {
                 new SeaTunnelRowType(new String[] {"name"}, new SeaTunnelDataType[] {STRING_TYPE});
         SeaTunnelRow expected = new SeaTunnelRow(1);
         CatalogTable catalogTables = CatalogTableUtil.getCatalogTable("", "", "", "", schema);
+        expected.setTableId(catalogTables.getTablePath().toString());
 
         // ignore on parse error
         final JsonDeserializationSchema deser =
