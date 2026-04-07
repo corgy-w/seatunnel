@@ -117,7 +117,7 @@ public class DorisSinkWriter
                             catalogTable.getTablePath(),
                             dorisConfig,
                             labelGenerator,
-                            new HttpUtil().getHttpClient());
+                            new HttpUtil(dorisConfig).getHttpClient());
             if (dorisConfig.getEnable2PC()) {
                 dorisStreamLoad.abortPreCommit(labelPrefix, lastCheckpointId + 1);
             }

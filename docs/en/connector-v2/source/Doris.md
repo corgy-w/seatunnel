@@ -69,7 +69,7 @@ directly return the data
 | doris.exec.mem.limit             | long   | no       | 2147483648 | Maximum memory that can be used by a single be scan request. The default memory is 2G (2147483648). |
 | doris.request.retries            | int    | no       | 3          | Number of retries to send requests to Doris FE.                                                     |
 | doris.request.read.timeout.ms    | int    | no       | 30000      |                                                                                                     |
-| doris.request.connect.timeout.ms | int    | no       | 30000      |                                                                                                     |
+| doris.request.connect.timeout.ms | int    | no       | 60000      |                                                                                                     |
 
 ### Tips
 
