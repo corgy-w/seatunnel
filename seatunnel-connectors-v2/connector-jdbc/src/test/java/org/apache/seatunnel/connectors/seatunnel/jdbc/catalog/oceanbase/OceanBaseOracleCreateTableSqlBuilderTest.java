@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.table.catalog.CatalogTable;
 import org.apache.seatunnel.api.table.catalog.CatalogTableUtil;
 import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.type.BasicType;
+import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
 
@@ -108,11 +109,27 @@ public class OceanBaseOracleCreateTableSqlBuilderTest {
         String result = sqlBuilder.buildColumnSql(column);
         Assertions.assertEquals("\"col_double\" BINARY_DOUBLE NOT NULL", result);
 
-        // Test other types pass through
+        // Test VARCHAR from OceanBase MySQL source converts to Oracle compatible type
         when(column.getSourceType()).thenReturn("VARCHAR(100)");
         when(column.getDataType()).thenReturn((SeaTunnelDataType) BasicType.STRING_TYPE);
+        when(column.getColumnLength()).thenReturn(100L);
         when(column.getName()).thenReturn("col_varchar");
         result = sqlBuilder.buildColumnSql(column);
-        Assertions.assertEquals("\"col_varchar\" VARCHAR(100) NOT NULL", result);
+        Assertions.assertEquals("\"col_varchar\" VARCHAR2(100) NOT NULL", result);
+
+        // Test BIGINT from OceanBase MySQL source converts to Oracle compatible type
+        when(column.getSourceType()).thenReturn("BIGINT(20)");
+        when(column.getDataType()).thenReturn((SeaTunnelDataType) BasicType.LONG_TYPE);
+        when(column.getName()).thenReturn("col_bigint");
+        result = sqlBuilder.buildColumnSql(column);
+        Assertions.assertEquals("\"col_bigint\" INTEGER NOT NULL", result);
+
+        // Test Oracle compatible TIMESTAMP from OceanBase source keeps source type
+        when(column.getSourceType()).thenReturn("TIMESTAMP");
+        when(column.getDataType())
+                .thenReturn((SeaTunnelDataType) LocalTimeType.LOCAL_DATE_TIME_TYPE);
+        when(column.getName()).thenReturn("col_timestamp");
+        result = sqlBuilder.buildColumnSql(column);
+        Assertions.assertEquals("\"col_timestamp\" TIMESTAMP NOT NULL", result);
     }
 }

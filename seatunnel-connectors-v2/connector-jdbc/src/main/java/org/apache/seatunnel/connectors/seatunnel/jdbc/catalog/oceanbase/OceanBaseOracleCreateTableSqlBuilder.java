@@ -41,34 +41,13 @@ public class OceanBaseOracleCreateTableSqlBuilder extends OracleCreateTableSqlBu
             columnType = column.getSinkType();
         } else if (StringUtils.isNotBlank(column.getSourceType())) {
             if (StringUtils.equalsIgnoreCase(DatabaseIdentifier.OCENABASE, sourceCatalogName)) {
-                columnType = column.getSourceType();
-                if (StringUtils.equalsIgnoreCase("DOUBLE", columnType)) {
-                    columnType = OracleTypeConverter.ORACLE_BINARY_DOUBLE;
+                String sourceType = column.getSourceType();
+                columnType = mapUnsupportedOracleType(sourceType, false);
+                if (columnType == null && isOceanBaseOracleCompatibleType(sourceType)) {
+                    columnType = sourceType;
                 }
             } else if (StringUtils.equalsIgnoreCase(DatabaseIdentifier.ORACLE, sourceCatalogName)) {
-                // handle OceanBase Oracle compatible mode unsupported types, please refer
-                // https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000355002
-                // and https://www.oceanbase.com/docs/enterprise-oms-doc-cn-1000000002530110
-                switch (column.getSourceType().toUpperCase()) {
-                    case OracleTypeConverter.ORACLE_LONG:
-                        columnType = OracleTypeConverter.ORACLE_CLOB;
-                        break;
-                    case OracleTypeConverter.ORACLE_LONG_RAW:
-                    case OracleTypeConverter.ORACLE_BFILE:
-                        columnType = OracleTypeConverter.ORACLE_BLOB;
-                        break;
-                    case OracleTypeConverter.ORACLE_NCLOB:
-                        // set max length to 32767, which is the maximum length supported by
-                        // OceanBase
-                        columnType = OracleTypeConverter.ORACLE_NVARCHAR2 + "(32767)";
-                        break;
-                    case OracleTypeConverter.ORACLE_REAL:
-                        columnType = OracleTypeConverter.ORACLE_FLOAT;
-                        break;
-                    default:
-                        columnType = column.getSourceType();
-                        break;
-                }
+                columnType = mapUnsupportedOracleType(column.getSourceType(), true);
             }
         }
 
@@ -83,5 +62,54 @@ public class OceanBaseOracleCreateTableSqlBuilder extends OracleCreateTableSqlBu
         }
 
         return columnSql.toString();
+    }
+
+    private String mapUnsupportedOracleType(String sourceType, boolean fallbackToSourceType) {
+        // handle OceanBase Oracle compatible mode unsupported types, please refer
+        // https://www.oceanbase.com/docs/enterprise-oceanbase-database-cn-10000000000355002
+        // and https://www.oceanbase.com/docs/enterprise-oms-doc-cn-1000000002530110
+        switch (sourceType.toUpperCase()) {
+            case OracleTypeConverter.ORACLE_LONG:
+                return OracleTypeConverter.ORACLE_CLOB;
+            case OracleTypeConverter.ORACLE_LONG_RAW:
+            case OracleTypeConverter.ORACLE_BFILE:
+                return OracleTypeConverter.ORACLE_BLOB;
+            case OracleTypeConverter.ORACLE_NCLOB:
+                // set max length to 32767, which is the maximum length supported by
+                // OceanBase
+                return OracleTypeConverter.ORACLE_NVARCHAR2 + "(32767)";
+            case OracleTypeConverter.ORACLE_REAL:
+                return OracleTypeConverter.ORACLE_FLOAT;
+            default:
+                return fallbackToSourceType ? sourceType : null;
+        }
+    }
+
+    private boolean isOceanBaseOracleCompatibleType(String sourceType) {
+        String upperSourceType = sourceType.toUpperCase().trim();
+        if (upperSourceType.startsWith(OracleTypeConverter.ORACLE_TIMESTAMP)
+                || upperSourceType.startsWith(OracleTypeConverter.ORACLE_INTERVAL)) {
+            return true;
+        }
+
+        String baseType = upperSourceType.split("[\\s(]", 2)[0];
+        switch (baseType) {
+            case OracleTypeConverter.ORACLE_INTEGER:
+            case OracleTypeConverter.ORACLE_NUMBER:
+            case OracleTypeConverter.ORACLE_FLOAT:
+            case OracleTypeConverter.ORACLE_BINARY_FLOAT:
+            case OracleTypeConverter.ORACLE_BINARY_DOUBLE:
+            case OracleTypeConverter.ORACLE_CHAR:
+            case OracleTypeConverter.ORACLE_NCHAR:
+            case OracleTypeConverter.ORACLE_VARCHAR2:
+            case OracleTypeConverter.ORACLE_NVARCHAR2:
+            case OracleTypeConverter.ORACLE_DATE:
+            case OracleTypeConverter.ORACLE_RAW:
+            case OracleTypeConverter.ORACLE_CLOB:
+            case OracleTypeConverter.ORACLE_BLOB:
+                return true;
+            default:
+                return false;
+        }
     }
 }
