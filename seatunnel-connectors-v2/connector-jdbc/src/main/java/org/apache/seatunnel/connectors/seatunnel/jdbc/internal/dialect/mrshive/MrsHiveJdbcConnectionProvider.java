@@ -18,14 +18,16 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.mrshive;
 
 import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcConnectionConfig;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorErrorCode;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.SimpleJdbcConnectionProvider;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hive.jdbc.HiveDriver;
 
 import lombok.NonNull;
 
 import java.sql.Connection;
+import java.sql.Driver;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -37,7 +39,6 @@ public class MrsHiveJdbcConnectionProvider extends SimpleJdbcConnectionProvider 
 
     @Override
     public Connection getOrEstablishConnection() throws SQLException, ClassNotFoundException {
-        Class.forName("org.apache.seatunnel.shade.mrs.org.apache.hive.jdbc.HiveDriver");
         if (isConnectionValid()) {
             return super.getConnection();
         }
@@ -52,10 +53,29 @@ public class MrsHiveJdbcConnectionProvider extends SimpleJdbcConnectionProvider 
                 String kerberosKrb5ConfPath = jdbcConfig.getKrb5Path();
                 System.setProperty("java.security.krb5.conf", kerberosKrb5ConfPath);
             }
-            HiveDriver driver = new HiveDriver();
-            return driver.connect(jdbcUrl, new Properties());
+            Properties properties = new Properties();
+            jdbcConfig
+                    .getUsername()
+                    .ifPresent(username -> properties.setProperty("user", username));
+            jdbcConfig
+                    .getPassword()
+                    .ifPresent(password -> properties.setProperty("password", password));
+            if (jdbcConfig.getProperties() != null) {
+                properties.putAll(jdbcConfig.getProperties());
+            }
+            Driver driver = getLoadedDriver();
+            Connection connection = driver.connect(jdbcUrl, properties);
+            if (connection == null) {
+                throw new JdbcConnectorException(
+                        JdbcConnectorErrorCode.NO_SUITABLE_DRIVER,
+                        "No suitable driver found for " + jdbcUrl);
+            }
+            connection.setAutoCommit(jdbcConfig.isAutoCommit());
+            return connection;
+        } catch (JdbcConnectorException e) {
+            throw e;
         } catch (Exception e) {
-            throw new SeaTunnelException("Get connection  failed: " + jdbcUrl, e);
+            throw new SeaTunnelException("Get connection failed: " + jdbcUrl, e);
         }
     }
 
