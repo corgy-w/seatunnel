@@ -19,6 +19,7 @@ package org.apache.seatunnel.engine.server.serializable;
 
 import org.apache.seatunnel.engine.common.serializeable.SeaTunnelFactoryIdConstant;
 import org.apache.seatunnel.engine.server.operation.CancelJobOperation;
+import org.apache.seatunnel.engine.server.operation.CheckDataSourceConnectivityOperation;
 import org.apache.seatunnel.engine.server.operation.GetClusterHealthMetricsOperation;
 import org.apache.seatunnel.engine.server.operation.GetJobCheckpointOperation;
 import org.apache.seatunnel.engine.server.operation.GetJobDetailStatusOperation;
@@ -79,6 +80,8 @@ public final class ClientToServerOperationDataSerializerHook implements DataSeri
 
     public static final int STOP_JOB_OPERATOR = 15;
 
+    public static final int CHECK_DATASOURCE_CONNECTIVITY_OPERATION = 16;
+
     public static final int REFRESH_LICENSE_OPERATION = 100;
 
     public static final int FACTORY_ID =
@@ -132,6 +135,8 @@ public final class ClientToServerOperationDataSerializerHook implements DataSeri
                     return new PackageZetaLogsOperation();
                 case STOP_JOB_OPERATOR:
                     return new StopJobOperation();
+                case CHECK_DATASOURCE_CONNECTIVITY_OPERATION:
+                    return new CheckDataSourceConnectivityOperation();
                 case REFRESH_LICENSE_OPERATION:
                     return new RefreshLicenseOperation();
                 default:

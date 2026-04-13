@@ -25,7 +25,9 @@ import org.apache.seatunnel.engine.client.job.JobMetricsRunner.JobMetricsSummary
 import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
 import org.apache.seatunnel.engine.common.utils.PassiveCompletableFuture;
+import org.apache.seatunnel.engine.core.job.DataSourceConnectivityCheckResult;
 import org.apache.seatunnel.engine.core.job.JobDAGInfo;
+import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelCheckDataSourceConnectivityCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetClusterHealthMetricsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelPrintMessageCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelRefreshLicenseCodec;
@@ -197,6 +199,14 @@ public class SeaTunnelClient implements SeaTunnelClientInstance, AutoCloseable {
                                                         + " not found in the cluster."));
 
         return getMetricsByMember(member);
+    }
+
+    public DataSourceConnectivityCheckResult checkDataSourceConnectivity(
+            String catalogIdentifier, Map<String, Object> options, int timeoutMs) {
+        return hazelcastClient.requestOnMasterAndDecodeResponse(
+                SeaTunnelCheckDataSourceConnectivityCodec.encodeRequest(
+                        catalogIdentifier, JsonUtils.toJsonString(options), timeoutMs),
+                SeaTunnelCheckDataSourceConnectivityCodec::decodeResponse);
     }
 
     private String getMetricsByMember(Member member) {

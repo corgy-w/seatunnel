@@ -37,12 +37,17 @@
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
             <artifactId>connector-cdc-mysql</artifactId>
-            <version>3.0-WS-test-SNAPSHOT</version>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-cdc-base</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.seatunnel</groupId>
             <artifactId>connector-jdbc</artifactId>
-            <version>3.0-WS-test-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <!--   seatunnel core dependencies   -->
         <dependency>
