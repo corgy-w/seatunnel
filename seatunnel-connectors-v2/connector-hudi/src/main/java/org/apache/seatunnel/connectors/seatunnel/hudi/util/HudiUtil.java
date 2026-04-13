@@ -104,7 +104,17 @@ public class HudiUtil {
     public static void initKerberosAuthentication(
             Configuration conf, String principal, String principalFile)
             throws HudiConnectorException {
+        initKerberosAuthentication(conf, null, principal, principalFile);
+    }
+
+    public static void initKerberosAuthentication(
+            Configuration conf, String krb5Path, String principal, String principalFile)
+            throws HudiConnectorException {
         try {
+            if (krb5Path != null && !krb5Path.trim().isEmpty()) {
+                System.setProperty("java.security.krb5.conf", krb5Path.trim());
+            }
+            conf.set("hadoop.security.authentication", "kerberos");
             UserGroupInformation.setConfiguration(conf);
             UserGroupInformation.loginUserFromKeytab(principal, principalFile);
         } catch (IOException e) {

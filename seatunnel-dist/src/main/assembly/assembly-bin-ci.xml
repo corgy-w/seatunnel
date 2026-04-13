@@ -520,6 +520,18 @@
             <unpack>false</unpack>
             <includes>
                 <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
+            </includes>
+            <outputFileNameMapping>${artifact.file.name}</outputFileNameMapping>
+            <outputDirectory>/plugins/connector-hudi</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>org.apache.seatunnel:seatunnel-hadoop3-3.3.6-uber:jar</include>
                 <include>org.apache.hadoop:hadoop-aliyun:jar</include>
                 <include>com.aliyun.oss:aliyun-sdk-oss:jar</include>
                 <include>org.jdom:jdom2:jar</include>
