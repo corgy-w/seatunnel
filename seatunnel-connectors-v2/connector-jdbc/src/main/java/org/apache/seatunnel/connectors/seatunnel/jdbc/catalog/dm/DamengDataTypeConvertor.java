@@ -31,11 +31,14 @@ import com.google.auto.service.AutoService;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeConverter.DM_DEC;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeConverter.DM_DECIMAL;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeConverter.DM_NUMBER;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeConverter.DM_NUMERIC;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dm.DmdbTypeConverter.DM_TIMESTAMP_WITH_LOCAL_TIME_ZONE;
 
 /** @deprecated instead by {@link DmdbTypeConverter} */
 @Deprecated
@@ -45,6 +48,9 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
     public static final String SCALE = "scale";
     public static final Integer DEFAULT_PRECISION = 38;
     public static final Integer DEFAULT_SCALE = 18;
+    private static final Pattern TIMESTAMP_WITH_LOCAL_TIME_ZONE_PATTERN =
+            Pattern.compile(
+                    "^TIMESTAMP\\((\\d+)\\) WITH LOCAL TIME ZONE$", Pattern.CASE_INSENSITIVE);
 
     @Override
     public String getIdentity() {
@@ -59,15 +65,22 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
     @Override
     public SeaTunnelDataType<?> toSeaTunnelType(
             String field, String dataType, Map<String, Object> properties) {
+        String normalizedDataType = dataType;
         Integer precision = null;
-        Integer scale = null;
-        switch (dataType.toUpperCase()) {
+        Integer scale = MapUtils.getInteger(properties, SCALE);
+        Matcher timestampWithLocalTimeZoneMatcher =
+                TIMESTAMP_WITH_LOCAL_TIME_ZONE_PATTERN.matcher(dataType);
+        if (timestampWithLocalTimeZoneMatcher.matches()) {
+            normalizedDataType = DM_TIMESTAMP_WITH_LOCAL_TIME_ZONE;
+            scale = Integer.parseInt(timestampWithLocalTimeZoneMatcher.group(1));
+        }
+        switch (normalizedDataType.toUpperCase()) {
             case DM_NUMERIC:
             case DM_NUMBER:
             case DM_DECIMAL:
             case DM_DEC:
                 precision = MapUtils.getInteger(properties, PRECISION, DEFAULT_PRECISION);
-                scale = MapUtils.getInteger(properties, SCALE, DEFAULT_SCALE);
+                scale = scale == null ? DEFAULT_SCALE : scale;
                 break;
             default:
                 break;
@@ -76,7 +89,7 @@ public class DamengDataTypeConvertor implements DataTypeConvertor<String> {
                 BasicTypeDefine.builder()
                         .name(field)
                         .columnType(dataType)
-                        .dataType(dataType)
+                        .dataType(normalizedDataType)
                         .length(precision == null ? null : precision.longValue())
                         .precision(precision == null ? null : precision.longValue())
                         .scale(scale)

@@ -681,6 +681,59 @@ public class DmdbTypeConverterTest {
         Assertions.assertEquals(typeDefine.getName(), column.getName());
         Assertions.assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, column.getDataType());
         Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("timestamp with local time zone")
+                        .dataType("timestamp with local time zone")
+                        .build();
+        column = DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, column.getDataType());
+        Assertions.assertEquals(typeDefine.getScale(), column.getScale());
+        Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("timestamp(6) with local time zone")
+                        .dataType("timestamp with local time zone")
+                        .scale(6)
+                        .build();
+        column = DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, column.getDataType());
+        Assertions.assertEquals(typeDefine.getScale(), column.getScale());
+        Assertions.assertEquals(typeDefine.getColumnType(), column.getSourceType().toLowerCase());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("timestamp with local time zone")
+                        .dataType("timestamp with local time zone")
+                        .scale(4099)
+                        .build();
+        column = DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, column.getDataType());
+        Assertions.assertEquals(3, column.getScale());
+        Assertions.assertEquals(
+                "timestamp(3) with local time zone", column.getSourceType().toLowerCase());
+
+        typeDefine =
+                BasicTypeDefine.builder()
+                        .name("test")
+                        .columnType("timestamp with local time zone")
+                        .dataType("timestamp with local time zone")
+                        .scale(4102)
+                        .build();
+        column = DmdbTypeConverter.INSTANCE.convert(typeDefine);
+        Assertions.assertEquals(typeDefine.getName(), column.getName());
+        Assertions.assertEquals(LocalTimeType.LOCAL_DATE_TIME_TYPE, column.getDataType());
+        Assertions.assertEquals(6, column.getScale());
+        Assertions.assertEquals(
+                "timestamp(6) with local time zone", column.getSourceType().toLowerCase());
     }
 
     @Test
