@@ -90,8 +90,10 @@ public class DmdbTypeConverter implements TypeConverter<BasicTypeDefine> {
     public static final String DM_TIME = "TIME";
     public static final String DM_TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE";
     public static final String DM_TIMESTAMP = "TIMESTAMP";
+    public static final String DM_TIMESTAMP_WITH_LOCAL_TIME_ZONE = "TIMESTAMP WITH LOCAL TIME ZONE";
     public static final String DM_DATETIME = "DATETIME";
     public static final String DM_DATETIME_WITH_TIME_ZONE = "DATETIME WITH TIME ZONE";
+    public static final int DM_TIMESTAMP_WITH_LOCAL_TIME_ZONE_SCALE_OFFSET = 4096;
 
     public static final int DEFAULT_PRECISION = 38;
     public static final int MAX_PRECISION = 38;
@@ -320,6 +322,20 @@ public class DmdbTypeConverter implements TypeConverter<BasicTypeDefine> {
                 builder.dataType(LocalTimeType.LOCAL_DATE_TIME_TYPE);
                 builder.scale(typeDefine.getScale());
                 break;
+            case DM_TIMESTAMP_WITH_LOCAL_TIME_ZONE:
+                Integer timestampWithLocalTimeZoneScale =
+                        normalizeTimestampWithLocalTimeZoneScale(typeDefine.getScale());
+                if (timestampWithLocalTimeZoneScale == null) {
+                    builder.sourceType(DM_TIMESTAMP_WITH_LOCAL_TIME_ZONE);
+                } else {
+                    builder.sourceType(
+                            String.format(
+                                    "TIMESTAMP(%s) WITH LOCAL TIME ZONE",
+                                    timestampWithLocalTimeZoneScale));
+                }
+                builder.dataType(LocalTimeType.LOCAL_DATE_TIME_TYPE);
+                builder.scale(timestampWithLocalTimeZoneScale);
+                break;
             case DM_DATETIME:
                 if (typeDefine.getScale() == null) {
                     builder.sourceType(DM_DATETIME);
@@ -344,6 +360,20 @@ public class DmdbTypeConverter implements TypeConverter<BasicTypeDefine> {
                         DatabaseIdentifier.DAMENG, typeDefine.getDataType(), typeDefine.getName());
         }
         return builder.build();
+    }
+
+    private Integer normalizeTimestampWithLocalTimeZoneScale(Integer scale) {
+        if (scale == null) {
+            return null;
+        }
+        if (scale > MAX_TIMESTAMP_SCALE) {
+            // Dameng catalog metadata encodes local-time-zone timestamp scale as 4096 + precision.
+            int normalizedScale = scale - DM_TIMESTAMP_WITH_LOCAL_TIME_ZONE_SCALE_OFFSET;
+            if (normalizedScale >= 0 && normalizedScale <= MAX_TIMESTAMP_SCALE) {
+                return normalizedScale;
+            }
+        }
+        return scale;
     }
 
     @Override

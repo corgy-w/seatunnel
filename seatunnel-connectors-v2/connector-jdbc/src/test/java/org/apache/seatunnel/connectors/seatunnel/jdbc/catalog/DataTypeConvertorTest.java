@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.jdbc.catalog;
 
+import org.apache.seatunnel.api.table.type.LocalTimeType;
 import org.apache.seatunnel.api.table.type.MultipleRowType;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
@@ -39,6 +40,18 @@ import java.util.HashMap;
 import static com.mysql.cj.MysqlType.UNKNOWN;
 
 public class DataTypeConvertorTest {
+
+    @Test
+    void testDamengTimestampWithLocalTimeZoneLiteral() {
+        DamengDataTypeConvertor dameng = new DamengDataTypeConvertor();
+
+        Assertions.assertEquals(
+                LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                dameng.toSeaTunnelType("test", "TIMESTAMP WITH LOCAL TIME ZONE"));
+        Assertions.assertEquals(
+                LocalTimeType.LOCAL_DATE_TIME_TYPE,
+                dameng.toSeaTunnelType("test", "TIMESTAMP(3) WITH LOCAL TIME ZONE"));
+    }
 
     @Test
     void testConvertorErrorMsgWithUnsupportedType() {
