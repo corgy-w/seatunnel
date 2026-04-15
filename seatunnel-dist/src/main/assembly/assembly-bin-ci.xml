@@ -175,7 +175,19 @@
                 <!-- Don't exclude connector-http-base, because it contains SPI files -->
                 <exclude>org.apache.seatunnel:connector-file-base</exclude>
                 <exclude>org.apache.seatunnel:connector-file-base-hadoop</exclude>
+                <exclude>org.apache.seatunnel:connector-hudi</exclude>
             </excludes>
+            <outputDirectory>/connectors</outputDirectory>
+            <scope>provided</scope>
+        </dependencySet>
+
+        <dependencySet>
+            <useProjectArtifact>false</useProjectArtifact>
+            <useTransitiveDependencies>true</useTransitiveDependencies>
+            <unpack>false</unpack>
+            <includes>
+                <include>org.apache.seatunnel:connector-hudi:jar</include>
+            </includes>
             <outputDirectory>/connectors</outputDirectory>
             <scope>provided</scope>
         </dependencySet>
