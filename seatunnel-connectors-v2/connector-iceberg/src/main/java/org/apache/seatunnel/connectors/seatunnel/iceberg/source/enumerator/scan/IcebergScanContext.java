@@ -20,9 +20,11 @@ package org.apache.seatunnel.connectors.seatunnel.iceberg.source.enumerator.scan
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceTableConfig;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.utils.ExpressionUtils;
 
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.expressions.Expression;
+import org.apache.iceberg.expressions.Expressions;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -64,6 +66,12 @@ public class IcebergScanContext {
 
     public static IcebergScanContext scanContext(
             SourceConfig sourceConfig, SourceTableConfig tableConfig, Schema schema) {
+        Expression filter = tableConfig.getFilter();
+        if (tableConfig.getWhereCondition() != null) {
+            Expression whereFilter =
+                    ExpressionUtils.convertWhereCondition(tableConfig.getWhereCondition(), schema);
+            filter = filter == null ? whereFilter : Expressions.and(filter, whereFilter);
+        }
         return IcebergScanContext.builder()
                 .tablePath(tableConfig.getTablePath())
                 .startSnapshotTimestamp(tableConfig.getStartSnapshotTimestamp())
@@ -73,7 +81,7 @@ public class IcebergScanContext {
                 .useSnapshotTimestamp(tableConfig.getUseSnapshotTimestamp())
                 .caseSensitive(sourceConfig.isCaseSensitive())
                 .schema(schema)
-                .filter(tableConfig.getFilter())
+                .filter(filter)
                 .splitSize(tableConfig.getSplitSize())
                 .splitLookback(tableConfig.getSplitLookback())
                 .splitOpenFileCost(tableConfig.getSplitOpenFileCost())

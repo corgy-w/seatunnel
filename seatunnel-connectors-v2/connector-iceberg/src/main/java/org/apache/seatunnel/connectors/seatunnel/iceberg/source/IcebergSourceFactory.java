@@ -61,6 +61,7 @@ import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceCon
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig.KEY_STREAM_SCAN_STRATEGY;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig.KEY_USE_SNAPSHOT_ID;
 import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig.KEY_USE_SNAPSHOT_TIMESTAMP;
+import static org.apache.seatunnel.connectors.seatunnel.iceberg.config.SourceConfig.WHERE_CONDITION;
 
 @Slf4j
 @AutoService(Factory.class)
@@ -88,6 +89,7 @@ public class IcebergSourceFactory implements TableSourceFactory {
                         KEY_USE_SNAPSHOT_ID,
                         KEY_USE_SNAPSHOT_TIMESTAMP,
                         KEY_STREAM_SCAN_STRATEGY,
+                        WHERE_CONDITION,
                         HADOOP_PROPS,
                         HADOOP_CONF_PATH_PROP,
                         KERBEROS_KRB5_CONF_PATH,

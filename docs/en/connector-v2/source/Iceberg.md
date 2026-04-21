@@ -87,6 +87,7 @@ libfb303-xxx.jar
 | use_snapshot_id          | long    | no       | -                    | Instructs this scan to look for use the given snapshot ID.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | use_snapshot_timestamp   | long    | no       | -                    | Instructs this scan to look for use the most recent snapshot as of the given time in milliseconds. timestamp – the timestamp in millis since the Unix epoch                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | stream_scan_strategy     | enum    | no       | FROM_LATEST_SNAPSHOT | Starting strategy for stream mode execution, Default to use `FROM_LATEST_SNAPSHOT` if don’t specify any value,The optional values are:<br/>TABLE_SCAN_THEN_INCREMENTAL: Do a regular table scan then switch to the incremental mode.<br/>FROM_LATEST_SNAPSHOT: Start incremental mode from the latest snapshot inclusive.<br/>FROM_EARLIEST_SNAPSHOT: Start incremental mode from the earliest snapshot inclusive.<br/>FROM_SNAPSHOT_ID: Start incremental mode from a snapshot with a specific id inclusive.<br/>FROM_SNAPSHOT_TIMESTAMP: Start incremental mode from a snapshot with a specific timestamp inclusive. |
+| where_condition          | string  | no       | -                    | Common row filter conditions for all tables, must start with `where`. for example `where dt = '2024-01-01'`. This condition will be pushed down to Iceberg and can be used for data filtering and partition pruning.                                                                                                                                                                                                                                                                                                                                                                                                   |
 | common-options           |         | no       | -                    | Source plugin common parameters, please refer to [Source Common Options](../source-common-options.md) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ## Task Example
@@ -127,6 +128,7 @@ source {
     }
     namespace = "database1"
     table = "source"
+    where_condition = "where dt = '2024-01-01'"
     result_table_name = "iceberg"
   }
 }
@@ -137,6 +139,21 @@ transform {
 sink {
   Console {
     source_table_name = "iceberg"
+  }
+}
+```
+
+### Filter Pushdown:
+
+```hocon
+source {
+  Iceberg {
+    catalog_name = "seatunnel"
+    catalog_type = "hadoop"
+    warehouse = "hdfs://your_cluster/tmp/seatunnel/iceberg/"
+    namespace = "your_iceberg_database"
+    table = "your_iceberg_table"
+    where_condition = "where dt = '2024-01-01' and hour >= 12"
   }
 }
 ```
@@ -219,4 +236,3 @@ source {
 
 - [Feature] Support Hadoop3.x ([3046](https://github.com/apache/seatunnel/pull/3046))
 - [improve][api] Refactoring schema parse ([4157](https://github.com/apache/seatunnel/pull/4157))
-

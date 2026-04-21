@@ -50,6 +50,7 @@ public class SourceTableConfig implements Serializable {
     private Long useSnapshotTimestamp;
 
     private IcebergStreamScanStrategy streamScanStrategy = KEY_STREAM_SCAN_STRATEGY.defaultValue();
+    private String whereCondition;
     private Expression filter;
     private Long splitSize;
     private Integer splitLookback;
@@ -76,6 +77,11 @@ public class SourceTableConfig implements Serializable {
 
     public SourceTableConfig setNamespace(String namespace) {
         this.namespace = namespace;
+        return this;
+    }
+
+    public SourceTableConfig setWhereCondition(String whereCondition) {
+        this.whereCondition = whereCondition;
         return this;
     }
 }

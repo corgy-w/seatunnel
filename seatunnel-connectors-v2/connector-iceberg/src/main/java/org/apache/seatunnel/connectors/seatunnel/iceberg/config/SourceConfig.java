@@ -24,6 +24,7 @@ import org.apache.seatunnel.api.configuration.Options;
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.connectors.seatunnel.iceberg.source.enumerator.scan.IcebergStreamScanStrategy;
+import org.apache.seatunnel.connectors.seatunnel.iceberg.utils.ExpressionUtils;
 
 import lombok.Getter;
 import lombok.ToString;
@@ -75,6 +76,13 @@ public class SourceConfig extends CommonConfig {
                     .defaultValue(FROM_LATEST_SNAPSHOT)
                     .withDescription(" the iceberg strategy of stream scanning");
 
+    public static final Option<String> WHERE_CONDITION =
+            Options.key("where_condition")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "Common row filter conditions for all tables, must start with `where`. for example `where id > 100`");
+
     public static final Option<List<SourceTableConfig>> KEY_TABLE_LIST =
             Options.key("table_list")
                     .listType(SourceTableConfig.class)
@@ -93,6 +101,11 @@ public class SourceConfig extends CommonConfig {
     public SourceConfig(ReadonlyConfig readonlyConfig) {
         super(readonlyConfig);
         this.incrementScanInterval = readonlyConfig.get(KEY_INCREMENT_SCAN_INTERVAL);
+        String whereCondition =
+                readonlyConfig
+                        .getOptional(WHERE_CONDITION)
+                        .map(ExpressionUtils::normalizeWhereCondition)
+                        .orElse(null);
         if (this.getTable() != null) {
             SourceTableConfig tableConfig =
                     SourceTableConfig.builder()
@@ -105,15 +118,20 @@ public class SourceConfig extends CommonConfig {
                             .useSnapshotId(readonlyConfig.get(KEY_USE_SNAPSHOT_ID))
                             .useSnapshotTimestamp(readonlyConfig.get(KEY_USE_SNAPSHOT_TIMESTAMP))
                             .streamScanStrategy(readonlyConfig.get(KEY_STREAM_SCAN_STRATEGY))
+                            .whereCondition(whereCondition)
                             .build();
             this.tableList = Collections.singletonList(tableConfig);
         } else {
             this.tableList =
                     readonlyConfig.get(KEY_TABLE_LIST).stream()
                             .map(
-                                    tableConfig ->
-                                            tableConfig.setNamespace(
-                                                    SourceConfig.this.getNamespace()))
+                                    tableConfig -> {
+                                        tableConfig.setNamespace(SourceConfig.this.getNamespace());
+                                        if (whereCondition != null) {
+                                            tableConfig.setWhereCondition(whereCondition);
+                                        }
+                                        return tableConfig;
+                                    })
                             .collect(Collectors.toList());
         }
     }
