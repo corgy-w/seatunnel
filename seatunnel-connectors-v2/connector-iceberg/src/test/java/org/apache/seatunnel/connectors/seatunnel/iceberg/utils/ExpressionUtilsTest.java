@@ -128,4 +128,30 @@ public class ExpressionUtilsTest {
                         .toString(),
                 expression.toString());
     }
+
+    @Test
+    public void testWhereConditionToExpression() {
+        Expression expression = ExpressionUtils.convertWhereCondition("id = 1", null);
+
+        Assertions.assertEquals(Expressions.equal("id", 1).toString(), expression.toString());
+
+        Schema schema =
+                new Schema(
+                        Types.NestedField.optional(1, "f1", Types.DateType.get()),
+                        Types.NestedField.optional(2, "f2", Types.TimeType.get()),
+                        Types.NestedField.optional(3, "f3", Types.TimestampType.withoutZone()));
+
+        expression =
+                ExpressionUtils.convertWhereCondition(
+                        "where f1 = '2024-01-01' and f2 = '12:00:00.001' and f3 = '2024-01-01 12:00:00.001'",
+                        schema);
+
+        Assertions.assertEquals(
+                Expressions.and(
+                                Expressions.equal("f1", 19723),
+                                Expressions.equal("f2", 43200001000L),
+                                Expressions.equal("f3", 1704110400001000L))
+                        .toString(),
+                expression.toString());
+    }
 }

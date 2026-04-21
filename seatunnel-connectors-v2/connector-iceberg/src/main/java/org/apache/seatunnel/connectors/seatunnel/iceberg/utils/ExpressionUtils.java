@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.connectors.seatunnel.iceberg.utils;
 
+import org.apache.iceberg.Schema;
 import org.apache.iceberg.expressions.Expression;
 import org.apache.iceberg.expressions.Expressions;
 import org.apache.iceberg.types.Types;
@@ -52,6 +53,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
@@ -70,6 +72,22 @@ public class ExpressionUtils {
         Statement statement = CCJSqlParserUtil.parse(sql);
         Delete delete = (Delete) statement;
         return convert(delete.getWhere(), null);
+    }
+
+    @SneakyThrows
+    public static Expression convertWhereCondition(String whereCondition, Schema schema) {
+        Statement statement =
+                CCJSqlParserUtil.parse("delete from t " + normalizeWhereCondition(whereCondition));
+        Delete delete = (Delete) statement;
+        return convert(delete.getWhere(), schema);
+    }
+
+    public static String normalizeWhereCondition(String whereCondition) {
+        String normalizedWhereCondition = whereCondition.trim();
+        if (!normalizedWhereCondition.toLowerCase(Locale.ROOT).startsWith("where")) {
+            normalizedWhereCondition = "where " + normalizedWhereCondition;
+        }
+        return normalizedWhereCondition;
     }
 
     public static Expression convert(net.sf.jsqlparser.expression.Expression condition) {
