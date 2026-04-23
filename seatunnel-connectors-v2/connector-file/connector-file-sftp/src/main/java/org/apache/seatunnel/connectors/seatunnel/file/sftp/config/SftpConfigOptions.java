@@ -36,4 +36,10 @@ public class SftpConfigOptions extends BaseSourceConfigOptions {
             Options.key("host").stringType().noDefaultValue().withDescription("SFTP server host");
     public static final Option<Integer> SFTP_PORT =
             Options.key("port").intType().noDefaultValue().withDescription("SFTP server port");
+    public static final Option<String> SFTP_FILENAME_ENCODING =
+            Options.key("filename_encoding")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "Character encoding for SFTP remote file names. When this option is not configured, the value of encoding will be used");
 }
