@@ -62,4 +62,9 @@ public class BufferedBatchStatementExecutor implements JdbcBatchStatementExecuto
         }
         statementExecutor.closeStatements();
     }
+
+    @Override
+    public void closeStatementsForRecovery() throws SQLException {
+        statementExecutor.closeStatementsForRecovery();
+    }
 }

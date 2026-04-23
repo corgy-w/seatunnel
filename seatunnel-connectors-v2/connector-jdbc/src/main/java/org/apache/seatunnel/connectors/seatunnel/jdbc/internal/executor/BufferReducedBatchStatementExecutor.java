@@ -103,6 +103,12 @@ public class BufferReducedBatchStatementExecutor
         deleteExecutor.closeStatements();
     }
 
+    @Override
+    public void closeStatementsForRecovery() throws SQLException {
+        upsertExecutor.closeStatementsForRecovery();
+        deleteExecutor.closeStatementsForRecovery();
+    }
+
     private boolean changeFlag(RowKind rowKind) {
         switch (rowKind) {
             case INSERT:
