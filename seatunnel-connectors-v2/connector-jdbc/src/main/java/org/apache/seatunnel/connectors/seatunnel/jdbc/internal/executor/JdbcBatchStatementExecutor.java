@@ -33,4 +33,14 @@ public interface JdbcBatchStatementExecutor<T> {
 
     /** Close JDBC related statements. */
     void closeStatements() throws SQLException;
+
+    /**
+     * Close JDBC statements for recovery without proactively flushing buffered rows.
+     *
+     * <p>The default behavior matches {@link #closeStatements()}. Executors that keep in-memory
+     * buffers should override this method to preserve buffered rows during statement recovery.
+     */
+    default void closeStatementsForRecovery() throws SQLException {
+        closeStatements();
+    }
 }

@@ -127,6 +127,16 @@ public class InsertOrUpdateBatchStatementExecutor
         }
     }
 
+    @Override
+    public void closeStatementsForRecovery() throws SQLException {
+        for (PreparedStatement statement :
+                Arrays.asList(existStatement, insertStatement, updateStatement)) {
+            if (statement != null) {
+                statement.close();
+            }
+        }
+    }
+
     private boolean upsertMode() {
         return existStmtFactory != null;
     }

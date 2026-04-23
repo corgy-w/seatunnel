@@ -345,6 +345,17 @@ public class DynamicBufferedBatchStatementExecutor
         }
     }
 
+    @Override
+    public void closeStatementsForRecovery() throws SQLException {
+        copyBatchStatementExecutor.closeStatementsForRecovery();
+        if (tmpCopyBatchStatementExecutor != null) {
+            tmpCopyBatchStatementExecutor.closeStatementsForRecovery();
+        }
+        if (bufferReducedBatchStatementExecutor != null) {
+            bufferReducedBatchStatementExecutor.closeStatementsForRecovery();
+        }
+    }
+
     /**
      * Returns whether any COPY executor still holds buffered rows that have not been flushed.
      *

@@ -30,11 +30,12 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.executor.JdbcBatc
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Throwables;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -128,7 +129,8 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
             }
             if (!connectionProvider.isConnectionValid()) {
                 LOG.debug("Connection is invalid, try to reconnect.");
-                throwIfUnsafeToReconnect(0, jdbcConnectionConfig.getMaxRetries(), null, false);
+                throwIfUnsafeToRecoverExecutor(
+                        0, jdbcConnectionConfig.getMaxRetries(), null, false);
                 updateExecutor(true);
             }
         } catch (Exception e) {
@@ -172,10 +174,11 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                 LOG.debug("Flush success. attempt={}/{}", attempt, maxRetries);
                 return;
             } catch (Exception e) {
-                final Throwable root = Throwables.getRootCause(e);
+                final List<SQLException> sqlExceptions = findSqlExceptions(e);
+                final SQLException sqlEx = sqlExceptions.isEmpty() ? null : sqlExceptions.get(0);
 
-                // keep original behavior: non-SQL root cause -> no retry
-                if (!(root instanceof SQLException)) {
+                // keep original behavior: no SQL exception in cause chain -> no retry
+                if (sqlEx == null) {
                     LOG.error(
                             "Flush failed (non-SQL). batchCount={}, attempt={}/{}",
                             batchCount,
@@ -186,9 +189,13 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                             CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
                 }
 
-                final SQLException sqlEx = (SQLException) root;
-                final String sqlState = sqlEx.getSQLState();
-                final boolean sqlStateConnError = sqlState != null && sqlState.startsWith("08");
+                final String connectionErrorSqlState = findConnectionErrorSqlState(sqlExceptions);
+                final String sqlState =
+                        connectionErrorSqlState != null
+                                ? connectionErrorSqlState
+                                : sqlEx.getSQLState();
+                final boolean sqlStateConnError = connectionErrorSqlState != null;
+                final boolean statementClosed = isStatementClosed(sqlExceptions);
 
                 boolean connValid = true;
                 try {
@@ -204,15 +211,19 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                 }
 
                 final boolean needReconnect = sqlStateConnError || !connValid;
+                final boolean needReprepareStatements =
+                        statementClosed && connValid && !sqlStateConnError;
 
                 if (attempt >= maxRetries) {
                     LOG.error(
-                            "Flush failed after retries. batchCount={}, attempts={}, sqlState={}, connValid={}, needReconnect={}",
+                            "Flush failed after retries. batchCount={}, attempts={}, sqlState={}, connValid={}, statementClosed={}, needReconnect={}, needReprepareStatements={}",
                             batchCount,
                             attempt,
                             sqlState,
                             connValid,
+                            statementClosed,
                             needReconnect,
+                            needReprepareStatements,
                             e);
                     throw new JdbcConnectorException(
                             CommonErrorCodeDeprecated.FLUSH_DATA_FAILED, e);
@@ -221,44 +232,30 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                 long backoffMs = Math.min(baseBackoffMs * (attempt + 1L), maxBackoffMs);
 
                 LOG.debug(
-                        "Flush failed, will retry. batchCount={}, attempt={}/{}, sqlState={}, connValid={}, needReconnect={}, backoffMs={}",
+                        "Flush failed, will retry. batchCount={}, attempt={}/{}, sqlState={}, connValid={}, statementClosed={}, needReconnect={}, needReprepareStatements={}, backoffMs={}",
                         batchCount,
                         attempt,
                         maxRetries,
                         sqlState,
                         connValid,
+                        statementClosed,
                         needReconnect,
+                        needReprepareStatements,
                         backoffMs,
                         e);
 
                 if (needReconnect) {
-                    throwIfUnsafeToReconnect(attempt, maxRetries, sqlState, connValid);
-                    try {
-                        LOG.info(
-                                "Reconnecting JDBC. attempt={}/{}, sqlState={}, connValid={}",
-                                attempt,
-                                maxRetries,
-                                sqlState,
-                                connValid);
-                        updateExecutor(true);
-                        LOG.info("Reconnect JDBC success. attempt={}/{}", attempt, maxRetries);
-                    } catch (Exception reconnectEx) {
-                        LOG.error(
-                                "Reconnect JDBC failed. attempt={}/{}, sqlState={}, connValid={}",
-                                attempt,
-                                maxRetries,
-                                sqlState,
-                                connValid,
-                                reconnectEx);
-                        throw new JdbcConnectorException(
-                                JdbcConnectorErrorCode.CONNECT_DATABASE_FAILED,
-                                "Reestablish JDBC connection failed",
-                                reconnectEx);
-                    }
+                    throwIfUnsafeToRecoverExecutor(attempt, maxRetries, sqlState, connValid);
+                    recoverStatementExecutor(
+                            true, attempt, maxRetries, sqlState, connValid, statementClosed);
+                } else if (needReprepareStatements) {
+                    throwIfUnsafeToRecoverExecutor(attempt, maxRetries, sqlState, connValid);
+                    recoverStatementExecutor(
+                            false, attempt, maxRetries, sqlState, connValid, statementClosed);
                 }
 
                 try {
-                    Thread.sleep(backoffMs);
+                    sleepBeforeFlushRetry(backoffMs);
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new JdbcConnectorException(
@@ -271,10 +268,10 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
     }
 
     /**
-     * Block reconnect when COPY payload is still buffered locally. Reconnect in this state may lose
-     * in-memory data that has not been persisted yet.
+     * Block executor recovery when COPY payload is still buffered locally. Reconnecting or
+     * re-preparing in this state may lose in-memory data that has not been persisted yet.
      */
-    private void throwIfUnsafeToReconnect(
+    private void throwIfUnsafeToRecoverExecutor(
             int attempt, int maxRetries, String sqlState, boolean connValid) {
         if (!hasPendingCopyBuffer()) {
             return;
@@ -282,7 +279,7 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
         throw new JdbcConnectorException(
                 CommonErrorCodeDeprecated.FLUSH_DATA_FAILED,
                 String.format(
-                        "Unsafe reconnect is blocked because COPY payload is still buffered. "
+                        "Unsafe JDBC executor recovery is blocked because COPY payload is still buffered. "
                                 + "attempt=%d/%d, sqlState=%s, connValid=%s. "
                                 + "Fail fast to avoid silent data loss.",
                         attempt, maxRetries, sqlState, connValid));
@@ -344,7 +341,7 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
         SQLException closeEx = null;
 
         try {
-            jdbcStatementExecutor.closeStatements();
+            jdbcStatementExecutor.closeStatementsForRecovery();
         } catch (SQLException e) {
             closeEx = e;
             if (!reconnect) {
@@ -366,6 +363,116 @@ public class JdbcOutputFormat<I, E extends JdbcBatchStatementExecutor<I>> implem
                 e.addSuppressed(closeEx);
             }
             throw e;
+        }
+    }
+
+    protected void sleepBeforeFlushRetry(long backoffMs) throws InterruptedException {
+        Thread.sleep(backoffMs);
+    }
+
+    private String findConnectionErrorSqlState(List<SQLException> sqlExceptions) {
+        for (SQLException sqlException : sqlExceptions) {
+            String sqlState = sqlException.getSQLState();
+            if (sqlState != null && sqlState.startsWith("08")) {
+                return sqlState;
+            }
+        }
+        return null;
+    }
+
+    private List<SQLException> findSqlExceptions(Throwable throwable) {
+        List<SQLException> sqlExceptions = new ArrayList<>();
+        Throwable current = throwable;
+        while (current != null) {
+            if (current instanceof SQLException) {
+                collectSqlExceptionChain((SQLException) current, sqlExceptions);
+            }
+            current = current.getCause();
+        }
+        return sqlExceptions;
+    }
+
+    private void collectSqlExceptionChain(
+            SQLException sqlException, List<SQLException> sqlExceptions) {
+        SQLException current = sqlException;
+        while (current != null) {
+            sqlExceptions.add(current);
+            current = current.getNextException();
+        }
+    }
+
+    private boolean isStatementClosed(List<SQLException> sqlExceptions) {
+        for (SQLException sqlException : sqlExceptions) {
+            if (isStatementClosed(sqlException)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isStatementClosed(SQLException sqlException) {
+        String exceptionClassName =
+                sqlException.getClass().getSimpleName().toLowerCase(Locale.ROOT);
+        if (exceptionClassName.contains("statementisclosedexception")) {
+            return true;
+        }
+
+        String message = sqlException.getMessage();
+        if (message == null) {
+            return false;
+        }
+
+        String normalizedMessage = message.toLowerCase(Locale.ROOT);
+        // SQL Server may report a closed statement handle without using "closed".
+        return normalizedMessage.contains("statement closed")
+                || normalizedMessage.contains("statement is closed")
+                || normalizedMessage.contains("statement handle is not executing")
+                || normalizedMessage.contains("statement handle is closed");
+    }
+
+    private void recoverStatementExecutor(
+            boolean reconnect,
+            int attempt,
+            int maxRetries,
+            String sqlState,
+            boolean connValid,
+            boolean statementClosed) {
+        try {
+            LOG.info(
+                    reconnect
+                            ? "Reconnecting JDBC. attempt={}/{}, sqlState={}, connValid={}, statementClosed={}"
+                            : "Re-preparing JDBC statements. attempt={}/{}, sqlState={}, connValid={}, statementClosed={}",
+                    attempt,
+                    maxRetries,
+                    sqlState,
+                    connValid,
+                    statementClosed);
+            updateExecutor(reconnect);
+            LOG.info(
+                    reconnect
+                            ? "Reconnect JDBC success. attempt={}/{}"
+                            : "Re-prepare JDBC statements success. attempt={}/{}",
+                    attempt,
+                    maxRetries);
+        } catch (Exception recoveryEx) {
+            LOG.error(
+                    reconnect
+                            ? "Reconnect JDBC failed. attempt={}/{}, sqlState={}, connValid={}, statementClosed={}"
+                            : "Re-prepare JDBC statements failed. attempt={}/{}, sqlState={}, connValid={}, statementClosed={}",
+                    attempt,
+                    maxRetries,
+                    sqlState,
+                    connValid,
+                    statementClosed,
+                    recoveryEx);
+            throw new JdbcConnectorException(
+                    reconnect
+                            ? JdbcConnectorErrorCode.CONNECT_DATABASE_FAILED
+                            : CommonErrorCodeDeprecated.SQL_OPERATION_FAILED,
+                    reconnect
+                            ? "Reestablish JDBC connection failed"
+                            : "Reprepare JDBC statements failed",
+                    recoveryEx);
         }
     }
 
