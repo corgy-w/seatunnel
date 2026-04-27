@@ -194,6 +194,76 @@ public class Config {
                     .withDescription(
                             "Topic list config. You can configure only one `table_list` or one `topic` at the same time");
 
+    public static final Option<String> SCHEMA_PATH =
+            Options.key("schema_path")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "JSONPath used by CUSTOM_CDC_JSON source format to resolve the schema from a message.");
+
+    public static final Option<String> TABLE_PATH =
+            Options.key("table_path")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "JSONPath used by CUSTOM_CDC_JSON source format to resolve the table from a message.");
+
+    public static final Option<String> OPERATION_PATH =
+            Options.key("operation_path")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "JSONPath used by CUSTOM_CDC_JSON source format to resolve the CDC operation from a message.");
+
+    public static final Option<Map<String, String>> CUSTOM_CDC_OPERATION_TYPE_MAPPING =
+            Options.key("custom_cdc_operation_type_mapping")
+                    .mapType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "Mapping from custom CDC operation value to logical change type for CUSTOM_CDC_JSON source format. "
+                                    + "Supported target values are INSERT, UPDATE, DELETE, UPDATE_BEFORE and UPDATE_AFTER. "
+                                    + "If absent, the built-in mapping c/r/create/insert -> INSERT, u/update -> UPDATE, d/delete -> DELETE will be used.");
+
+    public static final Option<String> BEFORE_PATH =
+            Options.key("before_path")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "JSONPath used by CUSTOM_CDC_JSON source format to resolve the before image from a message.");
+
+    public static final Option<String> AFTER_PATH =
+            Options.key("after_path")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "JSONPath used by CUSTOM_CDC_JSON source format to resolve the after image from a message.");
+
+    public static final Option<List<Map<String, Object>>> SCHEMA_LIST =
+            Options.key("schema_list")
+                    .type(new TypeReference<List<Map<String, Object>>>() {})
+                    .noDefaultValue()
+                    .withDescription(
+                            "CUSTOM_CDC_JSON source format schema definitions for multi-table routing.");
+
+    public static final Option<String> TABLE =
+            Options.key("table")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Logical table name used inside schema_list.");
+
+    public static final Option<Map<String, String>> JSON_FIELD =
+            Options.key("json_field")
+                    .mapType()
+                    .noDefaultValue()
+                    .withDescription(
+                            "Column to JSONPath mapping used by CUSTOM_CDC_JSON source format.");
+
+    public static final Option<List<Map<String, Object>>> COLUMNS =
+            Options.key("columns")
+                    .type(new TypeReference<List<Map<String, Object>>>() {})
+                    .noDefaultValue()
+                    .withDescription("Schema columns used inside schema_list.");
+
     public static final Option<SchemaSaveMode> SCHEMA_SAVE_MODE =
             Options.key("schema_save_mode")
                     .singleChoice(

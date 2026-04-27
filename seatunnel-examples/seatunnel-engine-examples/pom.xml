@@ -89,5 +89,15 @@
             <artifactId>connector-fake</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-cdc-base</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.seatunnel</groupId>
+            <artifactId>connector-kafka-wt</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

@@ -21,6 +21,7 @@ import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.serialization.DeserializationSchema;
 import org.apache.seatunnel.api.table.catalog.Catalog;
 import org.apache.seatunnel.api.table.catalog.CatalogTable;
+import org.apache.seatunnel.api.table.catalog.Column;
 import org.apache.seatunnel.api.table.catalog.PhysicalColumn;
 import org.apache.seatunnel.api.table.catalog.TableIdentifier;
 import org.apache.seatunnel.api.table.catalog.TablePath;
@@ -43,6 +44,7 @@ import org.apache.seatunnel.format.compatible.kafka.connect.json.CompatibleKafka
 import org.apache.seatunnel.format.compatible.kafka.connect.json.KafkaConnectJsonFormatOptions;
 import org.apache.seatunnel.format.json.JsonDeserializationSchema;
 import org.apache.seatunnel.format.json.canal.CanalJsonDeserializationSchema;
+import org.apache.seatunnel.format.json.customcdc.CustomCdcJsonSourceDeserializationSchema;
 import org.apache.seatunnel.format.json.debezium.DebeziumJsonDeserializationSchema;
 import org.apache.seatunnel.format.json.debezium.DebeziumJsonDeserializationSchemaDispatcher;
 import org.apache.seatunnel.format.json.exception.SeaTunnelJsonFormatException;
@@ -59,31 +61,44 @@ import org.apache.kafka.common.TopicPartition;
 import lombok.Getter;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.AFTER_PATH;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.BEFORE_PATH;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.BOOTSTRAP_SERVERS;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.COLUMNS;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.COMMIT_ON_CHECKPOINT;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.CONSUMER_GROUP;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.CUSTOM_CDC_OPERATION_TYPE_MAPPING;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.DEBEZIUM_RECORD_INCLUDE_SCHEMA;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.DEBEZIUM_RECORD_TABLE_FILTER;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.FIELD_DELIMITER;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.FORMAT;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.JSON_FIELD;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.KAFKA_CONFIG;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.KEY_PARTITION_DISCOVERY_INTERVAL_MILLIS;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.MESSAGE_FORMAT_ERROR_HANDLE_WAY_OPTION;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.OPERATION_PATH;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.PATTERN;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.PROTOBUF_MESSAGE_NAME;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.PROTOBUF_SCHEMA;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.SCHEMA_LIST;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.SCHEMA_PATH;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.START_MODE;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.START_MODE_OFFSETS;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.START_MODE_TIMESTAMP;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.STRIP_SCHEMA_REGISTRY_HEADER;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.TABLE;
+import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.TABLE_PATH;
 import static org.apache.seatunnel.connectors.seatunnel.kafka.config.Config.TOPIC;
 
 public class KafkaSourceConfig implements Serializable {
@@ -158,12 +173,23 @@ public class KafkaSourceConfig implements Serializable {
         consumerMetadata.setPattern(readonlyConfig.get(PATTERN));
         consumerMetadata.setConsumerGroup(readonlyConfig.get(CONSUMER_GROUP));
         consumerMetadata.setProperties(new Properties());
-        // Create a catalog
-        CatalogTable catalogTable = createCatalogTable(readonlyConfig);
-        consumerMetadata.setCatalogTable(Collections.singletonList(catalogTable));
+        List<CatalogTable> catalogTables;
+        Map<TablePath, Map<String, String>> jsonFieldMappings = Collections.emptyMap();
+        Set<TablePath> simpleTablePaths = Collections.emptySet();
+        if (isCustomCdcMultiTableConfig(readonlyConfig)) {
+            CustomCdcTopicMetadata customCdcTopicMetadata =
+                    createCustomCdcTopicMetadata(readonlyConfig);
+            catalogTables = customCdcTopicMetadata.getCatalogTables();
+            jsonFieldMappings = customCdcTopicMetadata.getJsonFieldMappings();
+            simpleTablePaths = customCdcTopicMetadata.getSimpleTablePaths();
+        } else {
+            CatalogTable catalogTable = createCatalogTable(readonlyConfig);
+            catalogTables = Collections.singletonList(catalogTable);
+        }
+        consumerMetadata.setCatalogTable(catalogTables);
         consumerMetadata.setDeserializationSchema(
                 createDeserializationSchema(
-                        Collections.singletonList(catalogTable), readonlyConfig));
+                        catalogTables, readonlyConfig, jsonFieldMappings, simpleTablePaths));
 
         // parse start mode
         readonlyConfig
@@ -216,6 +242,50 @@ public class KafkaSourceConfig implements Serializable {
                         });
 
         return consumerMetadata;
+    }
+
+    private boolean isCustomCdcMultiTableConfig(ReadonlyConfig readonlyConfig) {
+        return readonlyConfig.get(FORMAT) == MessageFormat.CUSTOM_CDC_JSON
+                && readonlyConfig.getOptional(SCHEMA_LIST).isPresent();
+    }
+
+    private CustomCdcTopicMetadata createCustomCdcTopicMetadata(ReadonlyConfig readonlyConfig) {
+        List<CatalogTable> catalogTables = new ArrayList<>();
+        Map<TablePath, Map<String, String>> jsonFieldMappings = new HashMap<>();
+        Set<TablePath> simpleTablePaths = new HashSet<>();
+        for (Map<String, Object> schemaMap : readonlyConfig.get(SCHEMA_LIST)) {
+            ReadonlyConfig schemaReadonlyConfig = ReadonlyConfig.fromMap(schemaMap);
+            String rawTableName = schemaReadonlyConfig.get(TABLE);
+            TablePath tablePath = TablePath.of(rawTableName);
+            if (tablePath.getDatabaseName() == null) {
+                tablePath = TablePath.of("default", tablePath.getTableName());
+            }
+            if (isSimpleTableName(rawTableName)) {
+                simpleTablePaths.add(tablePath);
+            }
+            List<Column> columns =
+                    schemaReadonlyConfig.get(COLUMNS).stream()
+                            .map(ReadonlyConfig::fromMap)
+                            .map(ReadonlyConfigParser::parsePhysicalColumn)
+                            .collect(Collectors.toList());
+            CatalogTable catalogTable =
+                    CatalogTable.of(
+                            TableIdentifier.of("", tablePath),
+                            TableSchema.builder().columns(columns).build(),
+                            Collections.emptyMap(),
+                            Collections.emptyList(),
+                            null);
+            catalogTables.add(catalogTable);
+            jsonFieldMappings.put(
+                    tablePath,
+                    new HashMap<>(
+                            schemaReadonlyConfig.getOptional(JSON_FIELD).orElseGet(HashMap::new)));
+        }
+        return new CustomCdcTopicMetadata(catalogTables, jsonFieldMappings, simpleTablePaths);
+    }
+
+    private boolean isSimpleTableName(String rawTableName) {
+        return StringUtils.isNotBlank(rawTableName) && rawTableName.split("\\.").length == 1;
     }
 
     private CatalogTable createCatalogTable(ReadonlyConfig readonlyConfig) {
@@ -273,11 +343,24 @@ public class KafkaSourceConfig implements Serializable {
 
     private DeserializationSchema<SeaTunnelRow> createDeserializationSchema(
             List<CatalogTable> catalogTables, ReadonlyConfig readonlyConfig) {
+        return createDeserializationSchema(
+                catalogTables,
+                readonlyConfig,
+                Collections.emptyMap(),
+                catalogTables.stream().map(CatalogTable::getTablePath).collect(Collectors.toSet()));
+    }
+
+    private DeserializationSchema<SeaTunnelRow> createDeserializationSchema(
+            List<CatalogTable> catalogTables,
+            ReadonlyConfig readonlyConfig,
+            Map<TablePath, Map<String, String>> jsonFieldMappings,
+            Set<TablePath> simpleTablePaths) {
         CatalogTable catalogTable = catalogTables.get(0);
         SeaTunnelRowType seaTunnelRowType = catalogTable.getSeaTunnelRowType();
         MessageFormat format = readonlyConfig.get(FORMAT);
         if (!readonlyConfig.getOptional(TableSchemaOptions.SCHEMA).isPresent()
-                && !format.equals(MessageFormat.KINGBASE_JSON)) {
+                && !format.equals(MessageFormat.KINGBASE_JSON)
+                && !format.equals(MessageFormat.CUSTOM_CDC_JSON)) {
             return TextDeserializationSchema.builder()
                     .seaTunnelRowType(seaTunnelRowType)
                     .delimiter(TextFormatConstant.PLACEHOLDER)
@@ -349,10 +432,45 @@ public class KafkaSourceConfig implements Serializable {
                     return new SchemaRegistryAwareProtobufDeserializationSchema(catalogTable);
                 }
                 return new ProtobufDeserializationSchema(catalogTable);
+            case CUSTOM_CDC_JSON:
+                if (!isCustomCdcMultiTableConfig(readonlyConfig)) {
+                    throw new SeaTunnelJsonFormatException(
+                            CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
+                            "CUSTOM_CDC_JSON source format requires schema_list, table_path and operation_path configuration.");
+                }
+                return CustomCdcJsonSourceDeserializationSchema.builder(catalogTables)
+                        .setJsonFieldMappings(jsonFieldMappings)
+                        .setSimpleTablePaths(simpleTablePaths)
+                        .setSchemaPath(readonlyConfig.getOptional(SCHEMA_PATH).orElse(null))
+                        .setTablePath(readonlyConfig.get(TABLE_PATH))
+                        .setOperationPath(readonlyConfig.get(OPERATION_PATH))
+                        .setOperationTypeMapping(
+                                readonlyConfig
+                                        .getOptional(CUSTOM_CDC_OPERATION_TYPE_MAPPING)
+                                        .orElse(Collections.emptyMap()))
+                        .setBeforePath(readonlyConfig.getOptional(BEFORE_PATH).orElse(null))
+                        .setAfterPath(readonlyConfig.getOptional(AFTER_PATH).orElse(null))
+                        .build();
             default:
                 throw new SeaTunnelJsonFormatException(
                         CommonErrorCodeDeprecated.UNSUPPORTED_DATA_TYPE,
                         "Unsupported format: " + format);
+        }
+    }
+
+    @Getter
+    private static class CustomCdcTopicMetadata {
+        private final List<CatalogTable> catalogTables;
+        private final Map<TablePath, Map<String, String>> jsonFieldMappings;
+        private final Set<TablePath> simpleTablePaths;
+
+        private CustomCdcTopicMetadata(
+                List<CatalogTable> catalogTables,
+                Map<TablePath, Map<String, String>> jsonFieldMappings,
+                Set<TablePath> simpleTablePaths) {
+            this.catalogTables = catalogTables;
+            this.jsonFieldMappings = jsonFieldMappings;
+            this.simpleTablePaths = simpleTablePaths;
         }
     }
 }
