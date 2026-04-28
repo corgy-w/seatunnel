@@ -210,9 +210,10 @@ public class MultiTableSinkWriter
                                         .getKey()
                                         .getTableIdentifier()
                                         .equals(element.getTableId())) {
-                                    MultiTableTtlWriter multiTableTtlWriter =
-                                            (MultiTableTtlWriter) sinkWriterEntry.getValue();
-                                    pk = multiTableTtlWriter.primaryKey();
+                                    SupportMultiTableSinkWriter<?> supportMultiTableSinkWriter =
+                                            (SupportMultiTableSinkWriter<?>)
+                                                    sinkWriterEntry.getValue();
+                                    pk = supportMultiTableSinkWriter.primaryKey();
                                     break;
                                 }
                             }
