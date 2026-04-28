@@ -29,6 +29,7 @@ import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.IntConsumer;
 
 /**
  * The implementation of {@link org.apache.seatunnel.api.source.SourceSplitEnumerator.Context} for
@@ -41,11 +42,19 @@ public class FlinkSourceSplitEnumeratorContext<SplitT extends SourceSplit>
 
     private final SplitEnumeratorContext<SplitWrapper<SplitT>> enumContext;
     protected final EventListener eventListener;
+    private final IntConsumer noMoreSplitsSignalListener;
 
     public FlinkSourceSplitEnumeratorContext(
             SplitEnumeratorContext<SplitWrapper<SplitT>> enumContext) {
+        this(enumContext, null);
+    }
+
+    public FlinkSourceSplitEnumeratorContext(
+            SplitEnumeratorContext<SplitWrapper<SplitT>> enumContext,
+            IntConsumer noMoreSplitsSignalListener) {
         this.enumContext = enumContext;
         this.eventListener = new DefaultEventProcessor();
+        this.noMoreSplitsSignalListener = noMoreSplitsSignalListener;
     }
 
     @Override
@@ -68,6 +77,9 @@ public class FlinkSourceSplitEnumeratorContext<SplitT extends SourceSplit>
 
     @Override
     public void signalNoMoreSplits(int subtask) {
+        if (noMoreSplitsSignalListener != null) {
+            noMoreSplitsSignalListener.accept(subtask);
+        }
         enumContext.signalNoMoreSplits(subtask);
     }
 

@@ -41,6 +41,8 @@ import org.apache.flink.types.Row;
 
 import java.io.Serializable;
 import java.sql.DriverManager;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The source implementation of {@link Source}, used for proxy all {@link SeaTunnelSource} in flink.
@@ -94,21 +96,25 @@ public class FlinkSource<SplitT extends SourceSplit, EnumStateT extends Serializ
     @Override
     public SplitEnumerator<SplitWrapper<SplitT>, EnumStateT> createEnumerator(
             SplitEnumeratorContext<SplitWrapper<SplitT>> enumContext) throws Exception {
+        Set<Integer> noMoreSplitsSignaledReaders = ConcurrentHashMap.newKeySet();
         SourceSplitEnumerator.Context<SplitT> context =
-                new FlinkSourceSplitEnumeratorContext<>(enumContext);
+                new FlinkSourceSplitEnumeratorContext<>(
+                        enumContext, noMoreSplitsSignaledReaders::add);
         SourceSplitEnumerator<SplitT, EnumStateT> enumerator = source.createEnumerator(context);
-        return new FlinkSourceEnumerator<>(enumerator, enumContext);
+        return new FlinkSourceEnumerator<>(enumerator, enumContext, noMoreSplitsSignaledReaders);
     }
 
     @Override
     public SplitEnumerator<SplitWrapper<SplitT>, EnumStateT> restoreEnumerator(
             SplitEnumeratorContext<SplitWrapper<SplitT>> enumContext, EnumStateT checkpoint)
             throws Exception {
+        Set<Integer> noMoreSplitsSignaledReaders = ConcurrentHashMap.newKeySet();
         FlinkSourceSplitEnumeratorContext<SplitT> context =
-                new FlinkSourceSplitEnumeratorContext<>(enumContext);
+                new FlinkSourceSplitEnumeratorContext<>(
+                        enumContext, noMoreSplitsSignaledReaders::add);
         SourceSplitEnumerator<SplitT, EnumStateT> enumerator =
                 source.restoreEnumerator(context, checkpoint);
-        return new FlinkSourceEnumerator<>(enumerator, enumContext);
+        return new FlinkSourceEnumerator<>(enumerator, enumContext, noMoreSplitsSignaledReaders);
     }
 
     @Override
