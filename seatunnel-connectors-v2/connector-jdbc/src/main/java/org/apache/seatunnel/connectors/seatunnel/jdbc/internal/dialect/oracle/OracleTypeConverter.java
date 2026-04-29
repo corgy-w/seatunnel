@@ -138,7 +138,7 @@ public class OracleTypeConverter implements TypeConverter<BasicTypeDefine> {
                     int newPrecision = (int) (precision - scale);
                     if (newPrecision <= 18 && decimalTypeNarrowing) {
                         if (newPrecision == 1) {
-                            builder.dataType(BasicType.BOOLEAN_TYPE);
+                            builder.dataType(BasicType.BYTE_TYPE);
                         } else if (newPrecision <= 9) {
                             builder.dataType(BasicType.INT_TYPE);
                         } else {
