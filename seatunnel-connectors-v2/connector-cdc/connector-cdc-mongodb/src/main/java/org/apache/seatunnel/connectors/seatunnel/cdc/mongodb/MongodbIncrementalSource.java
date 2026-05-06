@@ -29,6 +29,7 @@ import org.apache.seatunnel.common.utils.SeaTunnelException;
 import org.apache.seatunnel.connectors.cdc.base.config.SourceConfig;
 import org.apache.seatunnel.connectors.cdc.base.dialect.DataSourceDialect;
 import org.apache.seatunnel.connectors.cdc.base.option.JdbcSourceOptions;
+import org.apache.seatunnel.connectors.cdc.base.option.SourceOptions;
 import org.apache.seatunnel.connectors.cdc.base.option.StartupMode;
 import org.apache.seatunnel.connectors.cdc.base.option.StopMode;
 import org.apache.seatunnel.connectors.cdc.base.source.IncrementalSource;
@@ -117,6 +118,8 @@ public class MongodbIncrementalSource<T> extends IncrementalSource<T, MongodbSou
                 .ifPresent(builder::splitMetaGroupSize);
         Optional.ofNullable(config.get(MongodbSourceOptions.INCREMENTAL_SNAPSHOT_CHUNK_SIZE_MB))
                 .ifPresent(builder::splitSizeMB);
+        Optional.ofNullable(config.get(SourceOptions.ENABLE_CONCURRENT_READ))
+                .ifPresent(builder::enableConcurrentRead);
         Optional.ofNullable(startupConfig).ifPresent(builder::startupOptions);
         Optional.ofNullable(stopConfig).ifPresent(builder::stopOptions);
         Optional.ofNullable(config.get(MongodbSourceOptions.WHERE_CONDITION))

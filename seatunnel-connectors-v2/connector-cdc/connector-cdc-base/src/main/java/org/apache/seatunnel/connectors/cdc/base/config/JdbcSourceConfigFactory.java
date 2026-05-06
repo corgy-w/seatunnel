@@ -69,6 +69,8 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
     @Setter
     protected boolean schemaChangeEnabled = JdbcSourceOptions.SCHEMA_CHANGES_ENABLED.defaultValue();
 
+    protected boolean enableConcurrentRead = SourceOptions.ENABLE_CONCURRENT_READ.defaultValue();
+
     protected Properties dbzProperties;
 
     /** String hostname of the database server. */
@@ -225,6 +227,12 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
         return this;
     }
 
+    /** Whether to enable concurrent read with split during snapshot phase. */
+    public JdbcSourceConfigFactory enableConcurrentRead(boolean enableConcurrentRead) {
+        this.enableConcurrentRead = enableConcurrentRead;
+        return this;
+    }
+
     /** The Debezium connector properties. For example, "snapshot.mode". */
     public JdbcSourceConfigFactory debeziumProperties(Properties properties) {
         this.dbzProperties = properties;
@@ -276,6 +284,7 @@ public abstract class JdbcSourceConfigFactory implements SourceConfig.Factory<Jd
         config.getOptional(SourceOptions.DEBEZIUM_PROPERTIES)
                 .ifPresent(map -> dbzProperties.putAll(map));
         this.whereCondition = config.getOptional(JdbcSourceOptions.WHERE_CONDITION).orElse(null);
+        this.enableConcurrentRead = config.get(SourceOptions.ENABLE_CONCURRENT_READ);
         if (config.getOptional(JdbcSourceOptions.TABLE_NAMES_CONFIG).orElse(null) != null) {
             List<JdbcSourceTableConfig> jdbcSourceTableConfigs =
                     config.get(JdbcSourceOptions.TABLE_NAMES_CONFIG);
