@@ -1,10 +1,10 @@
 # SQL UDF
 
-> UDF of SQL transform plugin
+> SQL 转换插件的 UDF 能力
 
-## Description
+## 描述
 
-Use UDF SPI to extend the SQL transform functions lib.
+通过 UDF SPI 扩展 SQL 转换函数库。
 
 ## UDF API
 
@@ -61,7 +61,7 @@ public interface ZetaUDF {
 }
 ```
 
-`ZetaUDFContext` provides runtime row-level metadata and fields:
+`ZetaUDFContext` 提供了运行时行级上下文信息，包含以下字段：
 
 - `getRawTableId()`
 - `getDatabase()`
@@ -70,15 +70,15 @@ public interface ZetaUDF {
 - `getRowKind()`
 - `getAllFields()`
 
-Notes:
+说明：
 
-- `database/schema/table` parsing follows `TablePath.of(tableId)` semantics.
-- If `tableId` is in an unsupported format, accessing `database/schema/table` throws `IllegalArgumentException`.
-- Existing UDFs remain backward compatible and continue using `evaluate(List<Object> args)`.
+- `database/schema/table` 的解析遵循 `TablePath.of(tableId)` 语义。
+- 当 `tableId` 格式不受支持时，访问 `database/schema/table` 会抛出 `IllegalArgumentException`。
+- 已有 UDF 保持向后兼容，仍可继续使用 `evaluate(List<Object> args)`。
 
-## UDF Implements Example
+## UDF 实现示例
 
-Add these dependencies and provided scope to your maven project:
+在你的 Maven 项目中添加以下依赖并使用 `provided` 作用域：
 
 ```xml
 
@@ -105,7 +105,7 @@ Add these dependencies and provided scope to your maven project:
 
 ```
 
-Add a Java Class implements of ZetaUDF like this:
+新增一个 Java 类并实现 `ZetaUDF`，示例如下：
 
 ```java
 
@@ -130,9 +130,9 @@ public class ExampleUDF implements ZetaUDF {
 }
 ```
 
-Package the UDF project and copy the jar to the path: ${SEATUNNEL_HOME}/lib
+打包 UDF 项目后，将 jar 复制到 `${SEATUNNEL_HOME}/lib`。
 
-## Context-aware And Lifecycle UDF Example
+## 上下文感知与生命周期 UDF 示例
 
 ```java
 @AutoService(ZetaUDF.class)
@@ -176,9 +176,9 @@ public class ContextLifecycleUdf implements ZetaUDF {
 }
 ```
 
-## Example
+## 示例
 
-The data read from source is a table like this:
+Source 读取到的数据表如下：
 
 | id |   name   | age |
 |----|----------|-----|
@@ -187,7 +187,7 @@ The data read from source is a table like this:
 | 3  | Kin Dom  | 24  |
 | 4  | Joy Dom  | 22  |
 
-We use UDF of SQL query to transform the source data like this:
+使用 SQL UDF 转换：
 
 ```
 transform {
@@ -199,7 +199,7 @@ transform {
 }
 ```
 
-Then the data in result table `fake1` will update to
+结果表 `fake1` 将变为：
 
 | id |     name      | age |
 |----|---------------|-----|

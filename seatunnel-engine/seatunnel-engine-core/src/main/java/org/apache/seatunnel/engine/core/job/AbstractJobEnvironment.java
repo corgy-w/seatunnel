@@ -17,6 +17,7 @@
 
 package org.apache.seatunnel.engine.core.job;
 
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.api.env.EnvCommonOptions;
 import org.apache.seatunnel.common.config.Common;
 import org.apache.seatunnel.engine.common.config.JobConfig;
@@ -65,25 +66,7 @@ public abstract class AbstractJobEnvironment {
         this.isStartWithSavePoint = isStartWithSavePoint;
         this.idGenerator = new IdGenerator();
         this.commonPluginJars.addAll(searchPluginJars());
-        this.commonPluginJars.addAll(
-                new ArrayList<>(
-                        Common.getThirdPartyJars(
-                                        jobConfig
-                                                .getEnvOptions()
-                                                .getOrDefault(EnvCommonOptions.JARS.key(), "")
-                                                .toString())
-                                .stream()
-                                .map(Path::toUri)
-                                .map(
-                                        uri -> {
-                                            try {
-                                                return uri.toURL();
-                                            } catch (MalformedURLException e) {
-                                                throw new SeaTunnelEngineException(
-                                                        "the uri of jar illegal:" + uri, e);
-                                            }
-                                        })
-                                .collect(Collectors.toList())));
+        addCommonPluginJarsFromEnvOptions(ReadonlyConfig.fromMap(jobConfig.getEnvOptions()));
         LOGGER.info("add common jar in plugins :" + commonPluginJars);
     }
 
@@ -105,6 +88,28 @@ public abstract class AbstractJobEnvironment {
                     String.format("Can't search plugin jars in %s.", Common.pluginRootDir()), e);
         }
         return Collections.emptySet();
+    }
+
+    protected void addCommonPluginJarsFromEnvOptions(ReadonlyConfig envOptions) {
+        envOptions.getOptional(EnvCommonOptions.JARS).map(Common::getThirdPartyJars)
+                .orElse(Collections.emptySet()).stream()
+                .map(Path::toUri)
+                .map(
+                        uri -> {
+                            try {
+                                return uri.toURL();
+                            } catch (MalformedURLException e) {
+                                throw new SeaTunnelEngineException(
+                                        "the uri of jar illegal:" + uri, e);
+                            }
+                        })
+                .forEach(this::addCommonPluginJar);
+    }
+
+    private void addCommonPluginJar(URL jarUrl) {
+        if (!commonPluginJars.contains(jarUrl)) {
+            commonPluginJars.add(jarUrl);
+        }
     }
 
     public static void addCommonPluginJarsToAction(

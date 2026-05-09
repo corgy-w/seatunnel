@@ -17,7 +17,13 @@
 
 package org.apache.seatunnel.engine.client.job;
 
+import org.apache.seatunnel.shade.com.typesafe.config.Config;
+import org.apache.seatunnel.shade.com.typesafe.config.ConfigFactory;
+import org.apache.seatunnel.shade.com.typesafe.config.ConfigResolveOptions;
+
 import org.apache.seatunnel.api.common.JobContext;
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.core.starter.utils.ConfigBuilder;
 import org.apache.seatunnel.engine.client.SeaTunnelHazelcastClient;
 import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
@@ -32,14 +38,23 @@ import org.apache.seatunnel.engine.core.parse.MultipleTableJobConfigParser;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.net.URL;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ClientJobExecutionEnvironment extends AbstractJobEnvironment {
+
+    private static final Pattern PLACEHOLDER_PATTERN =
+            Pattern.compile("\\$\\{([^:{}]+)(?::[^}]*)?\\}");
 
     private final String jobFilePath;
 
@@ -50,6 +65,8 @@ public class ClientJobExecutionEnvironment extends AbstractJobEnvironment {
     private final SeaTunnelConfig seaTunnelConfig;
 
     private final ConnectorPackageClient connectorPackageClient;
+
+    private List<String> variables;
 
     /** If the JobId is not empty, it is used to restore job from savePoint */
     public ClientJobExecutionEnvironment(
@@ -62,6 +79,7 @@ public class ClientJobExecutionEnvironment extends AbstractJobEnvironment {
         super(jobConfig, isStartWithSavePoint);
         this.jobFilePath = jobFilePath;
         this.seaTunnelHazelcastClient = seaTunnelHazelcastClient;
+        this.variables = Collections.emptyList();
         this.jobClient = new JobClient(seaTunnelHazelcastClient);
         this.seaTunnelConfig = seaTunnelConfig;
         Long finalJobId;
@@ -77,11 +95,45 @@ public class ClientJobExecutionEnvironment extends AbstractJobEnvironment {
     public ClientJobExecutionEnvironment(
             JobConfig jobConfig,
             String jobFilePath,
+            List<String> variables,
+            SeaTunnelHazelcastClient seaTunnelHazelcastClient,
+            SeaTunnelConfig seaTunnelConfig,
+            boolean isStartWithSavePoint,
+            Long jobId) {
+        this(
+                jobConfig,
+                jobFilePath,
+                seaTunnelHazelcastClient,
+                seaTunnelConfig,
+                isStartWithSavePoint,
+                jobId);
+        this.variables = variables == null ? Collections.emptyList() : new ArrayList<>(variables);
+    }
+
+    public ClientJobExecutionEnvironment(
+            JobConfig jobConfig,
+            String jobFilePath,
             SeaTunnelHazelcastClient seaTunnelHazelcastClient,
             SeaTunnelConfig seaTunnelConfig) {
         this(jobConfig, jobFilePath, seaTunnelHazelcastClient, seaTunnelConfig, false, null);
     }
 
+    public ClientJobExecutionEnvironment(
+            JobConfig jobConfig,
+            String jobFilePath,
+            List<String> variables,
+            SeaTunnelHazelcastClient seaTunnelHazelcastClient,
+            SeaTunnelConfig seaTunnelConfig,
+            Long jobId) {
+        this(
+                jobConfig,
+                jobFilePath,
+                variables,
+                seaTunnelHazelcastClient,
+                seaTunnelConfig,
+                false,
+                jobId);
+    }
     /** Search all jars in SEATUNNEL_HOME/plugins */
     @Override
     protected MultipleTableJobConfigParser getJobConfigParser() {
@@ -92,13 +144,80 @@ public class ClientJobExecutionEnvironment extends AbstractJobEnvironment {
                     jobClient.getCheckpointData(
                             Long.parseLong(jobConfig.getJobContext().getJobId()));
         }
+        Config seaTunnelJobConfig = ConfigBuilder.of(Paths.get(jobFilePath));
+        Map<String, String> variableMap = parseUserVariables();
+        if (!variableMap.isEmpty()) {
+            seaTunnelJobConfig = replaceConfigVariables(seaTunnelJobConfig, variableMap);
+        }
+        addCommonPluginJarsFromEnvOptions(
+                ReadonlyConfig.fromConfig(seaTunnelJobConfig.getConfig("env")));
         return new MultipleTableJobConfigParser(
-                jobFilePath,
+                seaTunnelJobConfig,
                 idGenerator,
                 jobConfig,
                 commonPluginJars,
                 isStartWithSavePoint,
                 pipelineCheckpoints);
+    }
+
+    private Map<String, String> parseUserVariables() {
+        Map<String, String> variableMap = new HashMap<>();
+        for (String variable : variables) {
+            if (variable == null) {
+                continue;
+            }
+            String[] variablePair = variable.split("=", 2);
+            if (variablePair.length != 2) {
+                continue;
+            }
+            variableMap.put(variablePair[0], variablePair[1]);
+        }
+        return variableMap;
+    }
+
+    private Config replaceConfigVariables(Config config, Map<String, String> variableMap) {
+        Object replaced = replaceObject(config.root().unwrapped(), variableMap);
+        if (!(replaced instanceof Map)) {
+            return config;
+        }
+        return ConfigFactory.parseMap((Map<String, Object>) replaced)
+                .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(true));
+    }
+
+    private Object replaceObject(Object value, Map<String, String> variableMap) {
+        if (value instanceof Map<?, ?>) {
+            Map<String, Object> replacedMap = new LinkedHashMap<>();
+            ((Map<?, ?>) value)
+                    .forEach(
+                            (key, mapValue) ->
+                                    replacedMap.put(
+                                            String.valueOf(key),
+                                            replaceObject(mapValue, variableMap)));
+            return replacedMap;
+        }
+        if (value instanceof List<?>) {
+            List<Object> replacedList = new ArrayList<>();
+            for (Object listValue : (List<?>) value) {
+                replacedList.add(replaceObject(listValue, variableMap));
+            }
+            return replacedList;
+        }
+        if (value instanceof String) {
+            return replaceStringVariable((String) value, variableMap);
+        }
+        return value;
+    }
+
+    private String replaceStringVariable(String value, Map<String, String> variableMap) {
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(value);
+        StringBuffer replaced = new StringBuffer();
+        while (matcher.find()) {
+            String placeholder = matcher.group(1);
+            String replacement = variableMap.getOrDefault(placeholder, matcher.group(0));
+            matcher.appendReplacement(replaced, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(replaced);
+        return replaced.toString();
     }
 
     @Override

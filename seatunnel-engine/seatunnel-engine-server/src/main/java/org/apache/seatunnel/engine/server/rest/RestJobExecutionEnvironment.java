@@ -20,6 +20,7 @@ package org.apache.seatunnel.engine.server.rest;
 import org.apache.seatunnel.shade.com.typesafe.config.Config;
 
 import org.apache.seatunnel.api.common.JobContext;
+import org.apache.seatunnel.api.configuration.ReadonlyConfig;
 import org.apache.seatunnel.engine.common.Constant;
 import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.core.dag.actions.Action;
@@ -102,6 +103,8 @@ public class RestJobExecutionEnvironment extends AbstractJobEnvironment {
                             .getCheckpointService()
                             .getLatestCheckpointData(jobConfig.getJobContext().getJobId());
         }
+        addCommonPluginJarsFromEnvOptions(
+                ReadonlyConfig.fromConfig(seaTunnelJobConfig.getConfig("env")));
         return new MultipleTableJobConfigParser(
                 seaTunnelJobConfig,
                 idGenerator,
