@@ -55,6 +55,7 @@ import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOp
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.SPLIT_INVERSE_SAMPLING_RATE;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.SPLIT_SAMPLE_SHARDING_THRESHOLD;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.SPLIT_SIZE;
+import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.STRING_SPLIT_STRATEGY;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.TABLE_LIST;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.TABLE_PATH;
 import static org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceOptions.WHERE_CONDITION;
@@ -107,6 +108,7 @@ public class JdbcSourceFactory implements TableSourceFactory {
                         SPLIT_EVEN_DISTRIBUTION_FACTOR_LOWER_BOUND,
                         SPLIT_SAMPLE_SHARDING_THRESHOLD,
                         SPLIT_INVERSE_SAMPLING_RATE,
+                        STRING_SPLIT_STRATEGY,
                         SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN,
                         DECIMAL_TYPE_NARROWING,
                         INT_TYPE_NARROWING,

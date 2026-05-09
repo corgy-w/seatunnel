@@ -18,6 +18,7 @@
 package org.apache.seatunnel.connectors.seatunnel.jdbc.config;
 
 import org.apache.seatunnel.api.configuration.ReadonlyConfig;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.source.StringSplitStrategy;
 
 import lombok.Builder;
 import lombok.Data;
@@ -43,6 +44,7 @@ public class JdbcSourceConfig implements Serializable {
     private int splitSampleShardingThreshold;
     private int splitInverseSamplingRate;
     private boolean enableHashSplitterForStringColumn;
+    private StringSplitStrategy stringSplitStrategy;
     private boolean decimalTypeNarrowing;
     @Builder.Default private boolean enableConcurrentRead = true;
 
@@ -70,6 +72,7 @@ public class JdbcSourceConfig implements Serializable {
 
         builder.enableHashSplitterForStringColumn(
                 config.get(JdbcSourceOptions.SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN));
+        builder.stringSplitStrategy(resolveStringSplitStrategy(config));
 
         builder.decimalTypeNarrowing(config.get(JdbcOptions.DECIMAL_TYPE_NARROWING));
 
@@ -86,5 +89,15 @@ public class JdbcSourceConfig implements Serializable {
                         });
 
         return builder.build();
+    }
+
+    private static StringSplitStrategy resolveStringSplitStrategy(ReadonlyConfig config) {
+        if (config.getOptional(JdbcSourceOptions.STRING_SPLIT_STRATEGY).isPresent()) {
+            return config.get(JdbcSourceOptions.STRING_SPLIT_STRATEGY);
+        }
+
+        return config.get(JdbcSourceOptions.SPLIT_ENABLE_HASH_SPLIT_FOR_STRING_COLUMN)
+                ? StringSplitStrategy.HASH
+                : StringSplitStrategy.NONE;
     }
 }

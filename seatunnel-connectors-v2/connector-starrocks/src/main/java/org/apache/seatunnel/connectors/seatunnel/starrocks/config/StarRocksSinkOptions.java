@@ -93,7 +93,7 @@ public interface StarRocksSinkOptions {
     Option<Long> BATCH_MAX_BYTES =
             Options.key("batch_max_bytes")
                     .longType()
-                    .defaultValue((long) (5 * 1024 * 1024))
+                    .defaultValue(5L * 1024 * 1024)
                     .withDescription(
                             "For batch writing, when the number of buffers reaches the number of batch_max_rows or the byte size of batch_max_bytes or the time reaches checkpoint.interval, the data will be flushed into the StarRocks");
 

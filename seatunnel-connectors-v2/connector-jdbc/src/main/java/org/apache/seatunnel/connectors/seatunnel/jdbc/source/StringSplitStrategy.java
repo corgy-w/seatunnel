@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.starrocks;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.source;
 
-import org.apache.seatunnel.connectors.seatunnel.starrocks.config.StarRocksSinkOptions;
-import org.apache.seatunnel.connectors.seatunnel.starrocks.sink.StarRocksSinkFactory;
+public enum StringSplitStrategy {
+    AUTO("auto"),
+    RANGE("range"),
+    HASH("hash"),
+    NONE("none");
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+    private final String strategy;
 
-class StarRocksFactoryTest {
-
-    @Test
-    void optionRule() {
-        Assertions.assertNotNull((new StarRocksSinkFactory()).optionRule());
+    StringSplitStrategy(String strategy) {
+        this.strategy = strategy;
     }
 
-    @Test
-    void defaultBatchOption() {
-        Assertions.assertEquals(1024, StarRocksSinkOptions.BATCH_MAX_SIZE.defaultValue());
-        Assertions.assertEquals(
-                5L * 1024 * 1024, StarRocksSinkOptions.BATCH_MAX_BYTES.defaultValue());
-        Assertions.assertEquals("JSON", StarRocksSinkOptions.LOAD_FORMAT.defaultValue().name());
+    public String getStrategy() {
+        return strategy;
+    }
+
+    @Override
+    public String toString() {
+        return strategy;
     }
 }

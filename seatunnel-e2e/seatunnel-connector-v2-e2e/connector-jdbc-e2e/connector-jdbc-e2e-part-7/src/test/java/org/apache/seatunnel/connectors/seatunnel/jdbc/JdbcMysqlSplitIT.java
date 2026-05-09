@@ -493,6 +493,22 @@ public class JdbcMysqlSplitIT extends TestSuiteBase implements TestResource {
         configMap.put("partition_column", "c_varchar");
         assertStringSplit(splitArray);
 
+        configMap.put("split.string-strategy", "none");
+        splitArray = getCheckedSplitArray(configMap, table, "c_varchar", 1);
+        assertStringSingleSplit(splitArray);
+
+        configMap.put("split.string-strategy", "hash");
+        splitArray = getCheckedSplitArray(configMap, table, "c_varchar", 12);
+        assertStringSplit(splitArray);
+
+        configMap.put("split.string-strategy", "range");
+        splitArray = getCheckedSplitArray(configMap, table, "c_varchar", 12);
+        assertStringRangeSplit(splitArray);
+
+        configMap.put("split.string-strategy", "auto");
+        splitArray = getCheckedSplitArray(configMap, table, "c_varchar", 12);
+        assertStringRangeSplit(splitArray);
+
         mySqlCatalog.close();
     }
 
@@ -513,6 +529,23 @@ public class JdbcMysqlSplitIT extends TestSuiteBase implements TestResource {
                     "SELECT * FROM `auto`.`split_test` WHERE ABS(MD5(`c_varchar`) % 11) = ?",
                     splitArray[i].getSplitQuery());
             Assertions.assertEquals(i, splitArray[i].getSplitStart());
+        }
+    }
+
+    private void assertStringRangeSplit(JdbcSourceSplit[] splitArray) {
+        Assertions.assertTrue(splitArray.length > 1);
+        Assertions.assertNull(splitArray[0].getSplitQuery());
+        Assertions.assertNull(splitArray[0].getSplitStart());
+        for (int i = 0; i < splitArray.length; i++) {
+            if (i == splitArray.length - 1) {
+                Assertions.assertTrue(splitArray[i].isNull());
+                continue;
+            }
+            if (i == splitArray.length - 2) {
+                Assertions.assertNull(splitArray[i].getSplitEnd());
+                continue;
+            }
+            Assertions.assertTrue(splitArray[i].getSplitEnd() instanceof String);
         }
     }
 

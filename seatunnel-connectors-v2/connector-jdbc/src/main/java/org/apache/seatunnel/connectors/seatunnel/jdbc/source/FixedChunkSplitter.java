@@ -71,7 +71,29 @@ public class FixedChunkSplitter extends ChunkSplitter {
             }
         }
         if (SqlType.STRING.equals(splitKeyType.getSqlType())) {
-            return createStringColumnSplits(table, splitKeyName, splitKeyType);
+            switch (resolveStringSplitStrategy(table, splitKeyName)) {
+                case NONE:
+                    return Collections.singletonList(createSingleSplit(table));
+                case HASH:
+                    return createStringColumnSplits(table, splitKeyName, splitKeyType);
+                case RANGE:
+                    return createStringRangeSplits(table, splitKeyName, splitKeyType);
+                case AUTO:
+                    try {
+                        return createStringRangeSplits(table, splitKeyName, splitKeyType);
+                    } catch (Exception e) {
+                        log.warn(
+                                "Range string split failed for table {}, fallback to hash split",
+                                table.getTablePath(),
+                                e);
+                        return createStringColumnSplits(table, splitKeyName, splitKeyType);
+                    }
+                default:
+                    throw new JdbcConnectorException(
+                            CommonErrorCodeDeprecated.ILLEGAL_ARGUMENT,
+                            "Unsupported string split strategy: "
+                                    + config.getStringSplitStrategy());
+            }
         }
 
         BigDecimal partitionStart = table.getPartitionStart();
@@ -93,14 +115,31 @@ public class FixedChunkSplitter extends ChunkSplitter {
     @Override
     protected PreparedStatement createSplitStatement(JdbcSourceSplit split, TableSchema schema)
             throws SQLException {
-        if (SqlType.STRING.equals(split.getSplitKeyType().getSqlType())) {
+        if (isHashStringSplit(split)) {
             return createStringColumnSplitStatement(split);
         }
         if (split.getSplitStart() == null && split.getSplitEnd() == null) {
             return createSingleSplitStatement(split);
         }
+        if (isStringRangeSplit(split)) {
+            return createStringRangeSplitStatement(split);
+        }
 
         return createNumberColumnSplitStatement(split);
+    }
+
+    private boolean isHashStringSplit(JdbcSourceSplit split) {
+        return SqlType.STRING.equals(split.getSplitKeyType().getSqlType())
+                && split.getSplitStart() instanceof Integer
+                && split.getSplitEnd() == null
+                && !split.isNull();
+    }
+
+    private boolean isStringRangeSplit(JdbcSourceSplit split) {
+        return SqlType.STRING.equals(split.getSplitKeyType().getSqlType())
+                && !split.isNull()
+                && (split.getSplitStart() instanceof String
+                        || split.getSplitEnd() instanceof String);
     }
 
     private Collection<JdbcSourceSplit> createStringColumnSplits(
@@ -148,10 +187,86 @@ public class FixedChunkSplitter extends ChunkSplitter {
         return splits;
     }
 
+    private Collection<JdbcSourceSplit> createStringRangeSplits(
+            JdbcSourceTable table, String splitKeyName, SeaTunnelDataType splitKeyType)
+            throws SQLException {
+        Pair<Object, Object> splitColumnRange = queryMinMax(table, splitKeyName);
+        String min =
+                splitColumnRange.getLeft() == null ? null : splitColumnRange.getLeft().toString();
+        String max =
+                splitColumnRange.getRight() == null ? null : splitColumnRange.getRight().toString();
+        if (min == null || max == null || min.equals(max)) {
+            return Collections.singletonList(createSingleSplit(table));
+        }
+
+        String[] rangeResult = AsciiStringRangeSplitter.split(min, max, table.getPartitionNumber());
+        List<JdbcSourceSplit> splits = new ArrayList<>(table.getPartitionNumber());
+        for (int i = 0; i < rangeResult.length - 1; i++) {
+            Object start = i == 0 ? null : rangeResult[i];
+            Object end = i == rangeResult.length - 2 ? null : rangeResult[i + 1];
+            splits.add(
+                    new JdbcSourceSplit(
+                            table.getTablePath(),
+                            createSplitId(table.getTablePath(), i),
+                            table.getQuery(),
+                            splitKeyName,
+                            splitKeyType,
+                            start,
+                            end,
+                            false));
+        }
+        return splits;
+    }
+
     private PreparedStatement createStringColumnSplitStatement(JdbcSourceSplit split)
             throws SQLException {
         PreparedStatement statement = createPreparedStatement(split.getSplitQuery());
         statement.setInt(1, (Integer) split.getSplitStart());
+        return statement;
+    }
+
+    private PreparedStatement createStringRangeSplitStatement(JdbcSourceSplit split)
+            throws SQLException {
+        String splitKeyName = jdbcDialect.quoteIdentifier(split.getSplitKeyName());
+        boolean isFirstSplit = split.getSplitStart() == null;
+        boolean isLastSplit = split.getSplitEnd() == null;
+
+        String condition;
+        if (isFirstSplit) {
+            condition = String.format("%s <= ? AND NOT (%s = ?)", splitKeyName, splitKeyName);
+        } else if (isLastSplit) {
+            condition = String.format("%s >= ?", splitKeyName);
+        } else {
+            condition =
+                    String.format(
+                            "%s >= ? AND NOT (%s = ?) AND %s <= ?",
+                            splitKeyName, splitKeyName, splitKeyName);
+        }
+
+        String splitQuery;
+        if (StringUtils.isNotBlank(split.getSplitQuery())) {
+            splitQuery =
+                    String.format(
+                            "SELECT * FROM (%s) st_jdbc_splitter WHERE %s",
+                            split.getSplitQuery(), condition);
+        } else {
+            splitQuery =
+                    String.format(
+                            "SELECT * FROM %s WHERE %s",
+                            jdbcDialect.tableIdentifier(split.getTablePath()), condition);
+        }
+
+        PreparedStatement statement = createPreparedStatement(splitQuery);
+        if (isFirstSplit) {
+            statement.setString(1, (String) split.getSplitEnd());
+            statement.setString(2, (String) split.getSplitEnd());
+        } else if (isLastSplit) {
+            statement.setString(1, (String) split.getSplitStart());
+        } else {
+            statement.setString(1, (String) split.getSplitStart());
+            statement.setString(2, (String) split.getSplitEnd());
+            statement.setString(3, (String) split.getSplitEnd());
+        }
         return statement;
     }
 

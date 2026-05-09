@@ -24,6 +24,7 @@ import org.apache.seatunnel.api.table.catalog.TablePath;
 import org.apache.seatunnel.api.table.catalog.TableSchema;
 import org.apache.seatunnel.api.table.type.SeaTunnelDataType;
 import org.apache.seatunnel.api.table.type.SeaTunnelRowType;
+import org.apache.seatunnel.api.table.type.SqlType;
 import org.apache.seatunnel.common.exception.CommonErrorCodeDeprecated;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.config.JdbcSourceConfig;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.exception.JdbcConnectorException;
@@ -169,6 +170,45 @@ public abstract class ChunkSplitter implements AutoCloseable, Serializable {
                 null,
                 null,
                 false);
+    }
+
+    protected StringSplitStrategy resolveStringSplitStrategy(
+            JdbcSourceTable table, String splitKeyName) throws SQLException {
+        StringSplitStrategy requestedStrategy =
+                config.getStringSplitStrategy() == null
+                        ? (config.isEnableHashSplitterForStringColumn()
+                                ? StringSplitStrategy.HASH
+                                : StringSplitStrategy.NONE)
+                        : config.getStringSplitStrategy();
+
+        if (requestedStrategy != StringSplitStrategy.RANGE
+                && requestedStrategy != StringSplitStrategy.AUTO) {
+            return requestedStrategy;
+        }
+
+        Connection connection = getOrEstablishConnection();
+        StringRangeSplitDecision decision =
+                jdbcDialect.validateStringRangeSplit(connection, table, splitKeyName, 256);
+        if (decision.isSafe()) {
+            return requestedStrategy;
+        }
+
+        StringSplitStrategy fallbackStrategy =
+                jdbcDialect.supportHashSplitter()
+                        ? StringSplitStrategy.HASH
+                        : StringSplitStrategy.NONE;
+        log.warn(
+                "String range split is unsafe for table {}, split column {}. Requested strategy: {}, fallback strategy: {}, reason: {}",
+                table.getTablePath(),
+                splitKeyName,
+                requestedStrategy,
+                fallbackStrategy,
+                decision.getReason());
+        return fallbackStrategy;
+    }
+
+    protected boolean isStringSplitKey(SeaTunnelRowType splitKeyType) {
+        return SqlType.STRING.equals(splitKeyType.getFieldType(0).getSqlType());
     }
 
     protected PreparedStatement createSingleSplitStatement(JdbcSourceSplit split)

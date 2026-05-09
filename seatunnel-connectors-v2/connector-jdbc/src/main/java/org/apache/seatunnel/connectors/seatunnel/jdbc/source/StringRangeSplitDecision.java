@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.starrocks;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.source;
 
-import org.apache.seatunnel.connectors.seatunnel.starrocks.config.StarRocksSinkOptions;
-import org.apache.seatunnel.connectors.seatunnel.starrocks.sink.StarRocksSinkFactory;
+import lombok.Getter;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+@Getter
+public class StringRangeSplitDecision {
 
-class StarRocksFactoryTest {
+    private final boolean safe;
+    private final String reason;
 
-    @Test
-    void optionRule() {
-        Assertions.assertNotNull((new StarRocksSinkFactory()).optionRule());
+    private StringRangeSplitDecision(boolean safe, String reason) {
+        this.safe = safe;
+        this.reason = reason;
     }
 
-    @Test
-    void defaultBatchOption() {
-        Assertions.assertEquals(1024, StarRocksSinkOptions.BATCH_MAX_SIZE.defaultValue());
-        Assertions.assertEquals(
-                5L * 1024 * 1024, StarRocksSinkOptions.BATCH_MAX_BYTES.defaultValue());
-        Assertions.assertEquals("JSON", StarRocksSinkOptions.LOAD_FORMAT.defaultValue().name());
+    public static StringRangeSplitDecision safe(String reason) {
+        return new StringRangeSplitDecision(true, reason);
+    }
+
+    public static StringRangeSplitDecision unsafe(String reason) {
+        return new StringRangeSplitDecision(false, reason);
     }
 }

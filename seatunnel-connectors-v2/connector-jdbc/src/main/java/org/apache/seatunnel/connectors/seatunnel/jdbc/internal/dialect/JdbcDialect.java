@@ -34,6 +34,7 @@ import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.connection.Simple
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.converter.JdbcRowConverter;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.internal.dialect.dialectenum.FieldIdeEnum;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.source.JdbcSourceTable;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.source.StringRangeSplitDecision;
 import org.apache.seatunnel.connectors.seatunnel.jdbc.utils.DefaultValueUtils;
 
 import org.apache.commons.lang3.StringUtils;
@@ -773,6 +774,14 @@ public interface JdbcDialect extends Serializable {
 
     default String convertType(String columnName, String columnType) {
         return columnName;
+    }
+
+    /** Dialects must opt in after verifying collation and key-shape constraints. */
+    default StringRangeSplitDecision validateStringRangeSplit(
+            Connection connection, JdbcSourceTable table, String columnName, int sampleSize)
+            throws SQLException {
+        return StringRangeSplitDecision.unsafe(
+                "string range split is not validated for this JDBC dialect");
     }
 
     default boolean supportHashSplitter() {

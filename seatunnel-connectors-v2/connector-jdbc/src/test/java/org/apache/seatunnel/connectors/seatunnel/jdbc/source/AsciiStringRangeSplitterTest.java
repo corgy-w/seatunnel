@@ -15,26 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.seatunnel.connectors.seatunnel.starrocks;
+package org.apache.seatunnel.connectors.seatunnel.jdbc.source;
 
-import org.apache.seatunnel.connectors.seatunnel.starrocks.config.StarRocksSinkOptions;
-import org.apache.seatunnel.connectors.seatunnel.starrocks.sink.StarRocksSinkFactory;
-
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-class StarRocksFactoryTest {
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+public class AsciiStringRangeSplitterTest {
 
     @Test
-    void optionRule() {
-        Assertions.assertNotNull((new StarRocksSinkFactory()).optionRule());
-    }
-
-    @Test
-    void defaultBatchOption() {
-        Assertions.assertEquals(1024, StarRocksSinkOptions.BATCH_MAX_SIZE.defaultValue());
-        Assertions.assertEquals(
-                5L * 1024 * 1024, StarRocksSinkOptions.BATCH_MAX_BYTES.defaultValue());
-        Assertions.assertEquals("JSON", StarRocksSinkOptions.LOAD_FORMAT.defaultValue().name());
+    public void testRejectVariableLengthRange() {
+        assertThrows(
+                IllegalArgumentException.class, () -> AsciiStringRangeSplitter.split("aa", "z", 2));
     }
 }

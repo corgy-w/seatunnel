@@ -19,6 +19,7 @@ package org.apache.seatunnel.connectors.seatunnel.jdbc.config;
 
 import org.apache.seatunnel.api.configuration.Option;
 import org.apache.seatunnel.api.configuration.Options;
+import org.apache.seatunnel.connectors.seatunnel.jdbc.source.StringSplitStrategy;
 
 import java.util.List;
 
@@ -99,6 +100,13 @@ public interface JdbcSourceOptions {
                     .booleanType()
                     .defaultValue(false)
                     .withDescription("Enable hash split for string column, default is false.");
+
+    Option<StringSplitStrategy> STRING_SPLIT_STRATEGY =
+            Options.key("split.string-strategy")
+                    .enumType(StringSplitStrategy.class)
+                    .noDefaultValue()
+                    .withDescription(
+                            "Controls how String partition columns are split. `range` uses range-based splitting, `hash` uses hash-based splitting, `none` disables String splitting, and `auto` prefers range splitting then falls back to hash when needed.");
 
     Option<Boolean> ENABLE_CONCURRENT_READ =
             Options.key("enable_concurrent_read")
