@@ -26,7 +26,9 @@ import org.apache.seatunnel.engine.common.config.JobConfig;
 import org.apache.seatunnel.engine.common.config.SeaTunnelConfig;
 import org.apache.seatunnel.engine.common.utils.PassiveCompletableFuture;
 import org.apache.seatunnel.engine.core.job.JobDAGInfo;
+import org.apache.seatunnel.engine.core.metrics.ClusterNodeMetrics;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetClusterHealthMetricsCodec;
+import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetClusterNodeMetricsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelPrintMessageCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelRefreshLicenseCodec;
 
@@ -208,6 +210,34 @@ public class SeaTunnelClient implements SeaTunnelClientInstance, AutoCloseable {
                 });
 
         return healthMetricsMap;
+    }
+
+    private ClusterNodeMetrics getNodeMetricsByMember(Member member) {
+        if (FAKE_HOST.equals(member.getAddress().getHost())) {
+            return new ClusterNodeMetrics(
+                    member.getAddress().getHost(),
+                    member.getAddress().getPort(),
+                    false,
+                    null,
+                    null,
+                    new LinkedHashMap<>());
+        }
+        String metrics =
+                hazelcastClient.requestAndDecodeResponse(
+                        member.getUuid(),
+                        SeaTunnelGetClusterNodeMetricsCodec.encodeRequest(),
+                        SeaTunnelGetClusterNodeMetricsCodec::decodeResponse);
+        return JsonUtils.parseObject(metrics, ClusterNodeMetrics.class);
+    }
+
+    public Map<String, ClusterNodeMetrics> getClusterNodeMetrics() {
+        Set<Member> members = hazelcastClient.getHazelcastInstance().getCluster().getMembers();
+        Map<String, ClusterNodeMetrics> metricsMap = new LinkedHashMap<>();
+        members.forEach(
+                member ->
+                        metricsMap.put(
+                                member.getAddress().toString(), getNodeMetricsByMember(member)));
+        return metricsMap;
     }
 
     public byte[] packageJobLogs(Long jobId) {

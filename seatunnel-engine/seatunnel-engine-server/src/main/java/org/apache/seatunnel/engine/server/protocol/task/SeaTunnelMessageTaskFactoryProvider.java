@@ -19,6 +19,7 @@ package org.apache.seatunnel.engine.server.protocol.task;
 
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelCancelJobCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetClusterHealthMetricsCodec;
+import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetClusterNodeMetricsCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobCheckpointCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobDetailStatusCodec;
 import org.apache.seatunnel.engine.core.protocol.codec.SeaTunnelGetJobInfoCodec;
@@ -103,6 +104,10 @@ public class SeaTunnelMessageTaskFactoryProvider implements MessageTaskFactoryPr
                 SeaTunnelGetClusterHealthMetricsCodec.REQUEST_MESSAGE_TYPE,
                 (clientMessage, connection) ->
                         new GetClusterHealthMetricsTask(clientMessage, node, connection));
+        factories.put(
+                SeaTunnelGetClusterNodeMetricsCodec.REQUEST_MESSAGE_TYPE,
+                (clientMessage, connection) ->
+                        new GetClusterNodeMetricsTask(clientMessage, node, connection));
         factories.put(
                 SeaTunnelGetRunningJobMetricsCodec.REQUEST_MESSAGE_TYPE,
                 (clientMessage, connection) ->
